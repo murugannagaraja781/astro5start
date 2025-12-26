@@ -19,6 +19,8 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.browser.customtabs.CustomTabColorSchemeParams;
+import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -279,16 +281,59 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Open URL in device's default browser
+     * Open URL in Chrome Custom Tabs (better than external browser)
      */
     private void openInExternalBrowser(String url) {
         try {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
+            // Check if this is a payment URL - use Chrome Custom Tabs
+            if (url.contains("payment.html") || url.contains("phonepe.com") || url.contains("token=")) {
+                openInCustomTabs(url);
+            } else if (url.startsWith("upi://") || url.startsWith("intent://") ||
+                    url.startsWith("phonepe://") || url.startsWith("paytmmp://")) {
+                // UPI/Intent URLs must use ACTION_VIEW
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+            } else {
+                // Other external URLs - use Chrome Custom Tabs
+                openInCustomTabs(url);
+            }
         } catch (Exception e) {
             e.printStackTrace();
             showToast("Cannot open link");
+        }
+    }
+
+    /**
+     * Open URL in Chrome Custom Tabs with app theming
+     */
+    private void openInCustomTabs(String url) {
+        try {
+            // Build Custom Tabs with app branding
+            CustomTabColorSchemeParams colorScheme = new CustomTabColorSchemeParams.Builder()
+                    .setToolbarColor(ContextCompat.getColor(this, R.color.primary))
+                    .setNavigationBarColor(ContextCompat.getColor(this, R.color.primary))
+                    .build();
+
+            CustomTabsIntent customTabsIntent = new CustomTabsIntent.Builder()
+                    .setDefaultColorSchemeParams(colorScheme)
+                    .setShowTitle(true)
+                    .setUrlBarHidingEnabled(true)
+                    .build();
+
+            // Important: This keeps the custom tab in the same task
+            customTabsIntent.intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+            customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+            customTabsIntent.launchUrl(this, Uri.parse(url));
+
+            android.util.Log.d("Payment", "Opened Chrome Custom Tab: " + url);
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Fallback to regular browser
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
         }
     }
 

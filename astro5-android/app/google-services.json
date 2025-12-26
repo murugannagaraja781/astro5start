@@ -1,0 +1,86 @@
+{
+  "project_info": {
+    "project_number": "853194093614",
+    "project_id": "astro5star-9f6ca",
+    "storage_bucket": "astro5star-9f6ca.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:853194093614:android:29678bddd48ead0fa45bbf",
+        "android_client_info": {
+          "package_name": "com.astro5star.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXbyLnyON8i0YMQMCz1ICe5vHQJbwSLlo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:853194093614:android:29678bddd48ead0fa45bbf",
+        "android_client_info": {
+          "package_name": "com.astro5star.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXbyLnyON8i0YMQMCz1ICe5vHQJbwSLlo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:853194093614:android:3869fe74b8e33914a45bbf",
+        "android_client_info": {
+          "package_name": "com.callingapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXbyLnyON8i0YMQMCz1ICe5vHQJbwSLlo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:853194093614:android:920569c74ffae071a45bbf",
+        "android_client_info": {
+          "package_name": "com.mobilenativeapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXbyLnyON8i0YMQMCz1ICe5vHQJbwSLlo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

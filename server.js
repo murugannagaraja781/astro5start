@@ -205,6 +205,7 @@ const Withdrawal = mongoose.model('Withdrawal', WithdrawalSchema);
 
 const PaymentSchema = new mongoose.Schema({
   transactionId: { type: String, unique: true },
+  merchantTransactionId: String, // For PhonePe callback matching
   userId: String,
   amount: Number, // in Rupees
   status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },
@@ -929,6 +930,48 @@ io.on('connection', (socket) => {
         type,
         birthData: birthData || null
       });
+
+      // Send FCM Push Notification to wake up app if in background/killed
+      if (toUser && toUser.fcmToken) {
+        try {
+          const fcmPayload = {
+            to: toUser.fcmToken,
+            priority: 'high',
+            data: {
+              type: 'incoming_call',
+              callId: sessionId,
+              callType: type,
+              callerName: fromUser?.name || 'Client',
+              fromUserId: fromUserId,
+              title: 'Incoming Call',
+              body: `${fromUser?.name || 'Someone'} is calling (${type})`
+            },
+            notification: {
+              title: '📞 Incoming Call',
+              body: `${fromUser?.name || 'Someone'} is calling you`,
+              android_channel_id: 'astro5_calls',
+              sound: 'default'
+            }
+          };
+
+          const FCM_SERVER_KEY = process.env.FCM_SERVER_KEY || "BKHoplA5AZRRiId8evnceHKysAFH8kzHTYv0jE2N041TYdKgk1mP9dslrt7a0bY0f7Sxe4JfDYr-vdKS82mBVEM";
+
+          fetch('https://fcm.googleapis.com/fcm/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `key=${FCM_SERVER_KEY}`
+            },
+            body: JSON.stringify(fcmPayload)
+          }).then(res => res.json()).then(fcmRes => {
+            console.log(`[FCM] Session Push to ${toUserId}: Success=${fcmRes.success}`);
+          }).catch(err => {
+            console.error('[FCM] Session Push Error:', err.message);
+          });
+        } catch (fcmErr) {
+          console.error('[FCM] Error sending push:', fcmErr);
+        }
+      }
 
       console.log(`Session request: ${sessionId} (${type})`);
       cb({ ok: true, sessionId });
@@ -2154,8 +2197,14 @@ app.post('/api/payment/callback', async (req, res) => {
 
     console.log(`Payment Callback: ${merchantTransactionId} | Status: ${code}`);
 
-    const payment = await Payment.findOne({ merchantTransactionId });
+    const payment = await Payment.findOne({
+      $or: [
+        { transactionId: merchantTransactionId },
+        { merchantTransactionId: merchantTransactionId }
+      ]
+    });
     if (!payment) {
+      console.error('Payment not found for:', merchantTransactionId);
       return res.redirect('/?status=fail&reason=not_found');
     }
 
