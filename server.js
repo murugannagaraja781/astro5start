@@ -188,7 +188,7 @@ const BillingLedgerSchema = new mongoose.Schema({
   chargedToClient: Number,
   creditedToAstrologer: Number,
   adminAmount: Number,
-  reason: { type: String, enum: ['first_60', 'slab', 'rounded', 'payout_withdrawal'] },
+  reason: { type: String, enum: ['first_60', 'first_60_partial', 'slab', 'rounded', 'payout_withdrawal'] },
   createdAt: { type: Date, default: Date.now }
 });
 const BillingLedger = mongoose.model('BillingLedger', BillingLedgerSchema);
@@ -2221,9 +2221,14 @@ app.post('/api/payment/callback', async (req, res) => {
     }
 
     const decoded = JSON.parse(Buffer.from(base64Response, 'base64').toString('utf-8'));
-    const { code, merchantTransactionId, providerReferenceId } = decoded;
+
+    // PhonePe response format: { success, code, data: { merchantTransactionId, ... } }
+    const code = decoded.code;
+    const merchantTransactionId = decoded.data?.merchantTransactionId || decoded.merchantTransactionId;
+    const providerReferenceId = decoded.data?.providerReferenceId || decoded.providerReferenceId;
 
     console.log(`Payment Callback: ${merchantTransactionId} | Status: ${code}`);
+    console.log(`[DEBUG] Full decoded response:`, JSON.stringify(decoded).substring(0, 300));
 
     const payment = await Payment.findOne({
       $or: [
