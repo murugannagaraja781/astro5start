@@ -4610,6 +4610,13 @@
     socket.on('session-ended', endLocal);
 
     function endLocal(data) {
+      // Stop incoming ringtone if still playing
+      if (window.incomingAudio) {
+        window.incomingAudio.pause();
+        window.incomingAudio.currentTime = 0;
+        window.incomingAudio = null;
+      }
+
       if (data && data.reason === 'insufficient_funds') {
         showLowBalanceAlert(state.me.walletBalance || 0, "Current session ended due to insufficient funds. Please recharge to continue.");
       } else if (data && data.summary) {
