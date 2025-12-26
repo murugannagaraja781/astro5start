@@ -6,7 +6,7 @@
 # Usage: sudo bash autodeploy.sh
 
 # --- CONFIGURATION (Hardcoded for Automation) ---
-REPO_URL="https://github.com/murugannagaraja781/astrofivestar"
+REPO_URL="https://github.com/murugannagaraja781/astro5start.git"
 APP_DIR="/var/www/astrofivestar"
 DOMAIN="astro5star.com"
 PORT=3000
