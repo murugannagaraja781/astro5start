@@ -1890,12 +1890,12 @@ app.post('/api/call/accept', async (req, res) => {
 
 
 // ===== Payment Gateway Logic (PhonePe) =====
-// REPLACE THESE WITH REAL CREDENTIALS (MID, Salt, Index)
-// Payment Gateway Config (PhonePe)
-const PHONEPE_MERCHANT_ID = "M22LBBWEJKI6A";
-const PHONEPE_SALT_KEY = "ba824dad-ed66-4cec-9d76-4c1e0b118eb1";
-const PHONEPE_SALT_INDEX = 1;
-const PHONEPE_HOST_URL = "https://api.phonepe.com/apis/hermes"; // Production URL
+// Configuration from environment variables
+// Payment Gateway Config (PhonePe) - All values from .env
+const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || "M22LBBWEJKI6A";
+const PHONEPE_SALT_KEY = process.env.PHONEPE_SALT_KEY || "ba824dad-ed66-4cec-9d76-4c1e0b118eb1";
+const PHONEPE_SALT_INDEX = parseInt(process.env.PHONEPE_SALT_INDEX) || 1;
+const PHONEPE_HOST_URL = process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis/hermes"; // Production URL
 
 // ===== Payment Token Store (In-Memory) =====
 // Token → { userId, amount, createdAt, used }
