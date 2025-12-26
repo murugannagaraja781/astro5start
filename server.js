@@ -2071,7 +2071,7 @@ app.post('/api/payment/create', async (req, res) => {
         amount: amount * 100, // Amount in Paise
         redirectUrl: redirectUrl,
         redirectMode: "POST",
-        callbackUrl: `https://astro5star.com/api/payment/callback`,
+        callbackUrl: `https://astro5star.com/api/payment/callback?isApp=true`,
         mobileNumber: userMobile,
         paymentInstrument: {
           type: "PAY_PAGE"
@@ -2196,7 +2196,15 @@ app.post('/api/payment/callback', async (req, res) => {
     const base64Response = req.body.response;
     if (!base64Response) {
       console.log('[CALLBACK ERROR] No base64Response found');
-      return res.redirect('/?status=fail');
+      // Return HTML with alert instead of redirect
+      return res.send(`
+        <html><body>
+        <script>alert('ERROR: No payment response received!\\n\\nQuery: ${JSON.stringify(req.query)}');</script>
+        <h1>Payment Error</h1>
+        <p>No response from PhonePe</p>
+        <a href="astro5://payment-failed">Back to App</a>
+        </body></html>
+      `);
     }
 
     const decoded = JSON.parse(Buffer.from(base64Response, 'base64').toString('utf-8'));
