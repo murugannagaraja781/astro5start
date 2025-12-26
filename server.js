@@ -2060,9 +2060,14 @@ app.post('/api/payment/callback', async (req, res) => {
         targetUrl = `https://astro5star.com/wallet?status=success`;
       }
 
-      // Render HTML for App Deep Link (Bypasses Chrome Blocking)
+      // Render HTML for App Deep Link (Using Android Intent URL for Chrome)
       if (req.query.isApp === 'true') {
         const txnId = merchantTransactionId || '';
+
+        // Android Intent URL format - Chrome will open this properly
+        const intentUrl = `intent://payment-success?status=success&txnId=${txnId}#Intent;scheme=astro5;package=com.astro5star.app;end`;
+        const fallbackUrl = `astro5://payment-success?status=success&txnId=${txnId}`;
+
         const html = `
             <!DOCTYPE html>
             <html>
@@ -2071,27 +2076,50 @@ app.post('/api/payment/callback', async (req, res) => {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Payment Successful</title>
                 <style>
-                  body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#f0f9f4; margin:0; }
+                  body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#f0f9f4; margin:0; padding:20px; text-align:center; }
                   .success-icon { font-size:80px; color:#10B981; margin-bottom:20px; }
                   h1 { color:#047857; margin:0 0 10px; }
                   p { color:#666; margin:10px 0; }
-                  .btn { display:inline-block; padding:15px 40px; background:#047857; color:white; text-decoration:none; border-radius:8px; font-weight:bold; margin-top:20px; }
+                  .btn { display:inline-block; padding:15px 40px; background:#047857; color:white; text-decoration:none; border-radius:8px; font-weight:bold; margin-top:20px; font-size:16px; }
+                  .btn:active { background:#065F46; }
                 </style>
               </head>
               <body>
                 <div class="success-icon">✓</div>
                 <h1>Payment Successful!</h1>
-                <p>Redirecting to app...</p>
-                <a href="${targetUrl}&txnId=${txnId}" class="btn">Open App</a>
-                <script>
-                  // Immediate redirect attempt
-                  window.location.replace("${targetUrl}&txnId=${txnId}");
+                <p>Your wallet has been credited.</p>
+                <p style="font-size:14px; color:#999;">Tap the button if not redirected automatically</p>
+                <a href="${intentUrl}" class="btn" id="openAppBtn">Open App</a>
 
-                  // Fallback after 500ms
-                  setTimeout(function() {
-                    window.location.href = "${targetUrl}&txnId=${txnId}";
-                  }, 500);
+                <script>
+                  // Try Intent URL first (works on Chrome Android)
+                  function openApp() {
+                    // Try intent:// first
+                    window.location.href = "${intentUrl}";
+
+                    // Fallback to custom scheme after 1 second
+                    setTimeout(function() {
+                      window.location.href = "${fallbackUrl}";
+                    }, 1000);
+
+                    // If still here after 2 seconds, show the button prominently
+                    setTimeout(function() {
+                      document.getElementById('openAppBtn').style.animation = 'pulse 1s infinite';
+                      document.getElementById('openAppBtn').style.fontSize = '18px';
+                    }, 2000);
+                  }
+
+                  // Auto-trigger on page load
+                  openApp();
                 </script>
+
+                <style>
+                  @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                    100% { transform: scale(1); }
+                  }
+                </style>
               </body>
             </html>
           `;
@@ -2113,6 +2141,10 @@ app.post('/api/payment/callback', async (req, res) => {
       }
 
       if (req.query.isApp === 'true') {
+        // Android Intent URL format for Chrome
+        const intentUrl = `intent://payment-failed?status=failed#Intent;scheme=astro5;package=com.astro5star.app;end`;
+        const fallbackUrl = `astro5://payment-failed?status=failed`;
+
         const html = `
             <!DOCTYPE html>
             <html>
@@ -2121,23 +2153,24 @@ app.post('/api/payment/callback', async (req, res) => {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Payment Failed</title>
                 <style>
-                  body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#fef2f2; margin:0; }
+                  body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#fef2f2; margin:0; padding:20px; text-align:center; }
                   .fail-icon { font-size:80px; color:#EF4444; margin-bottom:20px; }
                   h1 { color:#DC2626; margin:0 0 10px; }
                   p { color:#666; margin:10px 0; }
-                  .btn { display:inline-block; padding:15px 40px; background:#6B7280; color:white; text-decoration:none; border-radius:8px; font-weight:bold; margin-top:20px; }
+                  .btn { display:inline-block; padding:15px 40px; background:#6B7280; color:white; text-decoration:none; border-radius:8px; font-weight:bold; margin-top:20px; font-size:16px; }
                 </style>
               </head>
               <body>
                 <div class="fail-icon">✗</div>
                 <h1>Payment Failed</h1>
-                <p>Redirecting to app...</p>
-                <a href="${targetUrl}" class="btn">Open App</a>
+                <p>Please try again.</p>
+                <p style="font-size:14px; color:#999;">Tap the button if not redirected automatically</p>
+                <a href="${intentUrl}" class="btn">Return to App</a>
                 <script>
-                  window.location.replace("${targetUrl}");
+                  window.location.href = "${intentUrl}";
                   setTimeout(function() {
-                    window.location.href = "${targetUrl}";
-                  }, 500);
+                    window.location.href = "${fallbackUrl}";
+                  }, 1000);
                 </script>
               </body>
             </html>
