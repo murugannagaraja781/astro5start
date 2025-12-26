@@ -4575,7 +4575,12 @@
         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'KEEP_AWAKE', enable: false }));
       }
 
-
+      // Clear remote video stream properly
+      const remoteVideo = document.getElementById('remoteVideo');
+      if (remoteVideo && remoteVideo.srcObject) {
+        remoteVideo.srcObject.getTracks().forEach(t => t.stop());
+        remoteVideo.srcObject = null;
+      }
 
       document.querySelector('.video-area').style.cssText = '';
       document.getElementById('localVideo').srcObject = null;
