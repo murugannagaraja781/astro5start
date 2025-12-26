@@ -3567,6 +3567,22 @@
     const socket = io();
     state.socket = socket;
 
+    // Auto-refresh wallet when user returns to app (after payment)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && state.me && state.socket) {
+        console.log('[WALLET] App visible - refreshing wallet...');
+        state.socket.emit('get-wallet', { userId: state.me.userId });
+      }
+    });
+
+    // Also refresh on page focus (for desktop)
+    window.addEventListener('focus', () => {
+      if (state.me && state.socket) {
+        console.log('[WALLET] Window focused - refreshing wallet...');
+        state.socket.emit('get-wallet', { userId: state.me.userId });
+      }
+    });
+
     // DOM Elements
     const sLogin = document.getElementById('screen-login');
     const sClient = document.getElementById('screen-client');
