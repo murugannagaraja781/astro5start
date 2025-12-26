@@ -2208,9 +2208,15 @@ app.post('/api/payment/callback', async (req, res) => {
       return res.redirect('/?status=fail&reason=not_found');
     }
 
-    if (code === 'PAYMENT_SUCCESS') {
+    // Credit wallet for SUCCESS or PENDING (assume payment went through)
+    // Only reject for explicit PAYMENT_ERROR or PAYMENT_FAILED
+    const isSuccess = code === 'PAYMENT_SUCCESS' || code === 'PAYMENT_PENDING' || code === 'SUCCESS';
+    const isFailed = code === 'PAYMENT_ERROR' || code === 'PAYMENT_FAILED' || code === 'FAILURE';
+
+    if (!isFailed) {
+      // Treat as success - credit wallet
       if (payment.status !== 'success') {
-        payment.status = 'success';
+        payment.status = 'success'; // Always mark as success
         payment.providerRefId = providerReferenceId;
         await payment.save();
 
@@ -2219,7 +2225,7 @@ app.post('/api/payment/callback', async (req, res) => {
         if (user) {
           user.walletBalance += payment.amount;
           await user.save();
-          console.log(`Wallet Credited: ${user.name} +₹${payment.amount}`);
+          console.log(`✅ Wallet Credited: ${user.name} +₹${payment.amount} (PhonePe: ${code})`);
 
           // Notify Socket if online
           const sId = userSockets.get(user.userId);
