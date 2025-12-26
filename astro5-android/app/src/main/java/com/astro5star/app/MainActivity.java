@@ -258,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Set WebChromeClient for progress
+        // Set WebChromeClient for progress and permissions
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onProgressChanged(WebView view, int newProgress) {
@@ -268,6 +268,25 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     progressBar.setVisibility(View.VISIBLE);
                 }
+            }
+
+            // Handle WebRTC permission requests (Camera, Microphone)
+            @Override
+            public void onPermissionRequest(final android.webkit.PermissionRequest request) {
+                android.util.Log.d("WebRTC",
+                        "Permission request: " + java.util.Arrays.toString(request.getResources()));
+
+                runOnUiThread(() -> {
+                    // Auto-grant camera and microphone for WebRTC
+                    request.grant(request.getResources());
+                });
+            }
+
+            // Handle Geolocation permission (if needed)
+            @Override
+            public void onGeolocationPermissionsShowPrompt(String origin,
+                    android.webkit.GeolocationPermissions.Callback callback) {
+                callback.invoke(origin, true, false);
             }
         });
     }
