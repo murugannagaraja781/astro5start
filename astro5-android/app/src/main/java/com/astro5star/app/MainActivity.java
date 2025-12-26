@@ -470,12 +470,25 @@ public class MainActivity extends AppCompatActivity {
         webView.onResume();
 
         // Trigger wallet refresh when returning from Chrome Custom Tab (payment)
-        webView.evaluateJavascript(
-                "if (window.state && window.state.socket && window.state.me) { " +
-                        "  console.log('[WALLET] Android onResume - refreshing wallet...'); " +
-                        "  window.state.socket.emit('get-wallet', { userId: window.state.me.userId }); " +
-                        "}",
-                null);
+        // Use postDelayed to ensure WebView is fully ready
+        webView.postDelayed(() -> {
+            webView.evaluateJavascript(
+                    "if (window.state && window.state.socket && window.state.me) { " +
+                            "  console.log('[WALLET] Android onResume - refreshing wallet...'); " +
+                            "  window.state.socket.emit('get-wallet', { userId: window.state.me.userId }); " +
+                            "} else { console.log('[WALLET] State not ready, will retry...'); }",
+                    null);
+        }, 500); // 500ms delay to ensure WebView is ready
+
+        // Retry after 2 seconds in case first attempt failed
+        webView.postDelayed(() -> {
+            webView.evaluateJavascript(
+                    "if (window.state && window.state.socket && window.state.me) { " +
+                            "  console.log('[WALLET] Android onResume retry - refreshing wallet...'); " +
+                            "  window.state.socket.emit('get-wallet', { userId: window.state.me.userId }); " +
+                            "}",
+                    null);
+        }, 2000); // 2 second retry
     }
 
     @Override
