@@ -1687,12 +1687,14 @@
     <div class="form-box">
       <h2>✨Astro5 Login</h2>
       <div id="step-phone">
-        <input id="inputPhone" class="cosmic-input" placeholder="Mobile Number" value="">
+        <input id="inputPhone" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="10" class="cosmic-input"
+          placeholder="10 Digit Mobile Number" value="" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
         <button id="btnSendOtp" class="cosmic-btn">Get OTP</button>
 
       </div>
       <div id="step-otp" class="hidden">
-        <input id="inputOtp" class="cosmic-input" placeholder="OTP" value="">
+        <input id="inputOtp" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" class="cosmic-input"
+          placeholder="Enter 4-digit OTP" value="" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
         <button id="btnVerifyOtp" class="cosmic-btn">Verify</button>
       </div>
     </div>
@@ -3657,8 +3659,9 @@
 
     // Login Handlers
     document.getElementById('btnSendOtp').onclick = async () => {
-      const phone = document.getElementById('inputPhone').value;
-      if (!phone) { alert('Enter Phone'); return; }
+      const phone = document.getElementById('inputPhone').value.replace(/[^0-9]/g, '');
+      if (!phone) { alert('Enter Phone Number'); return; }
+      if (phone.length !== 10) { alert('Please enter a valid 10-digit mobile number'); return; }
 
       const btn = document.getElementById('btnSendOtp');
       const original = btn.textContent;
