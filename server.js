@@ -2208,12 +2208,12 @@ app.post('/api/payment/callback', async (req, res) => {
       return res.redirect('/?status=fail&reason=not_found');
     }
 
-    // Credit wallet for SUCCESS or PENDING (assume payment went through)
-    // Only reject for explicit PAYMENT_ERROR or PAYMENT_FAILED
-    const isSuccess = code === 'PAYMENT_SUCCESS' || code === 'PAYMENT_PENDING' || code === 'SUCCESS';
+
+    // Credit wallet ONLY for SUCCESS (not pending)
+    const isSuccess = code === 'PAYMENT_SUCCESS' || code === 'SUCCESS';
     const isFailed = code === 'PAYMENT_ERROR' || code === 'PAYMENT_FAILED' || code === 'FAILURE';
 
-    if (!isFailed) {
+    if (isSuccess) {
       // Treat as success - credit wallet
       if (payment.status !== 'success') {
         payment.status = 'success'; // Always mark as success
