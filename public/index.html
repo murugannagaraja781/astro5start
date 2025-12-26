@@ -3601,6 +3601,13 @@
             state.me = { ...session, ...ack };
             saveSession(state.me); // Update localStorage with fresh data
 
+            // Send FCM token to server for push notifications
+            const fcmToken = localStorage.getItem('fcmToken');
+            if (fcmToken) {
+              socket.emit('save-fcm-token', { fcmToken });
+              console.log('[FCM] Token sent to server (session restore)');
+            }
+
             sLogin.classList.add('hidden');
             if (state.me.role === 'astrologer') loadAstroDash(state.me);
             else if (state.me.role === 'superadmin') loadAdminDash(state.me);
@@ -3699,6 +3706,13 @@
         saveSession(res);
 
         socket.emit('register', { name: res.name, phone: phone }, (ack) => {
+          // Send FCM token to server for push notifications
+          const fcmToken = localStorage.getItem('fcmToken');
+          if (fcmToken) {
+            socket.emit('save-fcm-token', { fcmToken });
+            console.log('[FCM] Token sent to server');
+          }
+
           sLogin.classList.add('hidden');
           if (res.role === 'astrologer') {
             loadAstroDash(res);

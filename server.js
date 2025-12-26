@@ -1597,6 +1597,19 @@ io.on('connection', (socket) => {
     }
   });
 
+  // --- Save FCM Token (for push notifications) ---
+  socket.on('save-fcm-token', async ({ fcmToken }) => {
+    const userId = socketToUser.get(socket.id);
+    if (!userId || !fcmToken) return;
+
+    try {
+      await User.updateOne({ userId }, { fcmToken });
+      console.log(`[FCM] Token saved for user: ${userId.substring(0, 8)}...`);
+    } catch (e) {
+      console.error('[FCM] Error saving token:', e);
+    }
+  });
+
   // --- Get Wallet (Manual Refresh) ---
   socket.on('get-wallet', async (data) => {
     const userId = socketToUser.get(socket.id);
