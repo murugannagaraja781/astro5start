@@ -382,12 +382,19 @@
             document.getElementById('payBtn').disabled = true;
 
             try {
+                // Detect if running in Android app (WebView or Chrome Custom Tab)
+                const userAgent = navigator.userAgent || '';
+                const isAndroidApp = userAgent.includes('Android') &&
+                    (userAgent.includes('wv') || // WebView
+                        !userAgent.includes('Chrome/') || // Not Chrome browser
+                        document.referrer.includes('astro5star.com')); // Came from our app
+
                 const response = await fetch('/api/payment/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         token: paymentToken,
-                        isApp: false // Browser-based payment
+                        isApp: isAndroidApp // Auto-detect if from app
                     })
                 });
 
