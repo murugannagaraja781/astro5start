@@ -59,11 +59,39 @@ public class MainActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
         loadingOverlay = findViewById(R.id.loadingOverlay);
 
+        // Request runtime permissions for Camera, Mic, Notifications
+        requestAppPermissions();
+
         // Setup WebView
         setupWebView();
 
         // Handle deep link if present
         handleIntent(getIntent());
+    }
+
+    /**
+     * Request Camera, Microphone, and Notification permissions
+     */
+    private void requestAppPermissions() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            String[] permissions = new String[] {
+                    android.Manifest.permission.CAMERA,
+                    android.Manifest.permission.RECORD_AUDIO,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+            };
+
+            boolean needRequest = false;
+            for (String perm : permissions) {
+                if (checkSelfPermission(perm) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    needRequest = true;
+                    break;
+                }
+            }
+
+            if (needRequest) {
+                requestPermissions(permissions, 100);
+            }
+        }
     }
 
     @Override
