@@ -6874,7 +6874,16 @@
       }
     };
 
+    // Flag to prevent double-clicking
+    let isPaymentInProgress = false;
+
     window.initiateRecharge = async function (amountStr) {
+      // Prevent double-click / multiple calls
+      if (isPaymentInProgress) {
+        console.log('Payment already in progress, ignoring click');
+        return;
+      }
+
       if (!state.me || !state.me.userId) {
         alert('Please login first');
         showLogin();
@@ -6893,7 +6902,8 @@
         return;
       }
 
-      // Show loading
+      // Set flag immediately
+      isPaymentInProgress = true;
       const originalBtn = event?.target;
       if (originalBtn) {
         originalBtn.disabled = true;
@@ -6918,6 +6928,7 @@
           window.location.href = `/payment.html?token=${result.token}`;
         } else {
           alert(result.error || 'Failed to initiate payment');
+          isPaymentInProgress = false; // Reset flag on error
           if (originalBtn) {
             originalBtn.disabled = false;
             originalBtn.textContent = 'Proceed to Pay';
@@ -6926,6 +6937,7 @@
       } catch (error) {
         console.error('Payment token error:', error);
         alert('Network error. Please try again.');
+        isPaymentInProgress = false; // Reset flag on error
         if (originalBtn) {
           originalBtn.disabled = false;
           originalBtn.textContent = 'Proceed to Pay';

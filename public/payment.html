@@ -360,10 +360,21 @@
             }
         }
 
+        // Flag to prevent double calls
+        let isPaymentInProgress = false;
+
         // Initiate Payment (using token)
         async function initiatePayment() {
+            // Prevent double-click
+            if (isPaymentInProgress) {
+                console.log('Payment already in progress');
+                return;
+            }
+            isPaymentInProgress = true;
+
             if (!paymentToken) {
                 showError('Session Error', 'Payment token not found.');
+                isPaymentInProgress = false;
                 return;
             }
 
