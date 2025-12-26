@@ -6872,12 +6872,12 @@
     };
 
     window.initiateRecharge = function (amountStr) {
+      // Redirect to payment.html page
+      const userId = state.me ? state.me.userId : '';
       if (amountStr) {
-        // Direct call (if any)
-        processRecharge(parseFloat(amountStr));
+        window.location.href = `/payment.html?userId=${userId}&amount=${amountStr}`;
       } else {
-        // Show Modal
-        document.getElementById('screen-recharge').classList.remove('hidden');
+        window.location.href = `/payment.html?userId=${userId}`;
       }
     };
 
