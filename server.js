@@ -2055,23 +2055,42 @@ app.post('/api/payment/callback', async (req, res) => {
       // Determine Redirect URL
       let targetUrl = '';
       if (req.query.isApp === 'true') {
-        targetUrl = `astro5star://payment-status?status=success`;
+        targetUrl = `astro5://payment-success?status=success`;
       } else {
         targetUrl = `https://astro5star.com/wallet?status=success`;
       }
 
       // Render HTML for App Deep Link (Bypasses Chrome Blocking)
       if (req.query.isApp === 'true') {
+        const txnId = merchantTransactionId || '';
         const html = `
+            <!DOCTYPE html>
             <html>
-              <body style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif;">
-                <h1 style="color:green;">Payment Successful!</h1>
-                <p>Redirecting back to app...</p>
-                <a href="${targetUrl}" style="padding:15px 30px; background:blue; color:white; text-decoration:none; border-radius:5px; font-weight:bold;">Return to App</a>
+              <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Payment Successful</title>
+                <style>
+                  body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#f0f9f4; margin:0; }
+                  .success-icon { font-size:80px; color:#10B981; margin-bottom:20px; }
+                  h1 { color:#047857; margin:0 0 10px; }
+                  p { color:#666; margin:10px 0; }
+                  .btn { display:inline-block; padding:15px 40px; background:#047857; color:white; text-decoration:none; border-radius:8px; font-weight:bold; margin-top:20px; }
+                </style>
+              </head>
+              <body>
+                <div class="success-icon">✓</div>
+                <h1>Payment Successful!</h1>
+                <p>Redirecting to app...</p>
+                <a href="${targetUrl}&txnId=${txnId}" class="btn">Open App</a>
                 <script>
+                  // Immediate redirect attempt
+                  window.location.replace("${targetUrl}&txnId=${txnId}");
+
+                  // Fallback after 500ms
                   setTimeout(function() {
-                    window.location.href = "${targetUrl}";
-                  }, 1000);
+                    window.location.href = "${targetUrl}&txnId=${txnId}";
+                  }, 500);
                 </script>
               </body>
             </html>
@@ -2088,22 +2107,37 @@ app.post('/api/payment/callback', async (req, res) => {
 
       let targetUrl = '';
       if (req.query.isApp === 'true') {
-        targetUrl = `astro5star://payment-status?status=failed`;
+        targetUrl = `astro5://payment-failed?status=failed`;
       } else {
         targetUrl = `https://astro5star.com/wallet?status=failure`;
       }
 
       if (req.query.isApp === 'true') {
         const html = `
+            <!DOCTYPE html>
             <html>
-              <body style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif;">
-                <h1 style="color:red;">Payment Failed</h1>
-                <p>Redirecting back to app...</p>
-                <a href="${targetUrl}" style="padding:15px 30px; background:grey; color:white; text-decoration:none; border-radius:5px; font-weight:bold;">Return to App</a>
+              <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Payment Failed</title>
+                <style>
+                  body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#fef2f2; margin:0; }
+                  .fail-icon { font-size:80px; color:#EF4444; margin-bottom:20px; }
+                  h1 { color:#DC2626; margin:0 0 10px; }
+                  p { color:#666; margin:10px 0; }
+                  .btn { display:inline-block; padding:15px 40px; background:#6B7280; color:white; text-decoration:none; border-radius:8px; font-weight:bold; margin-top:20px; }
+                </style>
+              </head>
+              <body>
+                <div class="fail-icon">✗</div>
+                <h1>Payment Failed</h1>
+                <p>Redirecting to app...</p>
+                <a href="${targetUrl}" class="btn">Open App</a>
                 <script>
+                  window.location.replace("${targetUrl}");
                   setTimeout(function() {
                     window.location.href = "${targetUrl}";
-                  }, 1000);
+                  }, 500);
                 </script>
               </body>
             </html>

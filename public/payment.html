@@ -350,16 +350,16 @@
             <label>Enter Amount</label>
             <div class="amount-input-wrapper">
                 <span class="currency-symbol">₹</span>
-                <input type="number" class="amount-input" id="amountInput" placeholder="100" min="10" value="">
+                <input type="number" class="amount-input" id="amountInput" placeholder="1" min="1" value="">
             </div>
         </div>
 
         <!-- Quick Amount Buttons -->
         <div class="quick-amounts">
+            <button class="chip-btn" onclick="setAmount(1)">₹1</button>
+            <button class="chip-btn" onclick="setAmount(10)">₹10</button>
             <button class="chip-btn" onclick="setAmount(100)">₹100</button>
-            <button class="chip-btn" onclick="setAmount(200)">₹200</button>
             <button class="chip-btn" onclick="setAmount(500)">₹500</button>
-            <button class="chip-btn" onclick="setAmount(1000)">₹1000</button>
         </div>
 
         <!-- Pay Button -->
@@ -445,9 +445,8 @@
             const amountInput = document.getElementById('amountInput');
             const amount = parseFloat(amountInput.value);
 
-            // Validate
-            if (!amount || amount < 10) {
-                showStatus('error', 'Please enter a valid amount (minimum ₹10)');
+            if (!amount || amount < 1) {
+                showStatus('error', 'Please enter a valid amount (minimum ₹1)');
                 return;
             }
 
