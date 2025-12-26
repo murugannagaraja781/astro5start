@@ -468,6 +468,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         webView.onResume();
+
+        // Trigger wallet refresh when returning from Chrome Custom Tab (payment)
+        webView.evaluateJavascript(
+                "if (window.state && window.state.socket && window.state.me) { " +
+                        "  console.log('[WALLET] Android onResume - refreshing wallet...'); " +
+                        "  window.state.socket.emit('get-wallet', { userId: window.state.me.userId }); " +
+                        "}",
+                null);
     }
 
     @Override
