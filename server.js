@@ -2197,8 +2197,9 @@ app.post('/api/payment/callback', async (req, res) => {
         const txnId = merchantTransactionId || '';
         const amount = payment.amount || '';
 
-        // Multiple URL formats for maximum compatibility
-        const intentUrl = `intent://payment-success?status=success&txnId=${txnId}#Intent;scheme=astro5;package=com.astro5star.app;end`;
+        // Intent URL with S.browser=1 fallback (Chrome will stay in browser if app not installed)
+        const webFallback = encodeURIComponent('https://astro5star.com/?payment=success');
+        const intentUrl = `intent://payment-success?status=success&txnId=${txnId}#Intent;scheme=astro5;package=com.astro5star.app;S.browser_fallback_url=${webFallback};end`;
         const customSchemeUrl = `astro5://payment-success?status=success&txnId=${txnId}`;
 
         const html = `
@@ -2207,6 +2208,7 @@ app.post('/api/payment/callback', async (req, res) => {
               <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <meta http-equiv="refresh" content="3;url=${customSchemeUrl}">
                 <title>Payment Successful</title>
                 <style>
                   * { box-sizing: border-box; }
