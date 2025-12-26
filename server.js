@@ -2213,6 +2213,9 @@ app.post('/api/payment/callback', async (req, res) => {
     const isSuccess = code === 'PAYMENT_SUCCESS' || code === 'SUCCESS';
     const isFailed = code === 'PAYMENT_ERROR' || code === 'PAYMENT_FAILED' || code === 'FAILURE';
 
+    console.log(`[WALLET DEBUG] Code: "${code}", isSuccess: ${isSuccess}, isFailed: ${isFailed}`);
+    console.log(`[WALLET DEBUG] Payment found: ${payment._id}, userId: ${payment.userId}, amount: ${payment.amount}, status: ${payment.status}`);
+
     if (isSuccess) {
       // Treat as success - credit wallet
       if (payment.status !== 'success') {

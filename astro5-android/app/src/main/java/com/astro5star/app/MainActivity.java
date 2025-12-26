@@ -65,8 +65,33 @@ public class MainActivity extends AppCompatActivity {
         // Setup WebView
         setupWebView();
 
+        // Get FCM Token and inject into WebView
+        getFcmToken();
+
         // Handle deep link if present
         handleIntent(getIntent());
+    }
+
+    /**
+     * Get FCM Token and inject into WebView
+     */
+    private void getFcmToken() {
+        com.google.firebase.messaging.FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        String token = task.getResult();
+                        android.util.Log.d("FCM", "Token: " + token);
+
+                        // Inject token into WebView localStorage
+                        if (webView != null) {
+                            String js = "javascript:localStorage.setItem('fcmToken', '" + token
+                                    + "');console.log('FCM Token injected');";
+                            webView.evaluateJavascript(js, null);
+                        }
+                    } else {
+                        android.util.Log.e("FCM", "Failed to get token", task.getException());
+                    }
+                });
     }
 
     /**
