@@ -3546,8 +3546,9 @@
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
   <script src="https://unpkg.com/simple-peer/simplepeer.min.js"></script>
   <script>
-    // State
+    // State (exposed to window for Android WebView access)
     const state = { me: null, socket: null, session: null, peer: null, localStream: null };
+    window.state = state; // Expose for Android onResume wallet refresh
 
     // Persistent Session Helper
     const SESSION_KEY = 'astro_session';
