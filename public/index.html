@@ -1765,9 +1765,15 @@
   <div id="screen-client" class="dashboard-container hidden">
     <div class="app-header">
       <div style="font-weight: bold; font-size: 1.2rem;">Astro 5 Star</div>
-      <div>
-        <i class="fas fa-wallet"></i> ₹<span id="clientWallet">369</span>
-        <i class="fas fa-sign-out-alt" style="margin-left: 10px; cursor: pointer;" onclick="clearSession()"></i>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span id="walletContainer" onclick="refreshWallet()"
+          style="cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Tap to refresh">
+          <i class="fas fa-wallet"></i> ₹<span id="clientWallet">0</span>
+          <i id="walletSpinner" class="fas fa-sync-alt"
+            style="display: none; font-size: 0.8rem; animation: spin 1s linear infinite;"></i>
+          <i id="walletRefresh" class="fas fa-sync-alt" style="font-size: 0.8rem; opacity: 0.6;"></i>
+        </span>
+        <i class="fas fa-sign-out-alt" style="cursor: pointer;" onclick="clearSession()"></i>
       </div>
     </div>
     <div class="content-area">
@@ -3584,6 +3590,29 @@
       }
     });
 
+    // Wallet Refresh Function (callable from HTML onclick)
+    window.refreshWallet = function () {
+      if (!state.me || !state.socket) {
+        console.log('[WALLET] Cannot refresh - not logged in');
+        return;
+      }
+
+      // Show spinner, hide refresh icon
+      const spinner = document.getElementById('walletSpinner');
+      const refresh = document.getElementById('walletRefresh');
+      if (spinner) spinner.style.display = 'inline';
+      if (refresh) refresh.style.display = 'none';
+
+      console.log('[WALLET] Manual refresh requested...');
+      state.socket.emit('get-wallet', { userId: state.me.userId });
+
+      // Auto-hide spinner after 5 seconds (fallback)
+      setTimeout(() => {
+        if (spinner) spinner.style.display = 'none';
+        if (refresh) refresh.style.display = 'inline';
+      }, 5000);
+    };
+
     // DOM Elements
     const sLogin = document.getElementById('screen-login');
     const sClient = document.getElementById('screen-client');
@@ -3816,6 +3845,12 @@
         }
         state.me.walletBalance = data.balance;
         saveSession(state.me);
+
+        // Hide wallet refresh spinner
+        const spinner = document.getElementById('walletSpinner');
+        const refresh = document.getElementById('walletRefresh');
+        if (spinner) spinner.style.display = 'none';
+        if (refresh) refresh.style.display = 'inline';
 
         // Refresh History
         if (window.fetchTransactionHistory) window.fetchTransactionHistory();
