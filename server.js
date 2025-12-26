@@ -2195,10 +2195,11 @@ app.post('/api/payment/callback', async (req, res) => {
       // Render HTML for App Deep Link (Using Android Intent URL for Chrome)
       if (req.query.isApp === 'true') {
         const txnId = merchantTransactionId || '';
+        const amount = payment.amount || '';
 
-        // Android Intent URL format - Chrome will open this properly
+        // Multiple URL formats for maximum compatibility
         const intentUrl = `intent://payment-success?status=success&txnId=${txnId}#Intent;scheme=astro5;package=com.astro5star.app;end`;
-        const fallbackUrl = `astro5://payment-success?status=success&txnId=${txnId}`;
+        const customSchemeUrl = `astro5://payment-success?status=success&txnId=${txnId}`;
 
         const html = `
             <!DOCTYPE html>
@@ -2208,56 +2209,109 @@ app.post('/api/payment/callback', async (req, res) => {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Payment Successful</title>
                 <style>
-                  body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#f0f9f4; margin:0; padding:20px; text-align:center; }
-                  .success-icon { font-size:80px; color:#10B981; margin-bottom:20px; }
-                  h1 { color:#047857; margin:0 0 10px; }
-                  p { color:#666; margin:10px 0; }
-                  .btn { display:inline-block; padding:15px 40px; background:#047857; color:white; text-decoration:none; border-radius:8px; font-weight:bold; margin-top:20px; font-size:16px; }
-                  .btn:active { background:#065F46; }
+                  * { box-sizing: border-box; }
+                  body {
+                    display:flex; flex-direction:column; align-items:center; justify-content:center;
+                    min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+                    background:linear-gradient(135deg, #f0f9f4 0%, #d1fae5 100%);
+                    margin:0; padding:20px; text-align:center;
+                  }
+                  .card { background:white; border-radius:20px; padding:40px 30px; box-shadow:0 10px 40px rgba(0,0,0,0.1); max-width:350px; width:100%; }
+                  .success-icon { width:80px; height:80px; background:#10B981; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; }
+                  .success-icon svg { width:40px; height:40px; fill:white; }
+                  h1 { color:#047857; margin:0 0 10px; font-size:1.5rem; }
+                  .amount { font-size:2rem; font-weight:bold; color:#059669; margin:15px 0; }
+                  p { color:#666; margin:10px 0; font-size:0.95rem; }
+                  .btn {
+                    display:block; width:100%; padding:16px; background:linear-gradient(135deg,#059669,#047857);
+                    color:white; text-decoration:none; border-radius:12px; font-weight:bold;
+                    font-size:1.1rem; margin-top:25px; border:none; cursor:pointer;
+                    box-shadow: 0 4px 15px rgba(4,120,87,0.3);
+                  }
+                  .btn:active { transform:scale(0.98); }
+                  .status { font-size:0.85rem; color:#9CA3AF; margin-top:15px; }
+                  .loading { display:inline-block; width:16px; height:16px; border:2px solid #ccc; border-top-color:#047857; border-radius:50%; animation:spin 1s linear infinite; margin-right:8px; vertical-align:middle; }
+                  @keyframes spin { to { transform:rotate(360deg); } }
+                  .pulse { animation: pulse 1.5s ease-in-out infinite; }
+                  @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.02);} }
                 </style>
               </head>
               <body>
-                <div class="success-icon">✓</div>
-                <h1>Payment Successful!</h1>
-                <p>Your wallet has been credited.</p>
-                <p style="font-size:14px; color:#999;">Tap the button if not redirected automatically</p>
-                <a href="${intentUrl}" class="btn" id="openAppBtn">Open App</a>
+                <div class="card">
+                  <div class="success-icon">
+                    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                  </div>
+                  <h1>Payment Successful!</h1>
+                  <div class="amount">₹${amount}</div>
+                  <p>Your wallet has been credited</p>
+                  <button class="btn pulse" id="openAppBtn" onclick="openApp()">
+                    Open Astro5 App
+                  </button>
+                  <div class="status" id="status"><span class="loading"></span>Opening app...</div>
+                </div>
+
+                <!-- Hidden iframe for deep link (most reliable method) -->
+                <iframe id="deepLinkFrame" style="display:none;"></iframe>
 
                 <script>
-                  // Try Intent URL first (works on Chrome Android)
+                  var appOpened = false;
+                  var attempts = 0;
+
                   function openApp() {
-                    // Try intent:// first
-                    window.location.href = "${intentUrl}";
+                    if (appOpened) return;
+                    attempts++;
 
-                    // Fallback to custom scheme after 1 second
-                    setTimeout(function() {
-                      window.location.href = "${fallbackUrl}";
-                    }, 1000);
+                    document.getElementById('status').innerHTML = '<span class="loading"></span>Attempt ' + attempts + '...';
 
-                    // If still here after 2 seconds, show the button prominently
+                    // Method 1: Intent URL (Chrome specific)
+                    try {
+                      window.location.href = "${intentUrl}";
+                    } catch(e) {}
+
+                    // Method 2: Hidden iframe fallback after 300ms
                     setTimeout(function() {
-                      document.getElementById('openAppBtn').style.animation = 'pulse 1s infinite';
-                      document.getElementById('openAppBtn').style.fontSize = '18px';
+                      if (appOpened) return;
+                      try {
+                        document.getElementById('deepLinkFrame').src = "${customSchemeUrl}";
+                      } catch(e) {}
+                    }, 300);
+
+                    // Method 3: Direct custom scheme after 800ms
+                    setTimeout(function() {
+                      if (appOpened) return;
+                      try {
+                        window.location.href = "${customSchemeUrl}";
+                      } catch(e) {}
+                    }, 800);
+
+                    // Check if we're still here after 2 seconds
+                    setTimeout(function() {
+                      if (!appOpened) {
+                        document.getElementById('status').innerHTML = 'Tap the button to open app';
+                        document.getElementById('openAppBtn').classList.add('pulse');
+                      }
                     }, 2000);
                   }
 
-                  // Auto-trigger on page load
-                  openApp();
-                </script>
+                  // Detect if user leaves page (app opened)
+                  document.addEventListener('visibilitychange', function() {
+                    if (document.hidden) {
+                      appOpened = true;
+                    }
+                  });
 
-                <style>
-                  @keyframes pulse {
-                    0% { transform: scale(1); }
-                    50% { transform: scale(1.05); }
-                    100% { transform: scale(1); }
-                  }
-                </style>
+                  window.addEventListener('blur', function() {
+                    appOpened = true;
+                  });
+
+                  // Auto-trigger on page load
+                  setTimeout(openApp, 100);
+                </script>
               </body>
             </html>
           `;
         return res.send(html);
       }
-
       return res.redirect(targetUrl);
 
     } else {
