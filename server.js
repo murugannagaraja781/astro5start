@@ -2186,9 +2186,16 @@ app.post('/api/payment/create', async (req, res) => {
 
 // 2. Callback (Webhook)
 app.post('/api/payment/callback', async (req, res) => {
+  console.log('=================================');
+  console.log('[CALLBACK HIT] /api/payment/callback');
+  console.log('[CALLBACK] Body:', JSON.stringify(req.body).substring(0, 200));
+  console.log('[CALLBACK] Query:', req.query);
+  console.log('=================================');
+
   try {
     const base64Response = req.body.response;
     if (!base64Response) {
+      console.log('[CALLBACK ERROR] No base64Response found');
       return res.redirect('/?status=fail');
     }
 
@@ -2294,9 +2301,12 @@ app.post('/api/payment/callback', async (req, res) => {
                   @keyframes spin { to { transform:rotate(360deg); } }
                   .pulse { animation: pulse 1.5s ease-in-out infinite; }
                   @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.02);} }
-                </style>
+              </style>
               </head>
               <body>
+                <script>
+                  alert("DEBUG INFO:\\n\\nStatus: ${code}\\nisSuccess: ${isSuccess}\\nAmount: ₹${payment.amount}\\nPayment ID: ${payment._id}\\nUser ID: ${payment.userId}\\nWallet Credited: ✅");
+                </script>
                 <div class="card">
                   <div class="success-icon">
                     <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
