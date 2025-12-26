@@ -6871,13 +6871,62 @@
       }
     };
 
-    window.initiateRecharge = function (amountStr) {
-      // Redirect to payment.html page
-      const userId = state.me ? state.me.userId : '';
-      if (amountStr) {
-        window.location.href = `/payment.html?userId=${userId}&amount=${amountStr}`;
-      } else {
-        window.location.href = `/payment.html?userId=${userId}`;
+    window.initiateRecharge = async function (amountStr) {
+      if (!state.me || !state.me.userId) {
+        alert('Please login first');
+        showLogin();
+        return;
+      }
+
+      // If amount not provided, show modal to get amount
+      if (!amountStr) {
+        document.getElementById('screen-recharge').classList.remove('hidden');
+        return;
+      }
+
+      const amount = parseFloat(amountStr);
+      if (amount < 1) {
+        alert('Minimum amount is ₹1');
+        return;
+      }
+
+      // Show loading
+      const originalBtn = event?.target;
+      if (originalBtn) {
+        originalBtn.disabled = true;
+        originalBtn.textContent = 'Processing...';
+      }
+
+      try {
+        // Generate secure payment token from backend
+        const response = await fetch('/api/payment/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: state.me.userId,
+            amount: amount
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.ok && result.token) {
+          // Redirect to payment.html with secure token
+          window.location.href = `/payment.html?token=${result.token}`;
+        } else {
+          alert(result.error || 'Failed to initiate payment');
+          if (originalBtn) {
+            originalBtn.disabled = false;
+            originalBtn.textContent = 'Proceed to Pay';
+          }
+        }
+      } catch (error) {
+        console.error('Payment token error:', error);
+        alert('Network error. Please try again.');
+        if (originalBtn) {
+          originalBtn.disabled = false;
+          originalBtn.textContent = 'Proceed to Pay';
+        }
       }
     };
 
@@ -6891,10 +6940,11 @@
 
     window.submitRecharge = function () {
       const amtVal = document.getElementById('rechargeInput').value;
-      if (!amtVal || parseFloat(amtVal) <= 0) return alert("Please enter a valid amount");
+      if (!amtVal || parseFloat(amtVal) < 1) return alert("Minimum amount is ₹1");
 
       closeRechargeModal();
-      processRecharge(parseFloat(amtVal));
+      // Use the secure token-based flow
+      initiateRecharge(amtVal);
     };
 
     async function processRecharge(amount) {

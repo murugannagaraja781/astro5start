@@ -1854,11 +1854,143 @@ const PHONEPE_SALT_KEY = "ba824dad-ed66-4cec-9d76-4c1e0b118eb1";
 const PHONEPE_SALT_INDEX = 1;
 const PHONEPE_HOST_URL = "https://api.phonepe.com/apis/hermes"; // Production URL
 
-// 1. Initiate Payment
+// ===== Payment Token Store (In-Memory) =====
+// Token → { userId, amount, createdAt, used }
+const paymentTokens = new Map();
+
+// Token cleanup - delete expired tokens every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  const expiryTime = 10 * 60 * 1000; // 10 minutes
+  for (const [token, data] of paymentTokens) {
+    if (now - data.createdAt > expiryTime) {
+      paymentTokens.delete(token);
+    }
+  }
+}, 5 * 60 * 1000);
+
+// Generate Payment Token (Called from WebView with auth session)
+app.post('/api/payment/token', async (req, res) => {
+  try {
+    const { userId, amount } = req.body;
+
+    if (!userId || !amount) {
+      return res.json({ ok: false, error: 'Missing userId or amount' });
+    }
+
+    if (amount < 1) {
+      return res.json({ ok: false, error: 'Minimum amount is ₹1' });
+    }
+
+    // Verify user exists
+    const user = await User.findOne({ userId });
+    if (!user) {
+      return res.json({ ok: false, error: 'User not found' });
+    }
+
+    // Generate secure token
+    const token = crypto.randomBytes(32).toString('hex');
+
+    // Store token mapping
+    paymentTokens.set(token, {
+      userId: userId,
+      amount: amount,
+      createdAt: Date.now(),
+      used: false,
+      userName: user.name,
+      userPhone: user.phone
+    });
+
+    console.log(`Payment Token Created: ${token.substring(0, 8)}... for ${user.name} amount ₹${amount}`);
+
+    res.json({ ok: true, token });
+
+  } catch (e) {
+    console.error('Payment Token Error:', e);
+    res.json({ ok: false, error: 'Failed to create payment token' });
+  }
+});
+
+// Verify Payment Token (Called from payment.html in browser)
+app.get('/api/verify-payment-token', async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.json({ valid: false, error: 'Token required' });
+    }
+
+    const tokenData = paymentTokens.get(token);
+
+    if (!tokenData) {
+      return res.json({ valid: false, error: 'Invalid or expired token' });
+    }
+
+    // Check expiry (10 minutes)
+    const expiryTime = 10 * 60 * 1000;
+    if (Date.now() - tokenData.createdAt > expiryTime) {
+      paymentTokens.delete(token);
+      return res.json({ valid: false, error: 'Token expired' });
+    }
+
+    // Check if already used
+    if (tokenData.used) {
+      return res.json({ valid: false, error: 'Token already used' });
+    }
+
+    // Valid token - return payment details (but NOT the userId for security)
+    res.json({
+      valid: true,
+      amount: tokenData.amount,
+      userName: tokenData.userName,
+      expiresIn: Math.floor((expiryTime - (Date.now() - tokenData.createdAt)) / 1000) // seconds
+    });
+
+  } catch (e) {
+    console.error('Verify Token Error:', e);
+    res.json({ valid: false, error: 'Verification failed' });
+  }
+});
+
+// 1. Initiate Payment (Supports both token-based and legacy userId-based)
 app.post('/api/payment/create', async (req, res) => {
   try {
-    const { amount, userId, isApp } = req.body;
-    if (!amount || !userId) return res.json({ ok: false, error: 'Missing Amount or User' });
+    let { amount, userId, isApp, token } = req.body;
+
+    // Token-based authentication (SECURE - for browser flow)
+    if (token) {
+      const tokenData = paymentTokens.get(token);
+
+      if (!tokenData) {
+        return res.json({ ok: false, error: 'Invalid or expired token' });
+      }
+
+      // Check expiry (10 minutes)
+      const expiryTime = 10 * 60 * 1000;
+      if (Date.now() - tokenData.createdAt > expiryTime) {
+        paymentTokens.delete(token);
+        return res.json({ ok: false, error: 'Token expired' });
+      }
+
+      // Check if already used
+      if (tokenData.used) {
+        return res.json({ ok: false, error: 'Token already used' });
+      }
+
+      // Mark token as used (single-use)
+      tokenData.used = true;
+
+      // Extract userId and amount from token
+      userId = tokenData.userId;
+      amount = tokenData.amount;
+
+      console.log(`Token Auth Payment: ${token.substring(0, 8)}... userId=${userId} amount=${amount}`);
+    }
+
+    // Legacy check (for backward compatibility with WebView calls)
+    if (!amount || !userId) {
+      return res.json({ ok: false, error: 'Missing Amount or User' });
+    }
 
     // Fetch User to get real mobile number
     const userObj = await User.findOne({ userId });

@@ -62,80 +62,41 @@
             margin-top: 8px;
         }
 
-        .amount-section {
-            margin-bottom: 25px;
-        }
-
-        .amount-section label {
-            display: block;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 10px;
-        }
-
-        .amount-input-wrapper {
-            position: relative;
-        }
-
-        .currency-symbol {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-weight: bold;
-            color: #374151;
-            font-size: 1.4rem;
-        }
-
-        .amount-input {
-            width: 100%;
-            padding: 15px 15px 15px 45px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #047857;
-            border: 2px solid #E5E7EB;
-            border-radius: 12px;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-
-        .amount-input:focus {
-            border-color: #047857;
-            box-shadow: 0 0 0 4px rgba(4, 120, 87, 0.1);
-        }
-
-        .quick-amounts {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 25px;
-        }
-
-        .chip-btn {
-            flex: 1;
-            min-width: 70px;
-            padding: 12px 15px;
+        .user-info {
             background: #F3F4F6;
-            border: 2px solid #E5E7EB;
-            border-radius: 10px;
-            font-size: 0.95rem;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .user-info .name {
             font-weight: 600;
-            color: #374151;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            color: #1F2937;
+            font-size: 1.1rem;
         }
 
-        .chip-btn:hover {
-            background: #ECFDF5;
-            border-color: #047857;
+        .user-info .expires {
+            font-size: 0.8rem;
+            color: #6B7280;
+            margin-top: 5px;
+        }
+
+        .amount-display {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .amount-display .label {
+            font-size: 0.9rem;
+            color: #6B7280;
+            margin-bottom: 5px;
+        }
+
+        .amount-display .amount {
+            font-size: 2.5rem;
+            font-weight: 700;
             color: #047857;
-        }
-
-        .chip-btn.active {
-            background: #047857;
-            border-color: #047857;
-            color: white;
         }
 
         .pay-btn {
@@ -161,10 +122,6 @@
             box-shadow: 0 6px 20px rgba(4, 120, 87, 0.4);
         }
 
-        .pay-btn:active {
-            transform: translateY(0);
-        }
-
         .pay-btn:disabled {
             background: #9CA3AF;
             cursor: not-allowed;
@@ -184,16 +141,36 @@
             color: #047857;
         }
 
-        .payment-methods {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 15px;
-            opacity: 0.7;
+        /* Error State */
+        .error-container {
+            text-align: center;
+            padding: 40px 20px;
         }
 
-        .payment-methods img {
-            height: 25px;
+        .error-icon {
+            font-size: 4rem;
+            color: #EF4444;
+            margin-bottom: 20px;
+        }
+
+        .error-container h2 {
+            color: #DC2626;
+            margin-bottom: 10px;
+        }
+
+        .error-container p {
+            color: #6B7280;
+        }
+
+        .retry-btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: #6B7280;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
         }
 
         /* Loading Overlay */
@@ -258,69 +235,6 @@
             border: 1px solid #EF4444;
             color: #DC2626;
         }
-
-        /* History Section */
-        .history-section {
-            margin-top: 30px;
-            padding-top: 25px;
-            border-top: 1px solid #E5E7EB;
-        }
-
-        .history-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .history-list {
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .history-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: #F9FAFB;
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-
-        .history-item .amount {
-            font-weight: 600;
-            color: #047857;
-        }
-
-        .history-item .date {
-            font-size: 0.8rem;
-            color: #6B7280;
-        }
-
-        .history-item .status {
-            font-size: 0.75rem;
-            padding: 4px 8px;
-            border-radius: 4px;
-        }
-
-        .history-item .status.success {
-            background: #D1FAE5;
-            color: #047857;
-        }
-
-        .history-item .status.pending {
-            background: #FEF3C7;
-            color: #D97706;
-        }
-
-        .history-item .status.failed {
-            background: #FEE2E2;
-            color: #DC2626;
-        }
     </style>
 </head>
 
@@ -329,10 +243,10 @@
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner"></div>
-        <div class="loading-text">Processing Payment...</div>
+        <div class="loading-text" id="loadingText">Verifying Payment Token...</div>
     </div>
 
-    <div class="payment-container">
+    <div class="payment-container" id="paymentContainer" style="display: none;">
         <!-- Status Message -->
         <div class="status-message" id="statusMessage"></div>
 
@@ -342,90 +256,55 @@
                 <i class="fas fa-wallet"></i>
             </div>
             <h2>Add Money to Wallet</h2>
-            <p>Secure payment for cosmic consultation</p>
+            <p>Secure payment via PhonePe</p>
         </div>
 
-        <!-- Amount Input -->
-        <div class="amount-section">
-            <label>Enter Amount</label>
-            <div class="amount-input-wrapper">
-                <span class="currency-symbol">₹</span>
-                <input type="number" class="amount-input" id="amountInput" placeholder="1" min="1" value="">
-            </div>
+        <!-- User Info (from token) -->
+        <div class="user-info">
+            <div class="name" id="userName">Loading...</div>
+            <div class="expires" id="expiryInfo">Session expires in: --</div>
         </div>
 
-        <!-- Quick Amount Buttons -->
-        <div class="quick-amounts">
-            <button class="chip-btn" onclick="setAmount(1)">₹1</button>
-            <button class="chip-btn" onclick="setAmount(10)">₹10</button>
-            <button class="chip-btn" onclick="setAmount(100)">₹100</button>
-            <button class="chip-btn" onclick="setAmount(500)">₹500</button>
+        <!-- Amount Display (from token - not editable) -->
+        <div class="amount-display">
+            <div class="label">Amount to Pay</div>
+            <div class="amount" id="amountDisplay">₹--</div>
         </div>
 
         <!-- Pay Button -->
-        <button class="pay-btn" id="payBtn" onclick="initiatePayment()">
-            Proceed to Pay <i class="fas fa-arrow-right"></i>
+        <button class="pay-btn" id="payBtn" onclick="initiatePayment()" disabled>
+            <i class="fas fa-lock"></i> Proceed to Pay
         </button>
 
         <!-- Security Note -->
         <div class="security-note">
-            <i class="fas fa-lock"></i> 100% Secure Payment via PhonePe/UPI
+            <i class="fas fa-shield-alt"></i> 100% Secure Payment via PhonePe
         </div>
+    </div>
 
-        <!-- Payment Methods -->
-        <div class="payment-methods">
-            <span style="color: #6B7280; font-size: 0.85rem;">Powered by</span>
-            <span style="font-weight: bold; color: #5F259F;">PhonePe</span>
-        </div>
-
-        <!-- Transaction History -->
-        <div class="history-section" id="historySection" style="display: none;">
-            <div class="history-title">
-                <i class="fas fa-history"></i> Recent Transactions
-            </div>
-            <div class="history-list" id="historyList">
-                <!-- History items will be loaded here -->
-            </div>
+    <!-- Error Container -->
+    <div class="payment-container" id="errorContainer" style="display: none;">
+        <div class="error-container">
+            <div class="error-icon"><i class="fas fa-exclamation-circle"></i></div>
+            <h2 id="errorTitle">Invalid Payment Link</h2>
+            <p id="errorMessage">This payment link is invalid or has expired.</p>
+            <button class="retry-btn" onclick="window.close()">Close</button>
         </div>
     </div>
 
     <script>
         // =========================================
-        // PAYMENT PAGE JAVASCRIPT
+        // SECURE TOKEN-BASED PAYMENT PAGE
         // =========================================
 
-        // Get User ID from URL or localStorage
-        function getUserId() {
-            // Check URL params first
-            const urlParams = new URLSearchParams(window.location.search);
-            let userId = urlParams.get('userId');
-
-            // Fallback to localStorage
-            if (!userId) {
-                const savedUser = localStorage.getItem('astro_user');
-                if (savedUser) {
-                    try {
-                        const userData = JSON.parse(savedUser);
-                        userId = userData.userId;
-                    } catch (e) { }
-                }
-            }
-
-            return userId;
-        }
-
-        // Set Amount from Quick Buttons
-        function setAmount(amt) {
-            document.getElementById('amountInput').value = amt;
-
-            // Highlight active button
-            document.querySelectorAll('.chip-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-        }
+        let paymentToken = null;
+        let paymentAmount = null;
 
         // Show Loading
-        function showLoading(show = true) {
+        function showLoading(show = true, text = 'Processing...') {
             const overlay = document.getElementById('loadingOverlay');
+            const loadingText = document.getElementById('loadingText');
+            loadingText.textContent = text;
             if (show) {
                 overlay.classList.add('active');
             } else {
@@ -433,173 +312,127 @@
             }
         }
 
-        // Show Status Message
-        function showStatus(type, message) {
-            const statusEl = document.getElementById('statusMessage');
-            statusEl.className = 'status-message ' + type;
-            statusEl.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
+        // Show Error
+        function showError(title, message) {
+            document.getElementById('paymentContainer').style.display = 'none';
+            document.getElementById('errorContainer').style.display = 'block';
+            document.getElementById('errorTitle').textContent = title;
+            document.getElementById('errorMessage').textContent = message;
+            showLoading(false);
         }
 
-        // Initiate Payment (Main Function)
-        async function initiatePayment() {
-            const amountInput = document.getElementById('amountInput');
-            const amount = parseFloat(amountInput.value);
+        // Show Payment Form
+        function showPaymentForm(data) {
+            document.getElementById('paymentContainer').style.display = 'block';
+            document.getElementById('errorContainer').style.display = 'none';
+            document.getElementById('userName').textContent = data.userName || 'User';
+            document.getElementById('amountDisplay').textContent = '₹' + data.amount;
+            document.getElementById('expiryInfo').textContent = `Session expires in: ${data.expiresIn} seconds`;
+            document.getElementById('payBtn').disabled = false;
+            paymentAmount = data.amount;
+            showLoading(false);
+        }
 
-            if (!amount || amount < 1) {
-                showStatus('error', 'Please enter a valid amount (minimum ₹1)');
+        // Verify Token on Page Load
+        async function verifyToken() {
+            const urlParams = new URLSearchParams(window.location.search);
+            paymentToken = urlParams.get('token');
+
+            if (!paymentToken) {
+                showError('Missing Token', 'No payment token provided. Please initiate payment from the app.');
                 return;
             }
 
-            const userId = getUserId();
-            if (!userId) {
-                showStatus('error', 'Please login first to add money');
-                return;
-            }
-
-            // Detect if in App WebView
-            const isApp = !!window.ReactNativeWebView;
+            showLoading(true, 'Verifying payment token...');
 
             try {
-                showLoading(true);
-                document.getElementById('payBtn').disabled = true;
+                const response = await fetch(`/api/verify-payment-token?token=${paymentToken}`);
+                const result = await response.json();
 
-                // Call Backend API
+                if (result.valid) {
+                    showPaymentForm(result);
+                } else {
+                    showError('Invalid Token', result.error || 'Token verification failed.');
+                }
+            } catch (error) {
+                console.error('Token verification error:', error);
+                showError('Network Error', 'Could not verify payment token. Please try again.');
+            }
+        }
+
+        // Initiate Payment (using token)
+        async function initiatePayment() {
+            if (!paymentToken) {
+                showError('Session Error', 'Payment token not found.');
+                return;
+            }
+
+            showLoading(true, 'Initiating payment...');
+            document.getElementById('payBtn').disabled = true;
+
+            try {
                 const response = await fetch('/api/payment/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount, userId, isApp })
+                    body: JSON.stringify({
+                        token: paymentToken,
+                        isApp: false // Browser-based payment
+                    })
                 });
 
                 const result = await response.json();
 
                 if (result.ok && result.paymentUrl) {
-                    if (isApp) {
-                        // For App - Send message to React Native
-                        window.ReactNativeWebView.postMessage(JSON.stringify({
-                            type: 'OPEN_PAYMENT_URL',
-                            url: result.paymentUrl,
-                            txnId: result.merchantTransactionId
-                        }));
-                    } else {
-                        // For Web - Redirect to PhonePe
-                        window.location.href = result.paymentUrl;
-                    }
+                    // Redirect to PhonePe
+                    window.location.href = result.paymentUrl;
                 } else {
                     showLoading(false);
                     document.getElementById('payBtn').disabled = false;
-                    showStatus('error', result.error || 'Failed to initiate payment');
+                    showError('Payment Error', result.error || 'Failed to initiate payment.');
                 }
 
             } catch (error) {
-                console.error('Payment Error:', error);
+                console.error('Payment initiation error:', error);
                 showLoading(false);
                 document.getElementById('payBtn').disabled = false;
-                showStatus('error', 'Network error. Please try again.');
+                showError('Network Error', 'Could not connect to payment server.');
             }
         }
 
-        // Load Transaction History
-        async function loadHistory() {
-            const userId = getUserId();
-            if (!userId) return;
-
-            try {
-                const response = await fetch(`/api/payment/history/${userId}`);
-                const result = await response.json();
-
-                if (result.ok && result.data && result.data.length > 0) {
-                    const historySection = document.getElementById('historySection');
-                    const historyList = document.getElementById('historyList');
-
-                    historySection.style.display = 'block';
-                    historyList.innerHTML = result.data.map(txn => `
-                        <div class="history-item">
-                            <div>
-                                <div class="amount">₹${txn.amount}</div>
-                                <div class="date">${new Date(txn.createdAt).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    })}</div>
-                            </div>
-                            <span class="status ${txn.status}">${txn.status.toUpperCase()}</span>
-                        </div>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('History Error:', error);
-            }
-        }
-
-        // Check Payment Status (After redirect back)
-        function checkUrlStatus() {
+        // Check for payment status in URL (after redirect back)
+        function checkPaymentStatus() {
             const urlParams = new URLSearchParams(window.location.search);
             const status = urlParams.get('status');
 
             if (status === 'success') {
-                showStatus('success', 'Payment Successful! Wallet has been credited.');
-                // Clear URL params
-                window.history.replaceState({}, document.title, window.location.pathname);
-            } else if (status === 'fail' || status === 'failure') {
-                showStatus('error', 'Payment Failed. Please try again.');
-                window.history.replaceState({}, document.title, window.location.pathname);
+                document.getElementById('paymentContainer').style.display = 'block';
+                document.getElementById('errorContainer').style.display = 'none';
+                const statusEl = document.getElementById('statusMessage');
+                statusEl.className = 'status-message success';
+                statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Payment Successful! Wallet has been credited.';
+                statusEl.style.display = 'block';
+                document.querySelector('.payment-header').style.display = 'none';
+                document.querySelector('.user-info').style.display = 'none';
+                document.querySelector('.amount-display').style.display = 'none';
+                document.getElementById('payBtn').style.display = 'none';
+            } else if (status === 'fail' || status === 'failure' || status === 'failed') {
+                showError('Payment Failed', 'Your payment could not be completed. Please try again.');
             }
         }
 
         // Initialize on Page Load
         document.addEventListener('DOMContentLoaded', function () {
-            checkUrlStatus();
-            loadHistory();
-
-            // Pre-fill amount from URL if provided
+            // Check if this is a return from payment gateway
             const urlParams = new URLSearchParams(window.location.search);
-            const presetAmount = urlParams.get('amount');
-            if (presetAmount) {
-                document.getElementById('amountInput').value = presetAmount;
+            if (urlParams.get('status')) {
+                checkPaymentStatus();
+                showLoading(false);
+            } else {
+                // New payment - verify token
+                verifyToken();
             }
         });
     </script>
-
-    <!--
-    ========================================
-    BACKEND API REFERENCE (server.js)
-    ========================================
-
-    PhonePe Configuration:
-    ----------------------
-    const PHONEPE_MERCHANT_ID = "M22LBBWEJKI6A";
-    const PHONEPE_SALT_KEY = "ba824dad-ed66-4cec-9d76-4c1e0b118eb1";
-    const PHONEPE_SALT_INDEX = 1;
-    const PHONEPE_HOST_URL = "https://api.phonepe.com/apis/hermes";
-
-    API Endpoints:
-    -------------
-    1. POST /api/payment/create
-       - Creates payment request
-       - Body: { amount, userId, isApp }
-       - Returns: { ok, merchantTransactionId, paymentUrl }
-
-    2. POST /api/payment/callback
-       - PhonePe callback after payment
-       - Handles success/failure and credits wallet
-
-    3. GET /api/payment/history/:userId
-       - Returns payment history for user
-
-    4. POST /api/phonepe/init
-       - Native SDK init (for React Native app)
-       - Body: { userId, amount }
-
-    5. GET /api/phonepe/status/:transactionId
-       - Check payment status
-
-    6. POST /api/phonepe/callback
-       - S2S webhook from PhonePe
-
-    ========================================
-    -->
 
 </body>
 
