@@ -98,9 +98,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Request Camera, Microphone, and Notification permissions
+     * Request Camera, Microphone, Notification, and Overlay permissions
      */
     private void requestAppPermissions() {
+        // Request overlay permission for full-screen call notifications (Android 10+)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            if (!android.provider.Settings.canDrawOverlays(this)) {
+                android.util.Log.d("MainActivity", "Requesting overlay permission for full-screen calls");
+                new android.app.AlertDialog.Builder(this)
+                        .setTitle("Permission Required")
+                        .setMessage(
+                                "To receive incoming call notifications, please allow 'Display over other apps' permission.")
+                        .setPositiveButton("Allow", (dialog, which) -> {
+                            Intent intent = new Intent(
+                                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                    android.net.Uri.parse("package:" + getPackageName()));
+                            startActivityForResult(intent, 200);
+                        })
+                        .setNegativeButton("Later", null)
+                        .show();
+            }
+        }
+
+        // Request runtime permissions
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
             String[] permissions = new String[] {
                     android.Manifest.permission.CAMERA,
