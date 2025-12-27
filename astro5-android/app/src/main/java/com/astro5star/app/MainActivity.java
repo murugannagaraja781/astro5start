@@ -100,12 +100,19 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Request Camera and Microphone permissions only when needed (for video/audio
      * calls)
-     * All permissions are optional - no dialogs on app open
+     * Notification permission is requested at app startup for Android 13+
      */
     private void requestAppPermissions() {
-        // Permissions will be requested when needed (during call)
-        // No dialogs on app startup
-        android.util.Log.d("MainActivity", "Permissions will be requested when needed");
+        // Request notification permission for Android 13+ (required for incoming call
+        // notifications)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(
+                    android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                android.util.Log.d("MainActivity", "Requesting notification permission");
+                requestPermissions(new String[] { android.Manifest.permission.POST_NOTIFICATIONS }, 102);
+            }
+        }
+        android.util.Log.d("MainActivity", "App permissions setup complete");
     }
 
     @Override
@@ -120,32 +127,80 @@ public class MainActivity extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         String action = intent != null ? intent.getStringExtra("action") : null;
 
-        // Handle call actions from IncomingCallActivity
+        // Handle call actions from notification click
         if ("ACCEPT_CALL".equals(action)) {
             String sessionId = intent.getStringExtra("sessionId");
             String callerName = intent.getStringExtra("callerName");
             String callType = intent.getStringExtra("callType");
 
-            android.util.Log.d("MainActivity", "Accepting call - Session: " + sessionId);
+            android.util.Log.d("MainActivity",
+                    "ACCEPT_CALL - Session: " + sessionId + ", Caller: " + callerName + ", Type: " + callType);
+
+            // Stop ringtone
+            RingtoneService.stop(this);
+
+            // Cancel notification
+            android.app.NotificationManager nm = (android.app.NotificationManager) getSystemService(
+                    NOTIFICATION_SERVICE);
+            if (nm != null)
+                nm.cancel(1001);
+
+            // Request audio permission
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                if (checkSelfPermission(
+                        android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[] { android.Manifest.permission.RECORD_AUDIO }, 103);
+                }
+            }
 
             // Check if WebView already has content loaded
             String currentUrl = webView.getUrl();
             if (currentUrl != null && currentUrl.contains(BASE_URL.replace("https://", "").replace("http://", ""))) {
-                // WebView already loaded - inject JavaScript directly without reload
-                android.util.Log.d("MainActivity", "WebView already loaded - injecting JS directly");
-                String js = "javascript:(function() { " +
-                        "if(window.acceptCallFromNative) { " +
-                        "  window.acceptCallFromNative('" + sessionId + "', '" + callType + "'); " +
-                        "} else { " +
-                        "  console.log('No acceptCallFromNative function - emitting socket event'); " +
-                        "  if(window.state && window.state.socket) { " +
-                        "    window.state.socket.emit('accept-session', { sessionId: '" + sessionId + "' }); " +
+                // WebView already loaded - inject JavaScript to accept and connect call
+                android.util.Log.d("MainActivity", "WebView loaded - accepting call via answer-session-native");
+
+                String safeSessionId = sessionId != null ? sessionId : "";
+                String safeCallType = callType != null ? callType : "audio";
+
+                // Use answer-session-native which looks up session and returns fromUserId
+                String js = "(function tryAcceptCall(retries) { " +
+                        "  console.log('[NATIVE ACCEPT] Trying to accept call, retries=' + retries); " +
+                        "  if (window.state && window.state.socket && window.state.socket.connected && window.state.me) { "
+                        +
+                        "    console.log('[NATIVE ACCEPT] Socket ready, emitting answer-session-native'); " +
+                        "    window.state.socket.emit('answer-session-native', { " +
+                        "      sessionId: '" + safeSessionId + "', " +
+                        "      accept: true, " +
+                        "      callType: '" + safeCallType + "' " +
+                        "    }, function(res) { " +
+                        "      console.log('[NATIVE ACCEPT] Response:', res); " +
+                        "      if (res && res.ok && res.fromUserId) { " +
+                        "        console.log('[NATIVE ACCEPT] Calling initSession with fromUserId:', res.fromUserId); "
+                        +
+                        "        if (window.initSession) { " +
+                        "          window.initSession('" + safeSessionId + "', res.fromUserId, '" + safeCallType
+                        + "', false, null); " +
+                        "        } else { " +
+                        "          console.error('[NATIVE ACCEPT] window.initSession not found!'); " +
+                        "        } " +
+                        "      } else { " +
+                        "        console.error('[NATIVE ACCEPT] Failed:', res); " +
+                        "        alert('Failed to connect: ' + (res ? res.error : 'Unknown error')); " +
+                        "      } " +
+                        "    }); " +
+                        "  } else if (retries > 0) { " +
+                        "    console.log('[NATIVE ACCEPT] Socket not ready, waiting... retries left:', retries); " +
+                        "    setTimeout(function() { tryAcceptCall(retries - 1); }, 500); " +
+                        "  } else { " +
+                        "    console.error('[NATIVE ACCEPT] Failed - socket not ready after retries'); " +
+                        "    alert('Connection failed. Please try again.'); " +
                         "  } " +
-                        "} " +
-                        "})();";
+                        "})(20);"; // 20 retries = 10 seconds max wait
+
                 webView.evaluateJavascript(js, null);
             } else {
-                // WebView not loaded - set pending action and load
+                // WebView not loaded - set pending action and load page
+                android.util.Log.d("MainActivity", "WebView not loaded - setting pending action");
                 pendingCallAction = "accept";
                 pendingSessionId = sessionId;
                 pendingCallType = callType;

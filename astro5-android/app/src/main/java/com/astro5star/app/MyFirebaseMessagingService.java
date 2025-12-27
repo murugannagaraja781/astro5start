@@ -104,40 +104,42 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 "&callType=" + safeType +
                 "&fromUserId=" + sessionId;
 
-        // Intent to open MainActivity and AUTO-ACCEPT call (no accept/reject page
-        // needed)
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        intent.setAction("ACCEPT_CALL_" + System.currentTimeMillis()); // Unique action
-        intent.putExtra("action", "ACCEPT_CALL");
-        intent.putExtra("sessionId", sessionId);
-        intent.putExtra("callerName", safeCaller);
-        intent.putExtra("callType", safeType);
+        // Launch IncomingCallActivity for WhatsApp-style full-screen Accept/Reject UI
+        Intent fullScreenIntent = new Intent(this, IncomingCallActivity.class);
+        fullScreenIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        fullScreenIntent.putExtra("callId", sessionId);
+        fullScreenIntent.putExtra("sessionId", sessionId);
+        fullScreenIntent.putExtra("callerName", safeCaller);
+        fullScreenIntent.putExtra("callType", safeType);
 
-        // Use unique request code (1002) to ensure this pending intent is distinct
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                this, 1002, intent,
+        PendingIntent fullScreenPendingIntent = PendingIntent.getActivity(
+                this, 1002, fullScreenIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         String callTypeText = "audio".equals(safeType) ? "Voice Call"
                 : "video".equals(safeType) ? "Video Call" : "Call";
 
+        // Create WhatsApp-style notification with full-screen intent
         Notification notification = new NotificationCompat.Builder(this, "calls")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("📞 Incoming " + callTypeText)
                 .setContentText(safeCaller + " is calling you")
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_CALL)
                 .setVibrate(new long[] { 0, 1000, 500, 1000 })
-                .setAutoCancel(true)
-                .setContentIntent(pendingIntent)
-                .setFullScreenIntent(pendingIntent, true)
+                .setAutoCancel(false)
+                .setOngoing(true)
+                .setContentIntent(fullScreenPendingIntent)
+                .setFullScreenIntent(fullScreenPendingIntent, true) // WhatsApp-style full-screen!
                 .setTimeoutAfter(60000)
                 .build();
 
         if (notificationManager != null) {
             notificationManager.notify(1001, notification);
         }
+
+        // Also launch IncomingCallActivity directly for immediate full-screen display
+        startActivity(fullScreenIntent);
 
         // Start ringtone service
         RingtoneService.start(this);
