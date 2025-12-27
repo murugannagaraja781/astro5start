@@ -3584,18 +3584,61 @@
     const socket = io();
     state.socket = socket;
 
-    // Auto-refresh wallet when user returns to app (after payment)
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && state.me && state.socket) {
-        console.log('[WALLET] App visible - refreshing wallet...');
-        state.socket.emit('get-wallet', { userId: state.me.userId });
+    // Socket reconnect handler - re-register user to maintain status
+    socket.on('connect', () => {
+      console.log('[Socket] Connected:', socket.id);
+
+      // Re-register user after reconnection
+      const session = loadSession();
+      if (session && session.userId && session.phone) {
+        console.log('[Socket] Re-registering user after reconnect...');
+        socket.emit('register', { name: session.name, phone: session.phone, userId: session.userId }, (ack) => {
+          if (ack && ack.ok) {
+            console.log('[Socket] Re-registered successfully after reconnect');
+            // Send FCM token again
+            const fcmToken = localStorage.getItem('fcmToken');
+            if (fcmToken) {
+              socket.emit('save-fcm-token', { fcmToken });
+            }
+          }
+        });
       }
     });
 
-    // Also refresh on page focus (for desktop)
+    // Auto-refresh wallet and reconnect when user returns to app
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && state.me && state.socket) {
+        console.log('[App] Visible - checking socket connection...');
+
+        // Force reconnect if disconnected
+        if (!socket.connected) {
+          console.log('[Socket] Reconnecting after visibility change...');
+          socket.connect();
+        }
+
+        // Refresh wallet
+        state.socket.emit('get-wallet', { userId: state.me.userId });
+
+        // Re-register to restore status (for astrologers)
+        if (state.me.role === 'astrologer') {
+          socket.emit('register', { name: state.me.name, phone: state.me.phone, userId: state.me.userId }, (ack) => {
+            if (ack && ack.ok) {
+              console.log('[Status] Re-registered after returning to app');
+            }
+          });
+        }
+      }
+    });
+
+    // Also handle on page focus (desktop)
     window.addEventListener('focus', () => {
       if (state.me && state.socket) {
-        console.log('[WALLET] Window focused - refreshing wallet...');
+        console.log('[App] Focused - checking connection...');
+
+        if (!socket.connected) {
+          socket.connect();
+        }
+
         state.socket.emit('get-wallet', { userId: state.me.userId });
       }
     });
