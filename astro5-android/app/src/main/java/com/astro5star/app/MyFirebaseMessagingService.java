@@ -106,12 +106,16 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
         // Intent to open MainActivity with call URL
         Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        // Use SINGLE_TOP to preserve intent extras (CLEAR_TOP recreates activity and
+        // loses extras!)
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.setAction("CALL_PAGE_" + System.currentTimeMillis()); // Unique action to make intent distinct
         intent.putExtra("action", "OPEN_CALL_PAGE");
         intent.putExtra("callUrl", callUrl);
 
+        // Use unique request code (1002) to ensure this pending intent is distinct
         PendingIntent pendingIntent = PendingIntent.getActivity(
-                this, 0, intent,
+                this, 1002, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         String callTypeText = "audio".equals(safeType) ? "Voice Call"
