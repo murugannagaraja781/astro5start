@@ -1090,6 +1090,8 @@ io.on('connection', (socket) => {
 
       // Try socket notification (might fail if in background - that's OK!)
       const targetSocketId = userSockets.get(toUserId);
+      let socketSent = false;
+
       if (targetSocketId) {
         io.to(targetSocketId).emit('incoming-session', {
           sessionId,
@@ -1097,10 +1099,12 @@ io.on('connection', (socket) => {
           type,
           birthData: birthData || null
         });
+        socketSent = true;
+        console.log(`[Session] Socket notification sent to ${toUserId}`);
       }
 
-      // Send FCM Push Notification to wake up app if in background/killed
-      if (toUser && toUser.fcmToken) {
+      // Send FCM Push Notification ONLY if socket not connected (user in background/killed)
+      if (!socketSent && toUser && toUser.fcmToken) {
         const fcmData = {
           type: 'incoming_call',
           callId: sessionId,
