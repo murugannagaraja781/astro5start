@@ -104,14 +104,15 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 "&callType=" + safeType +
                 "&fromUserId=" + sessionId;
 
-        // Intent to open MainActivity with call URL
+        // Intent to open MainActivity and AUTO-ACCEPT call (no accept/reject page
+        // needed)
         Intent intent = new Intent(this, MainActivity.class);
-        // Use SINGLE_TOP to preserve intent extras (CLEAR_TOP recreates activity and
-        // loses extras!)
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        intent.setAction("CALL_PAGE_" + System.currentTimeMillis()); // Unique action to make intent distinct
-        intent.putExtra("action", "OPEN_CALL_PAGE");
-        intent.putExtra("callUrl", callUrl);
+        intent.setAction("ACCEPT_CALL_" + System.currentTimeMillis()); // Unique action
+        intent.putExtra("action", "ACCEPT_CALL");
+        intent.putExtra("sessionId", sessionId);
+        intent.putExtra("callerName", safeCaller);
+        intent.putExtra("callType", safeType);
 
         // Use unique request code (1002) to ensure this pending intent is distinct
         PendingIntent pendingIntent = PendingIntent.getActivity(
