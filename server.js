@@ -944,10 +944,59 @@ io.on('connection', (socket) => {
       if (user) {
         Object.assign(user, update);
         user.isOnline = user.isChatOnline || user.isAudioOnline || user.isVideoOnline;
+        user.isAvailable = user.isOnline; // Sync isAvailable with manual toggle
+        user.lastSeen = new Date();
+        await user.save();
+        broadcastAstroUpdate();
+        console.log(`[Presence] ${user.name} toggled ${data.type}: ${data.online}`);
+      }
+    } catch (e) { console.error(e); }
+  });
+
+  // --- App Lifecycle: Background ---
+  socket.on('app-background', async () => {
+    const userId = socketToUser.get(socket.id);
+    if (!userId) return;
+
+    try {
+      const user = await User.findOne({ userId });
+      if (user && user.role === 'astrologer') {
+        user.lastSeen = new Date();
+        // DON'T mark offline - just update lastSeen
+        await user.save();
+        console.log(`[Presence] ${user.name} went to background (lastSeen updated)`);
+      }
+    } catch (e) { console.error('[Presence] app-background error:', e); }
+  });
+
+  // --- App Lifecycle: Foreground ---
+  socket.on('app-foreground', async () => {
+    const userId = socketToUser.get(socket.id);
+    if (!userId) return;
+
+    try {
+      const user = await User.findOne({ userId });
+      if (user && user.role === 'astrologer') {
+        user.lastSeen = new Date();
+
+        // Restore status from saved state if available
+        const saved = savedAstroStatus.get(userId);
+        if (saved) {
+          user.isChatOnline = saved.chat;
+          user.isAudioOnline = saved.audio;
+          user.isVideoOnline = saved.video;
+          user.isOnline = saved.chat || saved.audio || saved.video;
+          user.isAvailable = user.isOnline;
+          savedAstroStatus.delete(userId);
+          console.log(`[Presence] ${user.name} returned to foreground - status restored`);
+        } else {
+          console.log(`[Presence] ${user.name} returned to foreground`);
+        }
+
         await user.save();
         broadcastAstroUpdate();
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error('[Presence] app-foreground error:', e); }
   });
 
   // --- Update Profile ---
@@ -987,11 +1036,21 @@ io.on('connection', (socket) => {
       if (!fromUserId) return cb({ ok: false, error: 'Not registered' });
       if (!toUserId || !type) return cb({ ok: false, error: 'Missing fields' });
 
-      // Check target status from DB? Or assume front-end checked?
-      // Check userSockets for connectivity
-      const targetSocketId = userSockets.get(toUserId);
-      if (!targetSocketId) {
-        return cb({ ok: false, error: 'User offline (socket)' });
+      // Get target user from DB
+      const toUser = await User.findOne({ userId: toUserId });
+      const fromUser = await User.findOne({ userId: fromUserId });
+
+      if (!toUser) {
+        return cb({ ok: false, error: 'User not found' });
+      }
+
+      // Check if astrologer is available (NOT socket-based!)
+      // Use isAvailable (manual toggle) OR check lastSeen within grace period
+      const isRecentlyActive = toUser.lastSeen && (Date.now() - new Date(toUser.lastSeen).getTime() < OFFLINE_GRACE_PERIOD);
+      const isAvailable = toUser.isAvailable || (toUser.isOnline && isRecentlyActive);
+
+      if (!isAvailable) {
+        return cb({ ok: false, error: 'Astrologer is offline' });
       }
 
       if (userActiveSession.has(toUserId)) {
@@ -1000,11 +1059,7 @@ io.on('connection', (socket) => {
 
       const sessionId = crypto.randomUUID();
 
-      // Store in DB
-      // Resolve roles (Assuming User model has role)
-      const fromUser = await User.findOne({ userId: fromUserId });
-      const toUser = await User.findOne({ userId: toUserId });
-
+      // Resolve roles
       let clientId = null;
       let astrologerId = null;
 
@@ -1026,19 +1081,23 @@ io.on('connection', (socket) => {
         astrologerId,
         elapsedBillableSeconds: 0,
         lastBilledMinute: 0,
-        actualBillingStart: null, // Will be set by handleUserConnection
+        actualBillingStart: null,
         totalDeducted: 0,
         totalEarned: 0
       });
       userActiveSession.set(fromUserId, sessionId);
       userActiveSession.set(toUserId, sessionId);
 
-      io.to(targetSocketId).emit('incoming-session', {
-        sessionId,
-        fromUserId,
-        type,
-        birthData: birthData || null
-      });
+      // Try socket notification (might fail if in background - that's OK!)
+      const targetSocketId = userSockets.get(toUserId);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('incoming-session', {
+          sessionId,
+          fromUserId,
+          type,
+          birthData: birthData || null
+        });
+      }
 
       // Send FCM Push Notification to wake up app if in background/killed
       if (toUser && toUser.fcmToken) {

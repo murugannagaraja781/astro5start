@@ -3607,7 +3607,15 @@
 
     // Auto-refresh wallet and reconnect when user returns to app
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && state.me && state.socket) {
+      if (!state.me || !state.socket) return;
+
+      if (document.visibilityState === 'hidden') {
+        // App going to background - notify server
+        console.log('[App] Going to background - emitting app-background');
+        if (socket.connected) {
+          socket.emit('app-background');
+        }
+      } else if (document.visibilityState === 'visible') {
         console.log('[App] Visible - checking socket connection...');
 
         // Force reconnect if disconnected
@@ -3616,6 +3624,9 @@
           socket.connect();
         }
 
+        // Emit app-foreground to server
+        socket.emit('app-foreground');
+
         // Refresh wallet
         state.socket.emit('get-wallet', { userId: state.me.userId });
 
@@ -3623,7 +3634,7 @@
         if (state.me.role === 'astrologer') {
           socket.emit('register', { name: state.me.name, phone: state.me.phone, userId: state.me.userId }, (ack) => {
             if (ack && ack.ok) {
-              console.log('[Status] Re-registered after returning to app');
+              console.log('[Presence] Re-registered after returning to app');
             }
           });
         }
@@ -3639,6 +3650,7 @@
           socket.connect();
         }
 
+        socket.emit('app-foreground');
         state.socket.emit('get-wallet', { userId: state.me.userId });
       }
     });
