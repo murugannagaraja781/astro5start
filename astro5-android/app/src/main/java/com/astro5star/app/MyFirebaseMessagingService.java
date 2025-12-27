@@ -1,8 +1,10 @@
 package com.astro5star.app;
 
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -67,24 +69,67 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     }
 
     /**
-     * Show incoming call notification with full-screen intent
+     * Show incoming call notification - clicking opens webapp with incoming call
+     * popup
      */
     private void showIncomingCallNotification(String callId, String callerName, String callType) {
         Log.d(TAG, "Showing incoming call notification - CallId: " + callId + ", Caller: " + callerName + ", Type: "
                 + callType);
 
-        // Get sessionId if available (for socket communication)
-        String sessionId = callId; // Use callId as sessionId if not provided separately
+        String sessionId = callId;
 
-        // Use NotificationHelper for creating proper WhatsApp-style notification
-        NotificationHelper.getInstance().showIncomingCallNotification(
-                this,
-                callId != null ? callId : "",
-                sessionId,
-                callerName != null ? callerName : "Unknown Caller",
-                callType != null ? callType : "audio");
+        // Create notification that opens MainActivity with call data
+        // This will show the web incoming call popup instead of native UI
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
-        // Start ringtone service
+        // Create high-priority channel for calls
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    "calls",
+                    "Incoming Calls",
+                    NotificationManager.IMPORTANCE_HIGH);
+            channel.enableVibration(true);
+            channel.setVibrationPattern(new long[] { 0, 1000, 500, 1000 });
+            channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
+
+        // Intent to open MainActivity with call data
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.putExtra("action", "SHOW_INCOMING_POPUP");
+        intent.putExtra("callId", callId);
+        intent.putExtra("sessionId", sessionId);
+        intent.putExtra("callerName", callerName);
+        intent.putExtra("callType", callType);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        String callTypeText = "audio".equals(callType) ? "Voice Call"
+                : "video".equals(callType) ? "Video Call" : "Call";
+
+        Notification notification = new NotificationCompat.Builder(this, "calls")
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("📞 Incoming " + callTypeText)
+                .setContentText(callerName + " is calling you")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_CALL)
+                .setVibrate(new long[] { 0, 1000, 500, 1000 })
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .setFullScreenIntent(pendingIntent, true) // Show on lock screen
+                .setTimeoutAfter(60000) // Auto dismiss after 60s
+                .build();
+
+        if (notificationManager != null) {
+            notificationManager.notify(1001, notification);
+        }
+
+        // Start ringtone
         RingtoneService.start(this);
     }
 

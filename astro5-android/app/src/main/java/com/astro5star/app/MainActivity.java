@@ -189,6 +189,42 @@ public class MainActivity extends AppCompatActivity {
                 webView.loadUrl(BASE_URL);
             }
             return;
+        } else if ("SHOW_INCOMING_POPUP".equals(action)) {
+            // Show web incoming call popup instead of native UI
+            String sessionId = intent.getStringExtra("sessionId");
+            String callerName = intent.getStringExtra("callerName");
+            String callType = intent.getStringExtra("callType");
+            String fromUserId = intent.getStringExtra("callId"); // callId is actually fromUserId in this context
+
+            android.util.Log.d("MainActivity",
+                    "Show incoming popup - Session: " + sessionId + ", Caller: " + callerName);
+
+            // Stop ringtone
+            RingtoneService.stop(this);
+
+            // Cancel notification
+            android.app.NotificationManager nm = (android.app.NotificationManager) getSystemService(
+                    NOTIFICATION_SERVICE);
+            if (nm != null)
+                nm.cancel(1001);
+
+            // Store pending call data
+            pendingCallAction = "show_popup";
+            pendingSessionId = sessionId;
+            pendingCallType = callType;
+            pendingCallerName = callerName;
+            pendingFromUserId = fromUserId;
+
+            // Check if WebView already has content loaded
+            String currentUrl = webView.getUrl();
+            if (currentUrl != null && currentUrl.contains(BASE_URL.replace("https://", "").replace("http://", ""))) {
+                // WebView already loaded - show popup immediately
+                showIncomingCallPopup(sessionId, callerName, callType, fromUserId);
+            } else {
+                // WebView not loaded - load first, popup will show after
+                webView.loadUrl(BASE_URL);
+            }
+            return;
         }
 
         // Handle deep links
@@ -224,6 +260,8 @@ public class MainActivity extends AppCompatActivity {
     private String pendingCallAction = null;
     private String pendingSessionId = null;
     private String pendingCallType = null;
+    private String pendingCallerName = null;
+    private String pendingFromUserId = null;
 
     /**
      * Inject call action JavaScript after page loads
@@ -287,7 +325,77 @@ public class MainActivity extends AppCompatActivity {
             pendingCallAction = null;
             pendingSessionId = null;
             pendingCallType = null;
+            pendingCallerName = null;
+            pendingFromUserId = null;
+        } else if ("show_popup".equals(pendingCallAction) && pendingSessionId != null) {
+            // Show the web incoming call popup
+            showIncomingCallPopup(pendingSessionId, pendingCallerName, pendingCallType, pendingFromUserId);
+
+            // Clear pending action
+            pendingCallAction = null;
+            pendingSessionId = null;
+            pendingCallType = null;
+            pendingCallerName = null;
+            pendingFromUserId = null;
         }
+    }
+
+    /**
+     * Show web incoming call popup by injecting JavaScript
+     */
+    private void showIncomingCallPopup(String sessionId, String callerName, String callType, String fromUserId) {
+        android.util.Log.d("MainActivity", "Showing web incoming call popup - Session: " + sessionId);
+
+        String safeCallerName = callerName != null ? callerName : "Client";
+        String safeCallType = callType != null ? callType : "audio";
+
+        // JavaScript to show the incoming call popup
+        String script = "(function waitAndShowPopup(retries) { " +
+                "  console.log('[NATIVE] Trying to show popup, retries=' + retries); " +
+                "  if (window.state && window.state.socket && window.state.socket.connected) { " +
+                "    console.log('[NATIVE] Socket ready, triggering incoming-session UI'); " +
+                "    var popup = document.getElementById('s-incoming'); " +
+                "    if (popup) { " +
+                "      popup.classList.remove('hidden'); " +
+                "      document.getElementById('callerName').innerHTML = '<strong>Incoming Call</strong><br>"
+                + safeCallerName + "'; " +
+                "      document.getElementById('btnAccept').onclick = function() { " +
+                "        popup.classList.add('hidden'); " +
+                "        if(window.incomingAudio) { window.incomingAudio.pause(); window.incomingAudio = null; } " +
+                "        window.state.socket.emit('answer-session-native', { " +
+                "          sessionId: '" + sessionId + "', " +
+                "          accept: true, " +
+                "          callType: '" + safeCallType + "' " +
+                "        }, function(res) { " +
+                "          if (res && res.ok && res.fromUserId) { " +
+                "            window.initSession('" + sessionId + "', res.fromUserId, '" + safeCallType
+                + "', false, null); " +
+                "          } else { " +
+                "            alert('Failed to connect: ' + (res ? res.error : 'Unknown error')); " +
+                "          } " +
+                "        }); " +
+                "      }; " +
+                "      document.getElementById('btnReject').onclick = function() { " +
+                "        popup.classList.add('hidden'); " +
+                "        if(window.incomingAudio) { window.incomingAudio.pause(); window.incomingAudio = null; } " +
+                "        window.state.socket.emit('answer-session-native', { " +
+                "          sessionId: '" + sessionId + "', " +
+                "          accept: false " +
+                "        }); " +
+                "      }; " +
+                "      try { " +
+                "        if (window.incomingAudio) { window.incomingAudio.pause(); } " +
+                "        window.incomingAudio = new Audio('sound.mpeg'); " +
+                "        window.incomingAudio.loop = true; " +
+                "        window.incomingAudio.play().catch(function(e) {}); " +
+                "      } catch(e) {} " +
+                "    } " +
+                "  } else if (retries > 0) { " +
+                "    setTimeout(function() { waitAndShowPopup(retries - 1); }, 500); " +
+                "  } " +
+                "})(20);";
+
+        webView.evaluateJavascript(script, null);
     }
 
     /**
