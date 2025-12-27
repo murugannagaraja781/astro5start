@@ -344,6 +344,11 @@ const activeSessions = new Map(); // sessionId -> { type, users... }
 const pendingMessages = new Map();
 const otpStore = new Map();
 
+// Astrologer Status Persistence (5-min grace period)
+const offlineTimeouts = new Map(); // userId -> timeoutId
+const savedAstroStatus = new Map(); // userId -> { chat, audio, video, timestamp }
+const OFFLINE_GRACE_PERIOD = 5 * 60 * 1000; // 5 minutes
+
 // --- Static Files & Root Route ---
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => {
@@ -872,9 +877,30 @@ io.on('connection', (socket) => {
         });
         console.log(`User registered: ${user.name} (${user.role})`);
 
-        // If astro, broadcast update
+        // If astro, handle reconnection status restoration
         if (user.role === 'astrologer') {
-          broadcastAstroUpdate();
+          // Cancel any pending offline timeout
+          if (offlineTimeouts.has(userId)) {
+            clearTimeout(offlineTimeouts.get(userId));
+            offlineTimeouts.delete(userId);
+            console.log(`[Status] Cancelled pending offline for ${user.name} (reconnected)`);
+          }
+
+          // Restore saved status if available
+          const saved = savedAstroStatus.get(userId);
+          if (saved && Date.now() - saved.timestamp < OFFLINE_GRACE_PERIOD * 2) {
+            user.isChatOnline = saved.chat;
+            user.isAudioOnline = saved.audio;
+            user.isVideoOnline = saved.video;
+            user.isOnline = saved.chat || saved.audio || saved.video;
+            user.save().then(() => {
+              console.log(`[Status] Restored ${user.name} status: chat=${saved.chat}, audio=${saved.audio}, video=${saved.video}`);
+              broadcastAstroUpdate();
+            });
+            savedAstroStatus.delete(userId);
+          } else {
+            broadcastAstroUpdate();
+          }
         }
         // If superadmin, join room
         if (user.role === 'superadmin') {
@@ -1800,16 +1826,50 @@ io.on('connection', (socket) => {
       }
 
       try {
-        // If Astrologer, mark offline in DB
+        // If Astrologer, use grace period before marking offline
         const user = await User.findOne({ userId });
         if (user && user.role === 'astrologer') {
-          user.isOnline = false;
-          user.isChatOnline = false;
-          user.isAudioOnline = false;
-          user.isVideoOnline = false;
-          await user.save();
-          broadcastAstroUpdate();
-          console.log(`Astrologer ${user.name} marked offline (DB)`);
+          // Save current status before potential offline
+          savedAstroStatus.set(userId, {
+            chat: user.isChatOnline,
+            audio: user.isAudioOnline,
+            video: user.isVideoOnline,
+            timestamp: Date.now()
+          });
+
+          console.log(`[Status] Astrologer ${user.name} disconnected - starting ${OFFLINE_GRACE_PERIOD / 1000}s grace period`);
+
+          // Clear any existing timeout
+          if (offlineTimeouts.has(userId)) {
+            clearTimeout(offlineTimeouts.get(userId));
+          }
+
+          // Set new timeout - only mark offline if still disconnected after grace period
+          const timeoutId = setTimeout(async () => {
+            try {
+              // Check if user reconnected
+              if (!userSockets.has(userId)) {
+                const astro = await User.findOne({ userId });
+                if (astro && astro.role === 'astrologer') {
+                  astro.isOnline = false;
+                  astro.isChatOnline = false;
+                  astro.isAudioOnline = false;
+                  astro.isVideoOnline = false;
+                  await astro.save();
+                  broadcastAstroUpdate();
+                  console.log(`[Status] Astrologer ${astro.name} marked offline after grace period`);
+                }
+                savedAstroStatus.delete(userId);
+              } else {
+                console.log(`[Status] Astrologer ${userId} reconnected before grace period ended`);
+              }
+              offlineTimeouts.delete(userId);
+            } catch (err) {
+              console.error('[Status] Grace period timeout error:', err);
+            }
+          }, OFFLINE_GRACE_PERIOD);
+
+          offlineTimeouts.set(userId, timeoutId);
         }
       } catch (e) { console.error('Disconnect DB error', e); }
 

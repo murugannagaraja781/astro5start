@@ -4208,6 +4208,13 @@
         el.classList.toggle('active');
         const isOnline = el.classList.contains('active');
         socket.emit('toggle-status', { online: isOnline, type: type });
+
+        // Save status to localStorage for persistence across reconnects
+        const savedStatus = JSON.parse(localStorage.getItem('astroStatus') || '{}');
+        savedStatus[type] = isOnline;
+        savedStatus.timestamp = Date.now();
+        localStorage.setItem('astroStatus', JSON.stringify(savedStatus));
+        console.log('[Status] Saved to localStorage:', savedStatus);
       };
     }
 
