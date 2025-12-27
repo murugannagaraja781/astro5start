@@ -142,23 +142,52 @@ public class MainActivity extends AppCompatActivity {
 
             android.util.Log.d("MainActivity", "Accepting call - Session: " + sessionId);
 
-            // Load app and inject call accept script
-            pendingCallAction = "accept";
-            pendingSessionId = sessionId;
-            pendingCallType = callType;
-
-            webView.loadUrl(BASE_URL);
+            // Check if WebView already has content loaded
+            String currentUrl = webView.getUrl();
+            if (currentUrl != null && currentUrl.contains(BASE_URL.replace("https://", "").replace("http://", ""))) {
+                // WebView already loaded - inject JavaScript directly without reload
+                android.util.Log.d("MainActivity", "WebView already loaded - injecting JS directly");
+                String js = "javascript:(function() { " +
+                        "if(window.acceptCallFromNative) { " +
+                        "  window.acceptCallFromNative('" + sessionId + "', '" + callType + "'); " +
+                        "} else { " +
+                        "  console.log('No acceptCallFromNative function - emitting socket event'); " +
+                        "  if(window.state && window.state.socket) { " +
+                        "    window.state.socket.emit('accept-session', { sessionId: '" + sessionId + "' }); " +
+                        "  } " +
+                        "} " +
+                        "})();";
+                webView.evaluateJavascript(js, null);
+            } else {
+                // WebView not loaded - set pending action and load
+                pendingCallAction = "accept";
+                pendingSessionId = sessionId;
+                pendingCallType = callType;
+                webView.loadUrl(BASE_URL);
+            }
             return;
         } else if ("REJECT_CALL".equals(action)) {
             String sessionId = intent.getStringExtra("sessionId");
 
             android.util.Log.d("MainActivity", "Rejecting call - Session: " + sessionId);
 
-            // Load app and inject call reject script
-            pendingCallAction = "reject";
-            pendingSessionId = sessionId;
-
-            webView.loadUrl(BASE_URL);
+            // Check if WebView already has content loaded
+            String currentUrl = webView.getUrl();
+            if (currentUrl != null && currentUrl.contains(BASE_URL.replace("https://", "").replace("http://", ""))) {
+                // WebView already loaded - inject JavaScript directly
+                android.util.Log.d("MainActivity", "WebView already loaded - injecting reject JS");
+                String js = "javascript:(function() { " +
+                        "if(window.state && window.state.socket) { " +
+                        "  window.state.socket.emit('reject-session', { sessionId: '" + sessionId + "' }); " +
+                        "} " +
+                        "})();";
+                webView.evaluateJavascript(js, null);
+            } else {
+                // WebView not loaded - set pending action and load
+                pendingCallAction = "reject";
+                pendingSessionId = sessionId;
+                webView.loadUrl(BASE_URL);
+            }
             return;
         }
 

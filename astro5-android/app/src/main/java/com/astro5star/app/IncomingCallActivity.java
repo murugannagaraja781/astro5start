@@ -106,9 +106,9 @@ public class IncomingCallActivity extends AppCompatActivity {
         RingtoneService.stop(this);
         NotificationHelper.getInstance().cancelCallNotification(this);
 
-        // Open MainActivity with call data
+        // Open MainActivity with call data - use SINGLE_TOP to avoid recreating
         Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         intent.putExtra("action", "ACCEPT_CALL");
         intent.putExtra("callId", callId);
         intent.putExtra("sessionId", sessionId);
@@ -127,7 +127,7 @@ public class IncomingCallActivity extends AppCompatActivity {
 
         // Open MainActivity with reject action (it will notify via socket)
         Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         intent.putExtra("action", "REJECT_CALL");
         intent.putExtra("callId", callId);
         intent.putExtra("sessionId", sessionId);
