@@ -215,7 +215,7 @@ public class MainActivity extends AppCompatActivity {
             // Open call accept/reject HTML page directly
             String callUrl = intent.getStringExtra("callUrl");
 
-            android.util.Log.d("MainActivity", "Opening call page: " + callUrl);
+            android.util.Log.d("MainActivity", "OPEN_CALL_PAGE - URL: " + callUrl);
 
             // Stop ringtone
             RingtoneService.stop(this);
@@ -226,11 +226,26 @@ public class MainActivity extends AppCompatActivity {
             if (nm != null)
                 nm.cancel(1001);
 
-            // Load the call page URL
-            if (callUrl != null && !callUrl.isEmpty()) {
+            // Request audio permission for calls
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                if (checkSelfPermission(
+                        android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[] { android.Manifest.permission.RECORD_AUDIO }, 101);
+                }
+            }
+
+            // Store pending URL and load it
+            pendingCallUrl = callUrl;
+
+            // Load the call page URL immediately
+            if (webView != null && callUrl != null && !callUrl.isEmpty()) {
+                android.util.Log.d("MainActivity", "Loading call page URL now");
                 webView.loadUrl(callUrl);
             } else {
-                webView.loadUrl(BASE_URL);
+                android.util.Log.d("MainActivity", "WebView null or URL empty, loading BASE_URL");
+                if (webView != null) {
+                    webView.loadUrl(BASE_URL);
+                }
             }
             return;
         }
@@ -270,6 +285,7 @@ public class MainActivity extends AppCompatActivity {
     private String pendingCallType = null;
     private String pendingCallerName = null;
     private String pendingFromUserId = null;
+    private String pendingCallUrl = null; // For OPEN_CALL_PAGE action
 
     /**
      * Inject call action JavaScript after page loads
