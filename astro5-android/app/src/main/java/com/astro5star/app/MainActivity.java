@@ -98,48 +98,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Request Camera, Microphone, Notification, and Overlay permissions
+     * Request Camera and Microphone permissions only when needed (for video/audio
+     * calls)
+     * All permissions are optional - no dialogs on app open
      */
     private void requestAppPermissions() {
-        // Request overlay permission for full-screen call notifications (Android 10+)
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            if (!android.provider.Settings.canDrawOverlays(this)) {
-                android.util.Log.d("MainActivity", "Requesting overlay permission for full-screen calls");
-                new android.app.AlertDialog.Builder(this)
-                        .setTitle("Permission Required")
-                        .setMessage(
-                                "To receive incoming call notifications, please allow 'Display over other apps' permission.")
-                        .setPositiveButton("Allow", (dialog, which) -> {
-                            Intent intent = new Intent(
-                                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                    android.net.Uri.parse("package:" + getPackageName()));
-                            startActivityForResult(intent, 200);
-                        })
-                        .setNegativeButton("Later", null)
-                        .show();
-            }
-        }
-
-        // Request runtime permissions
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            String[] permissions = new String[] {
-                    android.Manifest.permission.CAMERA,
-                    android.Manifest.permission.RECORD_AUDIO,
-                    android.Manifest.permission.POST_NOTIFICATIONS
-            };
-
-            boolean needRequest = false;
-            for (String perm : permissions) {
-                if (checkSelfPermission(perm) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                    needRequest = true;
-                    break;
-                }
-            }
-
-            if (needRequest) {
-                requestPermissions(permissions, 100);
-            }
-        }
+        // Permissions will be requested when needed (during call)
+        // No dialogs on app startup
+        android.util.Log.d("MainActivity", "Permissions will be requested when needed");
     }
 
     @Override
