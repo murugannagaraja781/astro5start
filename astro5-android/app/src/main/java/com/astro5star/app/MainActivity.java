@@ -526,6 +526,42 @@ public class MainActivity extends AppCompatActivity {
         webView.setLongClickable(false);
         webView.setHapticFeedbackEnabled(false);
 
+        // Add JavaScript interface for native functions
+        webView.addJavascriptInterface(new Object() {
+            @android.webkit.JavascriptInterface
+            public void requestNotificationPermission() {
+                runOnUiThread(() -> {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        if (checkSelfPermission(
+                                android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            requestPermissions(new String[] { android.Manifest.permission.POST_NOTIFICATIONS }, 102);
+                        }
+                    }
+                });
+            }
+
+            @android.webkit.JavascriptInterface
+            public boolean hasNotificationPermission() {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    return checkSelfPermission(
+                            android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+                }
+                return true; // Pre-Android 13 doesn't need permission
+            }
+
+            @android.webkit.JavascriptInterface
+            public void requestAudioPermission() {
+                runOnUiThread(() -> {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                        if (checkSelfPermission(
+                                android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            requestPermissions(new String[] { android.Manifest.permission.RECORD_AUDIO }, 103);
+                        }
+                    }
+                });
+            }
+        }, "Android");
+
         // Set WebViewClient
         webView.setWebViewClient(new WebViewClient() {
 
