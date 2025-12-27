@@ -19,7 +19,7 @@ const { GoogleAuth } = require('google-auth-library');
 const fs = require('fs');
 
 // FCM v1 Configuration
-const FCM_PROJECT_ID = 'studio-7813488691-1dba4';
+const FCM_PROJECT_ID = 'astro5star-9f6ca';
 let fcmAuth = null;
 
 // Initialize FCM v1 Auth
