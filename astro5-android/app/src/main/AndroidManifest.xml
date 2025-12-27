@@ -95,6 +95,27 @@
             android:name="firebase_messaging_auto_init_enabled"
             android:value="true" />
 
+        <!-- Incoming Call Activity (Full-screen WhatsApp-style) -->
+        <activity
+            android:name=".IncomingCallActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Astro5Star"
+            android:launchMode="singleTop"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity="" />
+
+        <!-- Ringtone Service -->
+        <service
+            android:name=".RingtoneService"
+            android:exported="false" />
+
+        <!-- Call Action Receiver (for notification buttons) -->
+        <receiver
+            android:name=".CallActionReceiver"
+            android:exported="false" />
+
     </application>
 
 </manifest>

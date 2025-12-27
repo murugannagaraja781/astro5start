@@ -14,6 +14,88 @@ if (!global.fetch) {
   global.fetch = require('node-fetch');
 }
 
+// FCM v1 API with Service Account
+const { GoogleAuth } = require('google-auth-library');
+const fs = require('fs');
+
+// FCM v1 Configuration
+const FCM_PROJECT_ID = 'studio-7813488691-1dba4';
+let fcmAuth = null;
+
+// Initialize FCM v1 Auth
+function initFcmAuth() {
+  try {
+    const serviceAccountPath = './firebase-service-account.json';
+    if (fs.existsSync(serviceAccountPath)) {
+      fcmAuth = new GoogleAuth({
+        keyFile: serviceAccountPath,
+        scopes: ['https://www.googleapis.com/auth/firebase.messaging']
+      });
+      console.log('[FCM v1] Initialized with service account');
+    } else {
+      console.warn('[FCM v1] Service account file not found - push notifications disabled');
+    }
+  } catch (err) {
+    console.error('[FCM v1] Init error:', err.message);
+  }
+}
+
+// Send FCM v1 Push Notification
+async function sendFcmV1Push(fcmToken, data, notification) {
+  if (!fcmAuth) {
+    console.warn('[FCM v1] Not initialized - skipping push');
+    return { success: false, error: 'FCM not initialized' };
+  }
+
+  try {
+    const accessToken = await fcmAuth.getAccessToken();
+
+    const message = {
+      message: {
+        token: fcmToken,
+        data: data,
+        android: {
+          priority: 'high',
+          notification: notification ? {
+            channelId: 'calls',
+            title: notification.title,
+            body: notification.body,
+            sound: 'default'
+          } : undefined
+        }
+      }
+    };
+
+    const response = await fetch(
+      `https://fcm.googleapis.com/v1/projects/${FCM_PROJECT_ID}/messages:send`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken.token || accessToken}`
+        },
+        body: JSON.stringify(message)
+      }
+    );
+
+    const result = await response.json();
+
+    if (response.ok) {
+      console.log('[FCM v1] Push sent successfully:', result.name);
+      return { success: true, messageId: result.name };
+    } else {
+      console.error('[FCM v1] Push failed:', result.error?.message || JSON.stringify(result));
+      return { success: false, error: result.error?.message };
+    }
+  } catch (err) {
+    console.error('[FCM v1] Send error:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+// Initialize FCM on server start
+initFcmAuth();
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
@@ -934,44 +1016,26 @@ io.on('connection', (socket) => {
 
       // Send FCM Push Notification to wake up app if in background/killed
       if (toUser && toUser.fcmToken) {
-        try {
-          const fcmPayload = {
-            to: toUser.fcmToken,
-            priority: 'high',
-            data: {
-              type: 'incoming_call',
-              callId: sessionId,
-              callType: type,
-              callerName: fromUser?.name || 'Client',
-              fromUserId: fromUserId,
-              title: 'Incoming Call',
-              body: `${fromUser?.name || 'Someone'} is calling (${type})`
-            },
-            notification: {
-              title: '📞 Incoming Call',
-              body: `${fromUser?.name || 'Someone'} is calling you`,
-              android_channel_id: 'astro5_calls',
-              sound: 'default'
-            }
-          };
+        const fcmData = {
+          type: 'incoming_call',
+          callId: sessionId,
+          callType: type,
+          callerName: fromUser?.name || 'Client',
+          fromUserId: fromUserId
+        };
 
-          const FCM_SERVER_KEY = process.env.FCM_SERVER_KEY || "BKHoplA5AZRRiId8evnceHKysAFH8kzHTYv0jE2N041TYdKgk1mP9dslrt7a0bY0f7Sxe4JfDYr-vdKS82mBVEM";
+        const fcmNotification = {
+          title: '📞 Incoming Call',
+          body: `${fromUser?.name || 'Someone'} is calling you`
+        };
 
-          fetch('https://fcm.googleapis.com/fcm/send', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `key=${FCM_SERVER_KEY}`
-            },
-            body: JSON.stringify(fcmPayload)
-          }).then(res => res.json()).then(fcmRes => {
-            console.log(`[FCM] Session Push to ${toUserId}: Success=${fcmRes.success}`);
-          }).catch(err => {
-            console.error('[FCM] Session Push Error:', err.message);
+        sendFcmV1Push(toUser.fcmToken, fcmData, fcmNotification)
+          .then(result => {
+            console.log(`[FCM v1] Session Push to ${toUserId}: Success=${result.success}`);
+          })
+          .catch(err => {
+            console.error('[FCM v1] Session Push Error:', err.message);
           });
-        } catch (fcmErr) {
-          console.error('[FCM] Error sending push:', fcmErr);
-        }
       }
 
       console.log(`Session request: ${sessionId} (${type})`);
@@ -1833,43 +1897,24 @@ app.post('/api/call/initiate', async (req, res) => {
     });
 
     // C. Send FCM Push Notification (WAKE UP APP)
-    // NOTE: Replace with real Firebase Server Key from Environment Variable
+    // Send FCM v1 Push Notification
     if (astro.fcmToken) {
-      const fcmPayload = {
-        to: astro.fcmToken,
-        priority: 'high',
-        data: {
-          type: 'call',
-          callId: callId,
-          callerId: callerId,
-          callerName: "Client", // TODO: Fetch Name
-          title: "Incoming Call",
-          body: "Video Call Request"
-        },
-        notification: {
-          title: "Incoming Call",
-          body: "Tap to answer video call",
-          android_channel_id: "calls" // Important for Android
-        }
+      const fcmData = {
+        type: 'incoming_call',
+        callId: callId,
+        callerId: callerId,
+        callerName: 'Client'
       };
 
-      // Send to FCM (Legacy API)
-      const FCM_SERVER_KEY = "BKHoplA5AZRRiId8evnceHKysAFH8kzHTYv0jE2N041TYdKgk1mP9dslrt7a0bY0f7Sxe4JfDYr-vdKS82mBVEM";
+      const fcmNotification = {
+        title: 'Incoming Call',
+        body: 'Tap to answer video call'
+      };
 
-      const fcmRes = await fetch('https://fcm.googleapis.com/fcm/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `key=${FCM_SERVER_KEY}`
-        },
-        body: JSON.stringify(fcmPayload)
-      });
-
-      const fcmData = await fcmRes.json();
-      console.log(`[FCM] Sent Push to ${receiverId} | Success: ${fcmData.success}`);
-      console.log(`[FCM] Sending Push to ${receiverId} (Token: ${astro.fcmToken.substring(0, 10)}...)`);
+      const fcmResult = await sendFcmV1Push(astro.fcmToken, fcmData, fcmNotification);
+      console.log(`[FCM v1] Sent Push to ${receiverId} | Success: ${fcmResult.success}`);
     } else {
-      console.log(`[FCM] No Token for ${receiverId}. Call might fail if app is killed.`);
+      console.log(`[FCM v1] No Token for ${receiverId}. Call might fail if app is killed.`);
     }
 
     res.json({ ok: true, callId, status: 'ringing' });

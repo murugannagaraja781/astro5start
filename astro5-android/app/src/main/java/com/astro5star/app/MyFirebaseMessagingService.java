@@ -70,44 +70,22 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
      * Show incoming call notification with full-screen intent
      */
     private void showIncomingCallNotification(String callId, String callerName, String callType) {
-        createNotificationChannel();
+        Log.d(TAG, "Showing incoming call notification - CallId: " + callId + ", Caller: " + callerName + ", Type: "
+                + callType);
 
-        // Intent to open app with call info
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        intent.putExtra("incomingCallId", callId);
-        intent.putExtra("callerName", callerName);
-        intent.putExtra("callType", callType);
-        intent.setData(Uri.parse("astro5://incoming-call?callId=" + callId));
+        // Get sessionId if available (for socket communication)
+        String sessionId = callId; // Use callId as sessionId if not provided separately
 
-        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            flags |= PendingIntent.FLAG_IMMUTABLE;
-        }
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, flags);
+        // Use NotificationHelper for creating proper WhatsApp-style notification
+        NotificationHelper.getInstance().showIncomingCallNotification(
+                this,
+                callId != null ? callId : "",
+                sessionId,
+                callerName != null ? callerName : "Unknown Caller",
+                callType != null ? callType : "audio");
 
-        // Full-screen intent for incoming call
-        PendingIntent fullScreenIntent = PendingIntent.getActivity(this, 1, intent, flags);
-
-        Uri ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle("📞 Incoming Call")
-                .setContentText(callerName != null ? callerName + " is calling..." : "Someone is calling...")
-                .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setCategory(NotificationCompat.CATEGORY_CALL)
-                .setSound(ringtoneUri)
-                .setVibrate(new long[] { 0, 1000, 500, 1000, 500, 1000 })
-                .setAutoCancel(true)
-                .setContentIntent(pendingIntent)
-                .setFullScreenIntent(fullScreenIntent, true) // Full-screen for incoming call!
-                .setOngoing(true); // Keep notification until answered
-
-        NotificationManager notificationManager = getSystemService(NotificationManager.class);
-        if (notificationManager != null) {
-            notificationManager.notify(1001, builder.build());
-        }
+        // Start ringtone service
+        RingtoneService.start(this);
     }
 
     /**

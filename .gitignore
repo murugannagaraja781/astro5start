@@ -8,6 +8,10 @@ package-lock.json
 .env.local
 .env.*.local
 
+# Firebase Service Account (NEVER commit!)
+firebase-service-account.json
+firebase-*.json
+
 # Logs
 logs/
 *.log

@@ -62,6 +62,9 @@ public class MainActivity extends AppCompatActivity {
         // Request runtime permissions for Camera, Mic, Notifications
         requestAppPermissions();
 
+        // Create notification channels for incoming calls
+        NotificationHelper.getInstance().createNotificationChannels(this);
+
         // Setup WebView
         setupWebView();
 
@@ -126,9 +129,40 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Handle incoming deep links (payment return)
+     * Handle incoming deep links (payment return) and call actions
      */
     private void handleIntent(Intent intent) {
+        String action = intent != null ? intent.getStringExtra("action") : null;
+
+        // Handle call actions from IncomingCallActivity
+        if ("ACCEPT_CALL".equals(action)) {
+            String sessionId = intent.getStringExtra("sessionId");
+            String callerName = intent.getStringExtra("callerName");
+            String callType = intent.getStringExtra("callType");
+
+            android.util.Log.d("MainActivity", "Accepting call - Session: " + sessionId);
+
+            // Load app and inject call accept script
+            pendingCallAction = "accept";
+            pendingSessionId = sessionId;
+            pendingCallType = callType;
+
+            webView.loadUrl(BASE_URL);
+            return;
+        } else if ("REJECT_CALL".equals(action)) {
+            String sessionId = intent.getStringExtra("sessionId");
+
+            android.util.Log.d("MainActivity", "Rejecting call - Session: " + sessionId);
+
+            // Load app and inject call reject script
+            pendingCallAction = "reject";
+            pendingSessionId = sessionId;
+
+            webView.loadUrl(BASE_URL);
+            return;
+        }
+
+        // Handle deep links
         if (intent == null || intent.getData() == null) {
             // No deep link, load home
             webView.loadUrl(BASE_URL);
@@ -154,6 +188,57 @@ public class MainActivity extends AppCompatActivity {
             }
         } else {
             webView.loadUrl(BASE_URL);
+        }
+    }
+
+    // Pending call action variables
+    private String pendingCallAction = null;
+    private String pendingSessionId = null;
+    private String pendingCallType = null;
+
+    /**
+     * Inject call action JavaScript after page loads
+     */
+    private void injectCallActionIfPending() {
+        if (pendingCallAction != null && pendingSessionId != null) {
+            String script;
+
+            if ("accept".equals(pendingCallAction)) {
+                script = "if (window.onNativeCallAccepted) { " +
+                        "  window.onNativeCallAccepted('" + pendingSessionId + "', '" + pendingCallType + "'); " +
+                        "} else { " +
+                        "  console.log('[NATIVE] Call accept - waiting for socket...'); " +
+                        "  setTimeout(function() { " +
+                        "    if (window.state && window.state.socket) { " +
+                        "      window.state.socket.emit('answer-session', { " +
+                        "        sessionId: '" + pendingSessionId + "', " +
+                        "        accept: true " +
+                        "      }); " +
+                        "    } " +
+                        "  }, 2000); " +
+                        "}";
+            } else {
+                script = "if (window.onNativeCallRejected) { " +
+                        "  window.onNativeCallRejected('" + pendingSessionId + "'); " +
+                        "} else { " +
+                        "  console.log('[NATIVE] Call reject - waiting for socket...'); " +
+                        "  setTimeout(function() { " +
+                        "    if (window.state && window.state.socket) { " +
+                        "      window.state.socket.emit('answer-session', { " +
+                        "        sessionId: '" + pendingSessionId + "', " +
+                        "        accept: false " +
+                        "      }); " +
+                        "    } " +
+                        "  }, 2000); " +
+                        "}";
+            }
+
+            webView.evaluateJavascript(script, null);
+
+            // Clear pending action
+            pendingCallAction = null;
+            pendingSessionId = null;
+            pendingCallType = null;
         }
     }
 
@@ -288,6 +373,9 @@ public class MainActivity extends AppCompatActivity {
 
                 // Inject CSS to hide any web navigation if needed
                 injectAppStyles(view);
+
+                // Handle pending call action from IncomingCallActivity
+                injectCallActionIfPending();
             }
         });
 
