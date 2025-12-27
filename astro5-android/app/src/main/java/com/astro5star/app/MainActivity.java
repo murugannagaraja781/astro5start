@@ -233,33 +233,52 @@ public class MainActivity extends AppCompatActivity {
             String script;
 
             if ("accept".equals(pendingCallAction)) {
-                script = "if (window.onNativeCallAccepted) { " +
-                        "  window.onNativeCallAccepted('" + pendingSessionId + "', '" + pendingCallType + "'); " +
-                        "} else { " +
-                        "  console.log('[NATIVE] Call accept - waiting for socket...'); " +
-                        "  setTimeout(function() { " +
-                        "    if (window.state && window.state.socket) { " +
-                        "      window.state.socket.emit('answer-session', { " +
-                        "        sessionId: '" + pendingSessionId + "', " +
-                        "        accept: true " +
-                        "      }); " +
-                        "    } " +
-                        "  }, 2000); " +
-                        "}";
+                // Script that waits for socket and user login, then accepts call
+                script = "(function tryAcceptCall(retries) { " +
+                        "  console.log('[NATIVE] Trying to accept call, retries=' + retries); " +
+                        "  if (window.onNativeCallAccepted) { " +
+                        "    window.onNativeCallAccepted('" + pendingSessionId + "', '" + pendingCallType + "'); " +
+                        "  } else if (window.state && window.state.socket && window.state.socket.connected && window.state.me) { "
+                        +
+                        "    console.log('[NATIVE] Socket ready, emitting answer-session-native'); " +
+                        "    window.state.socket.emit('answer-session-native', { " +
+                        "      sessionId: '" + pendingSessionId + "', " +
+                        "      accept: true, " +
+                        "      callType: '" + pendingCallType + "' " +
+                        "    }, function(res) { " +
+                        "      if (res && res.ok && res.fromUserId) { " +
+                        "        console.log('[NATIVE] Call accepted, init session with caller:', res.fromUserId); " +
+                        "        if (window.initSession) { " +
+                        "          window.initSession('" + pendingSessionId + "', res.fromUserId, '" + pendingCallType
+                        + "', false, null); " +
+                        "        } " +
+                        "      } else { " +
+                        "        console.error('[NATIVE] Failed to accept call:', res); " +
+                        "        alert('Failed to connect call: ' + (res ? res.error : 'Unknown error')); " +
+                        "      } " +
+                        "    }); " +
+                        "  } else if (retries > 0) { " +
+                        "    console.log('[NATIVE] Waiting for socket/login... retries left:', retries); " +
+                        "    setTimeout(function() { tryAcceptCall(retries - 1); }, 1000); " +
+                        "  } else { " +
+                        "    console.error('[NATIVE] Failed to accept call - socket not ready after retries'); " +
+                        "    alert('Connection failed. Please try again.'); " +
+                        "  } " +
+                        "})(10);"; // Retry up to 10 times (10 seconds)
             } else {
-                script = "if (window.onNativeCallRejected) { " +
-                        "  window.onNativeCallRejected('" + pendingSessionId + "'); " +
-                        "} else { " +
-                        "  console.log('[NATIVE] Call reject - waiting for socket...'); " +
-                        "  setTimeout(function() { " +
-                        "    if (window.state && window.state.socket) { " +
-                        "      window.state.socket.emit('answer-session', { " +
-                        "        sessionId: '" + pendingSessionId + "', " +
-                        "        accept: false " +
-                        "      }); " +
-                        "    } " +
-                        "  }, 2000); " +
-                        "}";
+                // Reject script
+                script = "(function tryRejectCall(retries) { " +
+                        "  if (window.onNativeCallRejected) { " +
+                        "    window.onNativeCallRejected('" + pendingSessionId + "'); " +
+                        "  } else if (window.state && window.state.socket && window.state.socket.connected) { " +
+                        "    window.state.socket.emit('answer-session-native', { " +
+                        "      sessionId: '" + pendingSessionId + "', " +
+                        "      accept: false " +
+                        "    }); " +
+                        "  } else if (retries > 0) { " +
+                        "    setTimeout(function() { tryRejectCall(retries - 1); }, 1000); " +
+                        "  } " +
+                        "})(10);";
             }
 
             webView.evaluateJavascript(script, null);
