@@ -1759,21 +1759,6 @@ io.on('connection', (socket) => {
     try {
       await User.updateOne({ userId }, { fcmToken });
       console.log(`[FCM] Token saved for user: ${userId.substring(0, 8)}...`);
-
-      // Send welcome push notification to test FCM is working
-      const user = await User.findOne({ userId });
-      sendFcmV1Push(fcmToken,
-        { type: 'welcome' },
-        {
-          title: '🎉 Welcome to Astro5Star!',
-          body: `Hello ${user?.name || 'there'}! Notifications are working.`
-        }
-      ).then(result => {
-        console.log(`[FCM] Welcome push to ${userId.substring(0, 8)}: Success=${result.success}`);
-      }).catch(err => {
-        console.error('[FCM] Welcome push error:', err);
-      });
-
     } catch (e) {
       console.error('[FCM] Error saving token:', e);
     }
