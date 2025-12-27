@@ -37,20 +37,26 @@ public class NotificationHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
 
-            // Calls Channel - High priority
+            // Delete existing channel to update settings
+            if (notificationManager != null) {
+                notificationManager.deleteNotificationChannel(CHANNEL_ID_CALLS);
+            }
+
+            // Calls Channel - MAXIMUM priority for full-screen intent
             NotificationChannel callChannel = new NotificationChannel(
                     CHANNEL_ID_CALLS,
                     "Incoming Calls",
-                    NotificationManager.IMPORTANCE_HIGH);
-            callChannel.setDescription("Notifications for incoming calls");
+                    NotificationManager.IMPORTANCE_HIGH); // IMPORTANCE_HIGH is required for heads-up
+            callChannel.setDescription("Notifications for incoming voice and video calls");
             callChannel.enableVibration(true);
             callChannel.setVibrationPattern(new long[] { 0, 1000, 500, 1000, 500, 1000 });
             callChannel.enableLights(true);
             callChannel.setLightColor(Color.GREEN);
             callChannel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
             callChannel.setBypassDnd(true);
+            callChannel.setShowBadge(true);
 
-            // Set ringtone
+            // Set default ringtone
             AudioAttributes audioAttributes = new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -59,6 +65,7 @@ public class NotificationHelper {
 
             if (notificationManager != null) {
                 notificationManager.createNotificationChannel(callChannel);
+                android.util.Log.d("NotificationHelper", "Created calls notification channel with IMPORTANCE_HIGH");
             }
         }
     }
