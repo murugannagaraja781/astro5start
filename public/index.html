@@ -1826,13 +1826,23 @@
         <div
           style="background:linear-gradient(135deg, #F59E0B 0%, #D97706 100%); padding:25px; border-radius:15px; color:white; margin-bottom:20px; text-align:center; box-shadow:0 10px 15px -3px rgba(245, 158, 11, 0.3);">
           <div style="opacity:0.9; font-size:0.9rem; margin-bottom:5px;">Available Wallet Balance</div>
-          <div style="font-size:2.8rem; font-weight:bold; margin-bottom:15px;">₹<span id="dashWalletBalance">0</span>
+          <div style="font-size:2.8rem; font-weight:bold; margin-bottom:10px;">
+            ₹<span id="dashWalletBalance">0.00</span>
+            <i id="dashWalletSpinner" class="fas fa-sync-alt"
+              style="display:none; font-size:1.2rem; animation: spin 1s linear infinite;"></i>
           </div>
-          <button
-            style="background:white; color:#e07e0c; border:none; padding:10px 25px; border-radius:25px; font-weight:bold; font-size:1rem; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.1);"
-            onclick="initiateRecharge()">
-            <i class="fas fa-plus-circle"></i> Add Money
-          </button>
+          <div style="display:flex; justify-content:center; gap:10px;">
+            <button
+              style="background:white; color:#e07e0c; border:none; padding:10px 25px; border-radius:25px; font-weight:bold; font-size:1rem; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.1);"
+              onclick="initiateRecharge()">
+              <i class="fas fa-plus-circle"></i> Add Money
+            </button>
+            <button
+              style="background:rgba(255,255,255,0.2); color:white; border:2px solid white; padding:10px 20px; border-radius:25px; font-weight:bold; font-size:1rem; cursor:pointer;"
+              onclick="refreshDashWallet()">
+              <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+          </div>
         </div>
 
         <!-- Transaction History Section -->
@@ -3613,6 +3623,29 @@
       }, 5000);
     };
 
+    // Dashboard Wallet Refresh Function
+    window.refreshDashWallet = function () {
+      if (!state.me || !state.socket) {
+        console.log('[WALLET] Cannot refresh - not logged in');
+        return;
+      }
+
+      // Show spinner
+      const dashSpinner = document.getElementById('dashWalletSpinner');
+      if (dashSpinner) dashSpinner.style.display = 'inline';
+
+      console.log('[WALLET] Dashboard refresh requested...');
+      state.socket.emit('get-wallet', { userId: state.me.userId });
+
+      // Also fetch transaction history
+      if (window.fetchTransactionHistory) window.fetchTransactionHistory();
+
+      // Auto-hide spinner after 5 seconds (fallback)
+      setTimeout(() => {
+        if (dashSpinner) dashSpinner.style.display = 'none';
+      }, 5000);
+    };
+
     // DOM Elements
     const sLogin = document.getElementById('screen-login');
     const sClient = document.getElementById('screen-client');
@@ -3789,7 +3822,7 @@
           walletEl.parentElement.innerHTML = '<button onclick="showLogin()" style="background:#F59E0B; color:white; border:none; padding:5px 15px; border-radius:20px; cursor:pointer; font-weight:bold; font-size:0.9rem;">Login</button>';
         }
         if (document.getElementById('dashWalletBalance')) {
-          document.getElementById('dashWalletBalance').innerText = '0';
+          document.getElementById('dashWalletBalance').innerText = '0.00';
         }
       } else {
         // Normal User
@@ -3798,7 +3831,7 @@
         if (headerRight) headerRight.innerHTML = walletHtml;
 
         if (document.getElementById('dashWalletBalance')) {
-          document.getElementById('dashWalletBalance').innerText = user.walletBalance || 0;
+          document.getElementById('dashWalletBalance').innerText = Number(user.walletBalance || 0).toFixed(2);
         }
 
         // Fetch Payment History
@@ -3849,8 +3882,10 @@
         // Hide wallet refresh spinner
         const spinner = document.getElementById('walletSpinner');
         const refresh = document.getElementById('walletRefresh');
+        const dashSpinner = document.getElementById('dashWalletSpinner');
         if (spinner) spinner.style.display = 'none';
         if (refresh) refresh.style.display = 'inline';
+        if (dashSpinner) dashSpinner.style.display = 'none';
 
         // Refresh History
         if (window.fetchTransactionHistory) window.fetchTransactionHistory();
