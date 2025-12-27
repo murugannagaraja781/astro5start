@@ -245,6 +245,14 @@ public class MainActivity extends AppCompatActivity {
         // Allow mixed content (for development)
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
 
+        // CRITICAL: Allow media playback without user gesture (required for WebRTC
+        // calls)
+        settings.setMediaPlaybackRequiresUserGesture(false);
+
+        // Allow file access (for camera/microphone)
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
+
         // User agent (native app identifier)
         String defaultUA = settings.getUserAgentString();
         settings.setUserAgentString(defaultUA + " Astro5StarApp/1.0");
