@@ -69,21 +69,70 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     }
 
     /**
-     * Show WhatsApp-style full-screen incoming call notification
+     * Show incoming call notification - opens callacceptreject.html page
      */
     private void showIncomingCallNotification(String callId, String callerName, String callType) {
-        Log.d(TAG, "Showing WhatsApp-style incoming call - CallId: " + callId + ", Caller: " + callerName + ", Type: "
+        Log.d(TAG, "Showing incoming call notification - CallId: " + callId + ", Caller: " + callerName + ", Type: "
                 + callType);
 
-        String sessionId = callId;
+        String sessionId = callId != null ? callId : "";
+        String safeCaller = callerName != null ? callerName : "Unknown Caller";
+        String safeType = callType != null ? callType : "audio";
 
-        // Use NotificationHelper for WhatsApp-style full-screen call notification
-        NotificationHelper.getInstance().showIncomingCallNotification(
-                this,
-                callId != null ? callId : "",
-                sessionId,
-                callerName != null ? callerName : "Unknown Caller",
-                callType != null ? callType : "audio");
+        // Create notification that opens MainActivity with URL to callacceptreject.html
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        // Create high-priority channel for calls
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    "calls",
+                    "Incoming Calls",
+                    NotificationManager.IMPORTANCE_HIGH);
+            channel.enableVibration(true);
+            channel.setVibrationPattern(new long[] { 0, 1000, 500, 1000 });
+            channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            channel.setBypassDnd(true);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
+
+        // Build URL for callacceptreject.html with call data
+        String callUrl = "https://astro5star.com/callacceptreject.html" +
+                "?sessionId=" + sessionId +
+                "&callerName=" + java.net.URLEncoder.encode(safeCaller, java.nio.charset.StandardCharsets.UTF_8) +
+                "&callType=" + safeType +
+                "&fromUserId=" + sessionId;
+
+        // Intent to open MainActivity with call URL
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.putExtra("action", "OPEN_CALL_PAGE");
+        intent.putExtra("callUrl", callUrl);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        String callTypeText = "audio".equals(safeType) ? "Voice Call"
+                : "video".equals(safeType) ? "Video Call" : "Call";
+
+        Notification notification = new NotificationCompat.Builder(this, "calls")
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("📞 Incoming " + callTypeText)
+                .setContentText(safeCaller + " is calling you")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_CALL)
+                .setVibrate(new long[] { 0, 1000, 500, 1000 })
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .setFullScreenIntent(pendingIntent, true)
+                .setTimeoutAfter(60000)
+                .build();
+
+        if (notificationManager != null) {
+            notificationManager.notify(1001, notification);
+        }
 
         // Start ringtone service
         RingtoneService.start(this);

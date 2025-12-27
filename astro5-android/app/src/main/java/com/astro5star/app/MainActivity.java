@@ -245,6 +245,28 @@ public class MainActivity extends AppCompatActivity {
                 webView.loadUrl(BASE_URL);
             }
             return;
+        } else if ("OPEN_CALL_PAGE".equals(action)) {
+            // Open call accept/reject HTML page directly
+            String callUrl = intent.getStringExtra("callUrl");
+
+            android.util.Log.d("MainActivity", "Opening call page: " + callUrl);
+
+            // Stop ringtone
+            RingtoneService.stop(this);
+
+            // Cancel notification
+            android.app.NotificationManager nm = (android.app.NotificationManager) getSystemService(
+                    NOTIFICATION_SERVICE);
+            if (nm != null)
+                nm.cancel(1001);
+
+            // Load the call page URL
+            if (callUrl != null && !callUrl.isEmpty()) {
+                webView.loadUrl(callUrl);
+            } else {
+                webView.loadUrl(BASE_URL);
+            }
+            return;
         }
 
         // Handle deep links
