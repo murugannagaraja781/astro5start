@@ -1214,6 +1214,93 @@ io.on('connection', (socket) => {
     }
   });
 
+  // --- Answer session from Android Native (doesn't have toUserId) ---
+  socket.on('answer-session-native', async (data, cb) => {
+    try {
+      const { sessionId, accept, callType } = data || {};
+      const astrologerId = socketToUser.get(socket.id);
+
+      if (!astrologerId || !sessionId) {
+        if (typeof cb === 'function') cb({ ok: false, error: 'Invalid data' });
+        return;
+      }
+
+      // Look up the session to find the caller (client)
+      const session = activeSessions.get(sessionId);
+      if (!session) {
+        // Try to find from DB
+        const dbSession = await Session.findOne({ sessionId });
+        if (!dbSession) {
+          if (typeof cb === 'function') cb({ ok: false, error: 'Session not found' });
+          return;
+        }
+
+        const fromUserId = dbSession.fromUserId;
+        const targetSocketId = userSockets.get(fromUserId);
+
+        if (accept) {
+          // Notify caller that call was accepted
+          if (targetSocketId) {
+            io.to(targetSocketId).emit('session-answered', {
+              sessionId,
+              fromUserId: astrologerId,
+              type: callType || dbSession.type,
+              accept: true
+            });
+          }
+
+          console.log(`[Native] Call accepted - Session: ${sessionId}, From: ${fromUserId}, To: ${astrologerId}`);
+          if (typeof cb === 'function') cb({ ok: true, fromUserId });
+        } else {
+          // Call rejected
+          if (targetSocketId) {
+            io.to(targetSocketId).emit('session-answered', {
+              sessionId,
+              fromUserId: astrologerId,
+              accept: false
+            });
+          }
+          endSessionRecord(sessionId);
+          console.log(`[Native] Call rejected - Session: ${sessionId}`);
+          if (typeof cb === 'function') cb({ ok: true });
+        }
+        return;
+      }
+
+      // Session found in memory
+      const fromUserId = session.users.find(u => u !== astrologerId);
+      const targetSocketId = userSockets.get(fromUserId);
+
+      if (accept) {
+        if (targetSocketId) {
+          io.to(targetSocketId).emit('session-answered', {
+            sessionId,
+            fromUserId: astrologerId,
+            type: callType || session.type,
+            accept: true
+          });
+        }
+        console.log(`[Native] Call accepted - Session: ${sessionId}, Caller: ${fromUserId}, Astro: ${astrologerId}`);
+        if (typeof cb === 'function') cb({ ok: true, fromUserId });
+      } else {
+        if (targetSocketId) {
+          io.to(targetSocketId).emit('session-answered', {
+            sessionId,
+            fromUserId: astrologerId,
+            accept: false
+          });
+        }
+        endSessionRecord(sessionId);
+        console.log(`[Native] Call rejected - Session: ${sessionId}`);
+        if (typeof cb === 'function') cb({ ok: true });
+      }
+
+    } catch (err) {
+      console.error('answer-session-native error', err);
+      if (typeof cb === 'function') cb({ ok: false, error: 'Server error' });
+    }
+  });
+
   // --- WebRTC signaling relay ---
   socket.on('signal', (data) => {
     try {

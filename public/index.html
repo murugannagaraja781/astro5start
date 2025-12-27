@@ -4399,6 +4399,38 @@
       });
     };
 
+    // Native Android Call Accept Handler
+    // Called by Android WebView when user accepts call from notification
+    window.onNativeCallAccepted = function (sessionId, callType) {
+      console.log('[Native] Call accepted from Android - Session:', sessionId, 'Type:', callType);
+
+      // We need to fetch the session details from server since we don't have fromUserId
+      // The session was already created when request-session was sent
+      // We emit answer-session and server will handle based on sessionId
+      socket.emit('answer-session-native', {
+        sessionId: sessionId,
+        accept: true,
+        callType: callType
+      }, (res) => {
+        if (res && res.ok) {
+          console.log('[Native] Call accepted successfully, initializing session');
+          initSession(sessionId, res.fromUserId, callType, false, null);
+        } else {
+          console.error('[Native] Failed to accept call:', res);
+          alert('Failed to connect call. Please try again.');
+        }
+      });
+    };
+
+    // Native Android Call Reject Handler
+    window.onNativeCallRejected = function (sessionId) {
+      console.log('[Native] Call rejected from Android - Session:', sessionId);
+      socket.emit('answer-session-native', {
+        sessionId: sessionId,
+        accept: false
+      });
+    };
+
     // Incoming Session Handler
     socket.on('incoming-session', (data) => {
       if (window.ReactNativeWebView) {
