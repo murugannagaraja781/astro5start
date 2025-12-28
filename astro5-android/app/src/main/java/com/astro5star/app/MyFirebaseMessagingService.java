@@ -69,7 +69,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     }
 
     /**
-     * Show incoming call notification - opens callacceptreject.html page
+     * Show incoming call notification - continuous sound + vibration
+     * Click does nothing - IncomingCallActivity handles accept/reject
      */
     private void showIncomingCallNotification(String callId, String callerName, String callType) {
         Log.d(TAG, "Showing incoming call notification - CallId: " + callId + ", Caller: " + callerName + ", Type: "
@@ -79,48 +80,33 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         String safeCaller = callerName != null ? callerName : "Unknown Caller";
         String safeType = callType != null ? callType : "audio";
 
-        // Create notification that opens MainActivity with URL to callacceptreject.html
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
-        // Create high-priority channel for calls
+        // Create high-priority channel for calls with custom sound
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Get custom sound URI
+            android.net.Uri soundUri = android.net.Uri.parse(
+                    "android.resource://" + getPackageName() + "/" + R.raw.incoming_call);
+
+            android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+
             NotificationChannel channel = new NotificationChannel(
                     "calls",
                     "Incoming Calls",
                     NotificationManager.IMPORTANCE_HIGH);
             channel.enableVibration(true);
-            channel.setVibrationPattern(new long[] { 0, 1000, 500, 1000 });
+            channel.setVibrationPattern(new long[] { 0, 1000, 500, 1000, 500, 1000 }); // Continuous pattern
             channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
             channel.setBypassDnd(true);
+            channel.setSound(soundUri, audioAttributes);
+
             if (notificationManager != null) {
                 notificationManager.createNotificationChannel(channel);
             }
         }
-
-        // Build URL for callacceptreject.html with call data
-        String callUrl = "https://astro5star.com/callacceptreject.html" +
-                "?sessionId=" + sessionId +
-                "&callerName=" + java.net.URLEncoder.encode(safeCaller, java.nio.charset.StandardCharsets.UTF_8) +
-                "&callType=" + safeType +
-                "&fromUserId=" + sessionId;
-
-        // Open callacceptreject.html page in WebView - shows Accept/Reject UI
-        // No login needed - page connects to socket directly
-        Intent callPageIntent = new Intent(this, MainActivity.class);
-        callPageIntent.setAction("OPEN_CALL_PAGE_" + System.currentTimeMillis()); // Unique action
-        callPageIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        callPageIntent.putExtra("action", "OPEN_CALL_PAGE");
-        callPageIntent.putExtra("callUrl", callUrl);
-        callPageIntent.putExtra("sessionId", sessionId);
-        callPageIntent.putExtra("callerName", safeCaller);
-        callPageIntent.putExtra("callType", safeType);
-
-        // Use unique request code based on time so each notification is unique
-        int uniqueRequestCode = (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
-
-        PendingIntent callPagePendingIntent = PendingIntent.getActivity(
-                this, uniqueRequestCode, callPageIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         // Full-screen intent using IncomingCallActivity for WhatsApp-style display
         Intent fullScreenIntent = new Intent(this, IncomingCallActivity.class);
@@ -130,36 +116,46 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         fullScreenIntent.putExtra("callerName", safeCaller);
         fullScreenIntent.putExtra("callType", safeType);
 
+        int uniqueRequestCode = (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
+
         PendingIntent fullScreenPendingIntent = PendingIntent.getActivity(
-                this, uniqueRequestCode + 1, fullScreenIntent,
+                this, uniqueRequestCode, fullScreenIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         String callTypeText = "audio".equals(safeType) ? "Voice Call"
                 : "video".equals(safeType) ? "Video Call" : "Call";
 
-        // Create notification - fullScreenIntent for immediate display, contentIntent
-        // for notification tap
+        // Get custom sound for notification
+        android.net.Uri soundUri = android.net.Uri.parse(
+                "android.resource://" + getPackageName() + "/" + R.raw.incoming_call);
+
+        // Create notification - NO contentIntent (click does nothing)
+        // Only fullScreenIntent opens IncomingCallActivity
         Notification notification = new NotificationCompat.Builder(this, "calls")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("📞 Incoming " + callTypeText)
                 .setContentText(safeCaller + " is calling you")
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_CALL)
-                .setVibrate(new long[] { 0, 1000, 500, 1000 })
-                .setAutoCancel(true)
-                .setOngoing(true)
-                .setContentIntent(callPagePendingIntent)
-                .setFullScreenIntent(fullScreenPendingIntent, true) // Full-screen IncomingCallActivity!
+                .setVibrate(new long[] { 0, 1000, 500, 1000, 500, 1000 })
+                .setSound(soundUri)
+                .setAutoCancel(false) // Don't cancel on click
+                .setOngoing(true) // Persistent notification
+                // NO contentIntent - click does nothing!
+                .setFullScreenIntent(fullScreenPendingIntent, true) // Only full-screen works
                 .setTimeoutAfter(60000)
                 .build();
+
+        // Make notification loop sound (insistent)
+        notification.flags |= Notification.FLAG_INSISTENT;
 
         if (notificationManager != null) {
             notificationManager.notify(1001, notification);
         }
 
-        android.util.Log.d(TAG, "Notification posted - tap to open Accept/Reject page: " + callUrl);
+        android.util.Log.d(TAG, "Notification posted - IncomingCallActivity will handle accept/reject");
 
-        // Start ringtone service
+        // Also start ringtone service for continuous sound
         RingtoneService.start(this);
     }
 
