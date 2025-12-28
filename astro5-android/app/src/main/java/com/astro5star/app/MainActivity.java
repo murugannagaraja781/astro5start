@@ -100,12 +100,23 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Request Camera and Microphone permissions only when needed (for video/audio
      * calls)
-     * Notification permission is NOT requested - it will work without asking
+     * Display over apps permission is requested at startup
      */
     private void requestAppPermissions() {
+        // Request display over other apps permission (required for full-screen call
+        // notifications)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            if (!android.provider.Settings.canDrawOverlays(this)) {
+                android.util.Log.d("MainActivity", "Requesting display over apps permission");
+                Intent overlayIntent = new Intent(
+                        android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        android.net.Uri.parse("package:" + getPackageName()));
+                startActivityForResult(overlayIntent, 100);
+            }
+        }
+
         // Audio permission will be requested when accepting a call
-        // No notification permission request - not needed
-        android.util.Log.d("MainActivity", "App permissions - mic will be requested on call");
+        android.util.Log.d("MainActivity", "App permissions - overlay requested, mic on call");
     }
 
     @Override
