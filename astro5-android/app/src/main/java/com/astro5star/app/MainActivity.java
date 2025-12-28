@@ -73,6 +73,32 @@ public class MainActivity extends AppCompatActivity {
 
         // Handle deep link if present
         handleIntent(getIntent());
+
+        // Start keep-alive service to maintain socket connection in background
+        WebViewKeepAliveService.start(this);
+
+        // Request battery optimization exemption for reliable call receiving
+        requestBatteryOptimizationExemption();
+    }
+
+    /**
+     * Request to disable battery optimization for this app
+     * This ensures the app stays alive in background for incoming calls
+     */
+    private void requestBatteryOptimizationExemption() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+            if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
+                android.util.Log.d("MainActivity", "Requesting battery optimization exemption");
+                try {
+                    Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                    intent.setData(android.net.Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                } catch (Exception e) {
+                    android.util.Log.e("MainActivity", "Failed to request battery optimization exemption", e);
+                }
+            }
+        }
     }
 
     /**
