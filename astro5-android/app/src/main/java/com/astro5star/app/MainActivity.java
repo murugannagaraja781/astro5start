@@ -141,11 +141,53 @@ public class MainActivity extends AppCompatActivity {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(
                     android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[] { android.Manifest.permission.POST_NOTIFICATIONS }, 102);
+                showNotificationPermissionDialog();
+                return;
             }
         }
 
         android.util.Log.d("MainActivity", "App permissions setup complete");
+    }
+
+    /**
+     * Show dialog explaining why notification permission is needed
+     */
+    private void showNotificationPermissionDialog() {
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("🔔 Notification Permission Required")
+                .setMessage(
+                        "To receive incoming call notifications, please allow notifications.\n\nWithout this, you won't be alerted when someone calls you.")
+                .setCancelable(false)
+                .setPositiveButton("Allow", (dialog, which) -> {
+                    // Request the permission
+                    requestPermissions(new String[] { android.Manifest.permission.POST_NOTIFICATIONS }, 102);
+                })
+                .setNegativeButton("Later", (dialog, which) -> {
+                    Toast.makeText(this, "You may miss incoming call notifications", Toast.LENGTH_LONG).show();
+                    dialog.dismiss();
+                })
+                .show();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == 102) {
+            // Notification permission result
+            if (grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                android.util.Log.d("MainActivity", "Notification permission granted!");
+                Toast.makeText(this, "✅ Notifications enabled!", Toast.LENGTH_SHORT).show();
+            } else {
+                android.util.Log.d("MainActivity", "Notification permission denied");
+                Toast.makeText(this, "Notifications disabled - you may miss calls", Toast.LENGTH_LONG).show();
+            }
+        } else if (requestCode == 103) {
+            // Audio permission result
+            if (grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                android.util.Log.d("MainActivity", "Audio permission granted!");
+            }
+        }
     }
 
     /**

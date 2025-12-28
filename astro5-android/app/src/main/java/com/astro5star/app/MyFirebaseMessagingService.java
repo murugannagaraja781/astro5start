@@ -153,7 +153,23 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             notificationManager.notify(1001, notification);
         }
 
-        android.util.Log.d(TAG, "Notification posted - IncomingCallActivity will handle accept/reject");
+        android.util.Log.d(TAG, "Notification posted");
+
+        // CRITICAL: Directly start IncomingCallActivity
+        // fullScreenIntent alone doesn't work reliably on modern Android
+        // This ensures WhatsApp-style full-screen call UI always shows
+        try {
+            Intent launchIntent = new Intent(this, IncomingCallActivity.class);
+            launchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            launchIntent.putExtra("callId", sessionId);
+            launchIntent.putExtra("sessionId", sessionId);
+            launchIntent.putExtra("callerName", safeCaller);
+            launchIntent.putExtra("callType", safeType);
+            startActivity(launchIntent);
+            android.util.Log.d(TAG, "IncomingCallActivity started directly");
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "Failed to start IncomingCallActivity: " + e.getMessage());
+        }
 
         // Also start ringtone service for continuous sound
         RingtoneService.start(this);
