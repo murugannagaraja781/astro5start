@@ -151,14 +151,18 @@ public class MainActivity extends AppCompatActivity {
 
             // Check if WebView has content loaded
             String currentUrl = webView.getUrl();
+            android.util.Log.d("MainActivity", "DEBUG - Current WebView URL: " + currentUrl);
+
+            // More lenient check - any loaded URL that's not blank is considered content
             boolean hasContent = currentUrl != null &&
                     !currentUrl.isEmpty() &&
-                    !currentUrl.equals("about:blank") &&
-                    currentUrl.contains("astro5star");
+                    !currentUrl.equals("about:blank");
+
+            android.util.Log.d("MainActivity", "DEBUG - hasContent: " + hasContent);
 
             if (hasContent) {
                 // WebView has content - inject JavaScript directly (NO reload!)
-                android.util.Log.d("MainActivity", "WebView has content - accepting call via JS (NO reload!)");
+                android.util.Log.d("MainActivity", "DEBUG - WebView HAS content, injecting JS (NO RELOAD)");
 
                 String js = "(function tryAcceptCall(retries) { " +
                         "  console.log('[NATIVE ACCEPT] Trying to accept call, retries=' + retries); " +

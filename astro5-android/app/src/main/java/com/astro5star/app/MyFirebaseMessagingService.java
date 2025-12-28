@@ -104,39 +104,39 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 "&callType=" + safeType +
                 "&fromUserId=" + sessionId;
 
-        // Direct to MainActivity with ACCEPT_CALL action - skip IncomingCallActivity
-        // for simpler flow
-        // Click notification → MainActivity comes to front → Call accepts automatically
-        Intent directAcceptIntent = new Intent(this, MainActivity.class);
-        directAcceptIntent.setAction("DIRECT_ACCEPT_" + System.currentTimeMillis()); // Unique action
-        directAcceptIntent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        directAcceptIntent.putExtra("action", "ACCEPT_CALL");
-        directAcceptIntent.putExtra("sessionId", sessionId);
-        directAcceptIntent.putExtra("callerName", safeCaller);
-        directAcceptIntent.putExtra("callType", safeType);
+        // Open callacceptreject.html page in WebView - shows Accept/Reject UI
+        // No login needed - page connects to socket directly
+        Intent callPageIntent = new Intent(this, MainActivity.class);
+        callPageIntent.setAction("OPEN_CALL_PAGE_" + System.currentTimeMillis()); // Unique action
+        callPageIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        callPageIntent.putExtra("action", "OPEN_CALL_PAGE");
+        callPageIntent.putExtra("callUrl", callUrl);
+        callPageIntent.putExtra("sessionId", sessionId);
+        callPageIntent.putExtra("callerName", safeCaller);
+        callPageIntent.putExtra("callType", safeType);
 
         // Use unique request code based on time so each notification is unique
         int uniqueRequestCode = (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
 
-        PendingIntent acceptPendingIntent = PendingIntent.getActivity(
-                this, uniqueRequestCode, directAcceptIntent,
+        PendingIntent callPagePendingIntent = PendingIntent.getActivity(
+                this, uniqueRequestCode, callPageIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         String callTypeText = "audio".equals(safeType) ? "Voice Call"
                 : "video".equals(safeType) ? "Video Call" : "Call";
 
-        // Create notification - click to accept call directly
+        // Create notification - click to open Accept/Reject page
         Notification notification = new NotificationCompat.Builder(this, "calls")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("📞 Incoming " + callTypeText)
-                .setContentText(safeCaller + " is calling you. Tap to accept.")
+                .setContentText(safeCaller + " is calling you")
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_CALL)
                 .setVibrate(new long[] { 0, 1000, 500, 1000 })
                 .setAutoCancel(true)
                 .setOngoing(true)
-                .setContentIntent(acceptPendingIntent)
-                .setFullScreenIntent(acceptPendingIntent, true)
+                .setContentIntent(callPagePendingIntent)
+                .setFullScreenIntent(callPagePendingIntent, true)
                 .setTimeoutAfter(60000)
                 .build();
 
@@ -144,7 +144,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             notificationManager.notify(1001, notification);
         }
 
-        android.util.Log.d(TAG, "Notification posted - tap to accept call directly");
+        android.util.Log.d(TAG, "Notification posted - tap to open Accept/Reject page: " + callUrl);
 
         // Start ringtone service
         RingtoneService.start(this);
