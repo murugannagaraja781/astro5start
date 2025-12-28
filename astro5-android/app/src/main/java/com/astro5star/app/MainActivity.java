@@ -208,24 +208,30 @@ public class MainActivity extends AppCompatActivity {
                 // WebView is empty (app was killed) - load BASE_URL with accepted call params
                 android.util.Log.d("MainActivity", "WebView is empty - loading with acceptedCall params");
 
-                // Get saved session from SharedPreferences
+                // Get saved session from SharedPreferences (now includes name and phone)
                 android.content.SharedPreferences prefs = getSharedPreferences("astro_session", MODE_PRIVATE);
                 String savedUserId = prefs.getString("userId", "");
                 String savedToken = prefs.getString("token", "");
                 String savedUserType = prefs.getString("userType", "");
+                String savedName = prefs.getString("name", "");
+                String savedPhone = prefs.getString("phone", "");
 
                 // Build URL with auto-accept params
                 String acceptUrl = BASE_URL + "/?acceptedCall=" + safeSessionId +
                         "&callType=" + safeCallType +
                         "&autoAccept=true";
 
-                // If we have saved session, add it to URL
+                // If we have saved session, add ALL fields to URL for complete restore
                 if (!savedUserId.isEmpty() && !savedToken.isEmpty()) {
-                    android.util.Log.d("MainActivity", "Found saved session: " + savedUserId);
+                    android.util.Log.d("MainActivity", "Found saved session: " + savedUserId + " - " + savedName);
                     acceptUrl += "&savedUserId=" + savedUserId +
                             "&savedToken="
                             + java.net.URLEncoder.encode(savedToken, java.nio.charset.StandardCharsets.UTF_8) +
-                            "&savedUserType=" + savedUserType;
+                            "&savedUserType=" + savedUserType +
+                            "&savedName="
+                            + java.net.URLEncoder.encode(savedName, java.nio.charset.StandardCharsets.UTF_8) +
+                            "&savedPhone="
+                            + java.net.URLEncoder.encode(savedPhone, java.nio.charset.StandardCharsets.UTF_8);
                 }
 
                 android.util.Log.d("MainActivity", "Loading URL: " + acceptUrl);
@@ -669,28 +675,33 @@ public class MainActivity extends AppCompatActivity {
             }
 
             // Save user session to SharedPreferences - persists even when app is killed
+            // Now includes name and phone for proper session restore
             @android.webkit.JavascriptInterface
-            public void saveUserSession(String userId, String token, String userType) {
+            public void saveUserSession(String userId, String token, String userType, String name, String phone) {
                 android.content.SharedPreferences prefs = getSharedPreferences("astro_session", MODE_PRIVATE);
                 prefs.edit()
                         .putString("userId", userId)
                         .putString("token", token)
                         .putString("userType", userType)
+                        .putString("name", name != null ? name : "")
+                        .putString("phone", phone != null ? phone : "")
                         .putLong("savedAt", System.currentTimeMillis())
                         .apply();
-                android.util.Log.d("MainActivity", "User session saved: " + userId + " (" + userType + ")");
+                android.util.Log.d("MainActivity", "User session saved: " + userId + " (" + userType + ") - " + name);
             }
 
-            // Get saved user session
+            // Get saved user session - includes all fields needed for restore
             @android.webkit.JavascriptInterface
             public String getUserSession() {
                 android.content.SharedPreferences prefs = getSharedPreferences("astro_session", MODE_PRIVATE);
                 String userId = prefs.getString("userId", "");
                 String token = prefs.getString("token", "");
                 String userType = prefs.getString("userType", "");
+                String name = prefs.getString("name", "");
+                String phone = prefs.getString("phone", "");
                 if (!userId.isEmpty() && !token.isEmpty()) {
                     return "{\"userId\":\"" + userId + "\",\"token\":\"" + token + "\",\"userType\":\"" + userType
-                            + "\"}";
+                            + "\",\"name\":\"" + name + "\",\"phone\":\"" + phone + "\"}";
                 }
                 return "";
             }

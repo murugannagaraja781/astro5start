@@ -3575,14 +3575,34 @@
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 
       // Save to Android SharedPreferences for native call handling
+      // Include ALL fields needed for session restore after app kill
       if (window.Android && window.Android.saveUserSession) {
         try {
           const token = localStorage.getItem('authToken') || session.userId || '';
-          window.Android.saveUserSession(session.userId, token, session.role || 'client');
-          console.log('[Android] Session saved to SharedPreferences:', session.userId);
+          const name = session.name || '';
+          const phone = session.phone || '';
+          window.Android.saveUserSession(session.userId, token, session.role || 'client', name, phone);
+          console.log('[Android] Session saved to SharedPreferences:', session.userId, name);
         } catch (e) {
           console.warn('[Android] Failed to save session:', e);
         }
+      }
+    }
+
+    // Load session from localStorage
+    function loadSession() {
+      try {
+        const saved = localStorage.getItem(SESSION_KEY);
+        if (!saved) return null;
+        const session = JSON.parse(saved);
+        if (Date.now() > session.expiresAt) {
+          localStorage.removeItem(SESSION_KEY);
+          return null;
+        }
+        return session;
+      } catch (e) {
+        console.error('loadSession error:', e);
+        return null;
       }
     }
 
@@ -3634,44 +3654,82 @@
       if (acceptedCall && autoAccept === 'true') {
         console.log('[Native Accept] Found acceptedCall param:', acceptedCall);
 
-        // Try to restore session from URL params
+        // Try to restore session from URL params (from Android SharedPreferences)
         const savedUserId = urlParams.get('savedUserId');
         const savedToken = urlParams.get('savedToken');
         const savedUserType = urlParams.get('savedUserType');
+        const savedName = urlParams.get('savedName') || 'Astrologer';
+        const savedPhone = urlParams.get('savedPhone') || '';
 
         if (savedUserId && savedToken) {
-          console.log('[Native Accept] Restoring session from URL:', savedUserId);
-          // Restore session to localStorage
+          console.log('[Native Accept] Restoring session from URL:', savedUserId, savedName);
+          // Restore COMPLETE session to localStorage with all required fields
           const restoredSession = {
             userId: savedUserId,
             role: savedUserType || 'astrologer',
+            name: savedName,
+            phone: savedPhone,
             expiresAt: Date.now() + (60 * 24 * 60 * 60 * 1000)
           };
           localStorage.setItem('astro_session', JSON.stringify(restoredSession));
-        }
 
-        // Wait for socket to be fully ready then accept call
-        setTimeout(() => {
-          console.log('[Native Accept] Attempting to accept call:', acceptedCall);
-          socket.emit('answer-session-native', {
-            sessionId: acceptedCall,
-            accept: true,
-            callType: callType
-          }, (res) => {
-            console.log('[Native Accept] Response:', res);
-            if (res && res.ok && res.fromUserId) {
-              console.log('[Native Accept] Call accepted! Initializing session...');
-              if (window.initSession) {
-                window.initSession(acceptedCall, res.fromUserId, callType, false, null);
-              }
-              // Clear URL params to prevent re-accept on refresh
-              window.history.replaceState({}, document.title, '/');
+          // Also set state.me for immediate use
+          state.me = restoredSession;
+
+          // Register with server FIRST before accepting call
+          console.log('[Native Accept] Registering user with server...');
+          socket.emit('register', {
+            name: savedName,
+            phone: savedPhone,
+            userId: savedUserId
+          }, (ack) => {
+            if (ack && ack.ok) {
+              console.log('[Native Accept] Registered successfully, now accepting call');
+              state.me = { ...restoredSession, ...ack };
+
+              // Now accept the call
+              socket.emit('answer-session-native', {
+                sessionId: acceptedCall,
+                accept: true,
+                callType: callType
+              }, (res) => {
+                console.log('[Native Accept] Response:', res);
+                if (res && res.ok && res.fromUserId) {
+                  console.log('[Native Accept] Call accepted! Initializing session...');
+                  if (window.initSession) {
+                    window.initSession(acceptedCall, res.fromUserId, callType, false, null);
+                  }
+                  window.history.replaceState({}, document.title, '/');
+                } else {
+                  console.error('[Native Accept] Failed to accept call:', res);
+                  alert('Call connection failed: ' + (res ? res.error : 'Unknown error'));
+                }
+              });
             } else {
-              console.error('[Native Accept] Failed to accept call:', res);
-              alert('Call connection failed: ' + (res ? res.error : 'Unknown error'));
+              console.error('[Native Accept] Failed to register:', ack);
+              alert('Session restore failed. Please login again.');
             }
           });
-        }, 1500); // Wait 1.5 seconds for session to be restored
+        } else {
+          // No saved session - try direct accept (may fail)
+          console.log('[Native Accept] No saved session, attempting direct accept');
+          setTimeout(() => {
+            socket.emit('answer-session-native', {
+              sessionId: acceptedCall,
+              accept: true,
+              callType: callType
+            }, (res) => {
+              if (res && res.ok && res.fromUserId) {
+                if (window.initSession) {
+                  window.initSession(acceptedCall, res.fromUserId, callType, false, null);
+                }
+                window.history.replaceState({}, document.title, '/');
+              } else {
+                alert('Please login to accept calls');
+              }
+            });
+          }, 1500);
+        }
       }
     });
 
