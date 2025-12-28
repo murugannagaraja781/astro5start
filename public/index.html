@@ -3731,6 +3731,64 @@
           }, 1500);
         }
       }
+
+      // NEW: Handle call accepted via HTTP API (apiAcceptedCall param)
+      // Call is already accepted by server, just need to start WebRTC
+      const apiAcceptedCall = urlParams.get('apiAcceptedCall');
+      const apiFromUserId = urlParams.get('fromUserId');
+
+      if (apiAcceptedCall && apiFromUserId) {
+        console.log('[API Accept] Call already accepted via API:', apiAcceptedCall, 'from:', apiFromUserId);
+
+        // Restore session from URL params
+        const savedUserId = urlParams.get('savedUserId');
+        const savedToken = urlParams.get('savedToken');
+        const savedUserType = urlParams.get('savedUserType');
+        const savedName = urlParams.get('savedName') || 'Astrologer';
+        const savedPhone = urlParams.get('savedPhone') || '';
+
+        if (savedUserId && savedToken) {
+          const restoredSession = {
+            userId: savedUserId,
+            role: savedUserType || 'astrologer',
+            name: savedName,
+            phone: savedPhone,
+            expiresAt: Date.now() + (60 * 24 * 60 * 60 * 1000)
+          };
+          localStorage.setItem('astro_session', JSON.stringify(restoredSession));
+          state.me = restoredSession;
+
+          // Register with server first
+          socket.emit('register', {
+            name: savedName,
+            phone: savedPhone,
+            userId: savedUserId
+          }, (ack) => {
+            if (ack && ack.ok) {
+              console.log('[API Accept] Registered, now starting WebRTC session');
+              state.me = { ...restoredSession, ...ack };
+
+              // Directly start WebRTC session (call already accepted by server!)
+              if (window.initSession) {
+                window.initSession(apiAcceptedCall, apiFromUserId, callType, false, null);
+              }
+              window.history.replaceState({}, document.title, '/');
+            } else {
+              console.error('[API Accept] Register failed:', ack);
+              alert('Session restore failed. Please login again.');
+            }
+          });
+        } else {
+          // No session params - try direct initSession
+          console.log('[API Accept] No saved session, trying direct initSession');
+          setTimeout(() => {
+            if (window.initSession && state.me) {
+              window.initSession(apiAcceptedCall, apiFromUserId, callType, false, null);
+              window.history.replaceState({}, document.title, '/');
+            }
+          }, 2000);
+        }
+      }
     });
 
     // Auto-refresh wallet and reconnect when user returns to app

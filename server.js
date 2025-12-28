@@ -515,6 +515,88 @@ app.post('/api/verify-otp', async (req, res) => {
   }
 });
 
+// ===== NATIVE CALL ACCEPT API =====
+// Called from Android when notification Accept/Reject is clicked
+// This allows accepting calls WITHOUT WebView being loaded
+app.post('/api/native/accept-call', async (req, res) => {
+  try {
+    const { sessionId, userId, accept, callType } = req.body;
+
+    console.log(`[Native API] Accept Call - Session: ${sessionId}, User: ${userId}, Accept: ${accept}`);
+
+    if (!sessionId || !userId) {
+      return res.json({ ok: false, error: 'Missing sessionId or userId' });
+    }
+
+    // Find the session
+    let session = activeSessions.get(sessionId);
+    let fromUserId = null;
+    let sessionType = callType || 'audio';
+
+    if (session) {
+      // Session found in memory
+      fromUserId = session.users.find(u => u !== userId);
+      sessionType = session.type || callType || 'audio';
+    } else {
+      // Try DB
+      const dbSession = await Session.findOne({ sessionId });
+      if (dbSession) {
+        fromUserId = dbSession.fromUserId;
+        sessionType = dbSession.type || callType || 'audio';
+      }
+    }
+
+    if (!fromUserId) {
+      console.log(`[Native API] Session not found: ${sessionId}`);
+      return res.json({ ok: false, error: 'Session not found or expired' });
+    }
+
+    const callerSocketId = userSockets.get(fromUserId);
+
+    if (accept) {
+      // Accept the call - notify caller via socket
+      if (callerSocketId) {
+        io.to(callerSocketId).emit('session-answered', {
+          sessionId,
+          fromUserId: userId,
+          type: sessionType,
+          accept: true
+        });
+        console.log(`[Native API] ✅ Call ACCEPTED - Notified caller: ${fromUserId}`);
+      } else {
+        console.log(`[Native API] Caller not connected: ${fromUserId}`);
+      }
+
+      return res.json({
+        ok: true,
+        fromUserId,
+        callType: sessionType,
+        message: 'Call accepted successfully'
+      });
+
+    } else {
+      // Reject the call
+      if (callerSocketId) {
+        io.to(callerSocketId).emit('session-answered', {
+          sessionId,
+          fromUserId: userId,
+          accept: false
+        });
+        console.log(`[Native API] ❌ Call REJECTED - Notified caller: ${fromUserId}`);
+      }
+
+      // End the session
+      endSessionRecord(sessionId);
+
+      return res.json({ ok: true, message: 'Call rejected' });
+    }
+
+  } catch (err) {
+    console.error('[Native API] Error:', err);
+    res.status(500).json({ ok: false, error: 'Server error' });
+  }
+});
+
 function startSessionRecord(sessionId, type, u1, u2) {
   activeSessions.set(sessionId, {
     type,

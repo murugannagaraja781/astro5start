@@ -52,8 +52,17 @@ public class RingtoneService extends Service {
 
     private void startRingtone() {
         try {
-            // Play ringtone
-            Uri ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+            // Play custom incoming call sound from res/raw
+            Uri ringtoneUri;
+            try {
+                // Use custom sound.mpeg/incoming_call.mp3 from res/raw
+                ringtoneUri = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.incoming_call);
+                Log.d(TAG, "Using custom incoming call sound");
+            } catch (Exception e) {
+                // Fallback to default ringtone
+                ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+                Log.d(TAG, "Fallback to default ringtone");
+            }
 
             mediaPlayer = new MediaPlayer();
             mediaPlayer.setDataSource(getApplicationContext(), ringtoneUri);

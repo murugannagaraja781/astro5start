@@ -98,19 +98,69 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Request Camera and Microphone permissions only when needed (for video/audio
-     * calls)
-     * Display over apps is optional - user can enable manually
+     * Request permissions - Display over apps is MANDATORY for incoming call UI
+     * Similar to WhatsApp's approach
      */
     private void requestAppPermissions() {
-        // Display over apps permission is optional - don't auto-open settings
+        // Display over apps permission is MANDATORY for WhatsApp-style incoming calls
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
             if (!android.provider.Settings.canDrawOverlays(this)) {
-                android.util.Log.d("MainActivity", "Display over apps not enabled (optional)");
+                android.util.Log.d("MainActivity", "Display over apps not enabled - showing dialog");
+                showOverlayPermissionDialog();
+                return;
             }
         }
-        // Audio permission will be requested when accepting a call
+
+        // Request notification permission for Android 13+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(
+                    android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[] { android.Manifest.permission.POST_NOTIFICATIONS }, 102);
+            }
+        }
+
         android.util.Log.d("MainActivity", "App permissions setup complete");
+    }
+
+    /**
+     * Show dialog explaining why overlay permission is needed
+     */
+    private void showOverlayPermissionDialog() {
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("📞 Incoming Call Permission Required")
+                .setMessage(
+                        "To receive calls like WhatsApp, please enable 'Display over other apps' permission.\n\nThis allows the app to show incoming call screen when your phone is locked or you're using other apps.")
+                .setCancelable(false)
+                .setPositiveButton("Enable Now", (dialog, which) -> {
+                    // Open overlay permission settings
+                    Intent intent = new Intent(
+                            android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            android.net.Uri.parse("package:" + getPackageName()));
+                    startActivityForResult(intent, 200);
+                })
+                .setNegativeButton("Later", (dialog, which) -> {
+                    Toast.makeText(this, "You may miss incoming calls", Toast.LENGTH_LONG).show();
+                    dialog.dismiss();
+                })
+                .show();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // Check if overlay permission was granted after returning from settings
+        if (requestCode == 200) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                if (android.provider.Settings.canDrawOverlays(this)) {
+                    android.util.Log.d("MainActivity", "Overlay permission granted!");
+                    Toast.makeText(this, "✅ Incoming call permission enabled!", Toast.LENGTH_SHORT).show();
+                } else {
+                    // Still not granted - show dialog again
+                    showOverlayPermissionDialog();
+                }
+            }
+        }
     }
 
     @Override
@@ -124,6 +174,87 @@ public class MainActivity extends AppCompatActivity {
      */
     private void handleIntent(Intent intent) {
         String action = intent != null ? intent.getStringExtra("action") : null;
+
+        // NEW: Handle call already accepted via HTTP API (from IncomingCallActivity)
+        if ("CALL_ACCEPTED_VIA_API".equals(action)) {
+            String sessionId = intent.getStringExtra("sessionId");
+            String callType = intent.getStringExtra("callType");
+            String fromUserId = intent.getStringExtra("fromUserId");
+            String callerName = intent.getStringExtra("callerName");
+
+            android.util.Log.d("MainActivity",
+                    "CALL_ACCEPTED_VIA_API - Session: " + sessionId + ", From: " + fromUserId + ", Type: " + callType);
+
+            // Request audio permission if not granted
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                if (checkSelfPermission(
+                        android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[] { android.Manifest.permission.RECORD_AUDIO }, 103);
+                }
+            }
+
+            String safeSessionId = sessionId != null ? sessionId : "";
+            String safeCallType = callType != null ? callType : "audio";
+            String safeFromUserId = fromUserId != null ? fromUserId : "";
+
+            // Check if WebView has content
+            String currentUrl = webView.getUrl();
+            boolean hasContent = currentUrl != null && !currentUrl.isEmpty() && !currentUrl.equals("about:blank");
+
+            if (hasContent && !safeFromUserId.isEmpty()) {
+                // WebView ready - inject JS to start call directly (already accepted!)
+                android.util.Log.d("MainActivity", "WebView ready - starting call via initSession");
+
+                String js = "(function tryStartCall(retries) { " +
+                        "  console.log('[API ACCEPT] Starting call, retries=' + retries); " +
+                        "  if (window.initSession && window.state && window.state.socket && window.state.socket.connected) { "
+                        +
+                        "    console.log('[API ACCEPT] Calling initSession directly'); " +
+                        "    window.initSession('" + safeSessionId + "', '" + safeFromUserId + "', '" + safeCallType
+                        + "', false, null); " +
+                        "  } else if (retries > 0) { " +
+                        "    setTimeout(function() { tryStartCall(retries - 1); }, 500); " +
+                        "  } else { " +
+                        "    console.error('[API ACCEPT] Failed to start call'); " +
+                        "    alert('Connection error. Please try again.'); " +
+                        "  } " +
+                        "})(20);";
+
+                webView.evaluateJavascript(js, null);
+            } else {
+                // WebView not ready - load base URL with call params
+                android.util.Log.d("MainActivity", "WebView not ready - loading with call params");
+
+                android.content.SharedPreferences prefs = getSharedPreferences("astro_session", MODE_PRIVATE);
+                String savedUserId = prefs.getString("userId", "");
+                String savedToken = prefs.getString("token", "");
+                String savedUserType = prefs.getString("userType", "");
+                String savedName = prefs.getString("name", "");
+                String savedPhone = prefs.getString("phone", "");
+
+                String callUrl = BASE_URL + "/?apiAcceptedCall=" + safeSessionId +
+                        "&callType=" + safeCallType +
+                        "&fromUserId=" + safeFromUserId;
+
+                if (!savedUserId.isEmpty() && !savedToken.isEmpty()) {
+                    callUrl += "&savedUserId=" + savedUserId +
+                            "&savedToken="
+                            + java.net.URLEncoder.encode(savedToken, java.nio.charset.StandardCharsets.UTF_8) +
+                            "&savedUserType=" + savedUserType +
+                            "&savedName="
+                            + java.net.URLEncoder.encode(savedName, java.nio.charset.StandardCharsets.UTF_8) +
+                            "&savedPhone="
+                            + java.net.URLEncoder.encode(savedPhone, java.nio.charset.StandardCharsets.UTF_8);
+                }
+
+                pendingCallAction = "api_accept";
+                pendingSessionId = safeSessionId;
+                pendingCallType = safeCallType;
+                pendingFromUserId = safeFromUserId;
+                webView.loadUrl(callUrl);
+            }
+            return;
+        }
 
         // Handle call actions from notification click
         if ("ACCEPT_CALL".equals(action)) {
