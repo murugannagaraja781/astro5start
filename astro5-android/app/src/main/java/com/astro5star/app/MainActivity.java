@@ -145,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
             if (nm != null)
                 nm.cancel(1001);
 
-            // Request audio permission
+            // Request audio permission if not granted
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
                 if (checkSelfPermission(
                         android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -153,59 +153,47 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            // Check if WebView already has content loaded
-            String currentUrl = webView.getUrl();
-            if (currentUrl != null && currentUrl.contains(BASE_URL.replace("https://", "").replace("http://", ""))) {
-                // WebView already loaded - inject JavaScript to accept and connect call
-                android.util.Log.d("MainActivity", "WebView loaded - accepting call via answer-session-native");
+            String safeSessionId = sessionId != null ? sessionId : "";
+            String safeCallType = callType != null ? callType : "audio";
 
-                String safeSessionId = sessionId != null ? sessionId : "";
-                String safeCallType = callType != null ? callType : "audio";
+            // ALWAYS inject JavaScript - NEVER reload page to preserve WebView state and
+            // socket
+            android.util.Log.d("MainActivity", "Accepting call via JS injection (NO page reload!)");
 
-                // Use answer-session-native which looks up session and returns fromUserId
-                String js = "(function tryAcceptCall(retries) { " +
-                        "  console.log('[NATIVE ACCEPT] Trying to accept call, retries=' + retries); " +
-                        "  if (window.state && window.state.socket && window.state.socket.connected && window.state.me) { "
-                        +
-                        "    console.log('[NATIVE ACCEPT] Socket ready, emitting answer-session-native'); " +
-                        "    window.state.socket.emit('answer-session-native', { " +
-                        "      sessionId: '" + safeSessionId + "', " +
-                        "      accept: true, " +
-                        "      callType: '" + safeCallType + "' " +
-                        "    }, function(res) { " +
-                        "      console.log('[NATIVE ACCEPT] Response:', res); " +
-                        "      if (res && res.ok && res.fromUserId) { " +
-                        "        console.log('[NATIVE ACCEPT] Calling initSession with fromUserId:', res.fromUserId); "
-                        +
-                        "        if (window.initSession) { " +
-                        "          window.initSession('" + safeSessionId + "', res.fromUserId, '" + safeCallType
-                        + "', false, null); " +
-                        "        } else { " +
-                        "          console.error('[NATIVE ACCEPT] window.initSession not found!'); " +
-                        "        } " +
-                        "      } else { " +
-                        "        console.error('[NATIVE ACCEPT] Failed:', res); " +
-                        "        alert('Failed to connect: ' + (res ? res.error : 'Unknown error')); " +
-                        "      } " +
-                        "    }); " +
-                        "  } else if (retries > 0) { " +
-                        "    console.log('[NATIVE ACCEPT] Socket not ready, waiting... retries left:', retries); " +
-                        "    setTimeout(function() { tryAcceptCall(retries - 1); }, 500); " +
-                        "  } else { " +
-                        "    console.error('[NATIVE ACCEPT] Failed - socket not ready after retries'); " +
-                        "    alert('Connection failed. Please try again.'); " +
-                        "  } " +
-                        "})(20);"; // 20 retries = 10 seconds max wait
+            String js = "(function tryAcceptCall(retries) { " +
+                    "  console.log('[NATIVE ACCEPT] Trying to accept call, retries=' + retries); " +
+                    "  if (window.state && window.state.socket && window.state.socket.connected && window.state.me) { "
+                    +
+                    "    console.log('[NATIVE ACCEPT] Socket ready, emitting answer-session-native'); " +
+                    "    window.state.socket.emit('answer-session-native', { " +
+                    "      sessionId: '" + safeSessionId + "', " +
+                    "      accept: true, " +
+                    "      callType: '" + safeCallType + "' " +
+                    "    }, function(res) { " +
+                    "      console.log('[NATIVE ACCEPT] Response:', res); " +
+                    "      if (res && res.ok && res.fromUserId) { " +
+                    "        console.log('[NATIVE ACCEPT] Calling initSession with fromUserId:', res.fromUserId); " +
+                    "        if (window.initSession) { " +
+                    "          window.initSession('" + safeSessionId + "', res.fromUserId, '" + safeCallType
+                    + "', false, null); " +
+                    "        } else { " +
+                    "          console.error('[NATIVE ACCEPT] window.initSession not found!'); " +
+                    "        } " +
+                    "      } else { " +
+                    "        console.error('[NATIVE ACCEPT] Failed:', res); " +
+                    "        alert('Failed to connect: ' + (res ? res.error : 'Unknown error')); " +
+                    "      } " +
+                    "    }); " +
+                    "  } else if (retries > 0) { " +
+                    "    console.log('[NATIVE ACCEPT] Socket not ready, waiting... retries left:', retries); " +
+                    "    setTimeout(function() { tryAcceptCall(retries - 1); }, 500); " +
+                    "  } else { " +
+                    "    console.error('[NATIVE ACCEPT] Socket not ready after retries'); " +
+                    "    alert('Connection failed. Please reopen the app.'); " +
+                    "  } " +
+                    "})(20);";
 
-                webView.evaluateJavascript(js, null);
-            } else {
-                // WebView not loaded - set pending action and load page
-                android.util.Log.d("MainActivity", "WebView not loaded - setting pending action");
-                pendingCallAction = "accept";
-                pendingSessionId = sessionId;
-                pendingCallType = callType;
-                webView.loadUrl(BASE_URL);
-            }
+            webView.evaluateJavascript(js, null);
             return;
         } else if ("REJECT_CALL".equals(action)) {
             String sessionId = intent.getStringExtra("sessionId");
