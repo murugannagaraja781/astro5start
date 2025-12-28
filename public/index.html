@@ -3747,7 +3747,41 @@
         const savedName = urlParams.get('savedName') || 'Astrologer';
         const savedPhone = urlParams.get('savedPhone') || '';
 
-        if (savedUserId && savedToken) {
+        // Function to start call after socket is ready and user is registered
+        const startCallWhenReady = () => {
+          console.log('[API Accept] Starting call with session:', apiAcceptedCall);
+
+          // Make sure state.session is set correctly
+          state.session = {
+            id: apiAcceptedCall,
+            partnerId: apiFromUserId,
+            type: callType
+          };
+
+          // Start WebRTC (astrologer side - not initiator)
+          if (callType !== 'chat') {
+            console.log('[API Accept] Starting WebRTC as responder');
+            startWebRTC(false);
+          }
+
+          // Show session UI
+          const sSes = document.getElementById('sSession');
+          if (sSes) sSes.classList.remove('hidden');
+
+          // Notify server we connected
+          socket.emit('session-connect', { sessionId: apiAcceptedCall });
+
+          window.history.replaceState({}, document.title, '/');
+        };
+
+        // Function to register user and then start call
+        const registerAndStart = () => {
+          if (!savedUserId || !savedToken) {
+            console.error('[API Accept] No saved session params!');
+            alert('Session expired. Please login again.');
+            return;
+          }
+
           const restoredSession = {
             userId: savedUserId,
             role: savedUserType || 'astrologer',
@@ -3758,36 +3792,39 @@
           localStorage.setItem('astro_session', JSON.stringify(restoredSession));
           state.me = restoredSession;
 
-          // Register with server first
+          console.log('[API Accept] Registering user:', savedUserId);
           socket.emit('register', {
             name: savedName,
             phone: savedPhone,
             userId: savedUserId
           }, (ack) => {
             if (ack && ack.ok) {
-              console.log('[API Accept] Registered, now starting WebRTC session');
+              console.log('[API Accept] ✅ Registered successfully!');
               state.me = { ...restoredSession, ...ack };
-
-              // Directly start WebRTC session (call already accepted by server!)
-              if (window.initSession) {
-                window.initSession(apiAcceptedCall, apiFromUserId, callType, false, null);
-              }
-              window.history.replaceState({}, document.title, '/');
+              startCallWhenReady();
             } else {
-              console.error('[API Accept] Register failed:', ack);
+              console.error('[API Accept] ❌ Register failed:', ack);
               alert('Session restore failed. Please login again.');
             }
           });
-        } else {
-          // No session params - try direct initSession
-          console.log('[API Accept] No saved session, trying direct initSession');
-          setTimeout(() => {
-            if (window.initSession && state.me) {
-              window.initSession(apiAcceptedCall, apiFromUserId, callType, false, null);
-              window.history.replaceState({}, document.title, '/');
-            }
-          }, 2000);
-        }
+        };
+
+        // Wait for socket to be connected before registering
+        const waitForSocket = (retries = 30) => {
+          console.log('[API Accept] Waiting for socket, connected:', socket.connected, 'retries:', retries);
+
+          if (socket.connected) {
+            registerAndStart();
+          } else if (retries > 0) {
+            setTimeout(() => waitForSocket(retries - 1), 200);
+          } else {
+            console.error('[API Accept] Socket connection timeout!');
+            alert('Connection failed. Please try again.');
+          }
+        };
+
+        // Start the wait process
+        waitForSocket();
       }
     });
 
@@ -4674,11 +4711,19 @@
     });
 
     socket.on('session-answered', (data) => {
+      console.log('[Session] session-answered received:', data);
+
+      if (!state.session) {
+        console.warn('[Session] No active session - ignoring session-answered');
+        return;
+      }
+
       if (data.accept) {
+        console.log('[Session] Call accepted, starting WebRTC as initiator');
         if (state.session.type === 'chat') {
           startTimer();
         } else {
-          startWebRTC(true);
+          startWebRTC(true); // Caller is initiator
         }
       } else {
         alert('Request Rejected');
