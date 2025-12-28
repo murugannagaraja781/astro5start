@@ -122,10 +122,23 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 this, uniqueRequestCode, callPageIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
+        // Full-screen intent using IncomingCallActivity for WhatsApp-style display
+        Intent fullScreenIntent = new Intent(this, IncomingCallActivity.class);
+        fullScreenIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        fullScreenIntent.putExtra("callId", sessionId);
+        fullScreenIntent.putExtra("sessionId", sessionId);
+        fullScreenIntent.putExtra("callerName", safeCaller);
+        fullScreenIntent.putExtra("callType", safeType);
+
+        PendingIntent fullScreenPendingIntent = PendingIntent.getActivity(
+                this, uniqueRequestCode + 1, fullScreenIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
         String callTypeText = "audio".equals(safeType) ? "Voice Call"
                 : "video".equals(safeType) ? "Video Call" : "Call";
 
-        // Create notification - click to open Accept/Reject page
+        // Create notification - fullScreenIntent for immediate display, contentIntent
+        // for notification tap
         Notification notification = new NotificationCompat.Builder(this, "calls")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("📞 Incoming " + callTypeText)
@@ -136,7 +149,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 .setAutoCancel(true)
                 .setOngoing(true)
                 .setContentIntent(callPagePendingIntent)
-                .setFullScreenIntent(callPagePendingIntent, true)
+                .setFullScreenIntent(fullScreenPendingIntent, true) // Full-screen IncomingCallActivity!
                 .setTimeoutAfter(60000)
                 .build();
 

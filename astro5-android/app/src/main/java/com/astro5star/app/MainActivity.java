@@ -100,23 +100,17 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Request Camera and Microphone permissions only when needed (for video/audio
      * calls)
-     * Display over apps permission is requested at startup
+     * Display over apps is optional - user can enable manually
      */
     private void requestAppPermissions() {
-        // Request display over other apps permission (required for full-screen call
-        // notifications)
+        // Display over apps permission is optional - don't auto-open settings
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
             if (!android.provider.Settings.canDrawOverlays(this)) {
-                android.util.Log.d("MainActivity", "Requesting display over apps permission");
-                Intent overlayIntent = new Intent(
-                        android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        android.net.Uri.parse("package:" + getPackageName()));
-                startActivityForResult(overlayIntent, 100);
+                android.util.Log.d("MainActivity", "Display over apps not enabled (optional)");
             }
         }
-
         // Audio permission will be requested when accepting a call
-        android.util.Log.d("MainActivity", "App permissions - overlay requested, mic on call");
+        android.util.Log.d("MainActivity", "App permissions setup complete");
     }
 
     @Override
@@ -279,10 +273,13 @@ public class MainActivity extends AppCompatActivity {
             }
             return;
         } else if ("OPEN_CALL_PAGE".equals(action)) {
-            // Open call accept/reject HTML page directly
+            // Just bring app to front without loading any page - preserve existing state
+            String sessionId = intent.getStringExtra("sessionId");
+            String callerName = intent.getStringExtra("callerName");
+            String callType = intent.getStringExtra("callType");
             String callUrl = intent.getStringExtra("callUrl");
 
-            android.util.Log.d("MainActivity", "OPEN_CALL_PAGE - URL: " + callUrl);
+            android.util.Log.d("MainActivity", "OPEN_CALL_PAGE - Session: " + sessionId + ", Caller: " + callerName);
 
             // Stop ringtone
             RingtoneService.stop(this);
@@ -301,16 +298,37 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            // Store pending URL and load it
-            pendingCallUrl = callUrl;
+            // Check if WebView already has the app loaded
+            String currentUrl = webView.getUrl();
+            android.util.Log.d("MainActivity", "OPEN_CALL_PAGE - Current URL: " + currentUrl);
 
-            // Load the call page URL immediately
-            if (webView != null && callUrl != null && !callUrl.isEmpty()) {
-                android.util.Log.d("MainActivity", "Loading call page URL now");
-                webView.loadUrl(callUrl);
+            // If WebView has content, inject JS to show call popup
+            if (currentUrl != null && !currentUrl.isEmpty() && !currentUrl.equals("about:blank")) {
+                // WebView has content - inject call popup JavaScript
+                android.util.Log.d("MainActivity", "WebView has content - injecting call popup JS");
+
+                String safeSessionId = sessionId != null ? sessionId : "";
+                String safeCallerName = callerName != null ? callerName.replace("'", "\\'") : "Unknown";
+                String safeCallType = callType != null ? callType : "audio";
+
+                String js = "(function() { " +
+                        "if (window.showNativeIncomingCall) { " +
+                        "  window.showNativeIncomingCall('" + safeSessionId + "', '" + safeCallerName + "', '"
+                        + safeCallType + "'); " +
+                        "} else { " +
+                        "  alert('Incoming call from " + safeCallerName + "'); " +
+                        "  console.log('[NATIVE] showNativeIncomingCall not found, sessionId: " + safeSessionId + "'); "
+                        +
+                        "} " +
+                        "})();";
+
+                webView.evaluateJavascript(js, null);
             } else {
-                android.util.Log.d("MainActivity", "WebView null or URL empty, loading BASE_URL");
-                if (webView != null) {
+                // WebView is empty - must load page
+                android.util.Log.d("MainActivity", "WebView empty - loading callacceptreject page");
+                if (callUrl != null && !callUrl.isEmpty()) {
+                    webView.loadUrl(callUrl);
+                } else {
                     webView.loadUrl(BASE_URL);
                 }
             }
@@ -874,6 +892,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         webView.onPause();
+        // Flush cookies to persist session when app goes to background
+        android.webkit.CookieManager.getInstance().flush();
     }
 
     @Override
