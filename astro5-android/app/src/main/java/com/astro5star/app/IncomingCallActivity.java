@@ -26,16 +26,31 @@ public class IncomingCallActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Show on lock screen
+        Log.d(TAG, "IncomingCallActivity onCreate - Starting full-screen call UI");
+
+        // Show on lock screen - CRITICAL for full-screen call
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true);
             setTurnScreenOn(true);
+
+            // Dismiss keyguard
+            android.app.KeyguardManager keyguardManager = (android.app.KeyguardManager) getSystemService(
+                    KEYGUARD_SERVICE);
+            if (keyguardManager != null) {
+                keyguardManager.requestDismissKeyguard(this, null);
+            }
         } else {
             getWindow().addFlags(
                     WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
                             WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON |
-                            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON |
+                            WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
         }
+
+        // Keep screen on and fullscreen
+        getWindow().addFlags(
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON |
+                        WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON);
 
         setContentView(R.layout.activity_incoming_call);
 
