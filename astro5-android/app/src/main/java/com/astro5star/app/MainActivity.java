@@ -100,19 +100,12 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Request Camera and Microphone permissions only when needed (for video/audio
      * calls)
-     * Notification permission is requested at app startup for Android 13+
+     * Notification permission is NOT requested - it will work without asking
      */
     private void requestAppPermissions() {
-        // Request notification permission for Android 13+ (required for incoming call
-        // notifications)
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(
-                    android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                android.util.Log.d("MainActivity", "Requesting notification permission");
-                requestPermissions(new String[] { android.Manifest.permission.POST_NOTIFICATIONS }, 102);
-            }
-        }
-        android.util.Log.d("MainActivity", "App permissions setup complete");
+        // Audio permission will be requested when accepting a call
+        // No notification permission request - not needed
+        android.util.Log.d("MainActivity", "App permissions - mic will be requested on call");
     }
 
     @Override

@@ -104,36 +104,39 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 "&callType=" + safeType +
                 "&fromUserId=" + sessionId;
 
-        // Launch IncomingCallActivity for WhatsApp-style full-screen Accept/Reject UI
-        Intent fullScreenIntent = new Intent(this, IncomingCallActivity.class);
-        fullScreenIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        fullScreenIntent.putExtra("callId", sessionId);
-        fullScreenIntent.putExtra("sessionId", sessionId);
-        fullScreenIntent.putExtra("callerName", safeCaller);
-        fullScreenIntent.putExtra("callType", safeType);
+        // Direct to MainActivity with ACCEPT_CALL action - skip IncomingCallActivity
+        // for simpler flow
+        // Click notification → MainActivity comes to front → Call accepts automatically
+        Intent directAcceptIntent = new Intent(this, MainActivity.class);
+        directAcceptIntent.setAction("DIRECT_ACCEPT_" + System.currentTimeMillis()); // Unique action
+        directAcceptIntent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        directAcceptIntent.putExtra("action", "ACCEPT_CALL");
+        directAcceptIntent.putExtra("sessionId", sessionId);
+        directAcceptIntent.putExtra("callerName", safeCaller);
+        directAcceptIntent.putExtra("callType", safeType);
 
         // Use unique request code based on time so each notification is unique
         int uniqueRequestCode = (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
 
-        PendingIntent fullScreenPendingIntent = PendingIntent.getActivity(
-                this, uniqueRequestCode, fullScreenIntent,
+        PendingIntent acceptPendingIntent = PendingIntent.getActivity(
+                this, uniqueRequestCode, directAcceptIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         String callTypeText = "audio".equals(safeType) ? "Voice Call"
                 : "video".equals(safeType) ? "Video Call" : "Call";
 
-        // Create WhatsApp-style notification with full-screen intent
+        // Create notification - click to accept call directly
         Notification notification = new NotificationCompat.Builder(this, "calls")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("📞 Incoming " + callTypeText)
-                .setContentText(safeCaller + " is calling you")
+                .setContentText(safeCaller + " is calling you. Tap to accept.")
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_CALL)
                 .setVibrate(new long[] { 0, 1000, 500, 1000 })
-                .setAutoCancel(false)
+                .setAutoCancel(true)
                 .setOngoing(true)
-                .setContentIntent(fullScreenPendingIntent)
-                .setFullScreenIntent(fullScreenPendingIntent, true) // WhatsApp-style full-screen!
+                .setContentIntent(acceptPendingIntent)
+                .setFullScreenIntent(acceptPendingIntent, true)
                 .setTimeoutAfter(60000)
                 .build();
 
@@ -141,11 +144,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             notificationManager.notify(1001, notification);
         }
 
-        // Don't call startActivity directly - let the notification's fullScreenIntent
-        // handle it
-        // The fullScreenIntent will launch IncomingCallActivity when notification shows
-        // This prevents breaking the existing task stack
-        android.util.Log.d(TAG, "Notification posted - fullScreenIntent will launch IncomingCallActivity");
+        android.util.Log.d(TAG, "Notification posted - tap to accept call directly");
 
         // Start ringtone service
         RingtoneService.start(this);
