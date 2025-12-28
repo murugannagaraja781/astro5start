@@ -205,12 +205,34 @@ public class MainActivity extends AppCompatActivity {
 
                 webView.evaluateJavascript(js, null);
             } else {
-                // WebView is empty (app was killed) - load BASE_URL with pending action
-                android.util.Log.d("MainActivity", "WebView is empty - loading page with pending accept action");
+                // WebView is empty (app was killed) - load BASE_URL with accepted call params
+                android.util.Log.d("MainActivity", "WebView is empty - loading with acceptedCall params");
+
+                // Get saved session from SharedPreferences
+                android.content.SharedPreferences prefs = getSharedPreferences("astro_session", MODE_PRIVATE);
+                String savedUserId = prefs.getString("userId", "");
+                String savedToken = prefs.getString("token", "");
+                String savedUserType = prefs.getString("userType", "");
+
+                // Build URL with auto-accept params
+                String acceptUrl = BASE_URL + "/?acceptedCall=" + safeSessionId +
+                        "&callType=" + safeCallType +
+                        "&autoAccept=true";
+
+                // If we have saved session, add it to URL
+                if (!savedUserId.isEmpty() && !savedToken.isEmpty()) {
+                    android.util.Log.d("MainActivity", "Found saved session: " + savedUserId);
+                    acceptUrl += "&savedUserId=" + savedUserId +
+                            "&savedToken="
+                            + java.net.URLEncoder.encode(savedToken, java.nio.charset.StandardCharsets.UTF_8) +
+                            "&savedUserType=" + savedUserType;
+                }
+
+                android.util.Log.d("MainActivity", "Loading URL: " + acceptUrl);
                 pendingCallAction = "accept";
                 pendingSessionId = safeSessionId;
                 pendingCallType = safeCallType;
-                webView.loadUrl(BASE_URL);
+                webView.loadUrl(acceptUrl);
             }
             return;
         } else if ("REJECT_CALL".equals(action)) {
@@ -644,6 +666,41 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 });
+            }
+
+            // Save user session to SharedPreferences - persists even when app is killed
+            @android.webkit.JavascriptInterface
+            public void saveUserSession(String userId, String token, String userType) {
+                android.content.SharedPreferences prefs = getSharedPreferences("astro_session", MODE_PRIVATE);
+                prefs.edit()
+                        .putString("userId", userId)
+                        .putString("token", token)
+                        .putString("userType", userType)
+                        .putLong("savedAt", System.currentTimeMillis())
+                        .apply();
+                android.util.Log.d("MainActivity", "User session saved: " + userId + " (" + userType + ")");
+            }
+
+            // Get saved user session
+            @android.webkit.JavascriptInterface
+            public String getUserSession() {
+                android.content.SharedPreferences prefs = getSharedPreferences("astro_session", MODE_PRIVATE);
+                String userId = prefs.getString("userId", "");
+                String token = prefs.getString("token", "");
+                String userType = prefs.getString("userType", "");
+                if (!userId.isEmpty() && !token.isEmpty()) {
+                    return "{\"userId\":\"" + userId + "\",\"token\":\"" + token + "\",\"userType\":\"" + userType
+                            + "\"}";
+                }
+                return "";
+            }
+
+            // Clear user session (logout)
+            @android.webkit.JavascriptInterface
+            public void clearUserSession() {
+                android.content.SharedPreferences prefs = getSharedPreferences("astro_session", MODE_PRIVATE);
+                prefs.edit().clear().apply();
+                android.util.Log.d("MainActivity", "User session cleared");
             }
         }, "Android");
 
