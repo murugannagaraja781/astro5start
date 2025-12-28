@@ -108,20 +108,6 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             }
         }
 
-        // Full-screen intent using IncomingCallActivity for WhatsApp-style display
-        Intent fullScreenIntent = new Intent(this, IncomingCallActivity.class);
-        fullScreenIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        fullScreenIntent.putExtra("callId", sessionId);
-        fullScreenIntent.putExtra("sessionId", sessionId);
-        fullScreenIntent.putExtra("callerName", safeCaller);
-        fullScreenIntent.putExtra("callType", safeType);
-
-        int uniqueRequestCode = (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
-
-        PendingIntent fullScreenPendingIntent = PendingIntent.getActivity(
-                this, uniqueRequestCode, fullScreenIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
         String callTypeText = "audio".equals(safeType) ? "Voice Call"
                 : "video".equals(safeType) ? "Video Call" : "Call";
 
@@ -129,8 +115,15 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         android.net.Uri soundUri = android.net.Uri.parse(
                 "android.resource://" + getPackageName() + "/" + R.raw.incoming_call);
 
-        // Create notification - NO contentIntent (click does nothing)
-        // Only fullScreenIntent opens IncomingCallActivity
+        // Create an empty intent that does NOTHING when notification is clicked
+        // This prevents any activity from being launched
+        Intent emptyIntent = new Intent();
+        PendingIntent emptyPendingIntent = PendingIntent.getBroadcast(
+                this, 0, emptyIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        // Create notification - click does NOTHING
+        // IncomingCallActivity is started directly via startActivity() below
         Notification notification = new NotificationCompat.Builder(this, "calls")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("📞 Incoming " + callTypeText)
@@ -141,8 +134,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 .setSound(soundUri)
                 .setAutoCancel(false) // Don't cancel on click
                 .setOngoing(true) // Persistent notification
-                // NO contentIntent - click does nothing!
-                .setFullScreenIntent(fullScreenPendingIntent, true) // Only full-screen works
+                .setContentIntent(emptyPendingIntent) // Click does nothing!
+                // NO fullScreenIntent - we start IncomingCallActivity directly
                 .setTimeoutAfter(60000)
                 .build();
 
