@@ -112,8 +112,11 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         fullScreenIntent.putExtra("callerName", safeCaller);
         fullScreenIntent.putExtra("callType", safeType);
 
+        // Use unique request code based on time so each notification is unique
+        int uniqueRequestCode = (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
+
         PendingIntent fullScreenPendingIntent = PendingIntent.getActivity(
-                this, 1002, fullScreenIntent,
+                this, uniqueRequestCode, fullScreenIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         String callTypeText = "audio".equals(safeType) ? "Voice Call"
@@ -138,8 +141,11 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             notificationManager.notify(1001, notification);
         }
 
-        // Also launch IncomingCallActivity directly for immediate full-screen display
-        startActivity(fullScreenIntent);
+        // Don't call startActivity directly - let the notification's fullScreenIntent
+        // handle it
+        // The fullScreenIntent will launch IncomingCallActivity when notification shows
+        // This prevents breaking the existing task stack
+        android.util.Log.d(TAG, "Notification posted - fullScreenIntent will launch IncomingCallActivity");
 
         // Start ringtone service
         RingtoneService.start(this);
