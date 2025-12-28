@@ -149,44 +149,60 @@ public class MainActivity extends AppCompatActivity {
             String safeSessionId = sessionId != null ? sessionId : "";
             String safeCallType = callType != null ? callType : "audio";
 
-            // ALWAYS inject JavaScript - NEVER reload page to preserve WebView state and
-            // socket
-            android.util.Log.d("MainActivity", "Accepting call via JS injection (NO page reload!)");
+            // Check if WebView has content loaded
+            String currentUrl = webView.getUrl();
+            boolean hasContent = currentUrl != null &&
+                    !currentUrl.isEmpty() &&
+                    !currentUrl.equals("about:blank") &&
+                    currentUrl.contains("astro5star");
 
-            String js = "(function tryAcceptCall(retries) { " +
-                    "  console.log('[NATIVE ACCEPT] Trying to accept call, retries=' + retries); " +
-                    "  if (window.state && window.state.socket && window.state.socket.connected && window.state.me) { "
-                    +
-                    "    console.log('[NATIVE ACCEPT] Socket ready, emitting answer-session-native'); " +
-                    "    window.state.socket.emit('answer-session-native', { " +
-                    "      sessionId: '" + safeSessionId + "', " +
-                    "      accept: true, " +
-                    "      callType: '" + safeCallType + "' " +
-                    "    }, function(res) { " +
-                    "      console.log('[NATIVE ACCEPT] Response:', res); " +
-                    "      if (res && res.ok && res.fromUserId) { " +
-                    "        console.log('[NATIVE ACCEPT] Calling initSession with fromUserId:', res.fromUserId); " +
-                    "        if (window.initSession) { " +
-                    "          window.initSession('" + safeSessionId + "', res.fromUserId, '" + safeCallType
-                    + "', false, null); " +
-                    "        } else { " +
-                    "          console.error('[NATIVE ACCEPT] window.initSession not found!'); " +
-                    "        } " +
-                    "      } else { " +
-                    "        console.error('[NATIVE ACCEPT] Failed:', res); " +
-                    "        alert('Failed to connect: ' + (res ? res.error : 'Unknown error')); " +
-                    "      } " +
-                    "    }); " +
-                    "  } else if (retries > 0) { " +
-                    "    console.log('[NATIVE ACCEPT] Socket not ready, waiting... retries left:', retries); " +
-                    "    setTimeout(function() { tryAcceptCall(retries - 1); }, 500); " +
-                    "  } else { " +
-                    "    console.error('[NATIVE ACCEPT] Socket not ready after retries'); " +
-                    "    alert('Connection failed. Please reopen the app.'); " +
-                    "  } " +
-                    "})(20);";
+            if (hasContent) {
+                // WebView has content - inject JavaScript directly (NO reload!)
+                android.util.Log.d("MainActivity", "WebView has content - accepting call via JS (NO reload!)");
 
-            webView.evaluateJavascript(js, null);
+                String js = "(function tryAcceptCall(retries) { " +
+                        "  console.log('[NATIVE ACCEPT] Trying to accept call, retries=' + retries); " +
+                        "  if (window.state && window.state.socket && window.state.socket.connected && window.state.me) { "
+                        +
+                        "    console.log('[NATIVE ACCEPT] Socket ready, emitting answer-session-native'); " +
+                        "    window.state.socket.emit('answer-session-native', { " +
+                        "      sessionId: '" + safeSessionId + "', " +
+                        "      accept: true, " +
+                        "      callType: '" + safeCallType + "' " +
+                        "    }, function(res) { " +
+                        "      console.log('[NATIVE ACCEPT] Response:', res); " +
+                        "      if (res && res.ok && res.fromUserId) { " +
+                        "        console.log('[NATIVE ACCEPT] Calling initSession with fromUserId:', res.fromUserId); "
+                        +
+                        "        if (window.initSession) { " +
+                        "          window.initSession('" + safeSessionId + "', res.fromUserId, '" + safeCallType
+                        + "', false, null); " +
+                        "        } else { " +
+                        "          console.error('[NATIVE ACCEPT] window.initSession not found!'); " +
+                        "        } " +
+                        "      } else { " +
+                        "        console.error('[NATIVE ACCEPT] Failed:', res); " +
+                        "        alert('Failed to connect: ' + (res ? res.error : 'Unknown error')); " +
+                        "      } " +
+                        "    }); " +
+                        "  } else if (retries > 0) { " +
+                        "    console.log('[NATIVE ACCEPT] Socket not ready, waiting... retries left:', retries); " +
+                        "    setTimeout(function() { tryAcceptCall(retries - 1); }, 500); " +
+                        "  } else { " +
+                        "    console.error('[NATIVE ACCEPT] Socket not ready after retries'); " +
+                        "    alert('Connection failed. Please reopen the app.'); " +
+                        "  } " +
+                        "})(20);";
+
+                webView.evaluateJavascript(js, null);
+            } else {
+                // WebView is empty (app was killed) - load BASE_URL with pending action
+                android.util.Log.d("MainActivity", "WebView is empty - loading page with pending accept action");
+                pendingCallAction = "accept";
+                pendingSessionId = safeSessionId;
+                pendingCallType = safeCallType;
+                webView.loadUrl(BASE_URL);
+            }
             return;
         } else if ("REJECT_CALL".equals(action)) {
             String sessionId = intent.getStringExtra("sessionId");
