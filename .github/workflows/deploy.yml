@@ -1,0 +1,30 @@
+name: Deploy to DigitalOcean Base
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USERNAME }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          script: |
+            # Go to the project directory
+            cd /var/www/astrofivestar
+
+            # Pull the latest code (Hard reset to match GitHub exactly)
+            git fetch --all
+            git reset --hard origin/main
+
+            # Install dependencies
+            npm install
+
+            # Restart the application
+            # We assume the app is already added to PM2 as 'astro-app' (from autodeploy.sh)
+            pm2 restart astro-app
