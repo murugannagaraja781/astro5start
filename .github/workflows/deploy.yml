@@ -18,9 +18,9 @@ jobs:
             # Go to the project directory
             cd /var/www/astrofivestar
 
-            # Pull the latest code (Hard reset to match GitHub exactly)
-            git fetch --all
-            git reset --hard origin/main
+            # Pull the latest code (Using GITHUB_TOKEN for permission)
+            git fetch https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main
+            git reset --hard FETCH_HEAD
 
             # Install dependencies
             npm install
