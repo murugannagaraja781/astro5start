@@ -120,11 +120,13 @@ const vimshottariRouter = require("./routes/vimshottari");
 const astrologyRouter = require("./routes/astrology");
 const matchRouter = require("./routes/match");
 const horoscopeRouter = require("./routes/horoscope");
+const chartsRouter = require("./routes/charts"); // Local charts
 
 app.use("/api/vimshottari", vimshottariRouter);
 app.use("/api/astrology", astrologyRouter);
 app.use("/api/match", matchRouter);
 app.use("/api/horoscope", horoscopeRouter);
+app.use("/api/charts", chartsRouter); // Mount local charts
 
 // ===== MSG91 Helper =====
 function sendMsg91(phoneNumber, otp) {

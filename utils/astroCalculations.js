@@ -5,6 +5,15 @@ const ZODIAC_SIGNS = [
     'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
 ];
 
+const {
+    NAKSHATRAS_TAMIL,
+    TITHIS_TAMIL,
+    YOGAS_TAMIL,
+    KARANAS_TAMIL,
+    DAYS_TAMIL,
+    PLANET_NAMES_TAMIL
+} = require('./constants');
+
 const NAKSHATRAS = [
     "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashirsha", "Ardra",
     "Punarvasu", "Pushya", "Ashlesha", "Magha", "Purva Phalguni", "Uttara Phalguni",
@@ -49,6 +58,7 @@ function calculateNakshatra(longitude) {
     const nakshatraLength = 13.333333; // 360 / 27
     const index = Math.floor(longitude / nakshatraLength);
     const nakshatraName = NAKSHATRAS[index % 27];
+    const nakshatraNameTamil = NAKSHATRAS_TAMIL[index % 27];
 
     // Calculate Pada (Quarter)
     const remaining = longitude % nakshatraLength;
@@ -58,12 +68,15 @@ function calculateNakshatra(longitude) {
     // Calculate Lord (simplified: Sequence is Ketu, Venus, Sun, Moon, Mars, Rahu, Jupiter, Saturn, Mercury)
     const lords = ['Ketu', 'Venus', 'Sun', 'Moon', 'Mars', 'Rahu', 'Jupiter', 'Saturn', 'Mercury'];
     const lord = lords[index % 9];
+    const lordTamil = PLANET_NAMES_TAMIL[lord] || lord;
 
     return {
         name: nakshatraName,
+        nameTamil: nakshatraNameTamil,
         number: index + 1,
         pada: pada,
-        lord: lord
+        lord: lord,
+        lordTamil: lordTamil
     };
 }
 
@@ -168,7 +181,8 @@ function calculatePanchangam(date, lat, lon, existingPositions) {
     let diff = moon - sun;
     if (diff < 0) diff += 360;
     const tithiIndex = Math.floor(diff / 12);
-    const tithiName = "Tithi " + (tithiIndex + 1);
+    // const tithiName = "Tithi " + (tithiIndex + 1);
+    const tithiName = TITHIS_TAMIL[tithiIndex % 30] || `Tithi ${tithiIndex + 1}`;
 
     // Nakshatra
     const nak = calculateNakshatra(moon);
@@ -176,20 +190,21 @@ function calculatePanchangam(date, lat, lon, existingPositions) {
     // Yoga
     const sum = moon + sun;
     const yogaIndex = Math.floor(sum / 13.3333) % 27;
-    const yogaName = "Yoga " + (yogaIndex + 1);
+    const yogaName = YOGAS_TAMIL[yogaIndex % 27] || `Yoga ${yogaIndex + 1}`;
 
     // Karana (Half Tithi)
     const karanaIndex = Math.floor(diff / 6);
-    const karanaName = "Karana " + (karanaIndex + 1);
+    const karanaName = KARANAS_TAMIL[karanaIndex % 11] || `Karana ${karanaIndex + 1}`; // Simplified Karana logic
 
     // Vara (Weekday)
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const vara = days[date.getDay()];
+    const varaDay = days[date.getDay()];
+    const vara = DAYS_TAMIL[varaDay] || varaDay;
 
     return {
         tithiName,
         tithiIndex,
-        nakshatra: nak.name,
+        nakshatra: nak.nameTamil || nak.name,
         yoga: yogaName,
         karana: karanaName,
         vara

@@ -6119,7 +6119,7 @@
         const originalContent = panel.innerHTML;
         panel.innerHTML = '<div style="text-align:center; padding:60px 20px;"><div class="spinner-astro"></div><div style="margin-top:20px; font-weight:500; color:#d97706; font-size:1.1rem;">Analyzing Planets...</div></div>';
 
-        const res = await fetch('https://newapi-production-ea98.up.railway.app/api/charts/birth-chart', {
+        const res = await fetch('/api/charts/birth-chart', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(bd)
@@ -6298,7 +6298,7 @@
       }
 
       try {
-        const res = await fetch('https://newapi-production-ea98.up.railway.app/api/charts/birth-chart', {
+        const res = await fetch('/api/charts/birth-chart', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -6547,18 +6547,39 @@
         `;
       }
 
-      // Dasha
-      if (dasha && dasha.currentLord) {
-        const remainingYears = dasha.remainingYearsInCurrentDasha ? parseFloat(dasha.remainingYearsInCurrentDasha).toFixed(2) : 'N/A';
+      // Dasha Section (Full Hierarchy in Tamil)
+      if (dasha && dasha.mahadashaName) {
+        const endsAt = dasha.endsAt ? new Date(dasha.endsAt).toLocaleDateString() : '';
         html += `
-          <div style="background:linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color:white; padding:12px; border-radius:8px;">
-            <div style="font-size:0.85rem; opacity:0.9; margin-bottom:5px;">⏳ Current Dasha</div>
-            <div style="font-size:1.1rem; font-weight:bold; margin-bottom:8px;">${dasha.currentLord}</div>
-            <div style="font-size:0.8rem; opacity:0.9;">
-              <div>Remaining: ${remainingYears} years</div>
-            </div>
-          </div>
-        `;
+              <div style="background:linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color:white; padding:15px; border-radius:12px; margin-bottom:20px;">
+                <div style="font-weight:bold; font-size:1.1rem; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.3); padding-bottom:5px;">
+                  ⏳ தற்போதைய திசை (Current Dasha)
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+                  <div>
+                    <div style="font-size:0.8rem; opacity:0.8;">மகாதிசை (Mahadasha)</div>
+                    <div style="font-size:1.2rem; font-weight:bold;">${dasha.mahadashaName}</div>
+                  </div>
+                  <div>
+                    <div style="font-size:0.8rem; opacity:0.8;">புத்தி (Bhukti)</div>
+                    <div style="font-size:1.2rem; font-weight:bold;">${dasha.bhuktiName || '-'}</div>
+                  </div>
+                  <div>
+                    <div style="font-size:0.8rem; opacity:0.8;">அந்தரம் (Antaram)</div>
+                    <div style="font-size:1.2rem; font-weight:bold;">${dasha.antaramName || '-'}</div>
+                  </div>
+                  <div>
+                     <div style="font-size:0.8rem; opacity:0.8;">முடிவு (Ends)</div>
+                     <div style="font-size:1rem; font-weight:bold;">${endsAt}</div>
+                  </div>
+                </div>
+
+                <div style="background:rgba(255,255,255,0.2); padding:8px; border-radius:8px; font-size:0.9rem;">
+                   இருப்பு (Remaining): <b>${dasha.remainingYearsInCurrentDasha ? parseFloat(dasha.remainingYearsInCurrentDasha).toFixed(2) : '0'}</b> வருடங்கள் (Years)
+                </div>
+              </div>
+            `;
       }
 
       html += '</div>';
