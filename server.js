@@ -50,21 +50,22 @@ async function sendFcmV1Push(fcmToken, data, notification) {
   try {
     const accessToken = await fcmAuth.getAccessToken();
 
-    const message = {
-      message: {
-        token: fcmToken,
-        data: data,
-        android: {
-          priority: 'high',
-          notification: notification ? {
-            channelId: 'calls',
-            title: notification.title,
-            body: notification.body,
-            sound: 'default'
-          } : undefined
-        }
-      }
+    const messagePayload = {
+      token: fcmToken,
+      data: data || {}
     };
+
+    if (notification) {
+      messagePayload.android = {
+        priority: 'high',
+        channelId: 'calls',
+        title: notification.title,
+        body: notification.body,
+        sound: 'default'
+      };
+    }
+
+    const message = { message: messagePayload };
 
     const response = await fetch(
       `https://fcm.googleapis.com/v1/projects/${FCM_PROJECT_ID}/messages:send`,
@@ -171,7 +172,12 @@ app.post('/upload', upload.single('file'), (req, res) => {
 });
 const MONGO_URI = 'mongodb+srv://murugannagaraja781_db_user:NewLife2025@cluster0.tp2gekn.mongodb.net/astrofive';
 mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ MongoDB Connected'))
+  .then(() => {
+    console.log('✅ MongoDB Connected');
+    if (process.env.NODE_ENV !== 'test') {
+      seedDatabase();
+    }
+  })
   .catch(err => console.error('MongoDB Error:', err));
 
 // Schemas
@@ -336,7 +342,7 @@ async function seedDatabase() {
 
   console.log('--- Database Seeded ---');
 }
-seedDatabase();
+// seedDatabase(); // Moved to DB connection success
 
 // In-Memory cache for socket mapping (Ephemeral)
 const userSockets = new Map(); // userId -> socketId
@@ -1191,10 +1197,11 @@ io.on('connection', (socket) => {
       if (!socketSent && toUser && toUser.fcmToken) {
         const fcmData = {
           type: 'incoming_call',
-          callId: sessionId,
+          sessionId: sessionId,
           callType: type,
           callerName: fromUser?.name || 'Client',
-          fromUserId: fromUserId
+          callerUserId: fromUserId,
+          timestamp: Date.now().toString()
         };
 
         const fcmNotification = {
@@ -1429,6 +1436,10 @@ io.on('connection', (socket) => {
           messageId,
           status: 'queued',
         });
+
+        // Trigger Push for Offline Message
+        sendChatPush(toUserId, fromUserId, content.text || 'Sent a file');
+
         console.log(
           `Queued message ${messageId} from ${fromUserId} to offline user ${toUserId}`
         );
@@ -1460,6 +1471,30 @@ io.on('connection', (socket) => {
       console.error('chat-message error', err);
     }
   });
+
+  // --- Helper: Send Chat Push ---
+  async function sendChatPush(toUserId, fromUserId, messageText) {
+    try {
+      const toUser = await User.findOne({ userId: toUserId });
+      const fromUser = await User.findOne({ userId: fromUserId });
+
+      if (toUser && toUser.fcmToken) {
+        const payload = {
+          type: 'chat',
+          title: fromUser?.name || 'New Message',
+          body: messageText,
+          senderId: fromUserId
+        };
+
+        const notification = {
+          title: payload.title,
+          body: payload.body
+        };
+
+        await sendFcmV1Push(toUser.fcmToken, payload, notification);
+      }
+    } catch (e) { console.error('Chat Push Error:', e); }
+  }
 
   // --- Get History ---
   socket.on('get-history', async (cb) => {
@@ -3041,9 +3076,12 @@ app.post('/api/phonepe/callback', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server running on http://0.0.0.0:${PORT}`);
-});
+
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+  });
+}
 
 // Graceful shutdown - prevents port stuck issues
 process.on('SIGTERM', () => {
@@ -3061,3 +3099,5 @@ process.on('SIGINT', () => {
     process.exit(0);
   });
 });
+
+module.exports = { app, server };
