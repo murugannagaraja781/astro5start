@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     AndroidManifest.xml for FCM Incoming Call App
-    
+
     WHY THESE PERMISSIONS EXIST:
     - INTERNET: Required for FCM and API calls
     - POST_NOTIFICATIONS: Required for Android 13+ to show any notifications
@@ -47,10 +47,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.FCMCallApp"
+        android:name=".AstrologerApp"
         android:networkSecurityConfig="@xml/network_security_config"
         tools:targetApi="34">
 
-        <!-- 
+        <!--
             MainActivity: Entry point for user registration
             - Standard launch mode
             - Shown in launcher
@@ -65,16 +66,37 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".ui.dashboard.GuestActivity" />
+        <activity android:name=".ui.dashboard.ClientDashboardActivity" />
+        <activity android:name=".ui.auth.LoginActivity" />
+        <activity android:name=".ui.auth.OtpVerificationActivity" />
+        <activity android:name=".ui.wallet.WalletActivity" />
+        <activity android:name=".ui.chat.ChatActivity" android:windowSoftInputMode="adjustResize"/>
+        <activity android:name=".ui.call.VideoCallActivity" android:screenOrientation="portrait"/>
+
+        <activity
+            android:name=".ui.wallet.PaymentStatusActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.FCMCallApp">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="astro5" />
+            </intent-filter>
+        </activity>
+
         <!--
             IncomingCallActivity: Full-screen incoming call UI
-            
+
             WHY THESE FLAGS ARE CRITICAL:
             - showWhenLocked: Shows activity even when device is locked
             - turnScreenOn: Turns on the screen when activity starts
             - excludeFromRecents: Don't show in recent apps (it's a transient UI)
             - noHistory: Don't keep in activity stack
             - launchMode="singleInstance": Only one instance, brings existing to front
-            
+
             Without these flags, the incoming call UI won't show on locked devices!
         -->
         <activity
@@ -90,12 +112,12 @@
 
         <!--
             FCMService: Handles incoming FCM messages
-            
+
             WHY THIS IS THE KEY COMPONENT:
             - This service receives FCM messages even when app is killed
             - Android's FCM infrastructure has special permission to wake apps
             - Without this, you cannot receive calls when app is not running
-            
+
             The exported="false" with MESSAGING_EVENT filter is the correct pattern.
         -->
         <service
@@ -108,7 +130,7 @@
 
         <!--
             CallForegroundService: Keeps call processing alive
-            
+
             WHY THIS MATTERS:
             - Android can kill any activity/service at any time
             - Foreground services have higher priority and show persistent notification

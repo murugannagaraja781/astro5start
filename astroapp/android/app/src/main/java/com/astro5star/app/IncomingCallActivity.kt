@@ -16,21 +16,21 @@ import androidx.core.content.ContextCompat
 
 /**
  * IncomingCallActivity - Full-screen incoming call UI
- * 
+ *
  * THIS ACTIVITY SHOWS THE INCOMING CALL SCREEN, SIMILAR TO WHATSAPP/TELEGRAM.
- * 
+ *
  * HOW IT APPEARS OVER LOCK SCREEN:
  * 1. AndroidManifest declares: showWhenLocked="true", turnScreenOn="true"
  * 2. We also call setShowWhenLocked(true) and setTurnScreenOn(true) programmatically
  * 3. We use FLAG_KEEP_SCREEN_ON to prevent screen from turning off
- * 
+ *
  * FLOW:
  * 1. FCMService receives incoming call message
  * 2. FCMService starts this activity with caller info
  * 3. This activity shows full-screen UI with ringtone + vibration
  * 4. User taps Accept or Reject
  * 5. Activity finishes
- * 
+ *
  * FOREGROUND SERVICE:
  * We start CallForegroundService to prevent Android from killing this process.
  * The foreground service shows a persistent notification during the incoming call.
@@ -58,10 +58,10 @@ class IncomingCallActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         // Configure window for lock screen display
         setupWindowFlags()
-        
+
         setContentView(R.layout.activity_incoming_call)
 
         // Extract call data from intent
@@ -91,13 +91,13 @@ class IncomingCallActivity : AppCompatActivity() {
 
     /**
      * Configure window flags for lock screen display
-     * 
+     *
      * THESE FLAGS ARE CRITICAL:
      * - SHOW_WHEN_LOCKED: Show activity over lock screen
      * - TURN_SCREEN_ON: Turn on screen when activity starts
      * - KEEP_SCREEN_ON: Prevent screen from turning off
      * - DISMISS_KEYGUARD: Dismiss lock screen (deprecated but still works)
-     * 
+     *
      * We use both manifest attributes AND programmatic calls for maximum compatibility.
      */
     private fun setupWindowFlags() {
@@ -143,7 +143,7 @@ class IncomingCallActivity : AppCompatActivity() {
 
     /**
      * Start foreground service to keep the call process alive
-     * 
+     *
      * WHY THIS IS NECESSARY:
      * Android can kill activities at any time to free memory.
      * A foreground service has higher priority and is less likely to be killed.
@@ -154,13 +154,13 @@ class IncomingCallActivity : AppCompatActivity() {
             putExtra("callerName", callerName)
             putExtra("callId", callId)
         }
-        
+
         ContextCompat.startForegroundService(this, serviceIntent)
     }
 
     /**
      * Play ringtone for incoming call
-     * 
+     *
      * Uses the device's default ringtone. You can replace this with a custom
      * ringtone by placing an MP3 in res/raw/ and using:
      * MediaPlayer.create(this, R.raw.ringtone)
@@ -168,7 +168,7 @@ class IncomingCallActivity : AppCompatActivity() {
     private fun startRingtone() {
         try {
             val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-            
+
             mediaPlayer = MediaPlayer().apply {
                 setAudioAttributes(
                     AudioAttributes.Builder()
@@ -181,7 +181,7 @@ class IncomingCallActivity : AppCompatActivity() {
                 prepare()
                 start()
             }
-            
+
             Log.d(TAG, "Ringtone started")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start ringtone", e)
@@ -190,7 +190,7 @@ class IncomingCallActivity : AppCompatActivity() {
 
     /**
      * Start vibration pattern for incoming call
-     * 
+     *
      * Pattern: vibrate 500ms, pause 500ms, repeat
      */
     private fun startVibration() {
@@ -203,7 +203,7 @@ class IncomingCallActivity : AppCompatActivity() {
         }
 
         val pattern = longArrayOf(0, 500, 500) // delay, vibrate, sleep, repeat
-        
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             vibrator?.vibrate(
                 VibrationEffect.createWaveform(pattern, 0) // 0 = repeat from index 0
@@ -212,7 +212,7 @@ class IncomingCallActivity : AppCompatActivity() {
             @Suppress("DEPRECATION")
             vibrator?.vibrate(pattern, 0)
         }
-        
+
         Log.d(TAG, "Vibration started")
     }
 
@@ -227,7 +227,7 @@ class IncomingCallActivity : AppCompatActivity() {
 
         vibrator?.cancel()
         vibrator = null
-        
+
         Log.d(TAG, "Ringtone and vibration stopped")
     }
 
@@ -235,14 +235,20 @@ class IncomingCallActivity : AppCompatActivity() {
         Log.d(TAG, "Call accepted: $callId")
         stopRingtoneAndVibration()
         handler.removeCallbacks(timeoutRunnable)
-        
-        // TODO: Navigate to active call screen or handle call connection
-        // For now, just show a toast and finish
-        android.widget.Toast.makeText(this, "Call accepted from $callerName", android.widget.Toast.LENGTH_SHORT).show()
-        
+
+        // Notify Server via Socket (if connected) or just launch Activity which connects
+        // Ideally we emit 'answer-session-native' here if possible
+
+        val intent = Intent(this, com.astro5star.app.ui.call.VideoCallActivity::class.java).apply {
+            putExtra("sessionId", callId) // Assuming callId is sessionId
+            putExtra("targetUserId", callerId)
+            putExtra("isInitiator", false)
+        }
+        startActivity(intent)
+
         // Stop foreground service
         stopService(Intent(this, CallForegroundService::class.java))
-        
+
         finish()
     }
 
@@ -250,12 +256,12 @@ class IncomingCallActivity : AppCompatActivity() {
         Log.d(TAG, "Call rejected: $callId")
         stopRingtoneAndVibration()
         handler.removeCallbacks(timeoutRunnable)
-        
+
         // TODO: Send reject signal to server if needed
-        
+
         // Stop foreground service
         stopService(Intent(this, CallForegroundService::class.java))
-        
+
         finish()
     }
 
