@@ -50,7 +50,7 @@ let mobileTokenStore = new Map();
 let callApp = null;
 
 try {
-  const mobileServiceAccount = require('./mobile-service-account.json');
+  const mobileServiceAccount = require('./firebase-service-account.json');
   callApp = admin.initializeApp({
     credential: admin.credential.cert(mobileServiceAccount)
   }, 'callApp'); // Secondary App Name
