@@ -8,6 +8,8 @@ const path = require('path');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const multer = require('multer');
+const admin = require('firebase-admin'); // Firebase Admin for Mobile App
+
 
 // Polyfill for fetch (Node.js 18+ has it built-in)
 if (!global.fetch) {
@@ -38,7 +40,26 @@ function initFcmAuth() {
   } catch (err) {
     console.error('[FCM v1] Init error:', err.message);
   }
+
 }
+
+// ==========================================
+// MOBILE APP FIREBASE INITIALIZATION
+// ==========================================
+let mobileTokenStore = new Map();
+let callApp = null;
+
+try {
+  const mobileServiceAccount = require('./mobile-service-account.json');
+  callApp = admin.initializeApp({
+    credential: admin.credential.cert(mobileServiceAccount)
+  }, 'callApp'); // Secondary App Name
+  console.log('✓ Call App: Firebase Admin SDK initialized');
+} catch (error) {
+  console.warn('✗ Call App: Failed to initialize Firebase Admin SDK (Mobile App)');
+  console.warn('  Error:', error.message);
+}
+
 
 // Send FCM v1 Push Notification
 async function sendFcmV1Push(fcmToken, data, notification) {
@@ -56,12 +77,19 @@ async function sendFcmV1Push(fcmToken, data, notification) {
     };
 
     if (notification) {
+      // Standard Notification Structure
+      messagePayload.notification = {
+        title: notification.title,
+        body: notification.body
+      };
+
+      // Android Specific Config
       messagePayload.android = {
         priority: 'high',
-        channelId: 'calls',
-        title: notification.title,
-        body: notification.body,
-        sound: 'default'
+        notification: {
+          channelId: 'calls',
+          sound: 'default'
+        }
       };
     }
 
@@ -135,6 +163,8 @@ function sendMsg91(phoneNumber, otp) {
   const mobile = `91${cleanPhone}`;
   const authKey = process.env.MSG91_AUTH_KEY;
   const templateId = process.env.MSG91_TEMPLATE_ID;
+
+  console.log(`[MSG91 Debug] AuthKey: ${authKey ? 'Set' : 'Missing'}, TemplateID: ${templateId}`);
 
   // We pass 'otp' param so MSG91 sends OUR generated code
   const path = `/api/v5/otp?otp_expiry=5&template_id=${templateId}&mobile=${mobile}&authkey=${authKey}&realTimeResponse=1&otp=${otp}`;
@@ -3072,6 +3102,102 @@ app.post('/api/phonepe/callback', async (req, res) => {
   } catch (e) {
     console.error("PhonePe Callback Error:", e);
     res.status(200).send('OK'); // Always return 200
+  }
+});
+
+// ============================================================================
+// MOBILE APP SPECIFIC ENDPOINTS (from mobileapp/server/server.js)
+// ============================================================================
+
+/**
+ * Register user's FCM token
+ * POST /register
+ */
+app.post('/register', (req, res) => {
+  const { userId, fcmToken } = req.body;
+
+  if (!userId || typeof userId !== 'string' || !fcmToken || typeof fcmToken !== 'string') {
+    return res.status(400).json({ success: false, error: 'Invalid input' });
+  }
+
+  mobileTokenStore.set(userId, fcmToken);
+  console.log(`[Mobile] Registered: ${userId} → ${fcmToken.substring(0, 20)}...`);
+  res.json({ success: true, message: `User ${userId} registered successfully` });
+});
+
+/**
+ * List all registered users (for debugging)
+ * GET /users
+ */
+app.get('/users', (req, res) => {
+  const users = [];
+  mobileTokenStore.forEach((token, userId) => {
+    users.push({ userId, tokenPreview: `${token.substring(0, 15)}...` });
+  });
+  res.json({ count: users.length, users });
+});
+
+/**
+ * Unregister a user
+ * DELETE /unregister/:userId
+ */
+app.delete('/unregister/:userId', (req, res) => {
+  const { userId } = req.params;
+  if (mobileTokenStore.has(userId)) {
+    mobileTokenStore.delete(userId);
+    res.json({ success: true, message: `User ${userId} unregistered` });
+  } else {
+    res.status(404).json({ success: false, error: 'User not found' });
+  }
+});
+
+/**
+ * Initiate a call to a user
+ * POST /call
+ */
+app.post('/call', async (req, res) => {
+  const { callerId, calleeId, callerName } = req.body;
+
+  if (!callerId || !calleeId) {
+    return res.status(400).json({ success: false, error: 'Missing callerId or calleeId' });
+  }
+
+  const fcmToken = mobileTokenStore.get(calleeId);
+  if (!fcmToken) {
+    return res.status(404).json({ success: false, error: 'User not online/registered' });
+  }
+
+  const callId = `call_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+  const message = {
+    token: fcmToken,
+    data: {
+      type: 'INCOMING_CALL',
+      callId: callId,
+      callerId: callerId,
+      callerName: callerName || callerId,
+      timestamp: Date.now().toString()
+    },
+    android: {
+      priority: 'high',
+      directBootOk: true
+    }
+  };
+
+  console.log(`[Mobile] Sending call: ${callerId} → ${calleeId} (callId: ${callId})`);
+
+  try {
+    if (!callApp) throw new Error("Call App Firebase not initialized");
+    const response = await callApp.messaging().send(message);
+    console.log(`[Mobile] Call notification sent: ${response}`);
+    res.json({ success: true, callId, message: 'Call sent' });
+  } catch (error) {
+    console.error('[Mobile] FCM Error:', error.message);
+    if (error.code === 'messaging/invalid-registration-token' ||
+      error.code === 'messaging/registration-token-not-registered') {
+      mobileTokenStore.delete(calleeId);
+    }
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

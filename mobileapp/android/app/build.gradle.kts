@@ -1,0 +1,83 @@
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("com.google.gms.google-services")
+}
+
+android {
+    namespace = "com.fcmcall.app"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.fcmcall.app"
+        minSdk = 24
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0.0"
+    }
+
+    // Signing configuration for release builds
+    signingConfigs {
+        create("release") {
+            // IMPORTANT: Replace these with your actual keystore values
+            // For security, use environment variables or gradle.properties in production
+            storeFile = file("keystore/release.keystore")
+            storePassword = "fcmcall123"  // Change this!
+            keyAlias = "fcmcall"
+            keyPassword = "fcmcall123"    // Change this!
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            signingConfig = signingConfigs.getByName("release")
+        }
+        debug {
+            isMinifyEnabled = false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    buildFeatures {
+        viewBinding = true
+    }
+}
+
+dependencies {
+    // AndroidX Core
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.activity:activity-ktx:1.8.2")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    
+    // Material Design
+    implementation("com.google.android.material:material:1.11.0")
+    
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:32.7.1"))
+    implementation("com.google.firebase:firebase-messaging-ktx")
+    
+    // Networking
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    
+    // Coroutines for async operations
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    
+    // Lifecycle
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+}

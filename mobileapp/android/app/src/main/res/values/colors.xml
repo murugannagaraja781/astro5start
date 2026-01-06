@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary colors -->
+    <color name="primary">#4CAF50</color>
+    <color name="primary_dark">#388E3C</color>
+    <color name="primary_light">#C8E6C9</color>
+    
+    <!-- Accent color -->
+    <color name="accent">#2196F3</color>
+    
+    <!-- Background colors -->
+    <color name="background">#FFFFFF</color>
+    <color name="surface">#F5F5F5</color>
+    
+    <!-- Text colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_tertiary">#9E9E9E</color>
+    
+    <!-- Incoming call screen colors (dark theme) -->
+    <color name="call_background">#1A1A2E</color>
+    <color name="call_text_primary">#FFFFFF</color>
+    <color name="call_text_secondary">#B0B0B0</color>
+    <color name="call_text_tertiary">#707070</color>
+    
+    <!-- Call action buttons -->
+    <color name="call_accept">#4CAF50</color>
+    <color name="call_reject">#F44336</color>
+    
+    <!-- Avatar placeholder -->
+    <color name="avatar_background">#3D3D5C</color>
+</resources>
