@@ -26,6 +26,25 @@
     },
     {
       "client_info": {
+        "mobilesdk_app_id": "1:815804010194:android:206dc5f947323a7325a70b",
+        "android_client_info": {
+          "package_name": "com.astro5star.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCktKgjk9PwpLkk2xTC5fKA3dmm05mh0uo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:815804010194:android:089b5261abc61d2725a70b",
         "android_client_info": {
           "package_name": "com.astro5starapp"
@@ -47,7 +66,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:815804010194:android:9e1003c3c263dfa025a70b",
         "android_client_info": {
-          "package_name": "com.astro5star.app"
+          "package_name": "com.fcmcall.app"
         }
       },
       "oauth_client": [],

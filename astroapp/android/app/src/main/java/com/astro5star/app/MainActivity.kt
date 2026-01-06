@@ -20,13 +20,13 @@ import kotlinx.coroutines.withContext
 
 /**
  * MainActivity - Entry point for user registration
- * 
+ *
  * PURPOSE:
  * - Allow user to enter their unique userId
  * - Request necessary permissions (POST_NOTIFICATIONS on Android 13+)
  * - Get FCM token from Firebase
  * - Register userId + fcmToken with backend server
- * 
+ *
  * WHY THIS FLOW MATTERS:
  * The backend needs to know which FCM token belongs to which user.
  * When someone calls userId "john", the server looks up john's FCM token
@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "MainActivity"
         // HTTPS server with domain
-        const val SERVER_URL = "https://astroluna.in"
+        const val SERVER_URL = "https://astro5star.com"
     }
 
     private lateinit var userIdInput: EditText
@@ -138,7 +138,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        
+
         // Also request Overlay permission for full-screen calls
         checkAndRequestOverlayPermission()
     }
@@ -155,7 +155,7 @@ class MainActivity : AppCompatActivity() {
                     "Please allow 'Display over other apps' to show full screen calls",
                     Toast.LENGTH_LONG
                 ).show()
-                
+
                 val intent = android.content.Intent(
                     android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     android.net.Uri.parse("package:$packageName")
@@ -178,7 +178,7 @@ class MainActivity : AppCompatActivity() {
 
             val token = task.result
             Log.d(TAG, "FCM Token: $token")
-            
+
             val displayToken = if (token.length > 50) {
                 "${token.substring(0, 20)}...${token.substring(token.length - 15)}"
             } else {
@@ -207,11 +207,11 @@ class MainActivity : AppCompatActivity() {
                 val result = withContext(Dispatchers.IO) {
                     ApiService.register(SERVER_URL, userId, token)
                 }
-                
+
                 if (result.success) {
                     updateStatus("✓ Registered successfully as '$userId'")
                     Log.d(TAG, "Registration successful for $userId")
-                    
+
                     getSharedPreferences("fcm_call_prefs", MODE_PRIVATE)
                         .edit()
                         .putString("user_id", userId)
@@ -235,7 +235,7 @@ class MainActivity : AppCompatActivity() {
     private fun initiateCall(calleeId: String) {
         val callerId = getSharedPreferences("fcm_call_prefs", MODE_PRIVATE)
             .getString("user_id", null)
-        
+
         if (callerId == null) {
             Toast.makeText(this, "Please register first!", Toast.LENGTH_SHORT).show()
             return
@@ -254,7 +254,7 @@ class MainActivity : AppCompatActivity() {
                 val result = withContext(Dispatchers.IO) {
                     ApiService.initiateCall(SERVER_URL, callerId, calleeId)
                 }
-                
+
                 if (result.success) {
                     updateCallStatus("✓ Call sent to '$calleeId'")
                     Log.d(TAG, "Call initiated to $calleeId")

@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -19,12 +22,15 @@ android {
     // Signing configuration for release builds
     signingConfigs {
         create("release") {
-            // IMPORTANT: Replace these with your actual keystore values
-            // For security, use environment variables or gradle.properties in production
-            storeFile = file("keystore/release.keystore")
-            storePassword = "fcmcall123"  // Change this!
-            keyAlias = "fcmcall"
-            keyPassword = "fcmcall123"    // Change this!
+            val keystorePropertiesFile = rootProject.file("keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                val props = Properties()
+                props.load(FileInputStream(keystorePropertiesFile))
+                storeFile = file(props["storeFile"] as String)
+                storePassword = props["storePassword"] as String
+                keyAlias = props["keyAlias"] as String
+                keyPassword = props["keyPassword"] as String
+            }
         }
     }
 
