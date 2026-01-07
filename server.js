@@ -50,7 +50,13 @@ let mobileTokenStore = new Map();
 let callApp = null;
 
 try {
-  const firebaseServiceAccount = require('./firebase-service-account.json');
+  const serviceAccountPath = path.join(__dirname, 'firebase-service-account.json');
+
+  if (!fs.existsSync(serviceAccountPath)) {
+    throw new Error(`Service account file not found at: ${serviceAccountPath}`);
+  }
+
+  const firebaseServiceAccount = require(serviceAccountPath);
   callApp = admin.initializeApp({
     credential: admin.credential.cert(firebaseServiceAccount)
   }, 'callApp'); // Secondary App Name
