@@ -3162,6 +3162,15 @@ app.post('/call', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Missing callerId or calleeId' });
   }
 
+  // Check if Firebase is initialized
+  if (!callApp) {
+    console.error('[Mobile] Call App Firebase NOT initialized. Check firebase-service-account.json');
+    return res.status(503).json({
+      success: false,
+      error: 'Push notification service unavailable (Server Config Error)'
+    });
+  }
+
   const fcmToken = mobileTokenStore.get(calleeId);
   if (!fcmToken) {
     return res.status(404).json({ success: false, error: 'User not online/registered' });
@@ -3187,7 +3196,6 @@ app.post('/call', async (req, res) => {
   console.log(`[Mobile] Sending call: ${callerId} → ${calleeId} (callId: ${callId})`);
 
   try {
-    if (!callApp) throw new Error("Call App Firebase not initialized");
     const response = await callApp.messaging().send(message);
     console.log(`[Mobile] Call notification sent: ${response}`);
     res.json({ success: true, callId, message: 'Call sent' });
@@ -3197,6 +3205,7 @@ app.post('/call', async (req, res) => {
       error.code === 'messaging/registration-token-not-registered') {
       mobileTokenStore.delete(calleeId);
     }
+    // Return 500 only for actual sending errors, not config errors
     res.status(500).json({ success: false, error: error.message });
   }
 });
