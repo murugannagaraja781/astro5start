@@ -3241,17 +3241,16 @@ app.post('/api/phonepe/callback', async (req, res) => {
  * Register user's FCM token
  * POST /register
  */
-app.post('/register', (req, res) => {
-  const { userId, fcmToken } = req.body;
-
-  if (!userId || typeof userId !== 'string' || !fcmToken || typeof fcmToken !== 'string') {
-    return res.status(400).json({ success: false, error: 'Invalid input' });
-  }
-
-  mobileTokenStore.set(userId, fcmToken);
-  console.log(`[Mobile] Registered: ${userId} → ${fcmToken.substring(0, 20)}...`);
-  res.json({ success: true, message: `User ${userId} registered successfully` });
-});
+// [DEPRECATED] - Use the MongoDB /register endpoint at line 524
+// app.post('/register', (req, res) => {
+//   const { userId, fcmToken } = req.body;
+//   if (!userId || typeof userId !== 'string' || !fcmToken || typeof fcmToken !== 'string') {
+//     return res.status(400).json({ success: false, error: 'Invalid input' });
+//   }
+//   mobileTokenStore.set(userId, fcmToken);
+//   console.log(`[Mobile] Registered: ${userId} → ${fcmToken.substring(0, 20)}...`);
+//   res.json({ success: true, message: `User ${userId} registered successfully` });
+// });
 
 /**
  * List all registered users (for debugging)
@@ -3291,6 +3290,7 @@ app.post('/call', async (req, res) => {
   }
 
   // Check if Firebase is initialized
+  // Check if Firebase is initialized
   if (!callApp) {
     console.error('[Mobile] Call App Firebase NOT initialized. Check firebase-service-account.json');
     return res.status(503).json({
@@ -3300,7 +3300,11 @@ app.post('/call', async (req, res) => {
     });
   }
 
-  const fcmToken = mobileTokenStore.get(calleeId);
+  // UPDATED: Look up from MongoDB (User collection)
+  // const fcmToken = mobileTokenStore.get(calleeId);
+  const user = await User.findOne({ userId: calleeId });
+  const fcmToken = user ? user.fcmToken : null;
+
   if (!fcmToken) {
     return res.status(404).json({ success: false, error: 'User not online/registered' });
   }
