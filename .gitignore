@@ -9,8 +9,7 @@ package-lock.json
 .env.*.local
 
 # Firebase Service Account (NEVER commit!)
-firebase-service-account.json
-firebase-*.json
+
 
 # Logs
 logs/
@@ -50,5 +49,4 @@ astrofivestar-mobile-native/ios/Pods/
 *.ipa
 
 # GitHub Action Keys
-github_action_key
-github_action_key.pub
+

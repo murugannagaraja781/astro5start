@@ -36,6 +36,17 @@ echo "[3/6] Setting permissions..."
 sudo chown -R $USER:$USER $APP_DIR
 chmod -R 755 $APP_DIR
 
+# Step 3.5: Check for critical configuration files
+if [ ! -f "firebase-service-account.json" ]; then
+    echo "=========================================="
+    echo "⚠️  CRITICAL WARNING: firebase-service-account.json MISSING"
+    echo "------------------------------------------"
+    echo "This file is ignored by Git for security."
+    echo "You MUST upload it manually to: $APP_DIR"
+    echo "Example: scp firebase-service-account.json user@server:$APP_DIR"
+    echo "=========================================="
+fi
+
 # Step 4: Install dependencies
 echo "[4/6] Installing dependencies..."
 npm install --production
