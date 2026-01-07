@@ -1051,7 +1051,14 @@ io.on('connection', (socket) => {
       const { name, phone, existingUserId } = data || {};
       const userId = data.userId || socketToUser.get(socket.id);
 
-      User.findOne({ phone }).then(user => {
+      const query = phone ? { phone } : (userId ? { userId } : null);
+
+      if (!query) {
+        if (typeof cb === 'function') cb({ ok: false, error: 'No identifier provided' });
+        return;
+      }
+
+      User.findOne(query).then(user => {
         if (!user) {
           if (typeof cb === 'function') cb({ ok: false, error: 'User not found' });
           return;
