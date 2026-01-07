@@ -521,6 +521,29 @@ app.get('/api/astrology/astrologers', async (req, res) => {
   }
 });
 
+// --- Register Device (FCM Token) ---
+app.post('/register', async (req, res) => {
+  try {
+    const { userId, fcmToken } = req.body;
+    if (!userId || !fcmToken) {
+      return res.status(400).json({ success: false, error: 'Missing fields' });
+    }
+
+    const user = await User.findOne({ userId });
+    if (user) {
+      user.fcmToken = fcmToken;
+      await user.save();
+      console.log(`[FCM] Device registered for ${user.name} (${userId})`);
+      res.json({ success: true, message: 'Device registered' });
+    } else {
+      res.status(404).json({ success: false, error: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Registration Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Daily Horoscope API
 app.get('/api/daily-horoscope', (req, res) => {
   const content = generateTamilHoroscope(); // Check and update if new day
