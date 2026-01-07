@@ -105,5 +105,5 @@ dependencies {
     implementation("io.getstream:stream-webrtc-android:1.2.0")
 
     // PhonePe Payment Gateway
-    // implementation("phonepe.intentsdk.android:PeCore-sdk:1.6.8")
+    implementation("phonepe.intentsdk.android.release:IntentSDK:5.3.0")
 }

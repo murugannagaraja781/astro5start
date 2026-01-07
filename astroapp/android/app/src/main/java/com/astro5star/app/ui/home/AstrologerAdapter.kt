@@ -91,7 +91,12 @@ class AstrologerAdapter(
      * Update the list of astrologers
      */
     fun updateList(newList: List<Astrologer>) {
-        astrologers = newList
+        // Sort: Online first (true > false), then by Name or Experience
+        astrologers = newList.sortedWith(
+            compareByDescending<Astrologer> {
+                it.isOnline || it.isChatOnline || it.isAudioOnline || it.isVideoOnline
+            }.thenByDescending { it.experience }
+        )
         notifyDataSetChanged()
     }
 
