@@ -1131,7 +1131,7 @@ io.on('connection', (socket) => {
 
   // --- Toggle Status (Astrologer Only) ---
   socket.on('toggle-status', async (data) => {
-    const userId = socketToUser.get(socket.id);
+    const userId = data.userId || socketToUser.get(socket.id);
     if (!userId) return;
 
     try {
@@ -1150,6 +1150,29 @@ io.on('connection', (socket) => {
         await user.save();
         broadcastAstroUpdate();
         console.log(`[Presence] ${user.name} toggled ${data.type}: ${data.online}`);
+      }
+    } catch (e) { console.error(e); }
+  });
+
+  // --- Mobile App Specific Status Update ---
+  socket.on('update-status', async (data) => {
+    const userId = data.userId || socketToUser.get(socket.id);
+    if (!userId) return;
+
+    try {
+      const isOnline = !!data.isOnline;
+      // Mobile toggle sets ALL statuses
+      let user = await User.findOne({ userId });
+      if (user) {
+        user.isChatOnline = isOnline;
+        user.isAudioOnline = isOnline;
+        user.isVideoOnline = isOnline;
+        user.isOnline = isOnline;
+        user.isAvailable = isOnline;
+        user.lastSeen = new Date();
+        await user.save();
+        broadcastAstroUpdate();
+        console.log(`[Presence Mobile] ${user.name} updated status: ${isOnline}`);
       }
     } catch (e) { console.error(e); }
   });
