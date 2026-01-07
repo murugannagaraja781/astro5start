@@ -1,5 +1,5 @@
 // server.js
-require('dotenv').config(); // Load environment variables from .env filejj
+require('dotenv').config(); // Load environment variables from .env file
 const https = require('https');
 const express = require('express');
 const http = require('http');
