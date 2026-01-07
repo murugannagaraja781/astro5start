@@ -10,6 +10,7 @@ import org.json.JSONObject
 object SocketManager {
     private const val TAG = "SocketManager"
     private var socket: Socket? = null
+    private var currentUserId: String? = null
 
     fun init() {
         if (socket != null) return
@@ -21,6 +22,10 @@ object SocketManager {
 
             socket?.on(Socket.EVENT_CONNECT) {
                 Log.d(TAG, "Socket connected: ${socket?.id()}")
+                // Auto-register on connect/reconnect
+                if (currentUserId != null) {
+                    registerUser(currentUserId!!)
+                }
             }
 
             socket?.on(Socket.EVENT_DISCONNECT) {
@@ -34,9 +39,11 @@ object SocketManager {
     }
 
     fun registerUser(userId: String) {
+        currentUserId = userId // Store for reconnection
         val data = JSONObject()
         data.put("userId", userId)
         socket?.emit("register", data)
+        Log.d(TAG, "User registered: $userId")
     }
 
     fun getSocket(): Socket? {
