@@ -1,32 +1,13 @@
 {
   "project_info": {
-    "project_number": "815804010194",
-    "project_id": "astro5star-9d4ee",
-    "storage_bucket": "astro5star-9d4ee.firebasestorage.app"
+    "project_number": "210523768022",
+    "project_id": "astro5star-d487c",
+    "storage_bucket": "astro5star-d487c.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:815804010194:android:2514b82242184a5125a70b",
-        "android_client_info": {
-          "package_name": "com.astro5star"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCktKgjk9PwpLkk2xTC5fKA3dmm05mh0uo"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:815804010194:android:206dc5f947323a7325a70b",
+        "mobilesdk_app_id": "1:210523768022:android:b4de7ccacb56fa3d32b577",
         "android_client_info": {
           "package_name": "com.astro5star.app"
         }
@@ -34,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCktKgjk9PwpLkk2xTC5fKA3dmm05mh0uo"
+          "current_key": "AIzaSyDGCg6OQnWyERiPQVSTrFDkXYlgCyl2BJ8"
         }
       ],
       "services": {
@@ -45,53 +26,15 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:815804010194:android:089b5261abc61d2725a70b",
+        "mobilesdk_app_id": "1:210523768022:android:3ef7a7a4fbe7f36a32b577",
         "android_client_info": {
-          "package_name": "com.astro5starapp"
+          "package_name": "com1.astro5star.com"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCktKgjk9PwpLkk2xTC5fKA3dmm05mh0uo"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:815804010194:android:9e1003c3c263dfa025a70b",
-        "android_client_info": {
-          "package_name": "com.fcmcall.app"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCktKgjk9PwpLkk2xTC5fKA3dmm05mh0uo"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:815804010194:android:f2ea54cf8b24c54025a70b",
-        "android_client_info": {
-          "package_name": "com.mobilenativeapp"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCktKgjk9PwpLkk2xTC5fKA3dmm05mh0uo"
+          "current_key": "AIzaSyDGCg6OQnWyERiPQVSTrFDkXYlgCyl2BJ8"
         }
       ],
       "services": {
