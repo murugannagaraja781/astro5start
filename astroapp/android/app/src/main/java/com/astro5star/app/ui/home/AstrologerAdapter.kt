@@ -81,7 +81,10 @@ class AstrologerAdapter(
     }
 
     private fun updateButtonState(button: Button, isActive: Boolean) {
-        button.isEnabled = isActive
+        // ALWAYS ENABLE button regardless of status to allow Offline calls (handled by FCM)
+        button.isEnabled = true
+        // Optional: Visual cue for Offline (e.g., lower opacity or different text color),
+        // but user asked for "Offline call poganum", so we keep it clickable.
         button.alpha = if (isActive) 1.0f else 0.5f
     }
 

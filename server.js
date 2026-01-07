@@ -490,6 +490,37 @@ generateTamilHoroscope();
 
 // --- Endpoints ---
 
+// Astrologer List API (Used by Mobile App)
+app.get('/api/astrology/astrologers', async (req, res) => {
+  try {
+    const astrologers = await User.find({ role: 'astrologer' })
+      .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings')
+      .lean();
+
+    // Ensure lists are sorted by Online first (though App also sorts)
+    // and map to ensure compatibility
+    const formatted = astrologers.map(a => ({
+      userId: a.userId,
+      name: a.name,
+      skills: a.skills || [],
+      price: a.price || 15,
+      isOnline: a.isOnline || false,
+      isChatOnline: a.isChatOnline || false,
+      isAudioOnline: a.isAudioOnline || false,
+      isVideoOnline: a.isVideoOnline || false,
+      experience: a.experience || 0,
+      isVerified: a.isVerified || false,
+      image: a.image || '',
+      walletBalance: a.walletBalance // Optional
+    }));
+
+    res.json({ ok: true, astrologers: formatted });
+  } catch (err) {
+    console.error('Error fetching astrologers:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Daily Horoscope API
 app.get('/api/daily-horoscope', (req, res) => {
   const content = generateTamilHoroscope(); // Check and update if new day

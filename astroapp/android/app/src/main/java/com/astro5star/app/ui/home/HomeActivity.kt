@@ -232,6 +232,7 @@ class HomeActivity : AppCompatActivity() {
                 }
 
                 runOnUiThread {
+                    progressBar.visibility = View.GONE
                     adapter.updateList(list)
                 }
             } catch (e: Exception) {
