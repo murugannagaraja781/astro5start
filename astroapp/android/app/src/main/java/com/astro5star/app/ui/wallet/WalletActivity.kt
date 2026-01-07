@@ -41,37 +41,10 @@ class WalletActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            if (user == null || user.userId == null) {
-                Toast.makeText(this, "Please login first", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            lifecycleScope.launch {
-                try {
-                    val request = PaymentInitiateRequest(
-                        userId = user.userId,
-                        amount = amount,
-                        isApp = true
-                    )
-
-                    val response = ApiClient.api.initiatePayment(request)
-
-                    if (response.isSuccessful && response.body()?.ok == true) {
-                        val paymentUrl = response.body()?.paymentUrl
-                        if (!paymentUrl.isNullOrEmpty()) {
-                            // Open in Browser/Custom Tab
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(paymentUrl))
-                            startActivity(intent)
-                        } else {
-                            Toast.makeText(this@WalletActivity, "No payment URL received", Toast.LENGTH_SHORT).show()
-                        }
-                    } else {
-                        Toast.makeText(this@WalletActivity, "Failed: ${response.body()?.error}", Toast.LENGTH_SHORT).show()
-                    }
-                } catch (e: Exception) {
-                    Toast.makeText(this@WalletActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
+            // Launch Native Payment SDK
+            val intent = Intent(this, com.astro5star.app.ui.payment.PaymentActivity::class.java)
+            intent.putExtra("amount", amount.toDouble())
+            startActivity(intent)
         }
     }
 

@@ -66,11 +66,22 @@ class MainActivity : AppCompatActivity() {
     private fun proceedToNextScreen() {
         val session = tokenManager.getUserSession()
         if (session != null) {
-            Log.d(TAG, "User logged in, going to Home")
-            startActivity(Intent(this, HomeActivity::class.java))
+            Log.d(TAG, "User logged in: ${session.role}")
+            when (session.role) {
+                "astrologer" -> {
+                    startActivity(Intent(this, com.astro5star.app.ui.astro.AstrologerDashboardActivity::class.java))
+                }
+                "admin" -> {
+                    // Placeholder for now, typically native or webview
+                    startActivity(Intent(this, com.astro5star.app.ui.guest.GuestDashboardActivity::class.java))
+                }
+                else -> { // "user" or default
+                    startActivity(Intent(this, HomeActivity::class.java))
+                }
+            }
         } else {
-            Log.d(TAG, "User not logged in, going to Login")
-            startActivity(Intent(this, LoginActivity::class.java))
+            Log.d(TAG, "User not logged in, going to Guest Dashboard")
+            startActivity(Intent(this, com.astro5star.app.ui.guest.GuestDashboardActivity::class.java))
         }
         finish()
     }

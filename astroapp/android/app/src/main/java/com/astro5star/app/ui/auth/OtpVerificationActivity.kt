@@ -45,7 +45,12 @@ class OtpVerificationActivity : AppCompatActivity() {
                     Toast.makeText(this@OtpVerificationActivity, "Welcome ${user.name}", Toast.LENGTH_SHORT).show()
 
                     // Navigate to Home Dashboard
-                    startActivity(Intent(this@OtpVerificationActivity, HomeActivity::class.java))
+                    // Navigate based on Role
+                    val intent = when (user.role) {
+                        "astrologer" -> Intent(this@OtpVerificationActivity, com.astro5star.app.ui.astro.AstrologerDashboardActivity::class.java)
+                        else -> Intent(this@OtpVerificationActivity, HomeActivity::class.java)
+                    }
+                    startActivity(intent)
                     finishAffinity()
                 } else {
                     Toast.makeText(this@OtpVerificationActivity, "Invalid OTP", Toast.LENGTH_SHORT).show()

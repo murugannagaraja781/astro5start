@@ -103,4 +103,7 @@ dependencies {
     // WebRTC
     // implementation("com.google.webrtc:google-webrtc:1.0.32006")
     implementation("io.getstream:stream-webrtc-android:1.2.0")
+
+    // PhonePe Payment Gateway
+    // implementation("phonepe.intentsdk.android:PeCore-sdk:1.6.8")
 }

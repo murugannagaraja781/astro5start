@@ -82,6 +82,16 @@ class HomeActivity : AppCompatActivity() {
             startActivity(Intent(this, WalletActivity::class.java))
         }
 
+        // Logout
+        findViewById<View>(R.id.btnLogout).setOnClickListener {
+            tokenManager.clearSession()
+            SocketManager.disconnect()
+            val intent = Intent(this, com.astro5star.app.ui.guest.GuestDashboardActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+            finish()
+        }
+
         // Load data
         loadWalletBalance()
         loadDailyHoroscope()
