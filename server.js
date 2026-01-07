@@ -1331,7 +1331,7 @@ io.on('connection', (socket) => {
       // Send FCM Push Notification ONLY if socket not connected (user in background/killed)
       if (!socketSent && toUser && toUser.fcmToken) {
         const fcmData = {
-          type: 'incoming_call',
+          type: 'INCOMING_CALL',
           sessionId: sessionId,
           callType: type,
           callerName: fromUser?.name || 'Client',
