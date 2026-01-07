@@ -1250,9 +1250,10 @@ io.on('connection', (socket) => {
       const isRecentlyActive = toUser.lastSeen && (Date.now() - new Date(toUser.lastSeen).getTime() < OFFLINE_GRACE_PERIOD);
       const isAvailable = toUser.isAvailable || (toUser.isOnline && isRecentlyActive);
 
-      if (!isAvailable) {
-        return cb({ ok: false, error: 'Astrologer is offline' });
-      }
+      // ALLOW CALL even if offline -> Logic will fall back to FCM below
+      // if (!isAvailable) {
+      //   return cb({ ok: false, error: 'Astrologer is offline' });
+      // }
 
       if (userActiveSession.has(toUserId)) {
         return cb({ ok: false, error: 'User busy' });
