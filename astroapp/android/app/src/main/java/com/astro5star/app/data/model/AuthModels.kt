@@ -17,7 +17,7 @@ data class AuthResponse(
     val name: String?,
     val role: String?,
     val phone: String?,
-    val walletBalance: Number?,
+    val walletBalance: Double? = 0.0,
     val image: String?,
     val error: String?
 )

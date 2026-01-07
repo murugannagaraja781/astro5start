@@ -7,10 +7,10 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.astro5star.app.MainActivity
 import com.astro5star.app.R
 import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.data.repository.AuthRepository
+import com.astro5star.app.ui.home.HomeActivity
 import kotlinx.coroutines.launch
 
 class OtpVerificationActivity : AppCompatActivity() {
@@ -44,8 +44,8 @@ class OtpVerificationActivity : AppCompatActivity() {
 
                     Toast.makeText(this@OtpVerificationActivity, "Welcome ${user.name}", Toast.LENGTH_SHORT).show()
 
-                    // Navigate to Main Dashboard (Currently MainActivity, will replace later)
-                    startActivity(Intent(this@OtpVerificationActivity, MainActivity::class.java))
+                    // Navigate to Home Dashboard
+                    startActivity(Intent(this@OtpVerificationActivity, HomeActivity::class.java))
                     finishAffinity()
                 } else {
                     Toast.makeText(this@OtpVerificationActivity, "Invalid OTP", Toast.LENGTH_SHORT).show()

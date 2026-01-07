@@ -41,4 +41,10 @@ class TokenManager(context: Context) {
     fun isLoggedIn(): Boolean {
         return getUserSession() != null
     }
+
+    fun updateWalletBalance(balance: Double) {
+        val session = getUserSession() ?: return
+        val updated = session.copy(walletBalance = balance)
+        saveUserSession(updated)
+    }
 }

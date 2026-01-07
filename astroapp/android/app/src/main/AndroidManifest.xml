@@ -70,6 +70,7 @@
         <activity android:name=".ui.dashboard.ClientDashboardActivity" />
         <activity android:name=".ui.auth.LoginActivity" />
         <activity android:name=".ui.auth.OtpVerificationActivity" />
+        <activity android:name=".ui.home.HomeActivity" />
         <activity android:name=".ui.wallet.WalletActivity" />
         <activity android:name=".ui.chat.ChatActivity" android:windowSoftInputMode="adjustResize"/>
         <activity android:name=".ui.call.VideoCallActivity" android:screenOrientation="portrait"/>
