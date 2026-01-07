@@ -32,7 +32,12 @@ class ChatActivity : AppCompatActivity() {
 
         toUserId = intent.getStringExtra("toUserId")
         // In real app, sessionId comes from request-session API or intent
-        sessionId = intent.getStringExtra("sessionId") ?: "demo_session"
+        sessionId = intent.getStringExtra("sessionId")
+        if (sessionId == null) {
+            Toast.makeText(this, "Invalid Session", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
 
         val recyclerChat = findViewById<RecyclerView>(R.id.recyclerChat)
         val inputMessage = findViewById<EditText>(R.id.inputMessage)

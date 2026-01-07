@@ -40,6 +40,11 @@
     <!-- Optional: Re-register after reboot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- WebRTC Permissions -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -73,7 +78,7 @@
         <activity android:name=".ui.home.HomeActivity" />
         <activity android:name=".ui.wallet.WalletActivity" />
         <activity android:name=".ui.chat.ChatActivity" android:windowSoftInputMode="adjustResize"/>
-        <activity android:name=".ui.call.VideoCallActivity" android:screenOrientation="portrait"/>
+        <activity android:name=".ui.call.CallActivity" android:screenOrientation="portrait"/>
 
         <activity
             android:name=".ui.wallet.PaymentStatusActivity"

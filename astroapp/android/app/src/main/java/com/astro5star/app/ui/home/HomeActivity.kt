@@ -207,7 +207,7 @@ class HomeActivity : AppCompatActivity() {
         val session = tokenManager.getUserSession()
 
         if (session != null) {
-            SocketManager.registerUser(session.userId)
+            SocketManager.registerUser(session.userId ?: "")
         }
 
         // Listen for astrologer list updates
@@ -262,53 +262,89 @@ class HomeActivity : AppCompatActivity() {
 
         // Request astrologer list
         socket?.emit("get-astrologers")
+
+        // Listen for session acceptance
+        SocketManager.onSessionAnswered { data ->
+            runOnUiThread {
+                activeDialog?.dismiss()
+                val accepted = data.optBoolean("accepted", false)
+                if (accepted) {
+                    val sessionId = data.optString("sessionId")
+                    val type = data.optString("type")
+                    val partnerId = data.optString("partnerId")
+                    val partnerName = data.optString("partnerName")
+
+                    if (type == "chat") {
+                        val intent = Intent(this, ChatActivity::class.java).apply {
+                            putExtra("sessionId", sessionId)
+                            putExtra("toUserId", partnerId)
+                            putExtra("toUserName", partnerName)
+                        }
+                        startActivity(intent)
+                    } else {
+                        val intent = Intent(this, com.astro5star.app.ui.call.CallActivity::class.java).apply {
+                            putExtra("sessionId", sessionId)
+                            putExtra("partnerId", partnerId)
+                            putExtra("isInitiator", true)
+                        }
+                        startActivity(intent)
+                    }
+                } else {
+                    Toast.makeText(this, "Request rejected/missed", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 
+    private var activeDialog: androidx.appcompat.app.AlertDialog? = null
+
     private fun startChat(astro: Astrologer) {
-        val intent = Intent(this, ChatActivity::class.java).apply {
-            putExtra("toUserId", astro.userId)
-            putExtra("toUserName", astro.name)
-        }
-        startActivity(intent)
+        initiateSession(astro, "chat")
     }
 
     private fun startCall(astro: Astrologer, type: String) {
+        initiateSession(astro, type)
+    }
+
+    private fun initiateSession(astro: Astrologer, type: String) {
         val session = tokenManager.getUserSession()
         if (session == null) {
             Toast.makeText(this, "Please login first", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // Check wallet balance
         if ((session.walletBalance ?: 0.0) < astro.price) {
             Toast.makeText(this, "Insufficient wallet balance. Please recharge.", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, WalletActivity::class.java))
             return
         }
 
-        // Request session via Socket
-        val socket = SocketManager.getSocket()
-        val payload = JSONObject().apply {
-            put("toUserId", astro.userId)
-            put("type", type)
-        }
+        showWaitingDialog(astro, type)
 
-        socket?.emit("request-session", payload) { ack ->
+        SocketManager.requestSession(astro.userId, type) { response ->
             runOnUiThread {
-                try {
-                    val response = ack[0] as? JSONObject
-                    if (response?.optBoolean("ok") == true) {
-                        Toast.makeText(this, "Calling ${astro.name}...", Toast.LENGTH_SHORT).show()
-                        // The call UI will be handled by the socket event handlers
-                    } else {
-                        val error = response?.optString("error") ?: "Call failed"
-                        Toast.makeText(this, error, Toast.LENGTH_SHORT).show()
-                    }
-                } catch (e: Exception) {
-                    Toast.makeText(this, "Call failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                if (response?.optBoolean("ok") == true) {
+                    // Session Request Sent Successfully
+                    // Now we wait for 'session-answered' event
+                } else {
+                    activeDialog?.dismiss()
+                    val error = response?.optString("error") ?: "Failed to connect"
+                    Toast.makeText(this, error, Toast.LENGTH_SHORT).show()
                 }
             }
         }
+    }
+
+    private fun showWaitingDialog(astro: Astrologer, type: String) {
+        val builder = androidx.appcompat.app.AlertDialog.Builder(this)
+        builder.setTitle("Connecting...")
+        builder.setMessage("Waiting for ${astro.name} to accept your $type request...")
+        builder.setCancelable(false)
+        builder.setNegativeButton("Cancel") { dialog, _ ->
+            // TODO: Emit cancel-request if needed
+            dialog.dismiss()
+        }
+        activeDialog = builder.show()
     }
 
     override fun onResume() {

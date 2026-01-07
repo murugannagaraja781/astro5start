@@ -5,7 +5,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
-import com.astro5star.app.MainActivity // Access SERVER_URL
+import com.astro5star.app.utils.Constants
 
 object ApiClient {
 
@@ -22,7 +22,7 @@ object ApiClient {
 
     val api: ApiInterface by lazy {
         Retrofit.Builder()
-            .baseUrl(MainActivity.SERVER_URL + "/") // Try to use the constant or hardcode if circular dependency
+            .baseUrl(Constants.SERVER_URL + "/")
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

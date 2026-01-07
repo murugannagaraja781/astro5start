@@ -1,16 +1,20 @@
 package com.astro5star.app.data.model
 
+import androidx.annotation.Keep
 import com.google.gson.annotations.SerializedName
 
+@Keep
 data class SendOtpRequest(
     val phone: String
 )
 
+@Keep
 data class VerifyOtpRequest(
     val phone: String,
     val otp: String
 )
 
+@Keep
 data class AuthResponse(
     val ok: Boolean,
     val userId: String?,

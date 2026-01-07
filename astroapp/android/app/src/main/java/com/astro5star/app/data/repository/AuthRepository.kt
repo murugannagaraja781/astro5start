@@ -11,10 +11,15 @@ class AuthRepository {
     suspend fun sendOtp(phone: String): Result<String> {
         return try {
             val response = ApiClient.api.sendOtp(SendOtpRequest(phone))
-            if (response.isSuccessful && response.body()?.get("ok") == true) {
+            if (response.isSuccessful && response.body()?.get("ok")?.asBoolean == true) {
                 Result.success("OTP Sent")
             } else {
-                Result.failure(Exception(response.body()?.get("error")?.toString() ?: "Failed to send OTP"))
+                val errorMsg = if (response.body() != null && response.body()!!.has("error")) {
+                    response.body()!!.get("error").asString
+                } else {
+                    "Failed to send OTP"
+                }
+                Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
             Result.failure(e)

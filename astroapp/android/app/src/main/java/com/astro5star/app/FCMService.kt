@@ -10,6 +10,8 @@ import android.os.Build
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.astro5star.app.data.api.ApiService
+import com.astro5star.app.utils.Constants
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineScope
@@ -19,20 +21,20 @@ import kotlinx.coroutines.launch
 
 /**
  * FCMService - The heart of incoming call handling
- * 
+ *
  * THIS IS THE MOST CRITICAL COMPONENT FOR MAKING CALLS WORK WHEN APP IS KILLED.
- * 
+ *
  * HOW IT WORKS:
  * 1. Firebase Cloud Messaging has special system-level permission on Android
  * 2. When a high-priority data message arrives, Android wakes up this service
  * 3. onMessageReceived() is called even if app was killed
  * 4. We explicitly start IncomingCallActivity to show the full-screen call UI
- * 
+ *
  * KEY REQUIREMENTS:
  * - FCM message must be DATA-ONLY (no 'notification' key in payload)
  * - Message must have priority: 'high' (not 'normal')
  * - This service must be declared in AndroidManifest with MESSAGING_EVENT filter
- * 
+ *
  * COMMON MISTAKES THAT BREAK THIS:
  * 1. Including 'notification' key in FCM payload - Android handles it differently
  * 2. Using normal priority - message gets batched and delayed
@@ -48,29 +50,6 @@ class FCMService : FirebaseMessagingService() {
         private const val CALL_NOTIFICATION_ID = 9999
     }
 
-    // ... (rest of class)
-
-    // In createNotificationChannel:
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Notifications for incoming calls"
-                enableVibration(true)
-                enableLights(true)
-                
-                // CRITICAL: Set sound! A silent channel won't be high priority enough for fullScreenIntent
-                val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-                setSound(soundUri, AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build())
-                
-                setShowBadge(true)
-                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
-            }
-
     // Coroutine scope for async operations within service lifecycle
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -81,27 +60,27 @@ class FCMService : FirebaseMessagingService() {
 
     /**
      * Called when FCM token is refreshed
-     * 
+     *
      * WHEN THIS HAPPENS:
      * - App is installed for the first time
      * - App data is cleared
      * - App is restored on a new device
      * - Firebase SDK decides token needs refresh (security)
-     * 
+     *
      * WE MUST re-register with server because old token is now invalid.
      */
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d(TAG, "New FCM token: $token")
-        
+
         // Get stored userId and re-register
         val prefs = getSharedPreferences("fcm_call_prefs", MODE_PRIVATE)
         val userId = prefs.getString("user_id", null)
-        
+
         if (userId != null) {
             serviceScope.launch {
                 try {
-                    val result = ApiService.register(MainActivity.SERVER_URL, userId, token)
+                    val result = ApiService.register(Constants.SERVER_URL, userId, token)
                     if (result.success) {
                         Log.d(TAG, "Token refresh: re-registered successfully")
                     } else {
@@ -118,11 +97,11 @@ class FCMService : FirebaseMessagingService() {
 
     /**
      * Called when a message is received from FCM
-     * 
+     *
      * THIS IS WHERE THE MAGIC HAPPENS:
      * - Even if app is killed, this method is called for data-only messages
      * - We parse the call data and start the full-screen incoming call UI
-     * 
+     *
      * IMPORTANT: This runs in a background thread, but we have ~20 seconds
      * to complete our work before Android may kill the service.
      */
@@ -142,12 +121,12 @@ class FCMService : FirebaseMessagingService() {
 
     /**
      * Handle incoming call FCM message
-     * 
+     *
      * KEY STEPS:
      * 1. Wake up the device screen (using WakeLock)
      * 2. Show HIGH-PRIORITY notification with full-screen intent
      * 3. The full-screen intent launches IncomingCallActivity
-     * 
+     *
      * WHY WE USE NOTIFICATION WITH FULL-SCREEN INTENT:
      * - On locked devices, Android 10+ REQUIRES a notification with fullScreenIntent
      * - Direct startActivity() may not work reliably on locked screens
@@ -212,12 +191,12 @@ class FCMService : FirebaseMessagingService() {
 
     /**
      * Wake up the device screen
-     * 
+     *
      * WHY THIS IS NEEDED:
      * If phone is in deep sleep with screen off, the activity might not
      * properly turn on the screen on some devices. This ensures the
      * screen turns on so user can see the incoming call.
-     * 
+     *
      * The WakeLock is released after a short timeout - we just need
      * enough time for the activity to start and take over.
      */
@@ -240,7 +219,7 @@ class FCMService : FirebaseMessagingService() {
 
     /**
      * Create notification channel for incoming calls
-     * 
+     *
      * WHY CHANNELS MATTER (Android 8+):
      * - All notifications must be assigned to a channel
      * - Channels control importance, sound, vibration at OS level
@@ -257,14 +236,14 @@ class FCMService : FirebaseMessagingService() {
                 description = "Notifications for incoming calls"
                 enableVibration(true)
                 enableLights(true)
-                
+
                 // CRITICAL: Set sound! A silent channel won't be high priority enough for fullScreenIntent
                 val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
                 setSound(soundUri, AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build())
-                
+
                 setShowBadge(true)
                 lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
             }

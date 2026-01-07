@@ -239,9 +239,9 @@ class IncomingCallActivity : AppCompatActivity() {
         // Notify Server via Socket (if connected) or just launch Activity which connects
         // Ideally we emit 'answer-session-native' here if possible
 
-        val intent = Intent(this, com.astro5star.app.ui.call.VideoCallActivity::class.java).apply {
-            putExtra("sessionId", callId) // Assuming callId is sessionId
-            putExtra("targetUserId", callerId)
+        val intent = Intent(this, com.astro5star.app.ui.call.CallActivity::class.java).apply {
+            putExtra("sessionId", callId)
+            putExtra("partnerId", callerId)
             putExtra("isInitiator", false)
         }
         startActivity(intent)

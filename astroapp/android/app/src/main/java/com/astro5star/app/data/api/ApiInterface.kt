@@ -12,7 +12,7 @@ import retrofit2.http.POST
 interface ApiInterface {
 
     @POST("api/send-otp")
-    suspend fun sendOtp(@Body request: SendOtpRequest): Response<Map<String, Any>>
+    suspend fun sendOtp(@Body request: SendOtpRequest): Response<com.google.gson.JsonObject>
 
     @POST("api/verify-otp")
     suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<AuthResponse>

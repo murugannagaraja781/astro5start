@@ -1,159 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    activity_main.xml - Registration and Call screen
--->
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background">
+    android:background="#FFFFFF">
 
-    <LinearLayout
-        android:layout_width="match_parent"
+    <ImageView
+        android:id="@+id/logo"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_centerInParent="true"
+        android:src="@mipmap/ic_launcher"
+        android:contentDescription="App Logo" />
+
+    <ProgressBar
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center_horizontal"
-        android:padding="24dp"
-        tools:context=".MainActivity">
+        android:layout_below="@id/logo"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="32dp"
+        android:indeterminateTint="#FF9800" />
 
-        <!-- App logo/icon -->
-        <ImageView
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:src="@android:drawable/ic_menu_call"
-            android:tint="@color/primary"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="16dp"
-            android:contentDescription="App icon" />
-
-        <!-- Title -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary"
-            android:layout_marginBottom="24dp" />
-
-        <!-- ========== REGISTRATION SECTION ========== -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Step 1: Register"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary"
-            android:layout_marginBottom="8dp" />
-
-        <!-- User ID input -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/userIdInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Your User ID"
-                android:inputType="text"
-                android:maxLines="1"
-                android:imeOptions="actionDone" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Register button -->
-        <Button
-            android:id="@+id/registerButton"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="Register"
-            android:textSize="16sp"
-            android:backgroundTint="@color/primary"
-            android:layout_marginBottom="8dp" />
-
-        <!-- Registration Status -->
-        <TextView
-            android:id="@+id/statusText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textSize="14sp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center"
-            android:layout_marginBottom="24dp" />
-
-        <!-- Divider -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/text_tertiary"
-            android:layout_marginBottom="24dp" />
-
-        <!-- ========== CALL SECTION ========== -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Step 2: Call Someone"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary"
-            android:layout_marginBottom="8dp" />
-
-        <!-- Callee ID input -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/calleeIdInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="User ID to call"
-                android:inputType="text"
-                android:maxLines="1"
-                android:imeOptions="actionDone" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Call button -->
-        <Button
-            android:id="@+id/callButton"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="📞 Call"
-            android:textSize="16sp"
-            android:backgroundTint="@color/call_accept"
-            android:layout_marginBottom="8dp" />
-
-        <!-- Call Status -->
-        <TextView
-            android:id="@+id/callStatusText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textSize="14sp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center"
-            android:layout_marginBottom="24dp" />
-
-        <!-- FCM Token display (for debugging) -->
-        <TextView
-            android:id="@+id/tokenText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="FCM Token: Loading..."
-            android:textSize="10sp"
-            android:textColor="@color/text_tertiary"
-            android:gravity="center"
-            android:fontFamily="monospace"
-            android:maxLines="2"
-            android:ellipsize="middle"
-            android:layout_marginBottom="16dp" />
-
-    </LinearLayout>
-</ScrollView>
+</RelativeLayout>
