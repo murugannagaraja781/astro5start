@@ -164,6 +164,42 @@ app.use("/api/match", matchRouter);
 app.use("/api/horoscope", horoscopeRouter);
 app.use("/api/charts", chartsRouter); // Mount local charts
 
+// FCM Test Endpoint - Verify Firebase is working
+app.get('/api/test-fcm', async (req, res) => {
+  try {
+    if (!fcmAuth) {
+      return res.json({
+        ok: false,
+        status: 'NOT_INITIALIZED',
+        error: global.callAppInitError || 'FCM Auth not initialized'
+      });
+    }
+
+    // Try to get access token to verify credentials work
+    const token = await fcmAuth.getAccessToken();
+
+    if (token) {
+      return res.json({
+        ok: true,
+        status: 'WORKING',
+        message: 'Firebase Admin SDK is properly configured and can get access tokens'
+      });
+    } else {
+      return res.json({
+        ok: false,
+        status: 'TOKEN_FAILED',
+        error: 'Could not get access token'
+      });
+    }
+  } catch (err) {
+    return res.json({
+      ok: false,
+      status: 'ERROR',
+      error: err.message
+    });
+  }
+});
+
 // ===== MSG91 Helper =====
 function sendMsg91(phoneNumber, otp) {
   const cleanPhone = phoneNumber.replace(/\D/g, '');
