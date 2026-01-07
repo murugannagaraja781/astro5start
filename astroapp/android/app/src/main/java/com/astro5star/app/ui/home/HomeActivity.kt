@@ -103,7 +103,7 @@ class HomeActivity : AppCompatActivity() {
 
     private fun loadWalletBalance() {
         val session = tokenManager.getUserSession()
-        tvWalletBalance.text = "₹${session?.walletBalance?.toInt() ?: 369}"
+        tvWalletBalance.text = "₹${session?.walletBalance ?: 0.0}"
     }
 
     private fun loadDailyHoroscope() {
@@ -262,7 +262,7 @@ class HomeActivity : AppCompatActivity() {
                 val balance = data.optDouble("balance", 0.0)
 
                 runOnUiThread {
-                    tvWalletBalance.text = "₹${balance.toInt()}"
+                    tvWalletBalance.text = "₹$balance"
                     // Also update local storage
                     tokenManager.updateWalletBalance(balance)
                 }

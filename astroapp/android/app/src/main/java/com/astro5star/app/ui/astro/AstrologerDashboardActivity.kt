@@ -34,7 +34,7 @@ class AstrologerDashboardActivity : AppCompatActivity() {
 
         // Set Data
         tvName.text = session?.name ?: "Astrologer"
-        tvEarnings.text = "₹${session?.walletBalance?.toInt() ?: 0}"
+        tvEarnings.text = "₹${session?.walletBalance ?: 0.0}"
 
         // Logout
         btnLogout.setOnClickListener {

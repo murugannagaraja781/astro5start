@@ -44,6 +44,26 @@ class MainActivity : AppCompatActivity() {
 
         tokenManager = TokenManager(this)
 
+        // Upload FCM Token
+        com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (!task.isSuccessful) {
+                Log.w(TAG, "Fetching FCM registration token failed", task.exception)
+                return@addOnCompleteListener
+            }
+            val token = task.result
+            val session = tokenManager.getUserSession()
+            if (session != null && token != null) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        ApiService.register(Constants.SERVER_URL, session.userId!!, token)
+                        Log.d(TAG, "Token uploaded successfully on launch")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to upload token", e)
+                    }
+                }
+            }
+        }
+
         // Add a small delay for splash effect or to ensure permissions logic runs
         CoroutineScope(Dispatchers.Main).launch {
             delay(1000)

@@ -42,6 +42,20 @@ class OtpVerificationActivity : AppCompatActivity() {
                     val user = result.getOrThrow()
                     tokenManager.saveUserSession(user)
 
+                    // Upload FCM Token
+                    com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            val token = task.result
+                            if (token != null) {
+                                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                                    try {
+                                        com.astro5star.app.data.api.ApiService.register(com.astro5star.app.utils.Constants.SERVER_URL, user.userId!!, token)
+                                    } catch (e: Exception) { e.printStackTrace() }
+                                }
+                            }
+                        }
+                    }
+
                     Toast.makeText(this@OtpVerificationActivity, "Welcome ${user.name}", Toast.LENGTH_SHORT).show()
 
                     // Navigate to Home Dashboard
