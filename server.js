@@ -58,6 +58,7 @@ try {
 } catch (error) {
   console.warn('✗ Call App: Failed to initialize Firebase Admin SDK (Mobile App)');
   console.warn('  Error:', error.message);
+  global.callAppInitError = error.message;
 }
 
 
@@ -3167,7 +3168,8 @@ app.post('/call', async (req, res) => {
     console.error('[Mobile] Call App Firebase NOT initialized. Check firebase-service-account.json');
     return res.status(503).json({
       success: false,
-      error: 'Push notification service unavailable (Server Config Error)'
+      error: 'Push notification service unavailable (Server Config Error)',
+      details: global.callAppInitError || 'Unknown initialization error' // Exposed for debugging
     });
   }
 
