@@ -73,9 +73,10 @@ class FCMService : FirebaseMessagingService() {
         super.onNewToken(token)
         Log.d(TAG, "New FCM token: $token")
 
-        // Get stored userId and re-register
-        val prefs = getSharedPreferences("fcm_call_prefs", MODE_PRIVATE)
-        val userId = prefs.getString("user_id", null)
+        // FIX: Use TokenManager to get the correct User ID
+        val tokenManager = com.astro5star.app.data.local.TokenManager(this)
+        val session = tokenManager.getUserSession()
+        val userId = session?.userId
 
         if (userId != null) {
             serviceScope.launch {
@@ -91,7 +92,7 @@ class FCMService : FirebaseMessagingService() {
                 }
             }
         } else {
-            Log.w(TAG, "Token refreshed but no userId stored - user needs to register again")
+            Log.w(TAG, "Token refreshed but no userId stored (TokenManager) - user needs to register/login again")
         }
     }
 
