@@ -15,6 +15,7 @@ import com.astro5star.app.R
 import com.astro5star.app.data.remote.SocketManager
 import org.json.JSONObject
 import org.webrtc.*
+import java.util.LinkedList
 
 class CallActivity : AppCompatActivity() {
 
@@ -39,8 +40,16 @@ class CallActivity : AppCompatActivity() {
     private var partnerId: String? = null
     private var sessionId: String? = null
 
+    // Queue for ICE candidates received before remote description is set
+    private val pendingIceCandidates = LinkedList<IceCandidate>()
+
     private val iceServers = listOf(
         PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
+        // TODO: Add TURN servers here for production reliability behind firewalls
+        // PeerConnection.IceServer.builder("turn:your.turn.server:3478")
+        //     .setUsername("user")
+        //     .setPassword("pass")
+        //     .createIceServer()
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,14 +74,18 @@ class CallActivity : AppCompatActivity() {
         val tokenManager = com.astro5star.app.data.local.TokenManager(this)
         val session = tokenManager.getUserSession()
 
-        SocketManager.init()
-        if (session != null) {
-            session.userId?.let { uid ->
-                SocketManager.registerUser(uid)
-                if (SocketManager.getSocket()?.connected() != true) {
-                    SocketManager.getSocket()?.connect()
+        try {
+            SocketManager.init()
+            if (session != null) {
+                session.userId?.let { uid ->
+                    SocketManager.registerUser(uid)
+                    if (SocketManager.getSocket()?.connected() != true) {
+                        SocketManager.getSocket()?.connect()
+                    }
                 }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Socket init failed", e)
         }
         // -----------------------------------------------------------------------
 
@@ -183,18 +196,31 @@ class CallActivity : AppCompatActivity() {
 
         val rtcConfig = PeerConnection.RTCConfiguration(iceServers)
         peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, object : PeerConnection.Observer {
-            override fun onSignalingChange(p0: PeerConnection.SignalingState?) {}
+            override fun onSignalingChange(p0: PeerConnection.SignalingState?) {
+                Log.d(TAG, "onSignalingChange: $p0")
+            }
             override fun onIceConnectionChange(newState: PeerConnection.IceConnectionState?) {
+                Log.d(TAG, "onIceConnectionChange: $newState")
                 runOnUiThread {
-                    if (newState == PeerConnection.IceConnectionState.CONNECTED) {
-                        tvStatus.visibility = View.GONE
-                    } else if (newState == PeerConnection.IceConnectionState.DISCONNECTED) {
-                        endCall()
+                    when (newState) {
+                        PeerConnection.IceConnectionState.CONNECTED -> tvStatus.visibility = View.GONE
+                        PeerConnection.IceConnectionState.DISCONNECTED -> {
+                            // Don't end immediately, allow re-negotiation or timeout
+                            Toast.makeText(this@CallActivity, "Connection Unstable", Toast.LENGTH_SHORT).show()
+                        }
+                        PeerConnection.IceConnectionState.FAILED -> {
+                            // Only end on FAILURE
+                            Toast.makeText(this@CallActivity, "Connection Failed", Toast.LENGTH_SHORT).show()
+                            endCall()
+                        }
+                        else -> {}
                     }
                 }
             }
             override fun onIceConnectionReceivingChange(p0: Boolean) {}
-            override fun onIceGatheringChange(p0: PeerConnection.IceGatheringState?) {}
+            override fun onIceGatheringChange(p0: PeerConnection.IceGatheringState?) {
+                Log.d(TAG, "onIceGatheringChange: $p0")
+            }
 
             override fun onIceCandidate(candidate: IceCandidate?) {
                 if (candidate != null) {
@@ -218,6 +244,7 @@ class CallActivity : AppCompatActivity() {
             override fun onIceCandidatesRemoved(p0: Array<out IceCandidate>?) {}
 
             override fun onAddStream(stream: MediaStream?) {
+                Log.d(TAG, "onAddStream: ${stream?.videoTracks?.size} video tracks")
                 if (stream != null && stream.videoTracks.isNotEmpty()) {
                     val remoteVideoTrack = stream.videoTracks[0]
                     runOnUiThread {
@@ -228,7 +255,10 @@ class CallActivity : AppCompatActivity() {
 
             override fun onRemoveStream(p0: MediaStream?) {}
             override fun onDataChannel(p0: DataChannel?) {}
-            override fun onRenegotiationNeeded() {}
+            override fun onRenegotiationNeeded() {
+                Log.d(TAG, "onRenegotiationNeeded")
+                // Implement renegotiation if supported
+            }
         })!!
 
         localAudioTrack?.let { peerConnection.addTrack(it, listOf("mediaStream")) }
@@ -250,6 +280,16 @@ class CallActivity : AppCompatActivity() {
         }
     }
 
+    private fun drainRemoteCandidates() {
+        if (pendingIceCandidates.isNotEmpty()) {
+            Log.d(TAG, "Draining ${pendingIceCandidates.size} remote candidates")
+            for (candidate in pendingIceCandidates) {
+                peerConnection.addIceCandidate(candidate)
+            }
+            pendingIceCandidates.clear()
+        }
+    }
+
     private fun handleSignal(data: JSONObject) {
         val signal = data.optJSONObject("signal") ?: data // Check if wrapped in signal, else fallback
         var type = signal.optString("type")
@@ -259,35 +299,50 @@ class CallActivity : AppCompatActivity() {
             type = "candidate"
         }
 
+        Log.d(TAG, "Received signal: $type")
+
         when (type) {
             "offer" -> {
                 val sdp = signal.optJSONObject("sdp")
                 val descriptionStr = sdp?.optString("sdp") ?: signal.optString("sdp")
                 if (descriptionStr.isNotEmpty()) {
-                    peerConnection.setRemoteDescription(SimpleSdpObserver(), SessionDescription(SessionDescription.Type.OFFER, descriptionStr))
-                    createAnswer()
+                    peerConnection.setRemoteDescription(object : SimpleSdpObserver() {
+                        override fun onSetSuccess() {
+                            Log.d(TAG, "Remote Offer Set. Creating Answer.")
+                            createAnswer()
+                            drainRemoteCandidates()
+                        }
+                    }, SessionDescription(SessionDescription.Type.OFFER, descriptionStr))
                 }
             }
             "answer" -> {
                 val sdp = signal.optJSONObject("sdp")
                 val descriptionStr = sdp?.optString("sdp") ?: signal.optString("sdp")
                 if (descriptionStr.isNotEmpty()) {
-                    peerConnection.setRemoteDescription(SimpleSdpObserver(), SessionDescription(SessionDescription.Type.ANSWER, descriptionStr))
+                    peerConnection.setRemoteDescription(object : SimpleSdpObserver() {
+                        override fun onSetSuccess() {
+                            Log.d(TAG, "Remote Answer Set.")
+                            drainRemoteCandidates()
+                        }
+                    }, SessionDescription(SessionDescription.Type.ANSWER, descriptionStr))
                 }
             }
             "candidate" -> {
                 val candidateJson = signal.optJSONObject("candidate") ?: signal
-                // Sometimes simple-peer sends { candidate: { candidate: ... } } or just { candidate: ... }
-                // If nested candidate exists, use it. Otherwise use root.
-
-                // Detailed parsing to support multiple formats
                 val sdpMid = candidateJson.optString("sdpMid")
                 val sdpMLineIndex = candidateJson.optInt("sdpMLineIndex", -1)
                 val sdp = candidateJson.optString("candidate")
 
                 if (sdp.isNotEmpty() && sdpMLineIndex != -1) {
                     val candidate = IceCandidate(sdpMid, sdpMLineIndex, sdp)
-                    peerConnection.addIceCandidate(candidate)
+
+                    // QUEUE IF REMOTE DESCRIPTION IS NULL
+                    if (peerConnection.remoteDescription == null) {
+                         Log.d(TAG, "Queuing ICE candidate (RemoteDesc is null)")
+                         pendingIceCandidates.add(candidate)
+                    } else {
+                         peerConnection.addIceCandidate(candidate)
+                    }
                 }
             }
         }
