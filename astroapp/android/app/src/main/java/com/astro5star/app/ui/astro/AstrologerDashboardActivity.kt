@@ -78,13 +78,20 @@ class AstrologerDashboardActivity : AppCompatActivity() {
         // Ensure we are connected
         SocketManager.getSocket()?.connect()
 
+        // FAIL SAFE RECONNECT
+        SocketManager.getSocket()?.on(io.socket.client.Socket.EVENT_DISCONNECT) {
+             runOnUiThread {
+                 SocketManager.getSocket()?.connect()
+             }
+        }
+
         // LISTEN for incoming requests (Foreground)
-        SocketManager.getSocket()?.on("request-session") { args ->
+        SocketManager.getSocket()?.on("incoming-session") { args ->
             if (args != null && args.isNotEmpty()) {
                 val data = args[0] as JSONObject
                 val sessionId = data.optString("sessionId")
                 val fromUserId = data.optString("fromUserId")
-                val fromName = data.optString("fromName", "User")
+                val fromName = data.optString("callerName", "User") // Server sends callerName
                 val type = data.optString("type") // "chat", "audio", "video"
 
                 runOnUiThread {

@@ -278,7 +278,7 @@ class HomeActivity : AppCompatActivity() {
         SocketManager.onSessionAnswered { data ->
             runOnUiThread {
                 activeDialog?.dismiss()
-                val accepted = data.optBoolean("accepted", false)
+                val accepted = data.optBoolean("accept", false) || data.optBoolean("accepted", false)
                 if (accepted) {
                     val sessionId = data.optString("sessionId")
                     val type = data.optString("type")
