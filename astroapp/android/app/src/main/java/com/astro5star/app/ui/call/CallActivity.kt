@@ -252,7 +252,12 @@ class CallActivity : AppCompatActivity() {
 
     private fun handleSignal(data: JSONObject) {
         val signal = data.optJSONObject("signal") ?: data // Check if wrapped in signal, else fallback
-        val type = signal.optString("type")
+        var type = signal.optString("type")
+
+        // Fallback: If type is empty but 'candidate' exists, treat as candidate
+        if (type.isEmpty() && signal.has("candidate")) {
+            type = "candidate"
+        }
 
         when (type) {
             "offer" -> {
@@ -272,12 +277,16 @@ class CallActivity : AppCompatActivity() {
             }
             "candidate" -> {
                 val candidateJson = signal.optJSONObject("candidate") ?: signal
-                if (candidateJson != null) {
-                    val candidate = IceCandidate(
-                        candidateJson.optString("sdpMid"),
-                        candidateJson.optInt("sdpMLineIndex"),
-                        candidateJson.optString("candidate")
-                    )
+                // Sometimes simple-peer sends { candidate: { candidate: ... } } or just { candidate: ... }
+                // If nested candidate exists, use it. Otherwise use root.
+
+                // Detailed parsing to support multiple formats
+                val sdpMid = candidateJson.optString("sdpMid")
+                val sdpMLineIndex = candidateJson.optInt("sdpMLineIndex", -1)
+                val sdp = candidateJson.optString("candidate")
+
+                if (sdp.isNotEmpty() && sdpMLineIndex != -1) {
+                    val candidate = IceCandidate(sdpMid, sdpMLineIndex, sdp)
                     peerConnection.addIceCandidate(candidate)
                 }
             }
