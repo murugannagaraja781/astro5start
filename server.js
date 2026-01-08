@@ -80,25 +80,17 @@ async function sendFcmV1Push(fcmToken, data, notification) {
 
     const messagePayload = {
       token: fcmToken,
-      data: data || {}
-    };
-
-    if (notification) {
-      // Standard Notification Structure
-      messagePayload.notification = {
-        title: notification.title,
-        body: notification.body
-      };
-
-      // Android Specific Config
-      messagePayload.android = {
+      data: {
+        ...data,
+        // Embed notification content in data to handle it manually in App for speed
+        title: notification ? notification.title : '',
+        body: notification ? notification.body : ''
+      },
+      android: {
         priority: 'high',
-        notification: {
-          channelId: 'calls',
-          sound: 'default'
-        }
-      };
-    }
+        ttl: '0s' // Instant delivery
+      }
+    };
 
     const message = { message: messagePayload };
 
