@@ -122,6 +122,14 @@ class CallActivity : AppCompatActivity() {
 
         if (isInitiator) {
             tvStatus.text = "Calling..."
+
+            // FIX: Initiator MUST also send session-connect to start billing
+            val connectPayload = JSONObject().apply {
+                 put("sessionId", sessionId)
+            }
+            SocketManager.getSocket()?.emit("session-connect", connectPayload)
+            Log.d(TAG, "Sent session-connect (Initiator) for $sessionId")
+
             createOffer()
         } else {
             tvStatus.text = "Connecting..."
