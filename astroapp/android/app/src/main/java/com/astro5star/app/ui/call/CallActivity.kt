@@ -113,13 +113,45 @@ class CallActivity : AppCompatActivity() {
             createOffer()
         } else {
             tvStatus.text = "Connecting..."
-            // Emit answer-session to signal we accepted the call
-            val payload = JSONObject().apply {
-                put("sessionId", sessionId)
-                put("toUserId", partnerId)
-                put("accept", true)
+
+            // DEEP FIX:
+            // 1. Ensure we are connected
+            // 2. Ensure we are registered
+            // 3. ONLY THEN emit answer-session
+
+            val tokenManager = com.astro5star.app.data.local.TokenManager(this)
+            val session = tokenManager.getUserSession()
+            val myUserId = session?.userId
+
+            if (myUserId != null) {
+                // Helper to send answer
+                fun sendAnswer() {
+                     val payload = JSONObject().apply {
+                        put("sessionId", sessionId)
+                        put("toUserId", partnerId)
+                        put("accept", true)
+                    }
+                    SocketManager.getSocket()?.emit("answer-session", payload)
+                    Log.d(TAG, "Sent answer-session for $sessionId")
+                }
+
+                if (SocketManager.getSocket()?.connected() == true) {
+                     // Check if we need to re-register (if this activity started fresh)
+                     SocketManager.registerUser(myUserId) { success ->
+                         // Even if already registered, re-registering is safe.
+                         // Wait for ack, then answer.
+                         runOnUiThread { sendAnswer() }
+                     }
+                } else {
+                    // Wait for connection
+                    SocketManager.onConnect {
+                         SocketManager.registerUser(myUserId) { success ->
+                             runOnUiThread { sendAnswer() }
+                         }
+                    }
+                    SocketManager.getSocket()?.connect() // Force connect
+                }
             }
-            SocketManager.getSocket()?.emit("answer-session", payload)
         }
     }
 

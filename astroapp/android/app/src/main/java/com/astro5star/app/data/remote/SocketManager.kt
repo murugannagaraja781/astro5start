@@ -38,12 +38,22 @@ object SocketManager {
         }
     }
 
-    fun registerUser(userId: String) {
+    fun registerUser(userId: String, callback: ((Boolean) -> Unit)? = null) {
         currentUserId = userId // Store for reconnection
         val data = JSONObject()
         data.put("userId", userId)
-        socket?.emit("register", data)
-        Log.d(TAG, "User registered: $userId")
+
+        // Use Ack to know when server processed it
+        socket?.emit("register", data, Ack { args ->
+            val success = if (args != null && args.isNotEmpty()) {
+                val response = args[0] as? JSONObject
+                response?.optBoolean("ok") == true
+            } else {
+                false
+            }
+            Log.d(TAG, "User registered: $userId, success=$success")
+            callback?.invoke(success)
+        })
     }
 
     fun getSocket(): Socket? {
@@ -105,6 +115,17 @@ object SocketManager {
 
     fun off(event: String) {
         socket?.off(event)
+    }
+
+    // NEW: Allow Activity to wait for connection
+    fun onConnect(listener: () -> Unit) {
+        if (socket?.connected() == true) {
+            listener()
+        } else {
+            socket?.on(Socket.EVENT_CONNECT) {
+                listener()
+            }
+        }
     }
 
     fun disconnect() {
