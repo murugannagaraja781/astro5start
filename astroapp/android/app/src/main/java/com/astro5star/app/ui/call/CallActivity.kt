@@ -68,9 +68,11 @@ class CallActivity : AppCompatActivity() {
         SocketManager.init()
         if (session != null) {
             // Register immediately to ensure we are "online" and can emit
-            SocketManager.registerUser(session.userId)
-            if (SocketManager.getSocket()?.connected() != true) {
-                SocketManager.getSocket()?.connect()
+            session.userId?.let { uid ->
+                SocketManager.registerUser(uid)
+                if (SocketManager.getSocket()?.connected() != true) {
+                    SocketManager.getSocket()?.connect()
+                }
             }
         }
         // -----------------------------------------------------------------------
