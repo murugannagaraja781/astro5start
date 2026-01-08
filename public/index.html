@@ -5067,7 +5067,11 @@
       if (window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'VIBRATE' }));
       }
-      if (state.session && d.fromUserId === state.session.partnerId) {
+      // Relaxed Check: Match by SessionID OR PartnerID (loose equality)
+      const isSessionMatch = state.session && d.sessionId && d.sessionId === state.session.id;
+      const isUserMatch = state.session && d.fromUserId == state.session.partnerId;
+
+      if (state.session && (isSessionMatch || isUserMatch)) {
         const requestDetailsDiv = document.getElementById('clientRequestDetails');
         if (requestDetailsDiv) {
           requestDetailsDiv.style.display = 'none';
