@@ -3360,4 +3360,4 @@ process.on('SIGINT', () => {
   });
 });
 
-module.exports = { app, server };
+module.exports = { app, server, sendFcmV1Push };
