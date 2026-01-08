@@ -130,7 +130,13 @@ class IncomingCallActivity : AppCompatActivity() {
         val rejectButton = findViewById<Button>(R.id.rejectButton)
 
         callerNameText.text = callerName
-        callerIdText.text = "Calling from: $callerId"
+
+        // User Request: If callerId is unknown, use Room ID (callId)
+        if (callerId == "Unknown" && callId.isNotEmpty()) {
+            callerIdText.text = "Room: $callId"
+        } else {
+            callerIdText.text = "Calling from: $callerId"
+        }
 
         acceptButton.setOnClickListener {
             onCallAccepted()
