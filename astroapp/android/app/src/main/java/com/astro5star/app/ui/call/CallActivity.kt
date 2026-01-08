@@ -133,6 +133,13 @@ class CallActivity : AppCompatActivity() {
                     }
                     SocketManager.getSocket()?.emit("answer-session", payload)
                     Log.d(TAG, "Sent answer-session for $sessionId")
+
+                    // ALSO emit session-connect to start the billing timer
+                    val connectPayload = JSONObject().apply {
+                         put("sessionId", sessionId)
+                    }
+                    SocketManager.getSocket()?.emit("session-connect", connectPayload)
+                    Log.d(TAG, "Sent session-connect for $sessionId")
                 }
 
                 if (SocketManager.getSocket()?.connected() == true) {
