@@ -137,9 +137,15 @@ class FCMService : FirebaseMessagingService() {
         val callerName = data["callerName"] ?: callerId
         // FIX: Server sends 'sessionId', manual test might send 'callId'
         val callId = data["sessionId"] ?: data["callId"] ?: System.currentTimeMillis().toString()
+        val callType = data["callType"] ?: "audio" // Differentiate chat vs audio/video
 
-        Log.d(TAG, "=== INCOMING CALL ===")
+        Log.d(TAG, "=== INCOMING $callType ===")
         Log.d(TAG, "From: $callerName ($callerId), callId: $callId")
+
+        if (callType == "chat") {
+            handleIncomingChat(callerName, callerId, callId)
+            return
+        }
 
         // Wake up the screen
         wakeUpDevice()
@@ -253,5 +259,34 @@ class FCMService : FirebaseMessagingService() {
             notificationManager.createNotificationChannel(channel)
             Log.d(TAG, "Notification channel created: $CHANNEL_ID")
         }
+    }
+
+    private fun handleIncomingChat(callerName: String, callerId: String, sessionId: String) {
+        val intent = Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("toUserId", callerId)
+            putExtra("sessionId", sessionId)
+            putExtra("isNewRequest", true) // Auto-accept when opened
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            System.currentTimeMillis().toInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_menu_agenda)
+            .setContentTitle("New Chat Request")
+            .setContentText("$callerName wants to chat")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.notify(callerId.hashCode(), notification)
     }
 }

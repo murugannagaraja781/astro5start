@@ -53,7 +53,34 @@ class ChatActivity : AppCompatActivity() {
         val myUserId = TokenManager(this).getUserSession()?.userId
 
         if (myUserId != null) {
-            SocketManager.registerUser(myUserId)
+            // Helper to auto-accept if opened from notification
+            fun checkAutoAccept() {
+                val isNewRequest = intent.getBooleanExtra("isNewRequest", false)
+                if (isNewRequest) {
+                     val payload = JSONObject().apply {
+                        put("sessionId", sessionId)
+                        put("toUserId", toUserId)
+                        put("accept", true)
+                    }
+                    SocketManager.getSocket()?.emit("answer-session", payload)
+
+                    val connectPayload = JSONObject().apply { put("sessionId", sessionId) }
+                    SocketManager.getSocket()?.emit("session-connect", connectPayload)
+                }
+            }
+
+            if (SocketManager.getSocket()?.connected() == true) {
+                 SocketManager.registerUser(myUserId) {
+                     runOnUiThread { checkAutoAccept() }
+                 }
+            } else {
+                SocketManager.onConnect {
+                    SocketManager.registerUser(myUserId) {
+                       runOnUiThread { checkAutoAccept() }
+                    }
+                }
+                SocketManager.getSocket()?.connect()
+            }
         }
 
         socket?.on("chat-message") { args ->
