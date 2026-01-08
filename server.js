@@ -1140,8 +1140,10 @@ io.on('connection', (socket) => {
   socket.on('get-astrologers', async (cb) => {
     try {
       const astros = await User.find({ role: 'astrologer' });
-      cb({ astrologers: astros });
-    } catch (e) { cb({ astrologers: [] }); }
+      if (typeof cb === 'function') cb({ astrologers: astros });
+    } catch (e) {
+      if (typeof cb === 'function') cb({ astrologers: [] });
+    }
   });
 
   // --- Toggle Status (Astrologer Only) ---

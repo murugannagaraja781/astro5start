@@ -48,7 +48,7 @@ class CallActivity : AppCompatActivity() {
         setContentView(R.layout.activity_call)
 
         // Params
-        partnerId = intent.getStringExtra("partnerId") // Though usually handled by socket
+        partnerId = intent.getStringExtra("partnerId")
         sessionId = intent.getStringExtra("sessionId")
         isInitiator = intent.getBooleanExtra("isInitiator", false)
 
@@ -67,7 +67,6 @@ class CallActivity : AppCompatActivity() {
 
         SocketManager.init()
         if (session != null) {
-            // Register immediately to ensure we are "online" and can emit
             session.userId?.let { uid ->
                 SocketManager.registerUser(uid)
                 if (SocketManager.getSocket()?.connected() != true) {
@@ -114,27 +113,20 @@ class CallActivity : AppCompatActivity() {
         } else {
             tvStatus.text = "Connecting..."
 
-            // DEEP FIX:
-            // 1. Ensure we are connected
-            // 2. Ensure we are registered
-            // 3. ONLY THEN emit answer-session
-
             val tokenManager = com.astro5star.app.data.local.TokenManager(this)
             val session = tokenManager.getUserSession()
             val myUserId = session?.userId
 
             if (myUserId != null) {
-                // Helper to send answer
                 fun sendAnswer() {
                      val payload = JSONObject().apply {
-                        put("sessionId", sessionId)
-                        put("toUserId", partnerId)
-                        put("accept", true)
-                    }
+                         put("sessionId", sessionId)
+                         put("toUserId", partnerId)
+                         put("accept", true)
+                     }
                     SocketManager.getSocket()?.emit("answer-session", payload)
                     Log.d(TAG, "Sent answer-session for $sessionId")
 
-                    // ALSO emit session-connect to start the billing timer
                     val connectPayload = JSONObject().apply {
                          put("sessionId", sessionId)
                     }
@@ -143,20 +135,16 @@ class CallActivity : AppCompatActivity() {
                 }
 
                 if (SocketManager.getSocket()?.connected() == true) {
-                     // Check if we need to re-register (if this activity started fresh)
                      SocketManager.registerUser(myUserId) { success ->
-                         // Even if already registered, re-registering is safe.
-                         // Wait for ack, then answer.
                          runOnUiThread { sendAnswer() }
                      }
                 } else {
-                    // Wait for connection
                     SocketManager.onConnect {
                          SocketManager.registerUser(myUserId) { success ->
                              runOnUiThread { sendAnswer() }
                          }
                     }
-                    SocketManager.getSocket()?.connect() // Force connect
+                    SocketManager.getSocket()?.connect()
                 }
             }
         }
@@ -165,7 +153,6 @@ class CallActivity : AppCompatActivity() {
     private fun initWebRTC() {
         eglBase = EglBase.create()
 
-        // Init Factory
         val options = PeerConnectionFactory.InitializationOptions.builder(this).createInitializationOptions()
         PeerConnectionFactory.initialize(options)
 
@@ -174,13 +161,11 @@ class CallActivity : AppCompatActivity() {
             .setVideoDecoderFactory(DefaultVideoDecoderFactory(eglBase.eglBaseContext))
             .createPeerConnectionFactory()
 
-        // Init Views
         localView.init(eglBase.eglBaseContext, null)
         remoteView.init(eglBase.eglBaseContext, null)
         localView.setMirror(true)
         localView.setZOrderMediaOverlay(true)
 
-        // Media Streams
         val audioSource = peerConnectionFactory.createAudioSource(MediaConstraints())
         localAudioTrack = peerConnectionFactory.createAudioTrack("101", audioSource)
 
@@ -196,7 +181,6 @@ class CallActivity : AppCompatActivity() {
             localVideoTrack?.addSink(localView)
         }
 
-        // Create Peer Connection
         val rtcConfig = PeerConnection.RTCConfiguration(iceServers)
         peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, object : PeerConnection.Observer {
             override fun onSignalingChange(p0: PeerConnection.SignalingState?) {}
@@ -214,13 +198,18 @@ class CallActivity : AppCompatActivity() {
 
             override fun onIceCandidate(candidate: IceCandidate?) {
                 if (candidate != null) {
+                    // WRAPPED SIGNAL
+                    val signalData = JSONObject().apply {
+                         put("type", "candidate")
+                         put("candidate", JSONObject().apply {
+                             put("candidate", candidate.sdp)
+                             put("sdpMid", candidate.sdpMid)
+                             put("sdpMLineIndex", candidate.sdpMLineIndex)
+                         })
+                    }
                     val payload = JSONObject().apply {
-                        put("type", "candidate")
-                        put("candidate", JSONObject().apply {
-                            put("candidate", candidate.sdp)
-                            put("sdpMid", candidate.sdpMid)
-                            put("sdpMLineIndex", candidate.sdpMLineIndex)
-                        })
+                        put("toUserId", partnerId)
+                        put("signal", signalData)
                     }
                     sendSignal(payload)
                 }
@@ -242,7 +231,6 @@ class CallActivity : AppCompatActivity() {
             override fun onRenegotiationNeeded() {}
         })!!
 
-        // Add Tracks
         localAudioTrack?.let { peerConnection.addTrack(it, listOf("mediaStream")) }
         localVideoTrack?.let { peerConnection.addTrack(it, listOf("mediaStream")) }
     }
@@ -263,26 +251,27 @@ class CallActivity : AppCompatActivity() {
     }
 
     private fun handleSignal(data: JSONObject) {
-        val type = data.optString("type")
+        val signal = data.optJSONObject("signal") ?: data // Check if wrapped in signal, else fallback
+        val type = signal.optString("type")
 
         when (type) {
             "offer" -> {
-                val sdp = data.optJSONObject("sdp")
-                val descriptionStr = sdp?.optString("sdp")
-                if (descriptionStr != null) {
+                val sdp = signal.optJSONObject("sdp")
+                val descriptionStr = sdp?.optString("sdp") ?: signal.optString("sdp")
+                if (descriptionStr.isNotEmpty()) {
                     peerConnection.setRemoteDescription(SimpleSdpObserver(), SessionDescription(SessionDescription.Type.OFFER, descriptionStr))
                     createAnswer()
                 }
             }
             "answer" -> {
-                val sdp = data.optJSONObject("sdp")
-                val descriptionStr = sdp?.optString("sdp")
-                if (descriptionStr != null) {
+                val sdp = signal.optJSONObject("sdp")
+                val descriptionStr = sdp?.optString("sdp") ?: signal.optString("sdp")
+                if (descriptionStr.isNotEmpty()) {
                     peerConnection.setRemoteDescription(SimpleSdpObserver(), SessionDescription(SessionDescription.Type.ANSWER, descriptionStr))
                 }
             }
             "candidate" -> {
-                val candidateJson = data.optJSONObject("candidate")
+                val candidateJson = signal.optJSONObject("candidate") ?: signal
                 if (candidateJson != null) {
                     val candidate = IceCandidate(
                         candidateJson.optString("sdpMid"),
@@ -299,12 +288,14 @@ class CallActivity : AppCompatActivity() {
         peerConnection.createOffer(object : SimpleSdpObserver() {
             override fun onCreateSuccess(desc: SessionDescription?) {
                 peerConnection.setLocalDescription(SimpleSdpObserver(), desc)
-                val payload = JSONObject().apply {
+                // WRAPPED SIGNAL
+                val signalData = JSONObject().apply {
                     put("type", "offer")
-                    put("sdp", JSONObject().apply {
-                        put("type", "offer")
-                        put("sdp", desc?.description)
-                    })
+                    put("sdp", desc?.description)
+                }
+                val payload = JSONObject().apply {
+                    put("toUserId", partnerId)
+                    put("signal", signalData)
                 }
                 sendSignal(payload)
             }
@@ -315,12 +306,14 @@ class CallActivity : AppCompatActivity() {
         peerConnection.createAnswer(object : SimpleSdpObserver() {
             override fun onCreateSuccess(desc: SessionDescription?) {
                 peerConnection.setLocalDescription(SimpleSdpObserver(), desc)
-                val payload = JSONObject().apply {
+                // WRAPPED SIGNAL
+                val signalData = JSONObject().apply {
                     put("type", "answer")
-                    put("sdp", JSONObject().apply {
-                        put("type", "answer")
-                        put("sdp", desc?.description)
-                    })
+                    put("sdp", desc?.description)
+                }
+                val payload = JSONObject().apply {
+                    put("toUserId", partnerId)
+                    put("signal", signalData)
                 }
                 sendSignal(payload)
             }
@@ -341,24 +334,24 @@ class CallActivity : AppCompatActivity() {
         super.onDestroy()
         SocketManager.off("signal")
         SocketManager.off("session-ended")
-
-        peerConnection.close()
-        videoCapturer?.stopCapture()
-        localView.release()
-        remoteView.release()
-        // peerConnectionFactory.dispose() // Sometimes crashes if disposed too earl
+        try {
+            peerConnection.close()
+            videoCapturer?.stopCapture()
+            localView.release()
+            remoteView.release()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error destroying", e)
+        }
     }
 
     private fun createCameraCapturer(enumerator: CameraEnumerator): VideoCapturer? {
         val deviceNames = enumerator.deviceNames
-        // Try front facing first
         for (deviceName in deviceNames) {
             if (enumerator.isFrontFacing(deviceName)) {
                 val capturer = enumerator.createCapturer(deviceName, null)
                 if (capturer != null) return capturer
             }
         }
-        // Fallback to back facing
         for (deviceName in deviceNames) {
             if (!enumerator.isFrontFacing(deviceName)) {
                 val capturer = enumerator.createCapturer(deviceName, null)
