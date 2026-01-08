@@ -135,7 +135,8 @@ class FCMService : FirebaseMessagingService() {
     private fun handleIncomingCall(data: Map<String, String>) {
         val callerId = data["callerId"] ?: "Unknown"
         val callerName = data["callerName"] ?: callerId
-        val callId = data["callId"] ?: System.currentTimeMillis().toString()
+        // FIX: Server sends 'sessionId', manual test might send 'callId'
+        val callId = data["sessionId"] ?: data["callId"] ?: System.currentTimeMillis().toString()
 
         Log.d(TAG, "=== INCOMING CALL ===")
         Log.d(TAG, "From: $callerName ($callerId), callId: $callId")
