@@ -61,6 +61,20 @@ class CallActivity : AppCompatActivity() {
             endCall()
         }
 
+        // --- CRITICAL FIX: Ensure Socket is Connected (for Killed App state) ---
+        val tokenManager = com.astro5star.app.data.local.TokenManager(this)
+        val session = tokenManager.getUserSession()
+
+        SocketManager.init()
+        if (session != null) {
+            // Register immediately to ensure we are "online" and can emit
+            SocketManager.registerUser(session.userId)
+            if (SocketManager.getSocket()?.connected() != true) {
+                SocketManager.getSocket()?.connect()
+            }
+        }
+        // -----------------------------------------------------------------------
+
         // Check Permissions
         if (checkPermissions()) {
             startCallLimit()
