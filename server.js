@@ -1590,7 +1590,7 @@ io.on('connection', (socket) => {
         });
 
         // Trigger Push for Offline Message
-        sendChatPush(toUserId, fromUserId, content.text || 'Sent a file');
+        sendChatPush(toUserId, fromUserId, content.text || 'Sent a file', sessionId);
 
         console.log(
           `Queued message ${messageId} from ${fromUserId} to offline user ${toUserId}`
@@ -1625,7 +1625,7 @@ io.on('connection', (socket) => {
   });
 
   // --- Helper: Send Chat Push ---
-  async function sendChatPush(toUserId, fromUserId, messageText) {
+  async function sendChatPush(toUserId, fromUserId, messageText, sessionId) {
     try {
       const toUser = await User.findOne({ userId: toUserId });
       const fromUser = await User.findOne({ userId: fromUserId });
@@ -1635,7 +1635,11 @@ io.on('connection', (socket) => {
           type: 'chat',
           title: fromUser?.name || 'New Message',
           body: messageText,
-          senderId: fromUserId
+          senderId: fromUserId,
+          sessionId: sessionId || '',
+          callType: 'chat',
+          callerId: fromUserId,     // For consistency with FCMService.kt
+          callerName: fromUser?.name || 'User' // For consistency
         };
 
         const notification = {
