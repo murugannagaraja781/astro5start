@@ -11,18 +11,128 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- Top Gradient Overlay (for text visibility) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:background="#40000000"/>
+
+    <!-- Top Info Bar (Back, Name, Call/Video Icons) -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:layout_marginTop="32dp">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/circle_bg"
+            android:backgroundTint="#80FFFFFF"
+            android:src="@android:drawable/ic_menu_revert"
+            android:padding="8dp"
+            android:tint="#000000"/>
+
+        <TextView
+            android:id="@+id/tvRemoteName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/btnBack"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="16dp"
+            android:text="Dr. Mahmud Nik"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+             android:id="@+id/tvCallDuration"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_below="@id/tvRemoteName"
+             android:layout_toEndOf="@id/btnBack"
+             android:layout_marginStart="16dp"
+             android:text="12:08"
+             android:textColor="#E0E0E0"
+             android:textSize="14sp" />
+
+    </RelativeLayout>
+
     <!-- Local Video (PIP) -->
+    <!-- Positioned above control panel -->
     <org.webrtc.SurfaceViewRenderer
         android:id="@+id/local_view"
-        android:layout_width="120dp"
-        android:layout_height="160dp"
+        android:layout_width="100dp"
+        android:layout_height="140dp"
         android:layout_alignParentEnd="true"
-        android:layout_alignParentBottom="true"
+        android:layout_above="@+id/controlPanel"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="140dp"
+        android:layout_marginBottom="16dp"
         android:background="#333333" />
 
-    <!-- Loading/Status Text -->
+    <!-- Bottom Control Panel -->
+    <LinearLayout
+        android:id="@+id/controlPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@drawable/bg_rounded_sheet_top"
+        android:backgroundTint="#10A37F"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingTop="24dp"
+        android:paddingBottom="48dp">
+
+        <!-- Mic Toggle -->
+        <ImageButton
+            android:id="@+id/btnMic"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/btn_rounded_action"
+            android:src="@android:drawable/ic_btn_speak_now"
+            android:tint="#FFFFFF"
+            android:contentDescription="Toggle Mic" />
+
+        <Space android:layout_width="24dp" android:layout_height="wrap_content" />
+
+        <!-- Chat Toggle (Optional) -->
+         <ImageButton
+            android:id="@+id/btnChat"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/btn_rounded_action"
+            android:src="@android:drawable/ic_menu_send"
+            android:tint="#FFFFFF"
+            android:contentDescription="Chat" />
+
+        <Space android:layout_width="24dp" android:layout_height="wrap_content" />
+
+        <!-- Video Toggle -->
+        <ImageButton
+            android:id="@+id/btnVideo"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/btn_rounded_action"
+            android:src="@android:drawable/ic_menu_camera"
+            android:tint="#FFFFFF"
+            android:contentDescription="Toggle Video" />
+
+        <Space android:layout_width="24dp" android:layout_height="wrap_content" />
+
+        <!-- End Call -->
+        <ImageButton
+            android:id="@+id/btnEndCall"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/btn_rounded_action_red"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:tint="#FFFFFF"
+            android:contentDescription="End Call" />
+
+    </LinearLayout>
+
+    <!-- Status Text (Connecting...) -->
     <TextView
         android:id="@+id/tvCallStatus"
         android:layout_width="wrap_content"
@@ -32,48 +142,5 @@
         android:textColor="#FFFFFF"
         android:textSize="18sp"
         android:textStyle="bold" />
-
-    <!-- Controls Container -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_marginBottom="40dp"
-        android:gravity="center"
-        android:orientation="horizontal">
-
-        <ImageButton
-            android:id="@+id/btnMic"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:background="@drawable/circle_bg"
-            android:src="@android:drawable/ic_btn_speak_now"
-            android:contentDescription="Toggle Mic" />
-
-        <Space
-            android:layout_width="30dp"
-            android:layout_height="wrap_content" />
-
-        <ImageButton
-            android:id="@+id/btnEndCall"
-            android:layout_width="70dp"
-            android:layout_height="70dp"
-            android:background="@drawable/circle_button_reject"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
-            android:contentDescription="End Call" />
-
-        <Space
-            android:layout_width="30dp"
-            android:layout_height="wrap_content" />
-
-        <ImageButton
-            android:id="@+id/btnVideo"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:background="@drawable/circle_bg"
-            android:src="@android:drawable/ic_menu_camera"
-            android:contentDescription="Toggle Video" />
-
-    </LinearLayout>
 
 </RelativeLayout>

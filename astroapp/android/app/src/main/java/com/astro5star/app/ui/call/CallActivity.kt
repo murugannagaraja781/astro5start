@@ -60,26 +60,61 @@ class CallActivity : AppCompatActivity() {
     private var isSpeakerOn = false
     private var callType: String = "video" // Default to video
 
+    private var partnerName: String? = null
+    private var callDurationSeconds = 0
+    private val timerHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val timerRunnable = object : Runnable {
+        override fun run() {
+            callDurationSeconds++
+            val minutes = callDurationSeconds / 60
+            val seconds = callDurationSeconds % 60
+            val timeStr = String.format("%02d:%02d", minutes, seconds)
+            findViewById<TextView>(R.id.tvCallDuration).text = timeStr
+            timerHandler.postDelayed(this, 1000)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_call)
 
         // Params
         partnerId = intent.getStringExtra("partnerId")
+        partnerName = intent.getStringExtra("partnerName") ?: partnerId
         sessionId = intent.getStringExtra("sessionId")
         isInitiator = intent.getBooleanExtra("isInitiator", false)
-        callType = intent.getStringExtra("type") ?: "video" // "audio" or "video"
+        callType = intent.getStringExtra("type") ?: intent.getStringExtra("callType") ?: "video"
 
         // Init Views
         remoteView = findViewById(R.id.remote_view)
         localView = findViewById(R.id.local_view)
         tvStatus = findViewById(R.id.tvCallStatus)
 
+        val tvRemoteName = findViewById<TextView>(R.id.tvRemoteName)
+        val tvCallDuration = findViewById<TextView>(R.id.tvCallDuration)
+        tvRemoteName.text = partnerName ?: "Unknown"
+        tvCallDuration.text = "00:00"
+
         val btnEndCall = findViewById<ImageButton>(R.id.btnEndCall)
         val btnMic = findViewById<ImageButton>(R.id.btnMic)
-        val btnVideo = findViewById<ImageButton>(R.id.btnVideo) // Re-purposed for Speaker in Audio Call
+        val btnVideo = findViewById<ImageButton>(R.id.btnVideo)
+        val btnChat = findViewById<ImageButton>(R.id.btnChat)
+        val btnBack = findViewById<ImageButton>(R.id.btnBack)
 
         btnEndCall.setOnClickListener { endCall() }
+        btnBack.setOnClickListener {
+            // Back button acts as minimize or end call? Usually End Call in full screen flow, or just finish
+             // For now, let's make it end call to avoid confusion, or maybe just minimize (finish calls onDestroy which ends call)
+             // Let's ask user? No, standard behavior: End call.
+             endCall()
+        }
+
+        btnChat.setOnClickListener {
+             Toast.makeText(this, "Chat feature coming soon", Toast.LENGTH_SHORT).show()
+        }
+
+        // Start Timer
+        timerHandler.postDelayed(timerRunnable, 1000)
 
         // Mic Toggle
         btnMic.setOnClickListener {
@@ -94,11 +129,12 @@ class CallActivity : AppCompatActivity() {
             // Audio Call: Use this button for Speaker Toggle
             btnVideo.setImageResource(android.R.drawable.ic_lock_silent_mode_off) // Generic Speaker Icon
             localView.visibility = View.GONE
+            // Keep remote view GONE for audio, or maybe show avatar?
+            // For full screen audio UI redesign, we might want a placeholder image in remoteView or just black
+            // Activity layout is black bg, so should be fine.
             remoteView.visibility = View.GONE
-            findViewById<View>(android.R.id.content).setBackgroundColor(android.graphics.Color.BLACK) // ensuring black bg
+            findViewById<View>(android.R.id.content).setBackgroundColor(android.graphics.Color.BLACK)
 
-            // Default Speaker state for Audio Call is usually EARPIECE (Speaker OFF)
-            // But for WebRTC often SPEAKER is better default? Let's default to EARPIECE for privacy, user can toggle.
             setSpeakerphoneOn(false)
 
             btnVideo.setOnClickListener {
@@ -109,7 +145,7 @@ class CallActivity : AppCompatActivity() {
             }
         } else {
             // Video Call: Use for Camera Toggle
-            setSpeakerphoneOn(true) // Default Speaker ON for Video
+            setSpeakerphoneOn(true)
 
             btnVideo.setOnClickListener {
                 val enabled = localVideoTrack?.enabled() ?: true
@@ -466,6 +502,7 @@ class CallActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        timerHandler.removeCallbacks(timerRunnable) // Stop Timer
         SocketManager.off("signal")
         SocketManager.off("session-ended")
         try {

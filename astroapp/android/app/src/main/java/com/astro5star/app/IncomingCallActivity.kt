@@ -96,9 +96,10 @@ class IncomingCallActivity : AppCompatActivity() {
     private fun setupUI() {
         val callerNameText = findViewById<TextView>(R.id.callerNameText)
         val callerIdText = findViewById<TextView>(R.id.callerIdText)
-        val titleText = findViewById<TextView>(R.id.incomingCallTitle) // Assumed ID, if not existing we stick to text changes
-        val acceptButton = findViewById<Button>(R.id.acceptButton)
-        val rejectButton = findViewById<Button>(R.id.rejectButton)
+        val titleText = findViewById<TextView>(R.id.tvIncomingLabel)
+        val acceptButton = findViewById<android.widget.ImageButton>(R.id.acceptButton)
+        val rejectButton = findViewById<android.widget.ImageButton>(R.id.rejectButton)
+        val messageButton = findViewById<android.widget.ImageButton>(R.id.messageButton)
 
         callerNameText.text = callerName
 
@@ -106,11 +107,13 @@ class IncomingCallActivity : AppCompatActivity() {
         if (callType == "chat") typeLabel = "Incoming Chat Request"
         if (callType == "video") typeLabel = "Incoming Video Call"
 
-        // Update title if possible or append to caller ID text
+        titleText.text = typeLabel
+
+        // User Request: If callerId is unknown, use Room ID (callId)
         if (callerId == "Unknown" && callId.isNotEmpty()) {
-            callerIdText.text = "$typeLabel\nRoom: $callId"
+            callerIdText.text = "Room: $callId"
         } else {
-            callerIdText.text = "$typeLabel\nFrom: $callerId"
+            callerIdText.text = "Calling from: $callerId"
         }
 
         acceptButton.setOnClickListener {
@@ -119,6 +122,11 @@ class IncomingCallActivity : AppCompatActivity() {
 
         rejectButton.setOnClickListener {
             onCallRejected()
+        }
+
+        messageButton.setOnClickListener {
+            // Future feature: Reject with message
+             android.widget.Toast.makeText(this, "Message feature coming soon", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -232,6 +240,7 @@ class IncomingCallActivity : AppCompatActivity() {
             intent = Intent(this, com.astro5star.app.ui.call.CallActivity::class.java).apply {
                 putExtra("sessionId", callId)
                 putExtra("partnerId", callerId)
+                putExtra("partnerName", callerName) // Pass name for UI
                 putExtra("isInitiator", false)
                 putExtra("callType", callType) // Pass audio/video type
             }

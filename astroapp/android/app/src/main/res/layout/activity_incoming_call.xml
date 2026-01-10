@@ -1,114 +1,157 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    activity_incoming_call.xml - Full-screen incoming call UI
-    
-    Designed to look similar to native phone call screens:
-    - Large caller avatar/icon at top
-    - Caller name prominently displayed
-    - Accept (green) and Reject (red) buttons at bottom
-    
-    Uses dark theme for better visibility on lock screen
--->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center_horizontal"
-    android:background="@color/call_background"
-    android:padding="32dp"
+    android:background="#FAFAFA"
     tools:context=".IncomingCallActivity">
 
-    <!-- Spacer to push content down -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-
-    <!-- Caller avatar placeholder -->
-    <View
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:background="@drawable/circle_avatar_placeholder"
-        android:layout_marginBottom="32dp" />
-
-    <!-- Incoming call label -->
+    <!-- Top Status Bar Area (Optional) -->
     <TextView
+        android:id="@+id/tvIncomingLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Incoming Call"
-        android:textSize="16sp"
-        android:textColor="@color/call_text_secondary"
-        android:layout_marginBottom="8dp" />
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="100dp"
+        android:text="Incoming call"
+        android:textColor="#808080"
+        android:textSize="16sp" />
 
-    <!-- Caller name -->
-    <TextView
-        android:id="@+id/callerNameText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Unknown Caller"
-        android:textSize="32sp"
-        android:textStyle="bold"
-        android:textColor="@color/call_text_primary"
-        android:layout_marginBottom="8dp"
-        tools:text="John Doe" />
-
-    <!-- Caller ID -->
-    <TextView
-        android:id="@+id/callerIdText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Calling from: user123"
-        android:textSize="14sp"
-        android:textColor="@color/call_text_secondary"
-        tools:text="Calling from: user123" />
-
-    <!-- Spacer to push buttons to bottom -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="2" />
-
-    <!-- Accept/Reject buttons container -->
+    <!-- Center Avatar Area -->
     <LinearLayout
-        android:layout_width="match_parent"
+        android:id="@+id/layoutAvatar"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginBottom="48dp">
+        android:layout_centerInParent="true"
+        android:orientation="vertical"
+        android:gravity="center">
 
-        <!-- Reject button (red) -->
-        <Button
-            android:id="@+id/rejectButton"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:background="@drawable/circle_button_reject"
-            android:text=""
-            android:contentDescription="Reject call"
-            android:layout_marginEnd="64dp"
-            android:drawableTop="@android:drawable/ic_menu_close_clear_cancel"
-            android:drawableTint="@android:color/white" />
+        <!-- Avatar Container with Shadow/Glow effect simulated by background -->
+        <FrameLayout
+            android:layout_width="160dp"
+            android:layout_height="160dp"
+            android:background="@drawable/circle_bg"
+            android:backgroundTint="#F0F0F0"
+            android:padding="20dp">
 
-        <!-- Accept button (green) -->
-        <Button
-            android:id="@+id/acceptButton"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:background="@drawable/circle_button_accept"
-            android:text=""
-            android:contentDescription="Accept call"
-            android:drawableTop="@android:drawable/ic_menu_call"
-            android:drawableTint="@android:color/white" />
+            <ImageView
+                android:id="@+id/ivAvatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_person_placeholder"
+                android:scaleType="centerCrop" />
+        </FrameLayout>
+
+        <Space android:layout_width="match_parent" android:layout_height="24dp" />
+
+        <TextView
+            android:id="@+id/callerNameText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Astrologer Name"
+            android:textColor="#333333"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/callerIdText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Calling..."
+            android:textColor="#808080"
+            android:textSize="14sp" />
 
     </LinearLayout>
 
-    <!-- Swipe hint text -->
-    <TextView
-        android:layout_width="wrap_content"
+    <!-- Bottom Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Tap to Accept or Reject"
-        android:textSize="12sp"
-        android:textColor="@color/call_text_tertiary"
-        android:layout_marginBottom="24dp" />
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="60dp"
+        android:gravity="center"
+        android:orientation="horizontal">
 
-</LinearLayout>
+        <!-- Decline Button -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ImageButton
+                android:id="@+id/rejectButton"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:background="@drawable/btn_rounded_action_red"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:tint="#FFFFFF"
+                android:contentDescription="Decline" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Decline"
+                android:textColor="#808080"
+                android:textSize="12sp"
+                android:layout_marginTop="8dp"/>
+        </LinearLayout>
+
+        <Space android:layout_width="40dp" android:layout_height="wrap_content" />
+
+        <!-- Accept Button -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ImageButton
+                android:id="@+id/acceptButton"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:background="@drawable/btn_rounded_action_green"
+                android:src="@android:drawable/ic_menu_call"
+                android:tint="#FFFFFF"
+                android:contentDescription="Accept" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Accept"
+                android:textColor="#808080"
+                android:textSize="12sp"
+                android:layout_marginTop="8dp"/>
+        </LinearLayout>
+
+        <Space android:layout_width="40dp" android:layout_height="wrap_content" />
+
+        <!-- Message Button (Optional) -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ImageButton
+                android:id="@+id/messageButton"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:background="@drawable/btn_rounded_action_orange"
+                android:src="@android:drawable/ic_menu_send"
+                android:tint="#FFFFFF"
+                android:contentDescription="Message" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Message"
+                android:textColor="#808080"
+                android:textSize="12sp"
+                android:layout_marginTop="8dp"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</RelativeLayout>
