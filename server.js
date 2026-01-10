@@ -12,6 +12,12 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 const admin = require('firebase-admin'); // Firebase Admin for Mobile App
 
+// PhonePe Config
+const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID;
+const PHONEPE_SALT_KEY = process.env.PHONEPE_SALT_KEY;
+const PHONEPE_SALT_INDEX = process.env.PHONEPE_SALT_INDEX;
+const PHONEPE_HOST_URL = process.env.PHONEPE_HOST_URL;
+
 
 // Polyfill for fetch (Node.js 18+ has it built-in)
 if (!global.fetch) {
@@ -3173,6 +3179,59 @@ app.post('/api/phonepe/init', async (req, res) => {
   } catch (e) {
     console.error("PhonePe SDK Init Error:", e);
     res.status(500).json({ ok: false, error: 'Internal Server Error' });
+  }
+});
+
+// NEW: Signature Endpoint for Native Android SDK
+app.post('/api/phonepe/sign', async (req, res) => {
+  try {
+    const { userId, amount } = req.body;
+    if (!userId || !amount) {
+      return res.status(400).json({ ok: false, error: 'userId and amount required' });
+    }
+
+    const user = await User.findOne({ userId });
+    const userMobile = user ? (user.phone || "9999999999").replace(/[^0-9]/g, '').slice(-10) : "9999999999";
+    const merchantTransactionId = "TXN_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    const cleanUserId = userId.replace(/[^a-zA-Z0-9]/g, '');
+
+    // Record intent in DB
+    await Payment.create({
+      transactionId: merchantTransactionId,
+      merchantTransactionId,
+      userId,
+      amount,
+      status: 'pending'
+    });
+
+    // Native SDK Payload
+    const payload = {
+      merchantId: PHONEPE_MERCHANT_ID,
+      merchantTransactionId: merchantTransactionId,
+      merchantUserId: cleanUserId,
+      amount: amount * 100,
+      callbackUrl: "https://astro5star.com/api/phonepe/callback",
+      mobileNumber: userMobile,
+      paymentInstrument: {
+        type: "PAY_PAGE"
+      }
+    };
+
+    const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
+    const stringToSign = base64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY;
+    const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
+    const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
+
+    res.json({
+      ok: true,
+      payload: base64Payload,
+      checksum: checksum,
+      transactionId: merchantTransactionId
+    });
+
+  } catch (e) {
+    console.error("PhonePe Sign Error:", e);
+    res.status(500).json({ ok: false, error: 'Signing failed' });
   }
 });
 

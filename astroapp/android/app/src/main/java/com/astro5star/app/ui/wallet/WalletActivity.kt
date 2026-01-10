@@ -50,12 +50,25 @@ class WalletActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Refresh balance on resume (simple way without socket loop yet)
+        // Refresh balance on resume
+        updateBalanceUI()
+
+        // Listen for real-time updates
+        com.astro5star.app.data.remote.SocketManager.onWalletUpdate { newBalance ->
+            runOnUiThread {
+                tokenManager.updateWalletBalance(newBalance)
+                updateBalanceUI()
+            }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        com.astro5star.app.data.remote.SocketManager.off("wallet-update")
+    }
+
+    private fun updateBalanceUI() {
         val user = tokenManager.getUserSession()
         findViewById<TextView>(R.id.balanceText).text = "₹ ${user?.walletBalance ?: 0}"
-
-        // Note: Real balance update should come from API refresh call here
-        // But we don't have a standalone GET balance API yet, relying on Socket or session relogin
-        // For now, the PaymentStatusActivity will handle success message
     }
 }

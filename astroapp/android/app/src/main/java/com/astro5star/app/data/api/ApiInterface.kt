@@ -20,6 +20,12 @@ interface ApiInterface {
     @POST("api/payment/create")
     suspend fun initiatePayment(@Body request: PaymentInitiateRequest): Response<PaymentInitiateResponse>
 
+    @POST("api/phonepe/sign")
+    suspend fun signPhonePe(@Body request: PaymentInitiateRequest): Response<com.astro5star.app.data.model.PhonePeSignResponse>
+
+    @retrofit2.http.GET("api/phonepe/status/{transactionId}")
+    suspend fun checkPaymentStatus(@retrofit2.http.Path("transactionId") transactionId: String): Response<com.google.gson.JsonObject>
+
     // Add other endpoints as needed
     // @POST("register") ...
 }

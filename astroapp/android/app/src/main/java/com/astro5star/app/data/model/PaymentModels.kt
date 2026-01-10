@@ -13,3 +13,11 @@ data class PaymentInitiateResponse(
     val error: String?,
     val useWebFlow: Boolean?
 )
+
+data class PhonePeSignResponse(
+    val ok: Boolean,
+    val payload: String?,
+    val checksum: String?,
+    val transactionId: String?,
+    val error: String?
+)
