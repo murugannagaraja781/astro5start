@@ -3618,7 +3618,7 @@
           console.warn('[Android] Failed to clear session:', e);
         }
       }
-      //window.location.reload();
+      window.location.reload();
     }
 
     // Initialize Socket
@@ -4962,7 +4962,7 @@
     // End Session
     document.getElementById('btnEnd').onclick = () => {
       if (state.session) {
-        socket.emit('session-ended', { sessionId: state.session.id, toUserId: state.session.partnerId });
+        socket.emit('end-session', { sessionId: state.session.id, toUserId: state.session.partnerId });
       }
       endLocal();
     };
@@ -5604,6 +5604,18 @@
     socket.on('force-logout', () => {
       alert('Your account has been suspended by Admin.');
       clearSession();
+    });
+
+    socket.on('session-ended', (data) => {
+      console.log('Session ended by partner:', data);
+      alert('The session has been ended by the other party.');
+      // Keep session-screen hidden or reset UI
+      document.getElementById('screen-session').classList.add('hidden');
+      if (document.getElementById('screen-dashboard')) {
+        document.getElementById('screen-dashboard').classList.remove('hidden');
+      }
+      // Also stop local tracks if any
+      endCall();
     });
 
     // Geolocation

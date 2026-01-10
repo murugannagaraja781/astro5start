@@ -58,35 +58,36 @@ class IncomingCallActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Configure window for lock screen display
+        processIntent(intent)
         setupWindowFlags()
-
         setContentView(R.layout.activity_incoming_call)
-
-        // Extract call data from intent
-        callerId = intent.getStringExtra("callerId") ?: "Unknown"
-        callerName = intent.getStringExtra("callerName") ?: callerId
-        callId = intent.getStringExtra("callId") ?: ""
-
-        Log.d(TAG, "Incoming call from: $callerName ($callerId)")
-
-        // Cancel the full-screen notification since we're now showing the UI
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-        notificationManager.cancel(9999)
-
-        // Setup UI
         setupUI()
-
-        // Start foreground service to keep process alive
         startCallForegroundService()
-
-        // Start ringtone and vibration
         startRingtone()
         startVibration()
-
-        // Set timeout to auto-reject
         handler.postDelayed(timeoutRunnable, CALL_TIMEOUT_MS)
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        processIntent(intent)
+        setupUI() // Refresh UI with new data
+        // Reset timeout
+        handler.removeCallbacks(timeoutRunnable)
+        handler.postDelayed(timeoutRunnable, CALL_TIMEOUT_MS)
+    }
+
+    private fun processIntent(intent: Intent?) {
+        if (intent == null) return
+        callerId = intent.getStringExtra("callerId") ?: "Unknown"
+        callerName = intent.getStringExtra("callerName") ?: callerId
+        callId = intent.getStringExtra("callId") ?: "" // Room ID
+        Log.d(TAG, "Processing Call Intent: $callerName ($callId)")
+
+        // Cancel notification on new call
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        notificationManager.cancel(9999)
     }
 
     /**

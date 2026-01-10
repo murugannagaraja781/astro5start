@@ -1585,6 +1585,34 @@ io.on('connection', (socket) => {
     }
   });
 
+  // --- End Session (Sync for both sides) ---
+  socket.on('end-session', async (data) => {
+    try {
+      const { sessionId } = data || {};
+      const fromUserId = socketToUser.get(socket.id);
+
+      if (!fromUserId || !sessionId) return;
+
+      const session = activeSessions.get(sessionId);
+      if (session) {
+        // Find partner
+        const partnerId = session.users.find(u => u !== fromUserId);
+        const partnerSocketId = userSockets.get(partnerId);
+
+        if (partnerSocketId) {
+          io.to(partnerSocketId).emit('session-ended', {
+            sessionId,
+            reason: 'partner_ended'
+          });
+        }
+      }
+
+      endSessionRecord(sessionId);
+      console.log(`[Session] Ended by ${fromUserId}: ${sessionId}`);
+
+    } catch (e) { console.error('end-session error', e); }
+  });
+
   // --- Chat message (text / audio / file) ---
   socket.on('chat-message', (data) => {
     try {
