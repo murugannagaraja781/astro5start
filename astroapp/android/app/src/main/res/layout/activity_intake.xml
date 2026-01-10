@@ -180,7 +180,144 @@
             android:inputType="textPostalAddress"
             android:minHeight="48dp"
             android:completionThreshold="2"
-            android:layout_marginBottom="32dp"/>
+            android:layout_marginBottom="24dp"/>
+
+        <!-- New Fields: Marital, Occupation, Concern -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Marital Status (Optional)"
+            android:textColor="#666666"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp"/>
+        <Spinner
+            android:id="@+id/spMaritalStatus"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="16dp"
+            android:background="@android:drawable/btn_dropdown"
+            android:spinnerMode="dropdown"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Occupation (Optional)"
+            android:textColor="#666666"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp"/>
+        <EditText
+            android:id="@+id/etOccupation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="e.g. Engineer"
+            android:inputType="text"
+            android:minHeight="48dp"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Topic of Concern"
+            android:textColor="#666666"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp"/>
+        <Spinner
+            android:id="@+id/spTopic"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="24dp"
+            android:background="@android:drawable/btn_dropdown"
+            android:spinnerMode="dropdown"/>
+
+        <!-- Partner Section Checkbox -->
+        <CheckBox
+            android:id="@+id/cbPartner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Enter Partner's Details"
+            android:textSize="16sp"
+            android:padding="8dp"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Partner Details Container (Hidden by default) -->
+        <LinearLayout
+            android:id="@+id/layoutPartner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:background="#F5F5F5"
+            android:padding="16dp"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Partner's Name"
+                android:textColor="#666666"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp"/>
+            <EditText
+                android:id="@+id/etPartnerName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Partner Name"
+                android:inputType="textPersonName"
+                android:minHeight="48dp"
+                android:layout_marginBottom="16dp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Partner DOB"
+                android:textColor="#666666"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp"/>
+             <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+                <EditText android:id="@+id/etPartnerDay" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:hint="DD" android:inputType="number" android:gravity="center"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="/" android:padding="8dp"/>
+                <EditText android:id="@+id/etPartnerMonth" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:hint="MM" android:inputType="number" android:gravity="center"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="/" android:padding="8dp"/>
+                <EditText android:id="@+id/etPartnerYear" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:hint="YYYY" android:inputType="number" android:gravity="center"/>
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Partner Time"
+                android:textColor="#666666"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp"/>
+             <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+                <EditText android:id="@+id/etPartnerHour" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:hint="HH" android:inputType="number" android:gravity="center"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=":" android:padding="8dp"/>
+                <EditText android:id="@+id/etPartnerMinute" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:hint="MM" android:inputType="number" android:gravity="center"/>
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Partner Place"
+                android:textColor="#666666"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp"/>
+            <AutoCompleteTextView
+                android:id="@+id/etPartnerPlace"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="City, State"
+                android:inputType="textPostalAddress"
+                android:minHeight="48dp"
+                android:completionThreshold="2"/>
+        </LinearLayout>
 
         <!-- Connect Button -->
         <Button

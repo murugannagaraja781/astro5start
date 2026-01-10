@@ -96,6 +96,23 @@ class ChatActivity : AppCompatActivity() {
                      Toast.makeText(this, "Waiting for Client Data...", Toast.LENGTH_SHORT).show()
                 }
             }
+
+            // Match Button Logic
+            val btnMatch = findViewById<android.widget.ImageButton>(R.id.btnMatch)
+            // Check visibility based on data availability
+            if (clientBirthData?.has("partner") == true) {
+                btnMatch.visibility = View.VISIBLE
+            }
+
+            btnMatch.setOnClickListener {
+                if (clientBirthData != null && clientBirthData!!.has("partner")) {
+                     val intent = Intent(this, com.astro5star.app.ui.chart.MatchDisplayActivity::class.java)
+                     intent.putExtra("birthData", clientBirthData.toString())
+                     startActivity(intent)
+                } else {
+                    Toast.makeText(this, "Partner details not available", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
 
         // End Chat Logic
@@ -229,6 +246,11 @@ class ChatActivity : AppCompatActivity() {
                      clientBirthData = bData
                      runOnUiThread {
                          Toast.makeText(this@ChatActivity, "Client Data Updated", Toast.LENGTH_SHORT).show()
+                         // Refresh Match Button Visibility
+                         val role = TokenManager(this@ChatActivity).getUserSession()?.role
+                         if (role == "astrologer" && bData.has("partner")) {
+                             findViewById<View>(R.id.btnMatch).visibility = View.VISIBLE
+                         }
                      }
                  }
             } catch (e: Exception) { e.printStackTrace() }

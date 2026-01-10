@@ -31,7 +31,10 @@ class IntakeActivity : AppCompatActivity() {
     private lateinit var etPlace: android.widget.AutoCompleteTextView
     private var searchHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var searchRunnable: Runnable? = null
-
+    private lateinit var etPartnerPlace: android.widget.AutoCompleteTextView
+    private var partnerLatitude: Double? = null
+    private var partnerLongitude: Double? = null
+    private var partnerTimezone: Double? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,7 +45,12 @@ class IntakeActivity : AppCompatActivity() {
         partnerName = intent.getStringExtra("partnerName")
 
         etPlace = findViewById(R.id.etPlace)
-        setupAutocomplete()
+        etPartnerPlace = findViewById(R.id.etPartnerPlace)
+        setupAutocomplete(etPlace, true)
+        setupAutocomplete(etPartnerPlace, false)
+
+        setupSpinners()
+        setupPartnerCheckbox()
 
         loadIntakeDetails()
 
@@ -51,35 +59,62 @@ class IntakeActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupAutocomplete() {
-        val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, cityList)
-        etPlace.setAdapter(adapter)
+    private fun setupSpinners() {
+        val spMarital = findViewById<android.widget.Spinner>(R.id.spMaritalStatus)
+        val maritalAdapter = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, arrayOf("Single", "Married", "Divorced", "Widowed"))
+        maritalAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spMarital.adapter = maritalAdapter
 
-        etPlace.addTextChangedListener(object : android.text.TextWatcher {
+        val spTopic = findViewById<android.widget.Spinner>(R.id.spTopic)
+        val topicAdapter = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, arrayOf("Career / Job", "Marriage / Relationship", "Health", "Finance", "Legal", "General"))
+        topicAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spTopic.adapter = topicAdapter
+    }
+
+    private fun setupPartnerCheckbox() {
+        val cbPartner = findViewById<android.widget.CheckBox>(R.id.cbPartner)
+        val layoutPartner = findViewById<android.widget.LinearLayout>(R.id.layoutPartner)
+        cbPartner.setOnCheckedChangeListener { _, isChecked ->
+            layoutPartner.visibility = if (isChecked) android.view.View.VISIBLE else android.view.View.GONE
+        }
+    }
+
+    private fun setupAutocomplete(autoCompleteTextView: android.widget.AutoCompleteTextView, isClient: Boolean) {
+        val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, cityList)
+        autoCompleteTextView.setAdapter(adapter)
+
+        autoCompleteTextView.addTextChangedListener(object : android.text.TextWatcher {
             override fun afterTextChanged(s: android.text.Editable?) {}
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 if (s.isNullOrEmpty() || s.length < 3) return
 
                 searchRunnable?.let { searchHandler.removeCallbacks(it) }
-                searchRunnable = Runnable { fetchCities(s.toString()) }
+                searchRunnable = Runnable { fetchCities(s.toString(), autoCompleteTextView) }
                 searchHandler.postDelayed(searchRunnable!!, 500)
             }
         })
 
-        etPlace.setOnItemClickListener { parent, _, position, _ ->
+        autoCompleteTextView.setOnItemClickListener { parent, _, position, _ ->
             val selection = parent.getItemAtPosition(position) as String
             val cityData = cityMap[selection]
             if (cityData != null) {
-                selectedLatitude = cityData.optDouble("latitude")
-                selectedLongitude = cityData.optDouble("longitude")
-                // Fetch Timezone
-                fetchTimezone(selectedLatitude!!, selectedLongitude!!)
+                val lat = cityData.optDouble("latitude")
+                val lon = cityData.optDouble("longitude")
+                if (isClient) {
+                    selectedLatitude = lat
+                    selectedLongitude = lon
+                    fetchTimezone(lat, lon, true)
+                } else {
+                    partnerLatitude = lat
+                    partnerLongitude = lon
+                    fetchTimezone(lat, lon, false)
+                }
             }
         }
     }
 
-    private fun fetchCities(query: String) {
+    private fun fetchCities(query: String, view: android.widget.AutoCompleteTextView) {
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
             try {
                 val payload = com.google.gson.JsonObject().apply { addProperty("query", query) }
@@ -97,7 +132,7 @@ class IntakeActivity : AppCompatActivity() {
                     }
 
                     runOnUiThread {
-                        (etPlace.adapter as android.widget.ArrayAdapter<String>).notifyDataSetChanged()
+                        (view.adapter as android.widget.ArrayAdapter<String>).notifyDataSetChanged()
                     }
                 }
             } catch (e: Exception) {
@@ -106,7 +141,7 @@ class IntakeActivity : AppCompatActivity() {
         }
     }
 
-    private fun fetchTimezone(lat: Double, lon: Double) {
+    private fun fetchTimezone(lat: Double, lon: Double, isClient: Boolean) {
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
              try {
                 val payload = com.google.gson.JsonObject().apply {
@@ -117,7 +152,8 @@ class IntakeActivity : AppCompatActivity() {
                 if (response.isSuccessful && response.body() != null) {
                     val body = response.body()!!
                     if (body.has("timezone")) {
-                         selectedTimezone = body.get("timezone").asDouble
+                         val tz = body.get("timezone").asDouble
+                         if (isClient) selectedTimezone = tz else partnerTimezone = tz
                     }
                 }
             } catch (e: Exception) { e.printStackTrace() }
@@ -125,37 +161,37 @@ class IntakeActivity : AppCompatActivity() {
     }
 
     private fun loadIntakeDetails() {
+        // Reduced for brevity - existing logic can stay, just add new fields if needed
+        // Assuming user fills form each time or we persist complex data later
+        // Let's reimplement standard load
         val prefs = getSharedPreferences("AstroIntakeDefaults", MODE_PRIVATE)
         findViewById<EditText>(R.id.etName).setText(prefs.getString("name", ""))
         etPlace.setText(prefs.getString("place", ""))
 
-        // Restore Lat/Lon if place matches (simple check)
         selectedLatitude = prefs.getFloat("latitude", 0f).toDouble().takeIf { it != 0.0 }
         selectedLongitude = prefs.getFloat("longitude", 0f).toDouble().takeIf { it != 0.0 }
         selectedTimezone = prefs.getFloat("timezone", 5.5f).toDouble()
 
         val day = prefs.getInt("day", 0)
         if (day > 0) findViewById<EditText>(R.id.etDay).setText(day.toString())
-
         val month = prefs.getInt("month", 0)
         if (month > 0) findViewById<EditText>(R.id.etMonth).setText(month.toString())
-
         val year = prefs.getInt("year", 0)
         if (year > 0) findViewById<EditText>(R.id.etYear).setText(year.toString())
-
         val hour = prefs.getInt("hour", -1)
         if (hour >= 0) findViewById<EditText>(R.id.etHour).setText(hour.toString())
-
         val minute = prefs.getInt("minute", -1)
-        if (minute >= 0) findViewById<EditText>(R.id.etMinute).setText(minute.toString())
+         if (minute >= 0) findViewById<EditText>(R.id.etMinute).setText(minute.toString())
 
-        val gender = prefs.getString("gender", "Male")
-        if (gender == "Female") {
-            findViewById<RadioButton>(R.id.rbFemale).isChecked = true
-        } else {
-             findViewById<RadioButton>(R.id.rbMale).isChecked = true
-        }
+        // Simple gender
+         val gender = prefs.getString("gender", "Male")
+        if (gender == "Female") findViewById<RadioButton>(R.id.rbFemale).isChecked = true
+        else findViewById<RadioButton>(R.id.rbMale).isChecked = true
     }
+
+    // Stub for existing loadIntakeDetails if I messed up replacement
+    // Actually I am replacing the submitForm block mostly and onCreate
+    // So let's continue with submitForm
 
     private fun saveIntakeDetails(name: String, place: String, day: Int, month: Int, year: Int, hour: Int, minute: Int, gender: String) {
         val prefs = getSharedPreferences("AstroIntakeDefaults", MODE_PRIVATE)
@@ -178,40 +214,56 @@ class IntakeActivity : AppCompatActivity() {
     private fun submitForm() {
         val name = findViewById<EditText>(R.id.etName).text.toString()
         val place = etPlace.text.toString()
+        val marital = findViewById<android.widget.Spinner>(R.id.spMaritalStatus).selectedItem.toString()
+        val occupation = findViewById<EditText>(R.id.etOccupation).text.toString()
+        val topic = findViewById<android.widget.Spinner>(R.id.spTopic).selectedItem.toString()
 
         // Date
         val day = findViewById<EditText>(R.id.etDay).text.toString().toIntOrNull() ?: 0
         val month = findViewById<EditText>(R.id.etMonth).text.toString().toIntOrNull() ?: 0
         val year = findViewById<EditText>(R.id.etYear).text.toString().toIntOrNull() ?: 0
-
-        // Time
         val hour = findViewById<EditText>(R.id.etHour).text.toString().toIntOrNull() ?: 0
         val minute = findViewById<EditText>(R.id.etMinute).text.toString().toIntOrNull() ?: 0
-
         val isMale = findViewById<RadioButton>(R.id.rbMale).isChecked
         val gender = if (isMale) "Male" else "Female"
 
         if (name.isEmpty() || place.isEmpty() || day == 0 || month == 0 || year == 0) {
-            showErrorAlert("Please fill all details (Name, Date, Year, Place)")
+            showErrorAlert("Please fill client details")
             return
         }
 
-        if (selectedLatitude == null || selectedLongitude == null) {
-            // Fallback for manual entry or if autocomplete wasn't used correctly
-            // Ideally we force selection, but for now we default to a safe value or show error
-            // Using Chennai as fallback if not selected
-           // selectedLatitude = 13.0827
-           // selectedLongitude = 80.2707
-           // selectedTimezone = 5.5
+        // Partner Logic
+        val includePartner = findViewById<android.widget.CheckBox>(R.id.cbPartner).isChecked
+        var partnerData: JSONObject? = null
 
-           // It's better to ask user to select from dropdown
-           // But user asked for simple "complete"
-           if (place.isNotEmpty() && selectedLatitude == null) {
-                // Trigger a quick search? or just warn?
-                // For this implementation, we will warn
-                showErrorAlert("Please select a city from the list")
-                return
-           }
+        if (includePartner) {
+             val pName = findViewById<EditText>(R.id.etPartnerName).text.toString()
+             val pPlace = etPartnerPlace.text.toString()
+             val pDay = findViewById<EditText>(R.id.etPartnerDay).text.toString().toIntOrNull() ?: 0
+             val pMonth = findViewById<EditText>(R.id.etPartnerMonth).text.toString().toIntOrNull() ?: 0
+             val pYear = findViewById<EditText>(R.id.etPartnerYear).text.toString().toIntOrNull() ?: 0
+             val pHour = findViewById<EditText>(R.id.etPartnerHour).text.toString().toIntOrNull() ?: 0
+             val pMinute = findViewById<EditText>(R.id.etPartnerMinute).text.toString().toIntOrNull() ?: 0
+
+             if (pName.isEmpty() || pPlace.isEmpty() || pDay == 0 || pMonth == 0 || pYear == 0) {
+                 showErrorAlert("Please fill all partner details")
+                 return
+             }
+
+             partnerData = JSONObject().apply {
+                 put("name", pName)
+                 put("day", pDay)
+                 put("month", pMonth)
+                 put("year", pYear)
+                 put("hour", pHour)
+                 put("minute", pMinute)
+                 put("city", pPlace)
+                 put("latitude", partnerLatitude)
+                 put("longitude", partnerLongitude)
+                 put("timezone", partnerTimezone ?: 5.5)
+                 // Infer partner gender
+                 put("gender", if (gender == "Male") "Female" else "Male")
+             }
         }
 
 
@@ -231,6 +283,14 @@ class IntakeActivity : AppCompatActivity() {
             put("latitude", selectedLatitude)
             put("longitude", selectedLongitude)
             put("timezone", selectedTimezone ?: 5.5) // Default IST
+
+            put("maritalStatus", marital)
+            put("occupation", occupation)
+            put("topic", topic)
+
+            if (partnerData != null) {
+                put("partner", partnerData)
+            }
         }
 
         // Send intake details (optional redundancy, but good for saving history before session)

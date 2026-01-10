@@ -42,4 +42,7 @@ interface ApiInterface {
 
     @POST("api/charts/birth-chart")
     suspend fun getBirthChart(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/match/porutham")
+    suspend fun getMatchPorutham(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
 }
