@@ -84,11 +84,16 @@ class PaymentActivity : AppCompatActivity() {
         webView = android.webkit.WebView(this).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
+            settings.javaScriptCanOpenWindowsAutomatically = true
+            settings.setSupportMultipleWindows(true)
+
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT
             )
             visibility = android.view.View.GONE // Hidden by default
+
+            webChromeClient = android.webkit.WebChromeClient()
 
             webViewClient = object : android.webkit.WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, request: android.webkit.WebResourceRequest?): Boolean {
@@ -104,8 +109,6 @@ class PaymentActivity : AppCompatActivity() {
                          return true
                     }
                     if (url.contains("/api/payment/callback?isApp=true")) {
-                         // Check status parameter if possible, else assume success/process
-                         // Usually redirects to app specific scheme if configured
                          return false
                     }
 
@@ -122,24 +125,22 @@ class PaymentActivity : AppCompatActivity() {
                         }
                     }
 
-                    // Handle Intent URLs (UPI Apps)
+                    // Handle Intent URLs (Optimistic Try-Catch)
                     if (url.startsWith("intent://")) {
                         try {
                             val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
                             if (intent != null) {
-                                // Try finding the app
-                                val info = packageManager.resolveActivity(intent, 0)
-                                if (info != null) {
+                                try {
                                     startActivity(intent)
                                     return true
-                                } else {
+                                } catch (e: android.content.ActivityNotFoundException) {
                                     // App not installed, try fallback URL
                                     val fallbackUrl = intent.getStringExtra("browser_fallback_url")
                                     if (!fallbackUrl.isNullOrEmpty()) {
                                         view?.loadUrl(fallbackUrl)
                                         return true
                                     }
-                                    Toast.makeText(this@PaymentActivity, "App not installed", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(this@PaymentActivity, "Payment App not installed", Toast.LENGTH_SHORT).show()
                                     return true
                                 }
                             }
