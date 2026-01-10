@@ -2820,21 +2820,32 @@ app.post('/api/payment/callback', async (req, res) => {
   console.log('=================================');
 
   try {
-    const base64Response = req.body.response;
-    if (!base64Response) {
-      console.log('[CALLBACK ERROR] No base64Response found');
-      // Return HTML with alert instead of redirect
+    let decoded = {};
+
+    // Case 1: Base64 Encoded JSON (S2S or App Intent)
+    if (req.body.response) {
+      decoded = JSON.parse(Buffer.from(req.body.response, 'base64').toString('utf-8'));
+    }
+    // Case 2: Direct Form POST (Web Redirect)
+    else if (req.body.code || req.body.merchantTransactionId) {
+      decoded = req.body;
+    }
+    // Case 3: GET Query Params (Fallback)
+    else if (req.query.code || req.query.merchantTransactionId) {
+      decoded = req.query;
+    }
+    else {
+      console.log('[CALLBACK ERROR] No payment data found in Body or Query');
+      // Return HTML with alert
       return res.send(`
         <html><body>
-        <script>alert('ERROR: No payment response received!\\n\\nQuery: ${JSON.stringify(req.query)}');</script>
+        <script>alert('ERROR: No payment response received!\\n\\nQuery: ${JSON.stringify(req.query)}\\nBodyKeys: ${Object.keys(req.body)}');</script>
         <h1>Payment Error</h1>
         <p>No response from PhonePe</p>
         <a href="astro5://payment-failed">Back to App</a>
         </body></html>
       `);
     }
-
-    const decoded = JSON.parse(Buffer.from(base64Response, 'base64').toString('utf-8'));
 
     // PhonePe response format: { success, code, data: { merchantTransactionId, ... } }
     const code = decoded.code;
