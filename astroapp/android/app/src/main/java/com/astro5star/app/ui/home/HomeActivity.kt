@@ -297,37 +297,9 @@ class HomeActivity : AppCompatActivity() {
         // Request astrologer list
         socket?.emit("get-astrologers")
 
-        // Listen for session acceptance
-        SocketManager.onSessionAnswered { data ->
-            runOnUiThread {
-                activeDialog?.dismiss()
-                val accepted = data.optBoolean("accept", false) || data.optBoolean("accepted", false)
-                if (accepted) {
-                    val sessionId = data.optString("sessionId")
-                    val type = data.optString("type")
-                    val partnerId = data.optString("partnerId")
-                    val partnerName = data.optString("partnerName")
-
-                    if (type == "chat") {
-                        val intent = Intent(this, ChatActivity::class.java).apply {
-                            putExtra("sessionId", sessionId)
-                            putExtra("toUserId", partnerId)
-                            putExtra("toUserName", partnerName)
-                        }
-                        startActivity(intent)
-                    } else {
-                        val intent = Intent(this, com.astro5star.app.ui.call.CallActivity::class.java).apply {
-                            putExtra("sessionId", sessionId)
-                            putExtra("partnerId", partnerId)
-                            putExtra("isInitiator", true)
-                        }
-                        startActivity(intent)
-                    }
-                } else {
-                    showErrorAlert("Request rejected or missed by Astrologer.")
-                }
-            }
-        }
+        // SESSION ANSWERED LOGIC MOVED TO IntakeActivity
+        // HomeActivity no longer handles session establishment directly.
+        // It delegates to IntakeActivity which handles the waiting and navigation.
     }
 
     private var activeDialog: androidx.appcompat.app.AlertDialog? = null

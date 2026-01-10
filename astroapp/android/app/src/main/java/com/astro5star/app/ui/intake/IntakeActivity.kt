@@ -180,4 +180,13 @@ class IntakeActivity : AppCompatActivity() {
         }
         finish()
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            SocketManager.off("session-answered")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 }
