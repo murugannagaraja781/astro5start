@@ -13,6 +13,7 @@ const multer = require('multer');
 const admin = require('firebase-admin'); // Firebase Admin for Mobile App
 
 // PhonePe Config
+// PhonePe Config
 const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID;
 const PHONEPE_SALT_KEY = process.env.PHONEPE_SALT_KEY;
 const PHONEPE_SALT_INDEX = process.env.PHONEPE_SALT_INDEX;
@@ -2521,11 +2522,7 @@ app.post('/api/call/accept', async (req, res) => {
 
 // ===== Payment Gateway Logic (PhonePe) =====
 // Configuration from environment variables
-// Payment Gateway Config (PhonePe) - All values from .env
-const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || "M22LBBWEJKI6A";
-const PHONEPE_SALT_KEY = process.env.PHONEPE_SALT_KEY || "ba824dad-ed66-4cec-9d76-4c1e0b118eb1";
-const PHONEPE_SALT_INDEX = parseInt(process.env.PHONEPE_SALT_INDEX) || 1;
-const PHONEPE_HOST_URL = process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis/hermes"; // Production URL
+// Config moved to top of file
 
 // ===== Payment Token Store (In-Memory) =====
 // Token → { userId, amount, createdAt, used }

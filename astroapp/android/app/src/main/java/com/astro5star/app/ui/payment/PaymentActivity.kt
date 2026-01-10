@@ -13,7 +13,8 @@ import com.astro5star.app.data.api.ApiClient
 import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.data.model.PaymentInitiateRequest
 import com.astro5star.app.utils.showErrorAlert
-import com.phonepe.intent.sdk.api.TransactionRequest
+import com.phonepe.intent.sdk.api.models.transaction.TransactionRequest
+import com.phonepe.intent.sdk.api.models.transaction.paymentMode.PayPagePaymentMode
 import com.phonepe.intent.sdk.api.PhonePe
 import com.phonepe.intent.sdk.api.PhonePeKt
 import com.phonepe.intent.sdk.api.models.PhonePeEnvironment
@@ -75,20 +76,20 @@ class PaymentActivity : AppCompatActivity() {
                     val body = response.body()!!
                     val payloadBase64 = body.payload ?: ""
                     val checksum = body.checksum ?: ""
-                    // apiEndPoint must be "/pg/v1/pay" for standard intent flow
-                    val apiEndPoint = "/pg/v1/pay"
 
-                    // 2. Create SDK Request
-                    val transactionRequest = TransactionRequest.Builder()
-                        .setData(payloadBase64)
-                        .setChecksum(checksum)
-                        .setUrl(apiEndPoint)
-                        .build()
+                    // 2. Create SDK Request (Direct Constructor, no Builder)
+                    // Request: Payload, Checksum, PaymentMode
+                    val transactionRequest = TransactionRequest(
+                        payloadBase64,
+                        checksum,
+                        PayPagePaymentMode
+                    )
 
-                    // 3. Launch PhonePe Intent
+                    // 3. Launch PhonePe Intent using PhonePeKt
                     try {
-                        startActivityForResult(
-                            PhonePe.getTransactionIntent(this@PaymentActivity, transactionRequest),
+                        PhonePeKt.startTransaction(
+                            this@PaymentActivity,
+                            transactionRequest,
                             B2B_PG_REQUEST_CODE
                         )
                     } catch (e: Exception) {
