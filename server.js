@@ -146,6 +146,40 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));  // Serve static files
 
+// Fallback Wallet Route for App Users who get redirected to /wallet
+app.get('/wallet', (req, res) => {
+  const status = req.query.status || 'unknown';
+  const reason = req.query.reason || '';
+
+  // Construct Deep Link
+  const scheme = status === 'success' ? 'astro5://payment-success' : 'astro5://payment-failed';
+  const deepLink = `${scheme}?status=${status}&reason=${reason}`;
+  const intentUrl = `intent://payment-${status === 'success' ? 'success' : 'failed'}?status=${status}#Intent;scheme=astro5;package=com.astro5star.app;end`;
+
+  res.send(`
+    <html>
+      <head>
+        <title>Payment Status</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body { font-family: sans-serif; padding: 20px; text-align: center; }
+          .btn { background: #059669; color: white; padding: 15px 30px; border-radius: 8px; text-decoration: none; display: inline-block; margin-top: 20px; font-weight: bold;}
+        </style>
+      </head>
+      <body>
+        <h3>Payment ${status === 'success' ? 'Successful' : 'Completed'}</h3>
+        <p>Redirecting you back to the app...</p>
+        <a href="${deepLink}" class="btn">Return to App</a>
+        <script>
+          // Auto Redirect
+          setTimeout(() => { window.location.href = "${intentUrl}"; }, 500);
+          setTimeout(() => { window.location.href = "${deepLink}"; }, 1500);
+        </script>
+      </body>
+    </html>
+  `);
+});
+
 // Policy Page Routes
 app.get('/terms-condition', (req, res) => res.sendFile(path.join(__dirname, 'public/terms-condition.html')));
 app.get('/refund-cancellation-policy', (req, res) => res.sendFile(path.join(__dirname, 'public/refund-cancellation-policy.html')));
