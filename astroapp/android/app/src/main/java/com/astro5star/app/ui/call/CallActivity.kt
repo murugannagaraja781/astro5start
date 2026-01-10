@@ -44,12 +44,16 @@ class CallActivity : AppCompatActivity() {
     private val pendingIceCandidates = LinkedList<IceCandidate>()
 
     private val iceServers = listOf(
-        PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
-        // TODO: Add TURN servers here for production reliability behind firewalls
-        // PeerConnection.IceServer.builder("turn:your.turn.server:3478")
-        //     .setUsername("user")
-        //     .setPassword("pass")
-        //     .createIceServer()
+        PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
+        // Custom TURN Server
+        PeerConnection.IceServer.builder("turn:68.183.244.27:3478")
+            .setUsername("turnuser")
+            .setPassword("VeryStrongPasswordHere2025!")
+            .createIceServer(),
+        PeerConnection.IceServer.builder("turn:68.183.244.27:3478?transport=tcp")
+            .setUsername("turnuser")
+            .setPassword("VeryStrongPasswordHere2025!")
+            .createIceServer()
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {

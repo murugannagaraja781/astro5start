@@ -17,6 +17,7 @@ import com.astro5star.app.data.model.Astrologer
 import com.astro5star.app.data.remote.SocketManager
 import com.astro5star.app.ui.chat.ChatActivity
 import com.astro5star.app.ui.wallet.WalletActivity
+import com.astro5star.app.utils.showErrorAlert
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -143,7 +144,7 @@ class HomeActivity : AppCompatActivity() {
                 adapter.updateList(astrologers)
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading astrologers", e)
-                Toast.makeText(this@HomeActivity, "Failed to load astrologers", Toast.LENGTH_SHORT).show()
+                showErrorAlert("Failed to load astrologers. Please try again.")
             } finally {
                 progressBar.visibility = View.GONE
             }
@@ -301,7 +302,7 @@ class HomeActivity : AppCompatActivity() {
                         startActivity(intent)
                     }
                 } else {
-                    Toast.makeText(this, "Request rejected/missed", Toast.LENGTH_LONG).show()
+                    showErrorAlert("Request rejected or missed by Astrologer.")
                 }
             }
         }
@@ -310,40 +311,20 @@ class HomeActivity : AppCompatActivity() {
     private var activeDialog: androidx.appcompat.app.AlertDialog? = null
 
     private fun startChat(astro: Astrologer) {
-        initiateSession(astro, "chat")
+        initiateSession(astro.userId, "chat", astro.name)
     }
 
     private fun startCall(astro: Astrologer, type: String) {
-        initiateSession(astro, type)
+        initiateSession(astro.userId, type, astro.name)
     }
 
-    private fun initiateSession(astro: Astrologer, type: String) {
-        val session = tokenManager.getUserSession()
-        if (session == null) {
-            Toast.makeText(this, "Please login first", Toast.LENGTH_SHORT).show()
-            return
+    private fun initiateSession(astrologerId: String, type: String, astroName: String) {
+        val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
+            putExtra("partnerId", astrologerId)
+            putExtra("partnerName", astroName)
+            putExtra("type", type)
         }
-
-        if ((session.walletBalance ?: 0.0) < astro.price) {
-            Toast.makeText(this, "Insufficient wallet balance. Please recharge.", Toast.LENGTH_LONG).show()
-            startActivity(Intent(this, WalletActivity::class.java))
-            return
-        }
-
-        showWaitingDialog(astro, type)
-
-        SocketManager.requestSession(astro.userId, type) { response ->
-            runOnUiThread {
-                if (response?.optBoolean("ok") == true) {
-                    // Session Request Sent Successfully
-                    // Now we wait for 'session-answered' event
-                } else {
-                    activeDialog?.dismiss()
-                    val error = response?.optString("error") ?: "Failed to connect"
-                    Toast.makeText(this, error, Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
+        startActivity(intent)
     }
 
     private fun showWaitingDialog(astro: Astrologer, type: String) {

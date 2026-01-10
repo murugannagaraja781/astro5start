@@ -422,6 +422,10 @@ const offlineTimeouts = new Map(); // userId -> timeoutId
 const savedAstroStatus = new Map(); // userId -> { chat, audio, video, timestamp }
 const OFFLINE_GRACE_PERIOD = 5 * 60 * 1000; // 5 minutes
 
+// Session Disconnect Persistence (1-min grace period for calls)
+const sessionDisconnectTimeouts = new Map(); // userId -> timeoutId
+const SESSION_GRACE_PERIOD = 60 * 1000; // 60 seconds
+
 // --- Static Files & Root Route ---
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => {
@@ -791,6 +795,11 @@ async function endSessionRecord(sessionId) {
       if (userActiveSession.get(u) === sessionId) {
         userActiveSession.delete(u);
       }
+      // NEW: Clear any pending session disconnect timeouts for these users
+      if (sessionDisconnectTimeouts.has(u)) {
+        clearTimeout(sessionDisconnectTimeouts.get(u));
+        sessionDisconnectTimeouts.delete(u);
+      }
     });
   }
 
@@ -1093,9 +1102,21 @@ io.on('connection', (socket) => {
         });
         console.log(`User registered: ${user.name} (${user.role})`);
 
+        // Cancel pending SESSION timeout (For ALL users - Client or Astrologer)
+        if (sessionDisconnectTimeouts.has(userId)) {
+          clearTimeout(sessionDisconnectTimeouts.get(userId));
+          sessionDisconnectTimeouts.delete(userId);
+          console.log(`[Session] Cancelled disconnect timeout for ${user.name} (reconnected in time!)`);
+
+          // Re-join the user to the socket room?
+          // If we depend on socket.id for targeting, we update userSockets above so it should be fine.
+          // However, if we used rooms for sessions, we'd need to re-join.
+          // Current logic uses userSockets.get(userId) to target, so updating the map is sufficient.
+        }
+
         // If astro, handle reconnection status restoration
         if (user.role === 'astrologer') {
-          // Cancel any pending offline timeout
+          // Cancel pending offline timeout (Status)
           if (offlineTimeouts.has(userId)) {
             clearTimeout(offlineTimeouts.get(userId));
             offlineTimeouts.delete(userId);
@@ -1352,7 +1373,7 @@ io.on('connection', (socket) => {
           sessionId: sessionId,
           callType: type,
           callerName: fromUser?.name || 'Client',
-          callerUserId: fromUserId,
+          callerId: fromUserId, // Fixed: callerUserId -> callerId
           timestamp: Date.now().toString()
         };
 
@@ -1632,19 +1653,18 @@ io.on('connection', (socket) => {
 
       if (toUser && toUser.fcmToken) {
         const payload = {
-          type: 'chat',
-          title: fromUser?.name || 'New Message',
-          body: messageText,
-          senderId: fromUserId,
-          sessionId: sessionId || '',
+          type: 'INCOMING_CALL',
           callType: 'chat',
-          callerId: fromUserId,     // For consistency with FCMService.kt
-          callerName: fromUser?.name || 'User' // For consistency
+          sessionId: sessionId || `chat_${Date.now()}`,
+          callerName: fromUser?.name || 'Client',
+          callerId: fromUserId,
+          body: messageText.substring(0, 100),
+          timestamp: Date.now().toString()
         };
 
         const notification = {
-          title: payload.title,
-          body: payload.body
+          title: `Message from ${fromUser?.name}`,
+          body: messageText.substring(0, 100)
         };
 
         await sendFcmV1Push(toUser.fcmToken, payload, notification);
@@ -2300,24 +2320,45 @@ io.on('connection', (socket) => {
 
       const sid = userActiveSession.get(userId);
       if (sid) {
-        // We can optionally update Session end time in DB here
-        const s = activeSessions.get(sid);
-        if (s) {
-          Session.updateOne({ sessionId: sid }, { endTime: Date.now(), duration: Date.now() - s.startedAt }).catch(() => { });
+        // --- FIX: Don't end session immediately. Give grace period. ---
+        console.log(`[Session] User ${userId} disconnected. Starting grace period for Session ${sid}`);
+
+        // Clear existing if any (debounce)
+        if (sessionDisconnectTimeouts.has(userId)) {
+          clearTimeout(sessionDisconnectTimeouts.get(userId));
         }
 
-        const otherUserId = getOtherUserIdFromSession(sid, userId);
-        endSessionRecord(sid); // This cleans up memory maps
+        const timeoutId = setTimeout(() => {
+          // If this runs, it means user didn't reconnect in time
+          console.log(`[Session] Grace period expired for ${userId}. Ending Session ${sid}`);
 
-        if (otherUserId) {
-          const targetSocketId = userSockets.get(otherUserId);
-          if (targetSocketId) {
-            io.to(targetSocketId).emit('session-ended', { sessionId: sid });
+          sessionDisconnectTimeouts.delete(userId);
+
+          // Double check if session still active (maybe other user ended it?)
+          const s = activeSessions.get(sid);
+          if (s) {
+            // We can optionally update Session end time in DB here
+            Session.updateOne({ sessionId: sid }, { endTime: Date.now(), duration: Date.now() - s.startedAt }).catch(() => { });
+
+            const otherUserId = getOtherUserIdFromSession(sid, userId);
+
+            // NOW we end it
+            endSessionRecord(sid);
+
+            if (otherUserId) {
+              const targetSocketId = userSockets.get(otherUserId);
+              if (targetSocketId) {
+                // Notify other user that partner dropped
+                io.to(targetSocketId).emit('session-ended', {
+                  sessionId: sid,
+                  reason: 'partner_disconnected'
+                });
+              }
+            }
           }
-        }
-        console.log(
-          `Session auto-ended due to disconnect: sessionId=${sid}, fromUserId=${userId}, otherUser=${otherUserId}`
-        );
+        }, SESSION_GRACE_PERIOD);
+
+        sessionDisconnectTimeouts.set(userId, timeoutId);
       }
     } else {
       console.log('Socket disconnected (no user):', socket.id);

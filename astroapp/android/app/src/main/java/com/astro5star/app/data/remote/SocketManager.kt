@@ -62,17 +62,20 @@ object SocketManager {
 
     // --- Session & Call Signaling ---
 
-    fun requestSession(toUserId: String, type: String, callback: (JSONObject?) -> Unit) {
+    fun requestSession(toUserId: String, type: String, birthData: JSONObject? = null, callback: ((JSONObject?) -> Unit)? = null) {
         val payload = JSONObject().apply {
             put("toUserId", toUserId)
             put("type", type)
+            if (birthData != null) {
+                put("birthData", birthData)
+            }
         }
         // Use Ack for callback
         socket?.emit("request-session", payload, Ack { args ->
             if (args != null && args.isNotEmpty()) {
-                callback(args[0] as? JSONObject)
+                callback?.invoke(args[0] as? JSONObject)
             } else {
-                callback(null)
+                callback?.invoke(null)
             }
         })
     }

@@ -42,6 +42,21 @@ class ChatActivity : AppCompatActivity() {
         val recyclerChat = findViewById<RecyclerView>(R.id.recyclerChat)
         val inputMessage = findViewById<EditText>(R.id.inputMessage)
         val btnSend = findViewById<Button>(R.id.btnSend)
+        val btnEndChat = findViewById<Button>(R.id.btnEndChat)
+        val tvChatTitle = findViewById<TextView>(R.id.tvChatTitle)
+
+        // Set Title
+        val partnerName = intent.getStringExtra("toUserName") ?: "Chat"
+        tvChatTitle.text = partnerName
+
+        // End Chat Logic
+        btnEndChat.setOnClickListener {
+            if (sessionId != null) {
+                SocketManager.endSession(sessionId)
+                Toast.makeText(this, "Chat Ended", Toast.LENGTH_SHORT).show()
+            }
+            finish()
+        }
 
         adapter = ChatAdapter(messages)
         recyclerChat.layoutManager = LinearLayoutManager(this)
