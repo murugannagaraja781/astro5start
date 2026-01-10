@@ -115,7 +115,7 @@ class HomeActivity : AppCompatActivity() {
             try {
                 // Ensure ApiClient is accessible or use internal valid method
                 // We use the new endpoint added to ApiInterface
-                val response = com.astro5star.app.data.api.ApiClient.apiInterface.getUserProfile(userId)
+                val response = com.astro5star.app.data.api.ApiClient.api.getUserProfile(userId)
                 if (response.isSuccessful && response.body() != null) {
                     val user = response.body()!!
                     runOnUiThread {

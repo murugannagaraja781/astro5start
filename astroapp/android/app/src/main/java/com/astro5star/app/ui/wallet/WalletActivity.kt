@@ -78,7 +78,7 @@ class WalletActivity : AppCompatActivity() {
         val userId = tokenManager.getUserSession()?.userId ?: return
         lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
-                val response = ApiClient.apiInterface.getUserProfile(userId)
+                val response = ApiClient.api.getUserProfile(userId)
                 if (response.isSuccessful && response.body() != null) {
                     val user = response.body()!!
                     runOnUiThread {
