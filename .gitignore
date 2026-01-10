@@ -40,10 +40,10 @@ temp/
 coverage/
 
 # Mobile native builds (if any)
-astrofivestar-mobile-native/node_modules/
-astrofivestar-mobile-native/android/.gradle/
-astrofivestar-mobile-native/android/app/build/
-astrofivestar-mobile-native/android/build/
+astroapp/android/.gradle/
+astroapp/android/app/build/
+astroapp/android/build/
+astrofivestar-mobile-native/ios/Pods/
 astrofivestar-mobile-native/ios/Pods/
 *.apk
 *.aab
