@@ -110,14 +110,15 @@ class PaymentActivity : AppCompatActivity() {
                     }
 
                     // Handle UPI and Payment Deep Links
-                    if (url.startsWith("upi://") || url.startsWith("phonepe://") || url.startsWith("tez://") || url.startsWith("paytmmp://")) {
+                    if (url.startsWith("upi://") || url.startsWith("phonepe://") || url.startsWith("tez://") || url.startsWith("paytmmp://") || url.startsWith("gpay://") || url.startsWith("bhim://")) {
                         try {
                             val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
                             startActivity(intent)
                             return true
                         } catch (e: Exception) {
-                             Log.e(TAG, "Deep Link Error", e)
-                             // Fallback? Toast?
+                            Log.e(TAG, "Deep Link Error", e)
+                            Toast.makeText(this@PaymentActivity, "App not installed for this payment method", Toast.LENGTH_SHORT).show()
+                            return true
                         }
                     }
 
@@ -125,9 +126,22 @@ class PaymentActivity : AppCompatActivity() {
                     if (url.startsWith("intent://")) {
                         try {
                             val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
-                             if (intent != null) {
-                                startActivity(intent)
-                                return true
+                            if (intent != null) {
+                                // Try finding the app
+                                val info = packageManager.resolveActivity(intent, 0)
+                                if (info != null) {
+                                    startActivity(intent)
+                                    return true
+                                } else {
+                                    // App not installed, try fallback URL
+                                    val fallbackUrl = intent.getStringExtra("browser_fallback_url")
+                                    if (!fallbackUrl.isNullOrEmpty()) {
+                                        view?.loadUrl(fallbackUrl)
+                                        return true
+                                    }
+                                    Toast.makeText(this@PaymentActivity, "App not installed", Toast.LENGTH_SHORT).show()
+                                    return true
+                                }
                             }
                         } catch (e: Exception) {
                             Log.e(TAG, "Intent Parse Error", e)
@@ -210,27 +224,16 @@ class PaymentActivity : AppCompatActivity() {
 
                     if (!token.isNullOrEmpty()) {
                         // 2. Construct URL
-                        val paymentPageUrl = "$SERVER_URL/payment.html?token=$token"
-                        Log.d(TAG, "Opening Payment Page: $paymentPageUrl")
+                        val paymentPageUrl = "$SERVER_URL/payment.html?token=$token&isApp=true"
+                        Log.d(TAG, "Opening Payment Page in WebView: $paymentPageUrl")
 
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(paymentPageUrl))
-                            startActivity(intent)
-
-                            statusText.text = "Complete payment in Browser..."
-                            statusText.visibility = android.view.View.VISIBLE
-                            if (::webView.isInitialized) webView.visibility = android.view.View.GONE
-
-                            // We can close the activity or wait for user to return manually
-                            // Since payment.html handles success, we just wait/finish
-                            Toast.makeText(this@PaymentActivity, "Please complete payment in browser", Toast.LENGTH_LONG).show()
-                            delay(2000)
-                            finish() // Close activity so user returns to Wallet/Home
-
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Browser Launch Error", e)
-                            showError("Could not open browser. Please install Chrome.")
+                        runOnUiThread {
+                            // Show WebView, Hide Status
+                            statusText.visibility = android.view.View.GONE
+                            webView.visibility = android.view.View.VISIBLE
+                            webView.loadUrl(paymentPageUrl)
                         }
+
                     } else {
                         showError("Server did not return a valid token")
                     }
