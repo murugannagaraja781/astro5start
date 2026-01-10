@@ -172,13 +172,14 @@
             android:textColor="#666666"
             android:textSize="14sp"
             android:layout_marginBottom="8dp"/>
-        <EditText
+        <AutoCompleteTextView
             android:id="@+id/etPlace"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="City, State"
             android:inputType="textPostalAddress"
-             android:minHeight="48dp"
+            android:minHeight="48dp"
+            android:completionThreshold="2"
             android:layout_marginBottom="32dp"/>
 
         <!-- Connect Button -->

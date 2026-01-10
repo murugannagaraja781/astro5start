@@ -40,9 +40,30 @@ class ChatActivity : AppCompatActivity() {
         handleIntent(intent)
     }
 
+    private var clientBirthData: JSONObject? = null
+
     private fun handleIntent(intent: Intent?) {
         toUserId = intent?.getStringExtra("toUserId")
         sessionId = intent?.getStringExtra("sessionId")
+        val birthDataStr = intent?.getStringExtra("birthData")
+        if (!birthDataStr.isNullOrEmpty()) {
+             try {
+                // If it is stringified JSON, parse it?
+                // Actually server sent JSON.stringify(), so it is a string.
+                // But JSONObject(string) handles it.
+                // Sometimes it might be double encoded if not careful, but let's assume it's one level.
+                // Or if it was coming from Socket it comes as object.
+                // Wait, Intent extra is String.
+                val obj = JSONObject(birthDataStr)
+                // If it's wrapped in { birthData: ... } or just raw fields?
+                // Server: birthData = JSON.stringify(birthData || {})
+                // So it is the raw birth data key-values.
+                if (obj.length() > 0) {
+                     clientBirthData = obj
+                     Toast.makeText(this, "Client Birth Data Received", Toast.LENGTH_SHORT).show()
+                }
+             } catch (e: Exception) { e.printStackTrace() }
+        }
 
         if (sessionId == null) {
             Toast.makeText(this, "Session ID Missing", Toast.LENGTH_SHORT).show()
@@ -58,11 +79,27 @@ class ChatActivity : AppCompatActivity() {
         val inputMessage = findViewById<EditText>(R.id.inputMessage)
         val btnSend = findViewById<Button>(R.id.btnSend)
         val btnEndChat = findViewById<Button>(R.id.btnEndChat)
+        val btnChart = findViewById<android.widget.ImageButton>(R.id.btnChart)
         val tvChatTitle = findViewById<TextView>(R.id.tvChatTitle)
 
         // Set Title
         val partnerName = intent.getStringExtra("toUserName") ?: "Chat"
         tvChatTitle.text = partnerName
+
+        // Chart Button Logic
+        val role = TokenManager(this).getUserSession()?.role
+        if (role == "astrologer") {
+            btnChart.visibility = View.VISIBLE
+            btnChart.setOnClickListener {
+                if (clientBirthData != null) {
+                    val intent = Intent(this, com.astro5star.app.ui.chart.ChartDisplayActivity::class.java)
+                    intent.putExtra("birthData", clientBirthData.toString())
+                    startActivity(intent)
+                } else {
+                     Toast.makeText(this, "Waiting for Client Data...", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
 
         // End Chat Logic
         btnEndChat.setOnClickListener {
@@ -142,6 +179,20 @@ class ChatActivity : AppCompatActivity() {
                 adapter.notifyItemInserted(messages.size - 1)
                 recyclerChat?.scrollToPosition(messages.size - 1)
             }
+        }
+
+        // Listen for Birth Data Update
+        socket?.on("client-birth-chart") { args ->
+            try {
+                 val data = args[0] as JSONObject
+                 val bData = data.optJSONObject("birthData")
+                 if (bData != null) {
+                     clientBirthData = bData
+                     runOnUiThread {
+                         Toast.makeText(this@ChatActivity, "Client Data Updated", Toast.LENGTH_SHORT).show()
+                     }
+                 }
+            } catch (e: Exception) { e.printStackTrace() }
         }
 
         // Listen for Session End

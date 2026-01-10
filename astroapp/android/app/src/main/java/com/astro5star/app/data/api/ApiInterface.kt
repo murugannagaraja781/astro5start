@@ -34,4 +34,12 @@ interface ApiInterface {
 
     // Add other endpoints as needed
     // @POST("register") ...
+    @POST("api/city-autocomplete")
+    suspend fun searchCity(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/city-timezone")
+    suspend fun getCityTimezone(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/charts/birth-chart")
+    suspend fun getBirthChart(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
 }

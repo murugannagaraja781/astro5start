@@ -159,6 +159,7 @@ class FCMService : FirebaseMessagingService() {
             putExtra("callerName", callerName)
             putExtra("callId", callId)
             putExtra("callType", callType) // Pass type to activity
+            putExtra("birthData", data["birthData"]) // Pass birthData
         }
 
         // Create pending intent for full-screen notification

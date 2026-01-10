@@ -106,6 +106,10 @@
         <activity android:name=".ui.chat.ChatActivity" android:windowSoftInputMode="adjustResize"/>
         <activity android:name=".ui.call.CallActivity" android:screenOrientation="portrait"/>
         <activity android:name=".ui.intake.IntakeActivity" android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".ui.chart.ChartDisplayActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".ui.wallet.PaymentStatusActivity"

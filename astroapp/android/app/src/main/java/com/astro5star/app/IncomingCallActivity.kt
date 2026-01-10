@@ -49,6 +49,7 @@ class IncomingCallActivity : AppCompatActivity() {
     private var callerId: String = ""
     private var callerName: String = ""
     private var callId: String = ""
+    private var birthData: String? = null
 
     // Auto-reject call after timeout
     private val timeoutRunnable = Runnable {
@@ -100,6 +101,7 @@ class IncomingCallActivity : AppCompatActivity() {
         callerName = intent.getStringExtra("callerName") ?: callerId
         callId = intent.getStringExtra("callId") ?: "" // Room ID
         callType = intent.getStringExtra("callType") ?: "audio"
+        birthData = intent.getStringExtra("birthData")
         Log.d(TAG, "Processing Call Intent: $callerName ($callId) Type: $callType")
 
         // Cancel notification on new call
@@ -246,6 +248,7 @@ class IncomingCallActivity : AppCompatActivity() {
                 putExtra("toUserId", callerId)
                 putExtra("toUserName", callerName)
                 putExtra("isNewRequest", true) // Now safe to auto-accept since user clicked Accept
+                putExtra("birthData", birthData)
             }
         } else {
             intent = Intent(this, com.astro5star.app.ui.call.CallActivity::class.java).apply {
@@ -254,6 +257,7 @@ class IncomingCallActivity : AppCompatActivity() {
                 putExtra("partnerName", callerName) // Pass name for UI
                 putExtra("isInitiator", false)
                 putExtra("callType", callType) // Pass audio/video type
+                putExtra("birthData", birthData)
             }
         }
         startActivity(intent)

@@ -1442,7 +1442,8 @@ io.on('connection', (socket) => {
           callType: type,
           callerName: fromUser?.name || 'Client',
           callerId: fromUserId, // Fixed: callerUserId -> callerId
-          timestamp: Date.now().toString()
+          timestamp: Date.now().toString(),
+          birthData: JSON.stringify(birthData || {})
         };
 
         const fcmNotification = {
