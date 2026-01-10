@@ -109,6 +109,18 @@ class PaymentActivity : AppCompatActivity() {
                          return false
                     }
 
+                    // Handle UPI and Payment Deep Links
+                    if (url.startsWith("upi://") || url.startsWith("phonepe://") || url.startsWith("tez://") || url.startsWith("paytmmp://")) {
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                            startActivity(intent)
+                            return true
+                        } catch (e: Exception) {
+                             Log.e(TAG, "Deep Link Error", e)
+                             // Fallback? Toast?
+                        }
+                    }
+
                     // Handle Intent URLs (UPI Apps)
                     if (url.startsWith("intent://")) {
                         try {
