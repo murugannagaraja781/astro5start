@@ -4,13 +4,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F0FDF4">
+    android:background="@color/background">
 
     <!-- Toolbar -->
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/white"
+        android:background="@color/surface"
         app:elevation="4dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -26,7 +26,7 @@
                 android:text="🌟 Astro 5 Star"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                android:textColor="#047857"
+                android:textColor="@color/primary"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"/>
@@ -56,7 +56,7 @@
                     android:text="₹369"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    android:textColor="#047857"
+                    android:textColor="@color/primary"
                     android:layout_marginStart="4dp"/>
             </LinearLayout>
 
@@ -66,7 +66,7 @@
                 android:layout_height="48dp"
                 android:src="@android:drawable/ic_lock_power_off"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:tint="#D32F2F"
+                android:tint="@color/error"
                 app:layout_constraintEnd_toStartOf="@+id/layoutWallet"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
@@ -91,9 +91,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="@android:color/white">
+                style="@style/CardStyle">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -107,7 +105,7 @@
                         android:text="🎯 இன்றைய ராசிபலன்"
                         android:textSize="16sp"
                         android:textStyle="bold"
-                        android:textColor="#047857"/>
+                        android:textColor="@color/primary"/>
 
                     <TextView
                         android:id="@+id/tvHoroscope"
@@ -115,7 +113,7 @@
                         android:layout_height="wrap_content"
                         android:text="Loading..."
                         android:textSize="14sp"
-                        android:textColor="#374151"
+                        android:textColor="@color/text_secondary"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="4dp"/>
                 </LinearLayout>
@@ -128,7 +126,7 @@
                 android:text="👨‍🔬 Available Astrologers"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:textColor="#1F2937"
+                android:textColor="@color/text_primary"
                 android:layout_marginBottom="12dp"/>
 
             <!-- Astrologer List -->
@@ -147,6 +145,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:visibility="gone"/>
+        android:visibility="gone"
+        android:indeterminateTint="@color/primary"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

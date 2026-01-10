@@ -5,9 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="3dp"
-    app:cardBackgroundColor="@android:color/white">
+    style="@style/CardStyle">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -65,7 +63,7 @@
                         android:text="Astrologer Name"
                         android:textSize="16sp"
                         android:textStyle="bold"
-                        android:textColor="#1F2937"/>
+                        android:textColor="@color/text_primary"/>
 
                     <!-- Verified Badge -->
                     <TextView
@@ -74,7 +72,7 @@
                         android:layout_height="wrap_content"
                         android:text="✓"
                         android:textSize="14sp"
-                        android:textColor="#3B82F6"
+                        android:textColor="@color/secondary"
                         android:layout_marginStart="4dp"
                         android:visibility="gone"/>
                 </LinearLayout>
@@ -86,7 +84,7 @@
                     android:layout_height="wrap_content"
                     android:text="Vedic, Prashna"
                     android:textSize="13sp"
-                    android:textColor="#6B7280"
+                    android:textColor="@color/text_secondary"
                     android:layout_marginTop="2dp"
                     android:maxLines="1"
                     android:ellipsize="end"/>
@@ -104,7 +102,7 @@
                         android:layout_height="wrap_content"
                         android:text="⭐ 5 yrs"
                         android:textSize="12sp"
-                        android:textColor="#F59E0B"/>
+                        android:textColor="#F59E0B"/> <!-- Gold for star can stay or use accent -->
 
                     <TextView
                         android:id="@+id/tvPrice"
@@ -113,7 +111,7 @@
                         android:text="₹15/min"
                         android:textSize="13sp"
                         android:textStyle="bold"
-                        android:textColor="#047857"
+                        android:textColor="@color/primary"
                         android:layout_marginStart="12dp"/>
                 </LinearLayout>
             </LinearLayout>
@@ -137,7 +135,7 @@
                 android:textSize="12sp"
                 android:textAllCaps="false"
                 android:background="@drawable/btn_chat_bg"
-                android:textColor="#2563EB"
+                android:textColor="@color/primary"
                 android:layout_marginEnd="6dp"/>
 
             <!-- Audio Call Button -->
@@ -150,7 +148,7 @@
                 android:textSize="12sp"
                 android:textAllCaps="false"
                 android:background="@drawable/btn_audio_bg"
-                android:textColor="#059669"
+                android:textColor="@color/primary"
                 android:layout_marginHorizontal="6dp"/>
 
             <!-- Video Call Button -->
@@ -163,8 +161,9 @@
                 android:textSize="12sp"
                 android:textAllCaps="false"
                 android:background="@drawable/btn_video_bg"
-                android:textColor="#D97706"
+                android:textColor="@color/warning"
                 android:layout_marginStart="6dp"/>
+                 <!-- Warning Color for Video? Or just Orange. Let's keep Orange if it fits -->
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

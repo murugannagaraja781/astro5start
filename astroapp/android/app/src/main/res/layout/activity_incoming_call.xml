@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FAFAFA"
+    android:background="@color/background"
     tools:context=".IncomingCallActivity">
 
     <!-- Top Status Bar Area (Optional) -->
@@ -14,7 +14,7 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="100dp"
         android:text="Incoming call"
-        android:textColor="#808080"
+        android:textColor="@color/text_secondary"
         android:textSize="16sp" />
 
     <!-- Center Avatar Area -->
@@ -31,7 +31,7 @@
             android:layout_width="160dp"
             android:layout_height="160dp"
             android:background="@drawable/circle_bg"
-            android:backgroundTint="#F0F0F0"
+            android:backgroundTint="@color/surface"
             android:padding="20dp">
 
             <ImageView
@@ -49,7 +49,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Astrologer Name"
-            android:textColor="#333333"
+            android:textColor="@color/text_primary"
             android:textSize="24sp"
             android:textStyle="bold" />
 
@@ -59,7 +59,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="Calling..."
-            android:textColor="#808080"
+            android:textColor="@color/text_secondary"
             android:textSize="14sp" />
 
     </LinearLayout>
@@ -93,7 +93,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Decline"
-                android:textColor="#808080"
+                android:textColor="@color/text_secondary"
                 android:textSize="12sp"
                 android:layout_marginTop="8dp"/>
         </LinearLayout>
@@ -120,7 +120,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Accept"
-                android:textColor="#808080"
+                android:textColor="@color/text_secondary"
                 android:textSize="12sp"
                 android:layout_marginTop="8dp"/>
         </LinearLayout>

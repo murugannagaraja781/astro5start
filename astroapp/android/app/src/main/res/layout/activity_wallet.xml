@@ -4,7 +4,8 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="24dp"
-    android:gravity="center_horizontal">
+    android:gravity="center_horizontal"
+    android:background="@color/background">
 
     <TextView
         android:layout_width="wrap_content"
@@ -12,13 +13,15 @@
         android:text="My Wallet"
         android:textSize="24sp"
         android:textStyle="bold"
+        android:textColor="@color/primary"
         android:layout_marginBottom="32dp"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Current Balance"
-        android:textSize="16sp"/>
+        android:textSize="16sp"
+        android:textColor="@color/text_secondary"/>
 
     <TextView
         android:id="@+id/balanceText"
@@ -27,22 +30,29 @@
         android:text="₹ 0"
         android:textSize="48sp"
         android:textStyle="bold"
-        android:textColor="@android:color/holo_green_dark"
+        android:textColor="@color/primary"
         android:layout_marginBottom="48dp"/>
 
-    <EditText
-        android:id="@+id/amountInput"
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        style="@style/InputStyle"
         android:hint="Enter Amount (e.g. 100)"
-        android:inputType="number"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginBottom="16dp">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/amountInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_primary"
+            android:inputType="number"/>
+    </com.google.android.material.textfield.TextInputLayout>
 
     <Button
         android:id="@+id/btnAddMoney"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Recharge Wallet" />
+        android:layout_height="56dp"
+        android:text="Recharge Wallet"
+        style="@style/ButtonStyle.Primary"/>
 
     <TextView
         android:layout_width="match_parent"
@@ -50,6 +60,7 @@
         android:text="Recent Transactions"
         android:textSize="18sp"
         android:textStyle="bold"
+        android:textColor="@color/text_primary"
         android:layout_marginTop="24dp"
         android:layout_marginBottom="8dp"/>
 
