@@ -1,32 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Primary colors -->
-    <color name="primary">#4CAF50</color>
-    <color name="primary_dark">#388E3C</color>
-    <color name="primary_light">#C8E6C9</color>
-    
-    <!-- Accent color -->
-    <color name="accent">#2196F3</color>
-    
-    <!-- Background colors -->
-    <color name="background">#FFFFFF</color>
-    <color name="surface">#F5F5F5</color>
-    
-    <!-- Text colors -->
-    <color name="text_primary">#212121</color>
-    <color name="text_secondary">#757575</color>
-    <color name="text_tertiary">#9E9E9E</color>
-    
-    <!-- Incoming call screen colors (dark theme) -->
-    <color name="call_background">#1A1A2E</color>
-    <color name="call_text_primary">#FFFFFF</color>
-    <color name="call_text_secondary">#B0B0B0</color>
-    <color name="call_text_tertiary">#707070</color>
-    
-    <!-- Call action buttons -->
+    <!-- Strict Design System Colors -->
+    <!-- Primary: Deep Forest Green -->
+    <color name="primary">#1B5E20</color>
+    <!-- Secondary: Soft Natural Green -->
+    <color name="primary_variant">#4CAF50</color>
+    <color name="secondary">#4CAF50</color>
+    <!-- Accent: Mint Green -->
+    <color name="accent">#A5D6A7</color>
+
+    <!-- Backgrounds (Light Premium) -->
+    <color name="background">#F8F9FA</color> <!-- Soft Off-White -->
+    <color name="surface">#FFFFFF</color>    <!-- Pure White Cards -->
+
+    <!-- Text (Dark on Light) -->
+    <color name="text_primary">#111827</color> <!-- Dark Slate Text -->
+    <color name="text_muted">#6B7280</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="text_on_primary">#FFFFFF</color>
+
+    <!-- Status -->
+    <color name="success">#4CAF50</color>
+    <color name="error">#EF5350</color>
+
+    <!-- Incoming Call / Chat Specific (Light Mode Adapatation) -->
+    <color name="call_background">#FFFFFF</color>
+    <color name="call_text_primary">#111827</color>
+    <color name="call_text_secondary">#6B7280</color>
+    <color name="call_text_tertiary">#9CA3AF</color>
+
     <color name="call_accept">#4CAF50</color>
-    <color name="call_reject">#F44336</color>
-    
-    <!-- Avatar placeholder -->
-    <color name="avatar_background">#3D3D5C</color>
+    <color name="call_reject">#EF5350</color>
+
+    <color name="avatar_background">#E5E7EB</color>
 </resources>

@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
-    android:background="#FFFFFF">
+    android:background="@color/background"
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -11,324 +12,357 @@
         android:orientation="vertical"
         android:padding="24dp">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Consultation Details"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="#000000"
-            android:layout_marginBottom="32dp"
-            android:gravity="center"/>
-
-        <!-- Name -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Name"
-            android:textColor="#666666"
-            android:textSize="14sp"
-            android:layout_marginBottom="8dp"/>
-        <EditText
-            android:id="@+id/etName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Enter full name"
-            android:inputType="textPersonName"
-            android:minHeight="48dp"
-            android:layout_marginBottom="24dp"/>
-
-        <!-- Gender -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Gender"
-            android:textColor="#666666"
-            android:textSize="14sp"
-            android:layout_marginBottom="8dp"/>
-        <RadioGroup
-            android:id="@+id/rgGender"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="24dp">
-            <RadioButton
-                android:id="@+id/rbMale"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Male"
-                android:checked="true"
-                android:layout_marginEnd="24dp"/>
-            <RadioButton
-                android:id="@+id/rbFemale"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Female"/>
-        </RadioGroup>
-
-        <!-- Date of Birth -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Date of Birth"
-            android:textColor="#666666"
-            android:textSize="14sp"
-            android:layout_marginBottom="8dp"/>
+        <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
+            android:gravity="center_vertical"
             android:layout_marginBottom="24dp">
-            <EditText
-                android:id="@+id/etDay"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="DD"
-                android:inputType="number"
-                android:maxLength="2"
-                android:gravity="center"
-                 android:minHeight="48dp"/>
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_chart"
+                app:tint="@color/primary"
+                android:layout_marginEnd="12dp"
+                android:contentDescription="Icon"/>
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="/"
-                android:layout_gravity="center_vertical"
-                android:padding="8dp"/>
-            <EditText
-                android:id="@+id/etMonth"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="MM"
-                android:inputType="number"
-                android:maxLength="2"
-                android:gravity="center"
-                 android:minHeight="48dp"/>
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="/"
-                android:layout_gravity="center_vertical"
-                android:padding="8dp"/>
-            <EditText
-                android:id="@+id/etYear"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1.5"
-                android:hint="YYYY"
-                android:inputType="number"
-                android:maxLength="4"
-                android:gravity="center"
-                 android:minHeight="48dp"/>
+                android:text="Send Your Birth Details"
+                style="@style/TextStyle.Header" />
         </LinearLayout>
 
-        <!-- Time of Birth -->
-        <TextView
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Time of Birth"
-            android:textColor="#666666"
-            android:textSize="14sp"
-            android:layout_marginBottom="8dp"/>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="24dp">
-            <EditText
-                android:id="@+id/etHour"
-                android:layout_width="0dp"
+            style="@style/CardStyle">
+
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="HH"
-                android:inputType="number"
-                android:maxLength="2"
-                android:gravity="center"
-                 android:minHeight="48dp"/>
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text=":"
-                android:layout_gravity="center_vertical"
-                android:padding="8dp"/>
-            <EditText
-                android:id="@+id/etMinute"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="MM"
-                android:inputType="number"
-                android:maxLength="2"
-                android:gravity="center"
-                 android:minHeight="48dp"/>
-        </LinearLayout>
+                android:orientation="vertical"
+                android:padding="16dp">
 
-        <!-- Place of Birth -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Place of Birth"
-            android:textColor="#666666"
-            android:textSize="14sp"
-            android:layout_marginBottom="8dp"/>
-        <AutoCompleteTextView
-            android:id="@+id/etPlace"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="City, State"
-            android:inputType="textPostalAddress"
-            android:minHeight="48dp"
-            android:completionThreshold="2"
-            android:layout_marginBottom="24dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/InputStyle"
+                    android:hint="Full Name"
+                    android:layout_marginBottom="16dp">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text_primary"
+                        android:inputType="textPersonName"/>
+                </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- New Fields: Marital, Occupation, Concern -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Marital Status (Optional)"
-            android:textColor="#666666"
-            android:textSize="14sp"
-            android:layout_marginBottom="8dp"/>
-        <Spinner
-            android:id="@+id/spMaritalStatus"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginBottom="16dp"
-            android:background="@android:drawable/btn_dropdown"
-            android:spinnerMode="dropdown"/>
+                <!-- Gender -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Gender"
+                    style="@style/TextStyle.SubHeader"
+                    android:layout_marginBottom="8dp"/>
+                <RadioGroup
+                    android:id="@+id/rgGender"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+                    <RadioButton
+                        android:id="@+id/rbMale"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Male"
+                        android:textColor="@color/text_primary"
+                        android:buttonTint="@color/primary"
+                        android:checked="true"
+                        android:layout_marginEnd="24dp"/>
+                    <RadioButton
+                        android:id="@+id/rbFemale"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Female"
+                        android:textColor="@color/text_primary"
+                        android:buttonTint="@color/primary"/>
+                </RadioGroup>
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Occupation (Optional)"
-            android:textColor="#666666"
-            android:textSize="14sp"
-            android:layout_marginBottom="8dp"/>
-        <EditText
-            android:id="@+id/etOccupation"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="e.g. Engineer"
-            android:inputType="text"
-            android:minHeight="48dp"
-            android:layout_marginBottom="16dp"/>
+                <!-- Date -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Date of Birth"
+                    style="@style/TextStyle.SubHeader"
+                    android:layout_marginBottom="8dp"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+                   <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        style="@style/InputStyle"
+                        android:hint="DD">
+                        <com.google.android.material.textfield.TextInputEditText
+                             android:id="@+id/etDay"
+                             android:layout_width="match_parent"
+                             android:layout_height="wrap_content"
+                             android:textColor="@color/text_primary"
+                             android:inputType="number"
+                             android:gravity="center"/>
+                   </com.google.android.material.textfield.TextInputLayout>
+                   <Space android:layout_width="8dp" android:layout_height="wrap_content"/>
+                   <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        style="@style/InputStyle"
+                        android:hint="MM">
+                        <com.google.android.material.textfield.TextInputEditText
+                             android:id="@+id/etMonth"
+                             android:layout_width="match_parent"
+                             android:layout_height="wrap_content"
+                             android:textColor="@color/text_primary"
+                             android:inputType="number"
+                             android:gravity="center"/>
+                   </com.google.android.material.textfield.TextInputLayout>
+                   <Space android:layout_width="8dp" android:layout_height="wrap_content"/>
+                   <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.5"
+                        style="@style/InputStyle"
+                        android:hint="YYYY">
+                        <com.google.android.material.textfield.TextInputEditText
+                             android:id="@+id/etYear"
+                             android:layout_width="match_parent"
+                             android:layout_height="wrap_content"
+                             android:textColor="@color/text_primary"
+                             android:inputType="number"
+                             android:gravity="center"/>
+                   </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Topic of Concern"
-            android:textColor="#666666"
-            android:textSize="14sp"
-            android:layout_marginBottom="8dp"/>
-        <Spinner
-            android:id="@+id/spTopic"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginBottom="24dp"
-            android:background="@android:drawable/btn_dropdown"
-            android:spinnerMode="dropdown"/>
+                <!-- Time -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Time of Birth"
+                    style="@style/TextStyle.SubHeader"
+                    android:layout_marginBottom="8dp"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        style="@style/InputStyle"
+                        android:hint="HH">
+                        <com.google.android.material.textfield.TextInputEditText
+                             android:id="@+id/etHour"
+                             android:layout_width="match_parent"
+                             android:layout_height="wrap_content"
+                             android:textColor="@color/text_primary"
+                             android:inputType="number"
+                             android:gravity="center"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=":" android:textColor="@color/text_primary" android:padding="8dp" android:layout_gravity="center_vertical"/>
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        style="@style/InputStyle"
+                        android:hint="MM">
+                        <com.google.android.material.textfield.TextInputEditText
+                             android:id="@+id/etMinute"
+                             android:layout_width="match_parent"
+                             android:layout_height="wrap_content"
+                             android:textColor="@color/text_primary"
+                             android:inputType="number"
+                             android:gravity="center"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
 
-        <!-- Partner Section Checkbox -->
+                <!-- Checkbox for Unknown Time -->
+                <CheckBox
+                    android:id="@+id/cbUnknownTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Don't know exact time"
+                    android:textColor="@color/text_secondary"
+                    android:buttonTint="@color/primary"
+                    android:layout_marginBottom="16dp"/>
+
+                <!-- Place -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/InputStyle"
+                    android:hint="Place of Birth"
+                    android:layout_marginBottom="16dp">
+                    <AutoCompleteTextView
+                        android:id="@+id/etPlace"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPostalAddress"
+                        android:background="@null"
+                        android:textColor="@color/text_primary"
+                        android:completionThreshold="2"
+                        android:padding="16dp"/>
+                </com.google.android.material.textfield.TextInputLayout>
+
+                 <!-- Optional Fields -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Marital Status"
+                    style="@style/TextStyle.SubHeader"
+                    android:layout_marginBottom="8dp"/>
+                <Spinner
+                    android:id="@+id/spMaritalStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginBottom="16dp"
+                    android:background="@android:drawable/btn_dropdown"
+                    android:spinnerMode="dropdown"/>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/InputStyle"
+                    android:hint="Occupation (Optional)"
+                    android:layout_marginBottom="16dp">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etOccupation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text_primary"
+                        android:inputType="text"/>
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Topic of Concern"
+                    style="@style/TextStyle.SubHeader"
+                    android:layout_marginBottom="8dp"/>
+                <Spinner
+                    android:id="@+id/spTopic"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginBottom="24dp"
+                    android:background="@android:drawable/btn_dropdown"
+                    android:spinnerMode="dropdown"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Partner Checkbox -->
         <CheckBox
             android:id="@+id/cbPartner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Enter Partner's Details"
+            android:textColor="@color/text_primary"
             android:textSize="16sp"
+            android:buttonTint="@color/primary"
             android:padding="8dp"
-            android:layout_marginBottom="16dp"/>
+            android:layout_marginVertical="16dp"/>
 
-        <!-- Partner Details Container (Hidden by default) -->
+        <!-- Partner Section -->
         <LinearLayout
             android:id="@+id/layoutPartner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="gone"
-            android:background="#F5F5F5"
-            android:padding="16dp"
             android:layout_marginBottom="24dp">
 
-            <TextView
+             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Partner's Name"
-                android:textColor="#666666"
-                android:textSize="14sp"
-                android:layout_marginBottom="8dp"/>
-            <EditText
-                android:id="@+id/etPartnerName"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Partner Name"
-                android:inputType="textPersonName"
-                android:minHeight="48dp"
-                android:layout_marginBottom="16dp"/>
+                style="@style/CardStyle">
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Partner DOB"
-                android:textColor="#666666"
-                android:textSize="14sp"
-                android:layout_marginBottom="8dp"/>
-             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="16dp">
-                <EditText android:id="@+id/etPartnerDay" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:hint="DD" android:inputType="number" android:gravity="center"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="/" android:padding="8dp"/>
-                <EditText android:id="@+id/etPartnerMonth" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:hint="MM" android:inputType="number" android:gravity="center"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="/" android:padding="8dp"/>
-                <EditText android:id="@+id/etPartnerYear" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:hint="YYYY" android:inputType="number" android:gravity="center"/>
-            </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Partner Time"
-                android:textColor="#666666"
-                android:textSize="14sp"
-                android:layout_marginBottom="8dp"/>
-             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="16dp">
-                <EditText android:id="@+id/etPartnerHour" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:hint="HH" android:inputType="number" android:gravity="center"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=":" android:padding="8dp"/>
-                <EditText android:id="@+id/etPartnerMinute" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:hint="MM" android:inputType="number" android:gravity="center"/>
-            </LinearLayout>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Partner Details"
+                        style="@style/TextStyle.Header"
+                        android:layout_marginBottom="16dp"/>
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Partner Place"
-                android:textColor="#666666"
-                android:textSize="14sp"
-                android:layout_marginBottom="8dp"/>
-            <AutoCompleteTextView
-                android:id="@+id/etPartnerPlace"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="City, State"
-                android:inputType="textPostalAddress"
-                android:minHeight="48dp"
-                android:completionThreshold="2"/>
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        style="@style/InputStyle"
+                        android:hint="Partner Name"
+                        android:layout_marginBottom="16dp">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etPartnerName"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/text_primary"
+                            android:inputType="textPersonName"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+
+
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Partner DOB" style="@style/TextStyle.SubHeader"/>
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+                        <EditText android:id="@+id/etPartnerDay" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:backgroundTint="@color/primary_variant" android:textColor="@color/text_primary" android:hint="DD" android:textColorHint="@color/text_muted" android:inputType="number" android:gravity="center"/>
+                        <EditText android:id="@+id/etPartnerMonth" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:backgroundTint="@color/primary_variant" android:textColor="@color/text_primary" android:hint="MM" android:textColorHint="@color/text_muted" android:inputType="number" android:gravity="center"/>
+                        <EditText android:id="@+id/etPartnerYear" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:backgroundTint="@color/primary_variant" android:textColor="@color/text_primary" android:hint="YYYY" android:textColorHint="@color/text_muted" android:inputType="number" android:gravity="center"/>
+                    </LinearLayout>
+
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Partner Time" style="@style/TextStyle.SubHeader"/>
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+                        <EditText android:id="@+id/etPartnerHour" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:backgroundTint="@color/primary_variant" android:textColor="@color/text_primary" android:hint="HH" android:textColorHint="@color/text_muted" android:inputType="number" android:gravity="center"/>
+                        <EditText android:id="@+id/etPartnerMinute" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:backgroundTint="@color/primary_variant" android:textColor="@color/text_primary" android:hint="MM" android:textColorHint="@color/text_muted" android:inputType="number" android:gravity="center"/>
+                    </LinearLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        style="@style/InputStyle"
+                        android:hint="Partner Place"
+                        android:layout_marginBottom="8dp">
+                        <AutoCompleteTextView
+                            android:id="@+id/etPartnerPlace"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textPostalAddress"
+                            android:background="@null"
+                            android:textColor="@color/text_primary"
+                            android:completionThreshold="2"
+                            android:padding="16dp"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </LinearLayout>
+             </androidx.cardview.widget.CardView>
         </LinearLayout>
 
-        <!-- Connect Button -->
         <Button
             android:id="@+id/btnConnect"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:text="Start Consultation"
-            android:backgroundTint="#FFD700"
-            android:textColor="#000000"
-            android:textStyle="bold"
-            android:padding="12dp"/>
+            android:textSize="16sp"
+            android:textAllCaps="false"
+            style="@style/ButtonStyle.Primary"
+            android:layout_marginTop="16dp"/>
 
     </LinearLayout>
 </ScrollView>

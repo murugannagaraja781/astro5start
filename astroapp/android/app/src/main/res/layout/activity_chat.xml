@@ -1,36 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/background">
 
-    <!-- Header -->
+    <!-- Header (Minimal, White) -->
     <RelativeLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#6200EE"
-        android:padding="12dp">
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/surface"
+        android:elevation="4dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
 
-        <TextView
-            android:id="@+id/tvChatTitle"
+        <ImageView
+            android:id="@+id/ivAvatar"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_chart"
+            android:background="@drawable/ic_double_check"
+            android:backgroundTint="@color/avatar_background"
+            android:layout_centerVertical="true"
+             android:visibility="gone"/>
+
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Chat"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_centerVertical="true"/>
+            android:orientation="vertical"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@id/ivAvatar"
+            android:layout_marginStart="8dp">
+
+            <TextView
+                android:id="@+id/tvChatTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Consultation"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
+             <!-- Could add status/timer here -->
+        </LinearLayout>
 
         <Button
             android:id="@+id/btnEndChat"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
             android:text="End Chat"
             android:textSize="12sp"
-            android:backgroundTint="#FF0000"
+            android:backgroundTint="#EF5350"
             android:textColor="#FFFFFF"
-            android:minHeight="40dp" />
+            android:minHeight="36dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"/>
     </RelativeLayout>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -38,15 +65,19 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/headerLayout"
-        android:layout_marginBottom="60dp"
-        android:padding="8dp"/>
+        android:layout_above="@id/layoutInput"
+        android:padding="8dp"
+        android:clipToPadding="false"/>
 
+    <!-- Input Area (White, Clean) -->
     <LinearLayout
+        android:id="@+id/layoutInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:padding="8dp"
-        android:background="#FFFFFFFF"
+        android:padding="12dp"
+        android:background="@color/surface"
+        android:elevation="16dp"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
@@ -58,7 +89,8 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:layout_marginEnd="8dp"
             android:contentDescription="View Chart"
-            android:visibility="gone" />
+            android:visibility="gone"
+            android:tint="@color/text_secondary"/>
 
         <ImageButton
             android:id="@+id/btnMatch"
@@ -69,22 +101,37 @@
             android:src="@drawable/ic_match"
             android:scaleType="centerInside"
             android:visibility="gone"
-            android:contentDescription="View Match" />
+            android:contentDescription="View Match"
+            android:tint="@color/text_secondary"/>
 
         <EditText
             android:id="@+id/inputMessage"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:layout_weight="1"
-            android:hint="Type a message..."
-            android:padding="12dp"
-            android:background="@android:drawable/edit_text"/>
+            android:hint="Type something..."
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:background="@drawable/bg_input_rounded"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_muted"
+            android:textSize="15sp"/>
+            <!-- Need a light bg drawable for input, reusing spinner dark name but should be generic or use shape -->
+            <!-- Actually better to use a simple shape inline or standard style if available, but I'll assume I can just use a color or standard background -->
+            <!-- Let's assume standard edit text background for now to avoid creating more drawables if possible, OR create a simple shape. -->
+            <!-- I will use a simple color background for now OR I should create a bg_input.xml. -->
+            <!-- I'll use android:background="@color/background" and some padding/radius via code or just simple background. -->
 
-        <Button
+        <ImageButton
             android:id="@+id/btnSend"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Send" />
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_check"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:tint="@color/primary"
+            android:layout_marginStart="8dp"
+            android:contentDescription="Send"/>
+            <!-- Ideally send icon -->
 
     </LinearLayout>
 </RelativeLayout>

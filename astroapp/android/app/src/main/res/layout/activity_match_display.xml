@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#FAFAFA">
+    android:background="@color/background">
 
     <TextView
         android:layout_width="match_parent"
@@ -11,9 +11,9 @@
         android:text="Compatibility Match"
         android:textSize="20sp"
         android:textStyle="bold"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/text_on_primary"
         android:padding="16dp"
-        android:background="#673AB7"
+        android:background="@color/primary"
         android:gravity="center"
         android:elevation="4dp"/>
 
@@ -22,14 +22,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:layout_marginTop="32dp"/>
+        android:layout_marginTop="32dp"
+        android:indeterminateTint="@color/primary"/>
 
     <TextView
         android:id="@+id/tvError"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Error loading match data."
-        android:textColor="#D32F2F"
+        android:textColor="@color/error"
         android:gravity="center"
         android:padding="24dp"
         android:visibility="gone"/>
