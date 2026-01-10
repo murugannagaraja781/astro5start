@@ -30,7 +30,8 @@ class WalletActivity : AppCompatActivity() {
         val amountInput = findViewById<EditText>(R.id.amountInput)
         val btnAddMoney = findViewById<Button>(R.id.btnAddMoney)
 
-        balanceText.text = "₹ ${user?.walletBalance ?: 0}"
+        val balance = user?.walletBalance ?: 0.0
+        balanceText.text = "₹ ${balance.toInt()}"
 
         btnAddMoney.setOnClickListener {
             val amountStr = amountInput.text.toString()
@@ -69,6 +70,7 @@ class WalletActivity : AppCompatActivity() {
 
     private fun updateBalanceUI() {
         val user = tokenManager.getUserSession()
-        findViewById<TextView>(R.id.balanceText).text = "₹ ${user?.walletBalance ?: 0}"
+        val balance = user?.walletBalance ?: 0.0
+        findViewById<TextView>(R.id.balanceText).text = "₹ ${balance.toInt()}"
     }
 }
