@@ -26,6 +26,9 @@ interface ApiInterface {
     @retrofit2.http.GET("api/phonepe/status/{transactionId}")
     suspend fun checkPaymentStatus(@retrofit2.http.Path("transactionId") transactionId: String): Response<com.google.gson.JsonObject>
 
+    @POST("api/payment/token")
+    suspend fun getPaymentToken(@Body request: PaymentInitiateRequest): Response<com.google.gson.JsonObject>
+
     // Add other endpoints as needed
     // @POST("register") ...
 }

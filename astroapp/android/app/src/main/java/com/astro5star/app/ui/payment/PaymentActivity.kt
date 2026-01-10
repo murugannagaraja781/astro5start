@@ -188,7 +188,7 @@ class PaymentActivity : AppCompatActivity() {
 
     private var pendingTransactionId: String? = null
 
-    // --- WEB PAYMENT LOGIC (EXTERNAL BROWSER) ---
+    // --- WEB PAYMENT LOGIC (TOKEN BASED - SAME AS WEB APP) ---
     private fun startWebPayment(amount: Double) {
         val user = tokenManager.getUserSession()
         val userId = user?.userId ?: run {
@@ -196,83 +196,51 @@ class PaymentActivity : AppCompatActivity() {
             return
         }
 
-        statusText.text = "Opening Payment Page..."
+        statusText.text = "Securing Payment Session..."
 
         lifecycleScope.launch {
             try {
-                // Call /api/payment/create
-                 val json = JSONObject().apply {
-                    put("userId", userId)
-                    put("amount", amount)
-                    put("isApp", true)
-                }
+                // 1. Get Payment Token (Secure Session)
+                Log.d(TAG, "Requesting token for ₹$amount")
+                val request = PaymentInitiateRequest(userId, amount.toInt())
+                val response = ApiClient.api.getPaymentToken(request)
 
-                val jsonStr = json.toString()
-                val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
-                val body = jsonStr.toRequestBody(mediaType)
+                if (response.isSuccessful && response.body()?.get("ok")?.asBoolean == true) {
+                    val token = response.body()?.get("token")?.asString
 
-                val request = Request.Builder()
-                    .url("$SERVER_URL/api/payment/create")
-                    .post(body)
-                    .build()
+                    if (!token.isNullOrEmpty()) {
+                        // 2. Construct URL
+                        val paymentPageUrl = "$SERVER_URL/payment.html?token=$token"
+                        Log.d(TAG, "Opening Payment Page: $paymentPageUrl")
 
-                val client = OkHttpClient()
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(paymentPageUrl))
+                            startActivity(intent)
 
-                withContext(Dispatchers.IO) {
-                    try {
-                        val response = client.newCall(request).execute()
-                        val respBody = response.body?.string()
+                            statusText.text = "Complete payment in Browser..."
+                            statusText.visibility = android.view.View.VISIBLE
+                            if (::webView.isInitialized) webView.visibility = android.view.View.GONE
 
-                        Log.d(TAG, "Payment Response: $respBody")
+                            // We can close the activity or wait for user to return manually
+                            // Since payment.html handles success, we just wait/finish
+                            Toast.makeText(this@PaymentActivity, "Please complete payment in browser", Toast.LENGTH_LONG).show()
+                            delay(2000)
+                            finish() // Close activity so user returns to Wallet/Home
 
-                        if (response.isSuccessful && respBody != null) {
-                            val respJson = JSONObject(respBody)
-                            if (respJson.optBoolean("ok")) {
-                                val txnId = respJson.optString("merchantTransactionId")
-                                val paymentUrl = respJson.optString("paymentUrl")
-
-                                pendingTransactionId = txnId
-
-                                if (paymentUrl.isNotEmpty()) {
-                                    runOnUiThread {
-                                        // Launch External Browser (Chrome)
-                                        // This handles UPI Deep Links (PhonePe, GPay) much better than WebView
-                                        try {
-                                            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(paymentUrl))
-                                            startActivity(intent)
-
-                                            statusText.text = "Payment in progress on Browser/App..."
-                                            statusText.visibility = android.view.View.VISIBLE
-                                            // WebView removed/hidden
-                                            if (::webView.isInitialized) webView.visibility = android.view.View.GONE
-
-                                            // Start polling for status
-                                            monitorWebPayment(txnId)
-
-                                        } catch (e: Exception) {
-                                            Log.e(TAG, "Browser Launch Error", e)
-                                            showError("Could not open browser. Please install Chrome.")
-                                        }
-                                    }
-                                } else {
-                                    showError("Server did not return a Payment URL")
-                                }
-                            } else {
-                                val errorMsg = respJson.optString("error", "Unknown Server Error")
-                                showError("Server Error: $errorMsg")
-                            }
-                        } else {
-                            showError("Payment Init Failed: ${response.code} - ${response.message}")
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Browser Launch Error", e)
+                            showError("Could not open browser. Please install Chrome.")
                         }
-                    } catch (e: Exception) {
-                         Log.e(TAG, "Web Init Error", e)
-                         showError("Connection Error: ${e.localizedMessage}")
+                    } else {
+                        showError("Server did not return a valid token")
                     }
+                } else {
+                    val errorMsg = response.body()?.get("error")?.asString ?: "Unknown Error"
+                    showError("Token Error: $errorMsg")
                 }
-
             } catch (e: Exception) {
-                Log.e(TAG, "Web Payment Error", e)
-                showError("Error starting payment")
+                Log.e(TAG, "Token Network Error", e)
+                showError("Connection Error: ${e.localizedMessage}")
             }
         }
     }
