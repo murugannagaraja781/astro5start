@@ -11,14 +11,17 @@ import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import com.astro5star.app.R
 import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.data.remote.SocketManager
+import com.astro5star.app.utils.SoundManager
 import org.json.JSONObject
 import java.util.UUID
 
-data class ChatMessage(val text: String, val isSent: Boolean)
+// Status: "sent", "delivered", "read"
+data class ChatMessage(val text: String, val isSent: Boolean, var status: String = "sent")
 
 class ChatActivity : AppCompatActivity() {
 
@@ -27,6 +30,9 @@ class ChatActivity : AppCompatActivity() {
     private var toUserId: String? = null
     private var sessionId: String? = null
     private var recyclerChat: RecyclerView? = null
+    private var typingHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var isTyping = false;
+    private lateinit var tvChatTitle: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,16 +54,7 @@ class ChatActivity : AppCompatActivity() {
         val birthDataStr = intent?.getStringExtra("birthData")
         if (!birthDataStr.isNullOrEmpty()) {
              try {
-                // If it is stringified JSON, parse it?
-                // Actually server sent JSON.stringify(), so it is a string.
-                // But JSONObject(string) handles it.
-                // Sometimes it might be double encoded if not careful, but let's assume it's one level.
-                // Or if it was coming from Socket it comes as object.
-                // Wait, Intent extra is String.
                 val obj = JSONObject(birthDataStr)
-                // If it's wrapped in { birthData: ... } or just raw fields?
-                // Server: birthData = JSON.stringify(birthData || {})
-                // So it is the raw birth data key-values.
                 if (obj.length() > 0) {
                      clientBirthData = obj
                      Toast.makeText(this, "Client Birth Data Received", Toast.LENGTH_SHORT).show()
@@ -80,7 +77,7 @@ class ChatActivity : AppCompatActivity() {
         val btnSend = findViewById<Button>(R.id.btnSend)
         val btnEndChat = findViewById<Button>(R.id.btnEndChat)
         val btnChart = findViewById<android.widget.ImageButton>(R.id.btnChart)
-        val tvChatTitle = findViewById<TextView>(R.id.tvChatTitle)
+        tvChatTitle = findViewById(R.id.tvChatTitle)
 
         // Set Title
         val partnerName = intent.getStringExtra("toUserName") ?: "Chat"
@@ -105,6 +102,7 @@ class ChatActivity : AppCompatActivity() {
         btnEndChat.setOnClickListener {
             if (sessionId != null) {
                 SocketManager.endSession(sessionId)
+                SoundManager.playEndChatSound()
                 Toast.makeText(this, "Chat Ended", Toast.LENGTH_SHORT).show()
             }
             finish()
@@ -114,6 +112,25 @@ class ChatActivity : AppCompatActivity() {
         recyclerChat?.layoutManager = LinearLayoutManager(this)
         recyclerChat?.adapter = adapter
 
+        // Typing Indicator Listeners
+        inputMessage.addTextChangedListener(object : android.text.TextWatcher {
+            override fun afterTextChanged(s: android.text.Editable?) {}
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                if (sessionId != null) {
+                   if (!isTyping) {
+                       isTyping = true
+                       SocketManager.getSocket()?.emit("typing", JSONObject().apply { put("sessionId", sessionId) })
+                   }
+                   typingHandler.removeCallbacksAndMessages(null)
+                   typingHandler.postDelayed({
+                       isTyping = false
+                       SocketManager.getSocket()?.emit("stop-typing", JSONObject().apply { put("sessionId", sessionId) })
+                   }, 2000)
+                }
+            }
+        })
+
         btnSend.setOnClickListener {
             val text = inputMessage.text.toString().trim()
             if (text.isEmpty()) return@setOnClickListener
@@ -122,6 +139,11 @@ class ChatActivity : AppCompatActivity() {
                 Toast.makeText(this, "No recipient user specified", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+
+            // Stop typing explicitly
+            isTyping = false
+            typingHandler.removeCallbacksAndMessages(null)
+            SocketManager.getSocket()?.emit("stop-typing", JSONObject().apply { put("sessionId", sessionId) })
 
             val messageId = UUID.randomUUID().toString()
             val payload = JSONObject()
@@ -135,6 +157,8 @@ class ChatActivity : AppCompatActivity() {
             payload.put("content", content)
 
             SocketManager.getSocket()?.emit("chat-message", payload)
+
+            SoundManager.playSentSound()
 
             runOnUiThread {
                 messages.add(ChatMessage(text, true))
@@ -174,10 +198,25 @@ class ChatActivity : AppCompatActivity() {
             val content = data.getJSONObject("content")
             val text = content.getString("text")
 
+            SoundManager.playReceiveSound()
+
             runOnUiThread {
                 messages.add(ChatMessage(text, false))
                 adapter.notifyItemInserted(messages.size - 1)
                 recyclerChat?.scrollToPosition(messages.size - 1)
+            }
+        }
+
+        // Typing Events
+        socket?.on("typing") {
+            runOnUiThread {
+                tvChatTitle.text = "Typing..."
+            }
+        }
+        socket?.on("stop-typing") {
+             runOnUiThread {
+                val partnerName = intent.getStringExtra("toUserName") ?: "Chat"
+                tvChatTitle.text = partnerName
             }
         }
 
@@ -198,6 +237,7 @@ class ChatActivity : AppCompatActivity() {
         // Listen for Session End
         socket?.off("session-ended")
         socket?.on("session-ended") { args ->
+            SoundManager.playEndChatSound()
             runOnUiThread {
                 Toast.makeText(this@ChatActivity, "Partner ended the chat", Toast.LENGTH_SHORT).show()
                 finish()
@@ -208,6 +248,7 @@ class ChatActivity : AppCompatActivity() {
     private fun checkAutoAccept() {
         val isNewRequest = intent.getBooleanExtra("isNewRequest", false)
         if (isNewRequest) {
+            SoundManager.playAcceptSound()
             val payload = JSONObject().apply {
                 put("sessionId", sessionId)
                 put("toUserId", toUserId) // This matches server expectation if toUserId is Caller
@@ -225,6 +266,8 @@ class ChatActivity : AppCompatActivity() {
         try {
             SocketManager.off("chat-message")
             SocketManager.off("session-ended")
+            SocketManager.off("typing")
+            SocketManager.off("stop-typing")
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -250,6 +293,11 @@ class ChatActivity : AppCompatActivity() {
             val msg = list[position]
             if (holder is SentHolder) {
                 holder.text.text = msg.text
+                if (msg.status == "read") {
+                    holder.status.setImageResource(R.drawable.ic_double_check)
+                } else {
+                    holder.status.setImageResource(R.drawable.ic_check)
+                }
             } else if (holder is ReceivedHolder) {
                 holder.text.text = msg.text
             }
@@ -259,6 +307,7 @@ class ChatActivity : AppCompatActivity() {
 
         class SentHolder(view: View) : RecyclerView.ViewHolder(view) {
             val text: TextView = view.findViewById(R.id.textMessage)
+            val status: ImageView = view.findViewById(R.id.ivStatus)
         }
         class ReceivedHolder(view: View) : RecyclerView.ViewHolder(view) {
             val text: TextView = view.findViewById(R.id.textMessage)

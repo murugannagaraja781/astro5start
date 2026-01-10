@@ -13,12 +13,19 @@ import com.astro5star.app.data.remote.SocketManager
 import com.astro5star.app.ui.chat.ChatActivity
 import com.astro5star.app.utils.showErrorAlert
 import org.json.JSONObject
+import kotlinx.coroutines.launch
+
+class IntakeActivity : AppCompatActivity() {
+
+    private var partnerId: String? = null
+    private var type: String? = null
+    private var partnerName: String? = null
 
 
     private var selectedLatitude: Double? = null
     private var selectedLongitude: Double? = null
     private var selectedTimezone: Double? = null
-    private val apiInterface = com.astro5star.app.data.api.ApiClient.apiInterface
+    private val apiInterface = com.astro5star.app.data.api.ApiClient.api
     private val cityList = mutableListOf<String>()
     private val cityMap = mutableMapOf<String, JSONObject>() // Display Name -> Full Data
     private lateinit var etPlace: android.widget.AutoCompleteTextView

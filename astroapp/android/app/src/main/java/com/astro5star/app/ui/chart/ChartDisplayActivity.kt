@@ -41,7 +41,7 @@ class ChartDisplayActivity : AppCompatActivity() {
     private fun fetchAndRenderChart(birthData: JSONObject) {
         kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
             try {
-                val apiInterface = com.astro5star.app.data.api.ApiClient.apiInterface
+                val apiInterface = com.astro5star.app.data.api.ApiClient.api
 
                 // Construct API payload - Ensure types are correct
                 val payload = com.google.gson.JsonObject().apply {
@@ -117,7 +117,7 @@ class ChartDisplayActivity : AppCompatActivity() {
         // Add Planets
         val planetKeys = planets.keys()
         while(planetKeys.hasNext()) {
-            val pName = planetKeys.next()
+            val pName = planetKeys.next() as String
             val pData = planets.getJSONObject(pName)
             val pSign = pData.getString("sign")
             val pNameTamil = pData.optString("nameTamil", pName).take(2) // Shorten
@@ -133,7 +133,7 @@ class ChartDisplayActivity : AppCompatActivity() {
          // Add Navamsa Planets
         val nKeys = navamsa.keys()
         while(nKeys.hasNext()) {
-             val pName = nKeys.next()
+             val pName = nKeys.next() as String
              val pData = navamsa.getJSONObject(pName)
              val pSign = pData.getString("navamsaSign")
              // Need tamil name again?
