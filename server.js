@@ -2669,7 +2669,7 @@ app.post('/api/payment/create', async (req, res) => {
 
     const merchantTransactionId = "MT" + Date.now() + Math.floor(Math.random() * 1000);
     const redirectUrl = isApp
-      ? `https://astro5star.com/api/payment/callback?isApp=true`
+      ? `https://astro5star.com/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`
       : `https://astro5star.com/api/payment/callback`;
 
     // Create Pending Record
@@ -2683,7 +2683,7 @@ app.post('/api/payment/create', async (req, res) => {
 
     // PhonePe Payload
     // FIX: Sanitize UserID (Only Alphanumeric) and Use Valid Mobile
-    const cleanUserId = userId.replace(/[^a-zA-Z0-9]/g, '');
+    const cleanUserId = userId.replace(/[^a-zA-Z0-9]/g, '') || "User";
 
     // --- NATIVE APP FLOW (Use Web Payment via External Browser) ---
     // Native SDK has issues, so we use browser redirect which is more reliable
@@ -2698,7 +2698,7 @@ app.post('/api/payment/create', async (req, res) => {
         amount: amount * 100, // Amount in Paise
         redirectUrl: redirectUrl,
         redirectMode: "POST",
-        callbackUrl: `https://astro5star.com/api/payment/callback?isApp=true`,
+        callbackUrl: `https://astro5star.com/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`,
         mobileNumber: userMobile,
         paymentInstrument: {
           type: "PAY_PAGE"
@@ -2838,7 +2838,7 @@ app.post('/api/payment/callback', async (req, res) => {
 
     // PhonePe response format: { success, code, data: { merchantTransactionId, ... } }
     const code = decoded.code;
-    const merchantTransactionId = decoded.data?.merchantTransactionId || decoded.merchantTransactionId;
+    const merchantTransactionId = decoded.data?.merchantTransactionId || decoded.merchantTransactionId || req.query.txnId; // Fallback to Query ID
     const providerReferenceId = decoded.data?.providerReferenceId || decoded.providerReferenceId;
 
     console.log(`Payment Callback: ${merchantTransactionId} | Status: ${code}`);
