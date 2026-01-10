@@ -95,76 +95,19 @@ class AstrologerDashboardActivity : AppCompatActivity() {
                 val type = data.optString("type") // "chat", "audio", "video"
 
                 runOnUiThread {
-                    showIncomingRequestDialog(sessionId, fromUserId, fromName, type)
+                    // Launch Full Screen IncomingCallActivity instead of Dialog
+                    val intent = Intent(this@AstrologerDashboardActivity, com.astro5star.app.IncomingCallActivity::class.java).apply {
+                        putExtra("callId", sessionId)
+                        putExtra("callerId", fromUserId)
+                        putExtra("callerName", fromName)
+                        putExtra("callType", type)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    }
+                    startActivity(intent)
                 }
             }
         }
     }
 
-    private fun showIncomingRequestDialog(sessionId: String, fromUserId: String, fromName: String, type: String) {
-        val title = when (type) {
-            "chat" -> "Incoming Chat Request"
-            "audio" -> "Incoming Audio Call"
-            "video" -> "Incoming Video Call"
-            else -> "Incoming Request"
-        }
 
-        val builder = androidx.appcompat.app.AlertDialog.Builder(this)
-        builder.setTitle(title)
-        builder.setMessage("$fromName wants to start a $type session.")
-        builder.setCancelable(false)
-
-        builder.setPositiveButton("Accept") { _, _ ->
-            acceptSession(sessionId, fromUserId, type)
-        }
-
-        builder.setNegativeButton("Reject") { _, _ ->
-            // Optionally emit reject
-        }
-
-        builder.show()
-    }
-
-    private fun acceptSession(sessionId: String, partnerId: String, type: String) {
-        // For Call (Audio/Video), we can launch IncomingCallActivity to handle the flow
-        // Or directly answer. Let's redirect to IncomingCallActivity for Calls for consistency (Ringtone etc)
-        // BUT for Chat, we just go to ChatActivity.
-
-        if (type == "chat") {
-             val payload = JSONObject().apply {
-                put("sessionId", sessionId)
-                put("toUserId", partnerId)
-                put("accept", true)
-            }
-            SocketManager.getSocket()?.emit("answer-session", payload)
-
-            // Launch Chat
-            val intent = Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
-                putExtra("sessionId", sessionId)
-                putExtra("toUserId", partnerId)
-            }
-            startActivity(intent)
-        } else {
-            // Audio/Video -> Pass to IncomingCallActivity to handle the "Ringing" UI or just auto-accept logic?
-            // User ALREADY clicked Accept in the dialog. So we should just go to CallActivity!
-
-             val payload = JSONObject().apply {
-                put("sessionId", sessionId)
-                put("toUserId", partnerId)
-                put("accept", true)
-            }
-            SocketManager.getSocket()?.emit("answer-session", payload)
-
-             // Also emit session-connect for billing
-             val connectPayload = JSONObject().apply { put("sessionId", sessionId) }
-             SocketManager.getSocket()?.emit("session-connect", connectPayload)
-
-            val intent = Intent(this, com.astro5star.app.ui.call.CallActivity::class.java).apply {
-                putExtra("sessionId", sessionId)
-                putExtra("partnerId", partnerId)
-                putExtra("isInitiator", false)
-            }
-            startActivity(intent)
-        }
-    }
 }
