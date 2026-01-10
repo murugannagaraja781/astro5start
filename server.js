@@ -2859,14 +2859,28 @@ app.post('/api/payment/callback', async (req, res) => {
     else {
       console.log('[CALLBACK ERROR] No payment data found in Body or Query');
       // Return HTML with alert
-      return res.send(`
-        <html><body>
-        <script>alert('ERROR: No payment response received!\\n\\nQuery: ${JSON.stringify(req.query)}\\nBodyKeys: ${Object.keys(req.body)}');</script>
-        <h1>Payment Error</h1>
-        <p>No response from PhonePe</p>
-        <a href="astro5://payment-failed">Back to App</a>
-        </body></html>
-      `);
+      console.log('[CALLBACK ERROR] No payment data found in Body or Query');
+
+      // AUTO-REDIRECT TO APP IF DETECTED
+      if (req.query.isApp === 'true') {
+        const intentUrl = `intent://payment-failed?reason=no_response#Intent;scheme=astro5;package=com.astro5star.app;end`;
+        const customScheme = `astro5://payment-failed?reason=no_response`;
+
+        return res.send(`
+          <html><body>
+          <script>
+            // Try Intent first (Chrome)
+            window.location.href = "${intentUrl}";
+            // Fallback to custom scheme
+            setTimeout(() => { window.location.href = "${customScheme}"; }, 500);
+          </script>
+          <p>Redirecting back to app...</p>
+          </body></html>
+        `);
+      }
+
+      // Web Fallback
+      return res.redirect('/wallet?status=failure&reason=no_response');
     }
 
     // PhonePe response format: { success, code, data: { merchantTransactionId, ... } }
