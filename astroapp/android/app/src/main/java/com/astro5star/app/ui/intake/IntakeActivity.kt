@@ -28,8 +28,53 @@ class IntakeActivity : AppCompatActivity() {
         type = intent.getStringExtra("type")
         partnerName = intent.getStringExtra("partnerName")
 
+        loadIntakeDetails()
+
         findViewById<Button>(R.id.btnConnect).setOnClickListener {
             submitForm()
+        }
+    }
+
+    private fun loadIntakeDetails() {
+        val prefs = getSharedPreferences("AstroIntakeDefaults", MODE_PRIVATE)
+        findViewById<EditText>(R.id.etName).setText(prefs.getString("name", ""))
+        findViewById<EditText>(R.id.etPlace).setText(prefs.getString("place", ""))
+
+        val day = prefs.getInt("day", 0)
+        if (day > 0) findViewById<EditText>(R.id.etDay).setText(day.toString())
+
+        val month = prefs.getInt("month", 0)
+        if (month > 0) findViewById<EditText>(R.id.etMonth).setText(month.toString())
+
+        val year = prefs.getInt("year", 0)
+        if (year > 0) findViewById<EditText>(R.id.etYear).setText(year.toString())
+
+        val hour = prefs.getInt("hour", -1)
+        if (hour >= 0) findViewById<EditText>(R.id.etHour).setText(hour.toString())
+
+        val minute = prefs.getInt("minute", -1)
+        if (minute >= 0) findViewById<EditText>(R.id.etMinute).setText(minute.toString())
+
+        val gender = prefs.getString("gender", "Male")
+        if (gender == "Female") {
+            findViewById<RadioButton>(R.id.rbFemale).isChecked = true
+        } else {
+             findViewById<RadioButton>(R.id.rbMale).isChecked = true
+        }
+    }
+
+    private fun saveIntakeDetails(name: String, place: String, day: Int, month: Int, year: Int, hour: Int, minute: Int, gender: String) {
+        val prefs = getSharedPreferences("AstroIntakeDefaults", MODE_PRIVATE)
+        prefs.edit().apply {
+            putString("name", name)
+            putString("place", place)
+            putInt("day", day)
+            putInt("month", month)
+            putInt("year", year)
+            putInt("hour", hour)
+            putInt("minute", minute)
+            putString("gender", gender)
+            apply()
         }
     }
 
@@ -53,6 +98,9 @@ class IntakeActivity : AppCompatActivity() {
             showErrorAlert("Please fill all details (Name, Date, Year, Place)")
             return
         }
+
+        // Save for next time
+        saveIntakeDetails(name, place, day, month, year, hour, minute, gender)
 
         // Construct Birth Data JSON
         val birthData = JSONObject().apply {

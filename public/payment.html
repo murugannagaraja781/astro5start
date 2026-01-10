@@ -427,14 +427,40 @@
                 document.getElementById('errorContainer').style.display = 'none';
                 const statusEl = document.getElementById('statusMessage');
                 statusEl.className = 'status-message success';
-                statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Payment Successful! Wallet has been credited.';
+                statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Payment Successful! Redirecting to App...';
                 statusEl.style.display = 'block';
                 document.querySelector('.payment-header').style.display = 'none';
                 document.querySelector('.user-info').style.display = 'none';
                 document.querySelector('.amount-display').style.display = 'none';
                 document.getElementById('payBtn').style.display = 'none';
+
+                // Auto Redirect to App
+                setTimeout(() => {
+                    const isApp = true; // We can improve detection if needed, but for now we assume this flow is mostly app
+                    // Try to open App Scheme
+                    window.location.href = "astro5://payment-success";
+
+                    // Fallback "Return to App" button
+                    const btn = document.createElement('button');
+                    btn.className = 'pay-btn';
+                    btn.style.marginTop = '20px';
+                    btn.innerHTML = 'Return to App';
+                    btn.onclick = () => window.location.href = "astro5://payment-success";
+                    document.getElementById('paymentContainer').appendChild(btn);
+
+                }, 2000);
+
             } else if (status === 'fail' || status === 'failure' || status === 'failed') {
                 showError('Payment Failed', 'Your payment could not be completed. Please try again.');
+
+                // Add "Try Again" / "Return to App"
+                setTimeout(() => {
+                     const btn = document.createElement('button');
+                    btn.className = 'retry-btn';
+                    btn.innerText = 'Return to App';
+                    btn.onclick = () => window.location.href = "astro5://payment-failed";
+                    document.getElementById('errorContainer').appendChild(btn);
+                }, 1000);
             }
         }
 

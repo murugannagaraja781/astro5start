@@ -169,6 +169,16 @@ class ChatActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            SocketManager.off("chat-message")
+            SocketManager.off("session-ended")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     class ChatAdapter(private val list: List<ChatMessage>) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
         override fun getItemViewType(position: Int): Int {
