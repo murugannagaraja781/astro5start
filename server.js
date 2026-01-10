@@ -2861,20 +2861,29 @@ app.post('/api/payment/callback', async (req, res) => {
       // Return HTML with alert
       console.log('[CALLBACK ERROR] No payment data found in Body or Query');
 
-      // AUTO-REDIRECT TO APP IF DETECTED
-      if (req.query.isApp === 'true') {
+      const userAgent = req.headers['user-agent'] || '';
+      const isAndroidApp = req.query.isApp === 'true' || userAgent.includes('Android') || userAgent.includes('Astro5App');
+
+      // AUTO-REDIRECT TO APP IF DETECTED (Even if isApp param is missing)
+      if (isAndroidApp) {
         const intentUrl = `intent://payment-failed?reason=no_response#Intent;scheme=astro5;package=com.astro5star.app;end`;
         const customScheme = `astro5://payment-failed?reason=no_response`;
 
         return res.send(`
-          <html><body>
+          <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>body{font-family:sans-serif;text-align:center;padding:20px;}</style>
+          </head>
+          <body>
+          <h3>Redirecting...</h3>
           <script>
-            // Try Intent first (Chrome)
+            // Try Intent first (Chrome/Android)
             window.location.href = "${intentUrl}";
-            // Fallback to custom scheme
-            setTimeout(() => { window.location.href = "${customScheme}"; }, 500);
+
+            // Fallback
+            setTimeout(() => { window.location.href = "${customScheme}"; }, 800);
           </script>
-          <p>Redirecting back to app...</p>
           </body></html>
         `);
       }
