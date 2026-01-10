@@ -143,10 +143,8 @@ class FCMService : FirebaseMessagingService() {
         Log.d(TAG, "=== INCOMING $callType ===")
         Log.d(TAG, "From: $callerName ($callerId), callId: $callId")
 
-        if (callType == "chat") {
-            handleIncomingChat(callerName, callerId, callId)
-            return
-        }
+        // Unified handling for Chat, Audio, and Video
+        // We want 'IncomingCallActivity' to handle the Accept/Reject logic for ALL types
 
         // Wake up the screen
         wakeUpDevice()
@@ -160,6 +158,7 @@ class FCMService : FirebaseMessagingService() {
             putExtra("callerId", callerId)
             putExtra("callerName", callerName)
             putExtra("callId", callId)
+            putExtra("callType", callType) // Pass type to activity
         }
 
         // Create pending intent for full-screen notification

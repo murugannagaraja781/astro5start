@@ -78,65 +78,39 @@ class IncomingCallActivity : AppCompatActivity() {
         handler.postDelayed(timeoutRunnable, CALL_TIMEOUT_MS)
     }
 
+    private var callType: String = "audio"
+
     private fun processIntent(intent: Intent?) {
         if (intent == null) return
         callerId = intent.getStringExtra("callerId") ?: "Unknown"
         callerName = intent.getStringExtra("callerName") ?: callerId
         callId = intent.getStringExtra("callId") ?: "" // Room ID
-        Log.d(TAG, "Processing Call Intent: $callerName ($callId)")
+        callType = intent.getStringExtra("callType") ?: "audio"
+        Log.d(TAG, "Processing Call Intent: $callerName ($callId) Type: $callType")
 
         // Cancel notification on new call
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
         notificationManager.cancel(9999)
     }
 
-    /**
-     * Configure window flags for lock screen display
-     *
-     * THESE FLAGS ARE CRITICAL:
-     * - SHOW_WHEN_LOCKED: Show activity over lock screen
-     * - TURN_SCREEN_ON: Turn on screen when activity starts
-     * - KEEP_SCREEN_ON: Prevent screen from turning off
-     * - DISMISS_KEYGUARD: Dismiss lock screen (deprecated but still works)
-     *
-     * We use both manifest attributes AND programmatic calls for maximum compatibility.
-     */
-    private fun setupWindowFlags() {
-        // API 27+ methods (more reliable)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-        }
-
-        // Legacy window flags (for older versions and additional compatibility)
-        @Suppress("DEPRECATION")
-        window.addFlags(
-            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-            WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-            WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
-        )
-
-        // Request keyguard dismissal
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-            keyguardManager.requestDismissKeyguard(this, null)
-        }
-    }
-
     private fun setupUI() {
         val callerNameText = findViewById<TextView>(R.id.callerNameText)
         val callerIdText = findViewById<TextView>(R.id.callerIdText)
+        val titleText = findViewById<TextView>(R.id.incomingCallTitle) // Assumed ID, if not existing we stick to text changes
         val acceptButton = findViewById<Button>(R.id.acceptButton)
         val rejectButton = findViewById<Button>(R.id.rejectButton)
 
         callerNameText.text = callerName
 
-        // User Request: If callerId is unknown, use Room ID (callId)
+        var typeLabel = "Incoming Call"
+        if (callType == "chat") typeLabel = "Incoming Chat Request"
+        if (callType == "video") typeLabel = "Incoming Video Call"
+
+        // Update title if possible or append to caller ID text
         if (callerId == "Unknown" && callId.isNotEmpty()) {
-            callerIdText.text = "Room: $callId"
+            callerIdText.text = "$typeLabel\nRoom: $callId"
         } else {
-            callerIdText.text = "Calling from: $callerId"
+            callerIdText.text = "$typeLabel\nFrom: $callerId"
         }
 
         acceptButton.setOnClickListener {
@@ -246,10 +220,21 @@ class IncomingCallActivity : AppCompatActivity() {
         // Notify Server via Socket (if connected) or just launch Activity which connects
         // Ideally we emit 'answer-session-native' here if possible
 
-        val intent = Intent(this, com.astro5star.app.ui.call.CallActivity::class.java).apply {
-            putExtra("sessionId", callId)
-            putExtra("partnerId", callerId)
-            putExtra("isInitiator", false)
+        val intent: Intent
+        if (callType == "chat") {
+            intent = Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
+                putExtra("sessionId", callId)
+                putExtra("toUserId", callerId)
+                putExtra("toUserName", callerName)
+                putExtra("isNewRequest", true) // Now safe to auto-accept since user clicked Accept
+            }
+        } else {
+            intent = Intent(this, com.astro5star.app.ui.call.CallActivity::class.java).apply {
+                putExtra("sessionId", callId)
+                putExtra("partnerId", callerId)
+                putExtra("isInitiator", false)
+                putExtra("callType", callType) // Pass audio/video type
+            }
         }
         startActivity(intent)
 
