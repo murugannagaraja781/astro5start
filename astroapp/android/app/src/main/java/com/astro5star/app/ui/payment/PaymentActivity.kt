@@ -21,6 +21,8 @@ import com.phonepe.intent.sdk.api.PhonePe
 import com.phonepe.intent.sdk.api.PhonePeKt
 import com.phonepe.intent.sdk.api.models.PhonePeEnvironment
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import org.json.JSONObject
 
 /**
  * PaymentActivity - Handles PhonePe Native SDK Payment
@@ -92,6 +94,8 @@ class PaymentActivity : AppCompatActivity() {
         startPayment(amount)
     }
 
+    private var pendingTransactionId: String? = null
+
     private fun startPayment(amountRupees: Double) {
         val user = tokenManager.getUserSession()
         val userId = user?.userId ?: run {
@@ -112,6 +116,7 @@ class PaymentActivity : AppCompatActivity() {
                     val body = response.body()!!
                     val payloadBase64 = body.payload
                     val checksum = body.checksum
+                    pendingTransactionId = body.transactionId // Store for verification
 
                     if (payloadBase64.isNullOrEmpty() || checksum.isNullOrEmpty()) {
                         showError("Empty payload from server")
@@ -170,12 +175,43 @@ class PaymentActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == B2B_PG_REQUEST_CODE) {
              statusText.text = "Verifying Transaction..."
-             Toast.makeText(this, "Verifying...", Toast.LENGTH_SHORT).show()
-
-             // Auto-close after short delay to let WalletActivity refresh
-             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                 finish()
-             }, 1500)
+             checkPaymentStatus()
         }
+    }
+
+    private fun checkPaymentStatus() {
+         val txnId = pendingTransactionId
+         if (txnId == null) {
+             finish()
+             return
+         }
+
+         lifecycleScope.launch {
+             try {
+                 statusText.text = "Checking Status..."
+                 // Give server a moment to receive callback or process
+                 delay(2000)
+
+                 val response = ApiClient.api.checkPaymentStatus(txnId)
+                 if (response.isSuccessful && response.body()?.get("ok")?.asBoolean == true) {
+                     val status = response.body()?.get("status")?.asString
+                     if (status == "success") {
+                         statusText.text = "Payment Successful!"
+                         statusText.setTextColor(Color.GREEN)
+                         Toast.makeText(this@PaymentActivity, "Payment Successful!", Toast.LENGTH_LONG).show()
+                         // Delay to show success message
+                         delay(1500)
+                         finish()
+                     } else {
+                         showError("Payment Pending or Failed.\nStatus: $status")
+                     }
+                 } else {
+                     showError("Failed to verify payment status.")
+                 }
+             } catch (e: Exception) {
+                 Log.e(TAG, "Verification Error", e)
+                 showError("Verification Network Error")
+             }
+         }
     }
 }
