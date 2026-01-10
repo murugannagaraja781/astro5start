@@ -125,32 +125,7 @@
                 android:layout_marginTop="8dp"/>
         </LinearLayout>
 
-        <Space android:layout_width="40dp" android:layout_height="wrap_content" />
 
-        <!-- Message Button (Optional) -->
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center">
-
-            <ImageButton
-                android:id="@+id/messageButton"
-                android:layout_width="72dp"
-                android:layout_height="72dp"
-                android:background="@drawable/btn_rounded_action_orange"
-                android:src="@android:drawable/ic_menu_send"
-                android:tint="#FFFFFF"
-                android:contentDescription="Message" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Message"
-                android:textColor="#808080"
-                android:textSize="12sp"
-                android:layout_marginTop="8dp"/>
-        </LinearLayout>
 
     </LinearLayout>
 
