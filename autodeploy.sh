@@ -62,6 +62,11 @@ fi
 echo "[3/6] Setting permissions..."
 sudo chown -R $USER:$USER $APP_DIR
 chmod -R 755 $APP_DIR
+# IMPORTANT: Reset private key to 600 or SSH will fail next time
+if [ -f "$APP_DIR/github_action_key" ]; then
+    chmod 600 "$APP_DIR/github_action_key"
+    echo "Secured github_action_key (600)"
+fi
 
 # Step 3.5: Check for critical configuration files
 if [ ! -f "firebase-service-account.json" ]; then
