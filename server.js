@@ -339,73 +339,62 @@ const PairMonth = mongoose.model('PairMonth', PairMonthSchema);
 
 const BillingLedgerSchema = new mongoose.Schema({
   billingId: { type: String, unique: true },
-  sessionId: { type: String, required: true, index: true },
-  minuteIndex: { type: Number, required: true },
-  chargedToClient: Number,
-  creditedToAstrologer: Number,
-  adminAmount: Number,
-  reason: { type: String, enum: ['first_60', 'first_60_partial', 'slab', 'rounded', 'payout_withdrawal'] },
-  createdAt: { type: Date, default: Date.now }
-});
-const BillingLedger = mongoose.model('BillingLedger', BillingLedgerSchema);
+  const WithdrawalSchema = new mongoose.Schema({
+    astroId: String,
+    amount: Number,
+    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    requestedAt: { type: Date, default: Date.now },
+    processedAt: Date
+  });
+  const Withdrawal = mongoose.model('Withdrawal', WithdrawalSchema);
 
-// Phase 15: Withdrawal Schema
-const WithdrawalSchema = new mongoose.Schema({
-  astroId: String,
-  amount: Number,
-  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-  requestedAt: { type: Date, default: Date.now },
-  processedAt: Date
-});
-const Withdrawal = mongoose.model('Withdrawal', WithdrawalSchema);
-
-const PaymentSchema = new mongoose.Schema({
-  transactionId: { type: String, unique: true },
-  merchantTransactionId: String, // For PhonePe callback matching
-  userId: String,
-  amount: Number, // in Rupees
-  status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },
-  createdAt: { type: Date, default: Date.now },
-  providerRefId: String
-});
-const Payment = mongoose.model('Payment', PaymentSchema);
+  const PaymentSchema = new mongoose.Schema({
+    transactionId: { type: String, unique: true },
+    merchantTransactionId: String, // For PhonePe callback matching
+    userId: String,
+    amount: Number, // in Rupees
+    status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },
+    createdAt: { type: Date, default: Date.now },
+    providerRefId: String
+  });
+  const Payment = mongoose.model('Payment', PaymentSchema);
 
 
-const ChatMessageSchema = new mongoose.Schema({
-  sessionId: String,
-  fromUserId: String,
-  toUserId: String,
-  text: String,
-  timestamp: Number
-});
-const ChatMessage = mongoose.model('ChatMessage', ChatMessageSchema);
+  const ChatMessageSchema = new mongoose.Schema({
+    sessionId: String,
+    fromUserId: String,
+    toUserId: String,
+    text: String,
+    timestamp: Number
+  });
+  const ChatMessage = mongoose.model('ChatMessage', ChatMessageSchema);
 
 
-// ===== Seed Data =====
-async function seedDatabase() {
-  const count = await User.countDocuments();
-  if (count > 0) return; // Already seeded
+  // ===== Seed Data =====
+  async function seedDatabase() {
+    const count = await User.countDocuments();
+    if(count > 0) return; // Already seeded
 
-  console.log('--- Seeding Database ---');
+console.log('--- Seeding Database ---');
 
-  const create = async (name, phone, role) => {
-    const userId = crypto.randomUUID();
-    await User.create({
-      userId, name, phone, role,
-      skills: role === 'astrologer' ? ['Vedic', 'Prashana'] : [],
-      price: 20,
-      walletBalance: 369
-    });
-  };
+const create = async (name, phone, role) => {
+  const userId = crypto.randomUUID();
+  await User.create({
+    userId, name, phone, role,
+    skills: role === 'astrologer' ? ['Vedic', 'Prashana'] : [],
+    price: 20,
+    walletBalance: 369
+  });
+};
 
-  await create('Astro Maveeran', '9000000001', 'astrologer');
-  await create('Thiru', '9000000002', 'astrologer');
-  await create('Lakshmi', '9000000003', 'astrologer');
-  await create('Client John', '8000000001', 'client');
-  await create('Client Sarah', '8000000002', 'client');
-  await create('Client Mike', '8000000003', 'client');
+await create('Astro Maveeran', '9000000001', 'astrologer');
+await create('Thiru', '9000000002', 'astrologer');
+await create('Lakshmi', '9000000003', 'astrologer');
+await create('Client John', '8000000001', 'client');
+await create('Client Sarah', '8000000002', 'client');
+await create('Client Mike', '8000000003', 'client');
 
-  console.log('--- Database Seeded ---');
+console.log('--- Database Seeded ---');
 }
 // seedDatabase(); // Moved to DB connection success
 
@@ -1385,6 +1374,12 @@ io.on('connection', (socket) => {
         sendFcmV1Push(toUser.fcmToken, fcmData, fcmNotification)
           .then(result => {
             console.log(`[FCM v1] Session Push to ${toUserId}: Success=${result.success}`);
+            if (!result.success && (result.error?.includes('Requested entity was not found') || result.error === 'UNREGISTERED')) {
+              // Token is stale/invalid
+              User.updateOne({ userId: toUserId }, { $unset: { fcmToken: 1 } })
+                .then(() => console.log(`[FCM v1] Invalid token removed for ${toUserId}`))
+                .catch(e => console.error('Token removal error', e));
+            }
           })
           .catch(err => {
             console.error('[FCM v1] Session Push Error:', err.message);
@@ -3403,7 +3398,9 @@ app.post('/call', async (req, res) => {
     console.error('[Mobile] FCM Error:', error.message);
     if (error.code === 'messaging/invalid-registration-token' ||
       error.code === 'messaging/registration-token-not-registered') {
-      mobileTokenStore.delete(calleeId);
+      // Remove invalid token from DB
+      await User.updateOne({ userId: calleeId }, { $unset: { fcmToken: 1 } });
+      console.log(`[Mobile] Invalid token removed for user ${calleeId}`);
     }
     // Return 500 only for actual sending errors, not config errors
     res.status(500).json({ success: false, error: error.message });
