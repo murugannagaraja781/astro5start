@@ -255,17 +255,18 @@ class PaymentActivity : AppCompatActivity() {
                                         }
                                     }
                                 } else {
-                                    showError("No Payment URL received")
+                                    showError("Server did not return a Payment URL")
                                 }
                             } else {
-                                showError(respJson.optString("error", "Server Error"))
+                                val errorMsg = respJson.optString("error", "Unknown Server Error")
+                                showError("Server Error: $errorMsg")
                             }
                         } else {
-                            showError("Payment Init Failed: ${response.code}")
+                            showError("Payment Init Failed: ${response.code} - ${response.message}")
                         }
                     } catch (e: Exception) {
                          Log.e(TAG, "Web Init Error", e)
-                         showError("Connection Error")
+                         showError("Connection Error: ${e.localizedMessage}")
                     }
                 }
 
