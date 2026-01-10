@@ -339,62 +339,76 @@ const PairMonth = mongoose.model('PairMonth', PairMonthSchema);
 
 const BillingLedgerSchema = new mongoose.Schema({
   billingId: { type: String, unique: true },
-  const WithdrawalSchema = new mongoose.Schema({
-    astroId: String,
-    amount: Number,
-    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-    requestedAt: { type: Date, default: Date.now },
-    processedAt: Date
-  });
-  const Withdrawal = mongoose.model('Withdrawal', WithdrawalSchema);
+  sessionId: { type: String, required: true, index: true },
+  minuteIndex: { type: Number, required: true },
+  chargedToClient: Number,
+  creditedToAstrologer: Number,
+  adminAmount: Number,
+  reason: {
+    type: String,
+    enum: ['first_60', 'first_60_partial', 'slab', 'rounded', 'payout_withdrawal', 'referral', 'bonus', 'slab_1', 'slab_2', 'slab_3']
+  },
+  createdAt: { type: Date, default: Date.now }
+});
+const BillingLedger = mongoose.model('BillingLedger', BillingLedgerSchema);
 
-  const PaymentSchema = new mongoose.Schema({
-    transactionId: { type: String, unique: true },
-    merchantTransactionId: String, // For PhonePe callback matching
-    userId: String,
-    amount: Number, // in Rupees
-    status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },
-    createdAt: { type: Date, default: Date.now },
-    providerRefId: String
-  });
-  const Payment = mongoose.model('Payment', PaymentSchema);
+// Phase 15: Withdrawal Schema
+const WithdrawalSchema = new mongoose.Schema({
+  astroId: String,
+  amount: Number,
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  requestedAt: { type: Date, default: Date.now },
+  processedAt: Date
+});
+const Withdrawal = mongoose.model('Withdrawal', WithdrawalSchema);
+
+const PaymentSchema = new mongoose.Schema({
+  transactionId: { type: String, unique: true },
+  merchantTransactionId: String, // For PhonePe callback matching
+  userId: String,
+  amount: Number, // in Rupees
+  status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },
+  createdAt: { type: Date, default: Date.now },
+  providerRefId: String
+});
+const Payment = mongoose.model('Payment', PaymentSchema);
 
 
-  const ChatMessageSchema = new mongoose.Schema({
-    sessionId: String,
-    fromUserId: String,
-    toUserId: String,
-    text: String,
-    timestamp: Number
-  });
-  const ChatMessage = mongoose.model('ChatMessage', ChatMessageSchema);
+const ChatMessageSchema = new mongoose.Schema({
+  sessionId: String,
+  fromUserId: String,
+  toUserId: String,
+  text: String,
+  timestamp: Number
+});
+const ChatMessage = mongoose.model('ChatMessage', ChatMessageSchema);
 
 
-  // ===== Seed Data =====
-  async function seedDatabase() {
-    const count = await User.countDocuments();
-    if(count > 0) return; // Already seeded
+// ===== Seed Data =====
+async function seedDatabase() {
+  const count = await User.countDocuments();
+  if (count > 0) return; // Already seeded
 
-console.log('--- Seeding Database ---');
+  console.log('--- Seeding Database ---');
 
-const create = async (name, phone, role) => {
-  const userId = crypto.randomUUID();
-  await User.create({
-    userId, name, phone, role,
-    skills: role === 'astrologer' ? ['Vedic', 'Prashana'] : [],
-    price: 20,
-    walletBalance: 369
-  });
-};
+  const create = async (name, phone, role) => {
+    const userId = crypto.randomUUID();
+    await User.create({
+      userId, name, phone, role,
+      skills: role === 'astrologer' ? ['Vedic', 'Prashana'] : [],
+      price: 20,
+      walletBalance: 369
+    });
+  };
 
-await create('Astro Maveeran', '9000000001', 'astrologer');
-await create('Thiru', '9000000002', 'astrologer');
-await create('Lakshmi', '9000000003', 'astrologer');
-await create('Client John', '8000000001', 'client');
-await create('Client Sarah', '8000000002', 'client');
-await create('Client Mike', '8000000003', 'client');
+  await create('Astro Maveeran', '9000000001', 'astrologer');
+  await create('Thiru', '9000000002', 'astrologer');
+  await create('Lakshmi', '9000000003', 'astrologer');
+  await create('Client John', '8000000001', 'client');
+  await create('Client Sarah', '8000000002', 'client');
+  await create('Client Mike', '8000000003', 'client');
 
-console.log('--- Database Seeded ---');
+  console.log('--- Database Seeded ---');
 }
 // seedDatabase(); // Moved to DB connection success
 
