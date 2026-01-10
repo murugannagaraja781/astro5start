@@ -110,7 +110,12 @@ class CallActivity : AppCompatActivity() {
         }
 
         btnChat.setOnClickListener {
-             Toast.makeText(this, "Chat feature coming soon", Toast.LENGTH_SHORT).show()
+             val intent = android.content.Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
+                putExtra("sessionId", sessionId)
+                putExtra("toUserId", partnerId)
+                putExtra("toUserName", partnerName)
+            }
+            startActivity(intent)
         }
 
         // Start Timer
