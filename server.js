@@ -497,6 +497,28 @@ function generateTamilHoroscope() {
 generateTamilHoroscope();
 
 // --- Endpoints ---
+// --- Get User Profile (Wallet Balance) ---
+app.get('/api/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findOne({ userId });
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+
+    res.json({
+      ok: true,
+      userId: user.userId,
+      name: user.name,
+      phone: user.phone,
+      role: user.role,
+      walletBalance: user.walletBalance,
+      isOnline: user.isOnline,
+      totalEarnings: user.totalEarnings || 0,
+      image: user.image
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: 'Internal Error' });
+  }
+});
 
 // Astrologer List API (Used by Mobile App)
 app.get('/api/astrology/astrologers', async (req, res) => {

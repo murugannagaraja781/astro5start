@@ -108,6 +108,27 @@ class HomeActivity : AppCompatActivity() {
         tvWalletBalance.text = "₹${balance.toInt()}"
     }
 
+    // Fetch latest balance from server on resume (Post-Payment)
+    private fun refreshWalletBalance() {
+        val userId = tokenManager.getUserSession()?.userId ?: return
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                // Ensure ApiClient is accessible or use internal valid method
+                // We use the new endpoint added to ApiInterface
+                val response = com.astro5star.app.data.api.ApiClient.apiInterface.getUserProfile(userId)
+                if (response.isSuccessful && response.body() != null) {
+                    val user = response.body()!!
+                    runOnUiThread {
+                        tokenManager.saveUserSession(user)
+                        loadWalletBalance()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Balance refresh failed", e)
+            }
+        }
+    }
+
     private fun loadDailyHoroscope() {
         lifecycleScope.launch {
             try {
@@ -343,6 +364,7 @@ class HomeActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         loadWalletBalance()
+        refreshWalletBalance()
     }
 
     override fun onDestroy() {

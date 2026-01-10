@@ -29,6 +29,9 @@ interface ApiInterface {
     @POST("api/payment/token")
     suspend fun getPaymentToken(@Body request: PaymentInitiateRequest): Response<com.google.gson.JsonObject>
 
+    @retrofit2.http.GET("api/user/{userId}")
+    suspend fun getUserProfile(@retrofit2.http.Path("userId") userId: String): Response<com.astro5star.app.data.model.AuthResponse>
+
     // Add other endpoints as needed
     // @POST("register") ...
 }

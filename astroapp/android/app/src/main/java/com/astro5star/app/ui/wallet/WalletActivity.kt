@@ -62,16 +62,32 @@ class WalletActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Refresh balance on resume
-        updateBalanceUI()
-        loadPaymentHistory() // Reload history as well
+        loadPaymentHistory()
+        refreshWalletBalance() // Fetch latest from server
 
-        // Listen for real-time updates
+        // Listen for real-time updates as backup
         com.astro5star.app.data.remote.SocketManager.onWalletUpdate { newBalance ->
             runOnUiThread {
                 tokenManager.updateWalletBalance(newBalance)
                 updateBalanceUI()
-                loadPaymentHistory()
+            }
+        }
+    }
+
+    private fun refreshWalletBalance() {
+        val userId = tokenManager.getUserSession()?.userId ?: return
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val response = ApiClient.apiInterface.getUserProfile(userId)
+                if (response.isSuccessful && response.body() != null) {
+                    val user = response.body()!!
+                    runOnUiThread {
+                        tokenManager.saveUserSession(user) // Update local cache
+                        updateBalanceUI()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
