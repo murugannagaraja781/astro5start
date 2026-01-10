@@ -188,7 +188,7 @@ class PaymentActivity : AppCompatActivity() {
 
     private var pendingTransactionId: String? = null
 
-    // --- WEB PAYMENT LOGIC ---
+    // --- WEB PAYMENT LOGIC (EXTERNAL BROWSER) ---
     private fun startWebPayment(amount: Double) {
         val user = tokenManager.getUserSession()
         val userId = user?.userId ?: run {
@@ -196,11 +196,11 @@ class PaymentActivity : AppCompatActivity() {
             return
         }
 
-        statusText.text = "Loading Payment Page..."
+        statusText.text = "Opening Payment Page..."
 
         lifecycleScope.launch {
             try {
-                // Call /api/payment/create (Main Web Endpoint)
+                // Call /api/payment/create
                  val json = JSONObject().apply {
                     put("userId", userId)
                     put("amount", amount)
@@ -235,12 +235,24 @@ class PaymentActivity : AppCompatActivity() {
 
                                 if (paymentUrl.isNotEmpty()) {
                                     runOnUiThread {
-                                        statusText.visibility = android.view.View.GONE
-                                        webView.visibility = android.view.View.VISIBLE
-                                        webView.loadUrl(paymentUrl)
+                                        // Launch External Browser (Chrome)
+                                        // This handles UPI Deep Links (PhonePe, GPay) much better than WebView
+                                        try {
+                                            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(paymentUrl))
+                                            startActivity(intent)
 
-                                        // Start polling for status since we are in webview
-                                        monitorWebPayment(txnId)
+                                            statusText.text = "Payment in progress on Browser/App..."
+                                            statusText.visibility = android.view.View.VISIBLE
+                                            // WebView removed/hidden
+                                            if (::webView.isInitialized) webView.visibility = android.view.View.GONE
+
+                                            // Start polling for status
+                                            monitorWebPayment(txnId)
+
+                                        } catch (e: Exception) {
+                                            Log.e(TAG, "Browser Launch Error", e)
+                                            showError("Could not open browser. Please install Chrome.")
+                                        }
                                     }
                                 } else {
                                     showError("No Payment URL received")
