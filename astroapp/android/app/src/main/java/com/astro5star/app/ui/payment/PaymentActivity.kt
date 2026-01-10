@@ -95,70 +95,49 @@ class PaymentActivity : AppCompatActivity() {
             )
             visibility = android.view.View.GONE // Hidden by default
 
-            webChromeClient = android.webkit.WebChromeClient()
+            webChromeClient = object : android.webkit.WebChromeClient() {
+                // Intercept window.open calls (Popups) from Payment Gateway
+                override fun onCreateWindow(
+                    view: android.webkit.WebView?,
+                    isDialog: Boolean,
+                    isUserGesture: Boolean,
+                    resultMsg: android.os.Message?
+                ): Boolean {
+                    val newWebView = android.webkit.WebView(this@PaymentActivity)
+                    val transport = resultMsg?.obj as? android.webkit.WebView.WebViewTransport
+                    transport?.webView = newWebView
+                    resultMsg?.sendToTarget()
+
+                    newWebView.webViewClient = object : android.webkit.WebViewClient() {
+                        override fun shouldOverrideUrlLoading(
+                            view: android.webkit.WebView?,
+                            request: android.webkit.WebResourceRequest?
+                        ): Boolean {
+                            val url = request?.url.toString()
+                            Log.d(TAG, "Popup Navigating: $url")
+
+                            // If popup tries to load a UPI/Intent URL, handle it via System Intent
+                            if (handleDeepLink(url)) {
+                                return true
+                            }
+                            // Otherwise, normal load (maybe intermediate redirect)
+                            return false
+                        }
+                    }
+                    return true
+                }
+            }
 
             webViewClient = object : android.webkit.WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, request: android.webkit.WebResourceRequest?): Boolean {
                     val url = request?.url.toString()
-                    Log.d(TAG, "Navigating: $url")
-
-                    if (url.startsWith("astro5://payment-failed")) {
-                         showError("Payment Failed")
-                         return true
-                    }
-                    if (url.contains("/wallet?status=failure")) {
-                         showError("Payment Failed")
-                         return true
-                    }
-                    if (url.contains("/api/payment/callback?isApp=true")) {
-                         return false
-                    }
-
-                    // Handle UPI and Payment Deep Links
-                    if (url.startsWith("upi://") || url.startsWith("phonepe://") || url.startsWith("tez://") || url.startsWith("paytmmp://") || url.startsWith("gpay://") || url.startsWith("bhim://")) {
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
-                            startActivity(intent)
-                            return true
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Deep Link Error", e)
-                            Toast.makeText(this@PaymentActivity, "App not installed for this payment method", Toast.LENGTH_SHORT).show()
-                            return true
-                        }
-                    }
-
-                    // Handle Intent URLs (Optimistic Try-Catch)
-                    if (url.startsWith("intent://")) {
-                        try {
-                            val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
-                            if (intent != null) {
-                                try {
-                                    startActivity(intent)
-                                    return true
-                                } catch (e: android.content.ActivityNotFoundException) {
-                                    // App not installed, try fallback URL
-                                    val fallbackUrl = intent.getStringExtra("browser_fallback_url")
-                                    if (!fallbackUrl.isNullOrEmpty()) {
-                                        view?.loadUrl(fallbackUrl)
-                                        return true
-                                    }
-                                    Toast.makeText(this@PaymentActivity, "Payment App not installed", Toast.LENGTH_SHORT).show()
-                                    return true
-                                }
-                            }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Intent Parse Error", e)
-                        }
-                    }
-
-                    return false
+                    return handleDeepLink(url)
                 }
 
                 override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
                     super.onPageFinished(view, url)
                     if (url != null && url.contains("/api/payment/callback")) {
                          // Success callback from server logic
-                         // We can also poll or just wait. Server sends HTML with "Return to App" button usually.
                     }
                 }
             }
@@ -342,6 +321,59 @@ class PaymentActivity : AppCompatActivity() {
                 showError("Network Connection Failed: ${e.message}")
             }
         }
+    }
+
+
+    private fun handleDeepLink(url: String): Boolean {
+        Log.d(TAG, "DeepLink Check: $url")
+
+        if (url.startsWith("astro5://payment-failed") || url.contains("/wallet?status=failure")) {
+             showError("Payment Failed")
+             return true
+        }
+        if (url.contains("/api/payment/callback?isApp=true")) {
+             return false
+        }
+
+        // Handle UPI and Payment Deep Links
+        if (url.startsWith("upi://") || url.startsWith("phonepe://") || url.startsWith("tez://") || url.startsWith("paytmmp://") || url.startsWith("gpay://") || url.startsWith("bhim://")) {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+                return true
+            } catch (e: Exception) {
+                Log.e(TAG, "Deep Link Error", e)
+                Toast.makeText(this@PaymentActivity, "App not installed for this payment method", Toast.LENGTH_SHORT).show()
+                return true
+            }
+        }
+
+        // Handle Intent URLs (Optimistic Try-Catch)
+        if (url.startsWith("intent://")) {
+            try {
+                val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+                if (intent != null) {
+                    try {
+                        startActivity(intent)
+                        return true
+                    } catch (e: android.content.ActivityNotFoundException) {
+                        val fallbackUrl = intent.getStringExtra("browser_fallback_url")
+                        if (!fallbackUrl.isNullOrEmpty()) {
+                            if (::webView.isInitialized) {
+                                webView.post { webView.loadUrl(fallbackUrl) }
+                            }
+                            return true
+                        }
+                        Toast.makeText(this@PaymentActivity, "Payment App not installed", Toast.LENGTH_SHORT).show()
+                        return true
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Intent Parse Error", e)
+            }
+        }
+        return false
     }
 
     private fun showError(message: String) {
