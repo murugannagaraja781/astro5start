@@ -42,7 +42,7 @@ class PaymentActivity : AppCompatActivity() {
         private const val TAG = "PaymentActivity"
         private const val MERCHANT_ID = "M22LBBWEJKI6A"
         private const val B2B_PG_REQUEST_CODE = 777
-        private const val USE_NATIVE_SDK = true // Toggle this to switch between Native and Web
+        private const val USE_NATIVE_SDK = false // Toggle this to switch between Native and Web
         private const val SERVER_URL = "https://astro5star.com"
     }
 

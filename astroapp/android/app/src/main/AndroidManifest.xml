@@ -189,6 +189,11 @@
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="incoming_calls" />
 
+        <!-- PhonePe SDK Configuration -->
+        <meta-data
+            android:name="com.phonepe.android.sdk.isUAT"
+            android:value="false" />
+
     </application>
 
 </manifest>
