@@ -49,26 +49,31 @@ class ChatActivity : AppCompatActivity() {
     private var clientBirthData: JSONObject? = null
 
     private fun handleIntent(intent: Intent?) {
-        toUserId = intent?.getStringExtra("toUserId")
-        sessionId = intent?.getStringExtra("sessionId")
-        val birthDataStr = intent?.getStringExtra("birthData")
-        if (!birthDataStr.isNullOrEmpty()) {
-             try {
-                val obj = JSONObject(birthDataStr)
-                if (obj.length() > 0) {
-                     clientBirthData = obj
-                     Toast.makeText(this, "Client Birth Data Received", Toast.LENGTH_SHORT).show()
-                }
-             } catch (e: Exception) { e.printStackTrace() }
-        }
+        try {
+            toUserId = intent?.getStringExtra("toUserId")
+            sessionId = intent?.getStringExtra("sessionId")
+            val birthDataStr = intent?.getStringExtra("birthData")
+            if (!birthDataStr.isNullOrEmpty()) {
+                 try {
+                    val obj = JSONObject(birthDataStr)
+                    if (obj.length() > 0) {
+                         clientBirthData = obj
+                         Toast.makeText(this, "Client Birth Data Received", Toast.LENGTH_SHORT).show()
+                    }
+                 } catch (e: Exception) { e.printStackTrace() }
+            }
 
-        if (sessionId == null) {
-            Toast.makeText(this, "Session ID Missing", Toast.LENGTH_SHORT).show()
-            finish()
-            return
-        }
+            if (sessionId == null) {
+                Toast.makeText(this, "Session ID Missing - Please start a new session", Toast.LENGTH_LONG).show()
+                // Don't finish immediately - show error and let user navigate back
+                return
+            }
 
-        setupContent()
+            setupContent()
+        } catch (e: Exception) {
+            android.util.Log.e("ChatActivity", "handleIntent failed", e)
+            Toast.makeText(this, "Chat error. Please try again.", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun setupContent() {

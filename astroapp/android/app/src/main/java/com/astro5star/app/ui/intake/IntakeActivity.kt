@@ -38,24 +38,31 @@ class IntakeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_intake)
+        try {
+            setContentView(R.layout.activity_intake)
 
-        partnerId = intent.getStringExtra("partnerId")
-        type = intent.getStringExtra("type")
-        partnerName = intent.getStringExtra("partnerName")
+            partnerId = intent.getStringExtra("partnerId")
+            type = intent.getStringExtra("type")
+            partnerName = intent.getStringExtra("partnerName")
 
-        etPlace = findViewById(R.id.etPlace)
-        etPartnerPlace = findViewById(R.id.etPartnerPlace)
-        setupAutocomplete(etPlace, true)
-        setupAutocomplete(etPartnerPlace, false)
+            etPlace = findViewById(R.id.etPlace) ?: return
+            etPartnerPlace = findViewById(R.id.etPartnerPlace) ?: return
+            try { setupAutocomplete(etPlace, true) } catch (e: Exception) { e.printStackTrace() }
+            try { setupAutocomplete(etPartnerPlace, false) } catch (e: Exception) { e.printStackTrace() }
 
-        setupSpinners()
-        setupPartnerCheckbox()
+            try { setupSpinners() } catch (e: Exception) { e.printStackTrace() }
+            try { setupPartnerCheckbox() } catch (e: Exception) { e.printStackTrace() }
+            try { loadIntakeDetails() } catch (e: Exception) { e.printStackTrace() }
 
-        loadIntakeDetails()
-
-        findViewById<Button>(R.id.btnConnect).setOnClickListener {
-            submitForm()
+            findViewById<Button>(R.id.btnConnect)?.setOnClickListener {
+                try { submitForm() } catch (e: Exception) {
+                    android.util.Log.e("IntakeActivity", "submitForm failed", e)
+                    android.widget.Toast.makeText(this, "Error submitting form", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("IntakeActivity", "onCreate failed", e)
+            android.widget.Toast.makeText(this, "Error loading form. Please try again.", android.widget.Toast.LENGTH_LONG).show()
         }
     }
 

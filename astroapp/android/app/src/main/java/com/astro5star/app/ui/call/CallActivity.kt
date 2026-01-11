@@ -76,58 +76,58 @@ class CallActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_call)
+        try {
+            setContentView(R.layout.activity_call)
 
-        // Params
-        partnerId = intent.getStringExtra("partnerId")
-        partnerName = intent.getStringExtra("partnerName") ?: partnerId
-        sessionId = intent.getStringExtra("sessionId")
-        isInitiator = intent.getBooleanExtra("isInitiator", false)
-        callType = intent.getStringExtra("type") ?: intent.getStringExtra("callType") ?: "video"
+            // Params
+            partnerId = intent.getStringExtra("partnerId")
+            partnerName = intent.getStringExtra("partnerName") ?: partnerId
+            sessionId = intent.getStringExtra("sessionId")
+            isInitiator = intent.getBooleanExtra("isInitiator", false)
+            callType = intent.getStringExtra("type") ?: intent.getStringExtra("callType") ?: "video"
 
-        // Init Views
-        remoteView = findViewById(R.id.remote_view)
-        localView = findViewById(R.id.local_view)
-        tvStatus = findViewById(R.id.tvCallStatus)
+            // Init Views - with null safety
+            remoteView = findViewById(R.id.remote_view) ?: run { showCallError(); return }
+            localView = findViewById(R.id.local_view) ?: run { showCallError(); return }
+            tvStatus = findViewById(R.id.tvCallStatus) ?: run { showCallError(); return }
 
-        val tvRemoteName = findViewById<TextView>(R.id.tvRemoteName)
-        val tvCallDuration = findViewById<TextView>(R.id.tvCallDuration)
-        tvRemoteName.text = partnerName ?: "Unknown"
-        tvCallDuration.text = "00:00"
+            val tvRemoteName = findViewById<TextView>(R.id.tvRemoteName)
+            val tvCallDuration = findViewById<TextView>(R.id.tvCallDuration)
+            tvRemoteName?.text = partnerName ?: "Unknown"
+            tvCallDuration?.text = "00:00"
 
-        val btnEndCall = findViewById<ImageButton>(R.id.btnEndCall)
-        val btnMic = findViewById<ImageButton>(R.id.btnMic)
-        val btnVideo = findViewById<ImageButton>(R.id.btnVideo)
-        val btnChat = findViewById<ImageButton>(R.id.btnChat)
-        val btnBack = findViewById<ImageButton>(R.id.btnBack)
+            val btnEndCall = findViewById<ImageButton>(R.id.btnEndCall)
+            val btnMic = findViewById<ImageButton>(R.id.btnMic)
+            val btnVideo = findViewById<ImageButton>(R.id.btnVideo)
+            val btnChat = findViewById<ImageButton>(R.id.btnChat)
+            val btnBack = findViewById<ImageButton>(R.id.btnBack)
 
-        btnEndCall.setOnClickListener { endCall() }
-        btnBack.setOnClickListener {
-            // Back button acts as minimize or end call? Usually End Call in full screen flow, or just finish
-             // For now, let's make it end call to avoid confusion, or maybe just minimize (finish calls onDestroy which ends call)
-             // Let's ask user? No, standard behavior: End call.
-             endCall()
-        }
+            btnEndCall?.setOnClickListener { try { endCall() } catch (e: Exception) { e.printStackTrace() } }
+            btnBack?.setOnClickListener { try { endCall() } catch (e: Exception) { e.printStackTrace() } }
 
-        btnChat.setOnClickListener {
-             val intent = android.content.Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
-                putExtra("sessionId", sessionId)
-                putExtra("toUserId", partnerId)
-                putExtra("toUserName", partnerName)
+            btnChat?.setOnClickListener {
+                try {
+                    val intent = android.content.Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
+                        putExtra("sessionId", sessionId)
+                        putExtra("toUserId", partnerId)
+                        putExtra("toUserName", partnerName)
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) { e.printStackTrace() }
             }
-            startActivity(intent)
-        }
 
-        // Start Timer
-        timerHandler.postDelayed(timerRunnable, 1000)
+            // Start Timer
+            try { timerHandler.postDelayed(timerRunnable, 1000) } catch (e: Exception) { e.printStackTrace() }
 
-        // Mic Toggle
-        btnMic.setOnClickListener {
-            isMuted = !isMuted
-            localAudioTrack?.setEnabled(!isMuted)
-            btnMic.alpha = if (isMuted) 0.5f else 1.0f
-            Toast.makeText(this, if (isMuted) "Muted" else "Unmuted", Toast.LENGTH_SHORT).show()
-        }
+            // Mic Toggle
+            btnMic?.setOnClickListener {
+                try {
+                    isMuted = !isMuted
+                    localAudioTrack?.setEnabled(!isMuted)
+                    btnMic.alpha = if (isMuted) 0.5f else 1.0f
+                    Toast.makeText(this, if (isMuted) "Muted" else "Unmuted", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) { e.printStackTrace() }
+            }
 
         // Speaker/Video Toggle
         if (callType == "audio") {
@@ -189,6 +189,14 @@ class CallActivity : AppCompatActivity() {
                 PERMISSION_REQ_CODE
             )
         }
+        } catch (e: Exception) {
+            Log.e(TAG, "onCreate failed", e)
+            Toast.makeText(this, "Call error. Please try again.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun showCallError() {
+        Toast.makeText(this, "Call initialization failed.", Toast.LENGTH_LONG).show()
     }
 
     private fun setSpeakerphoneOn(on: Boolean) {

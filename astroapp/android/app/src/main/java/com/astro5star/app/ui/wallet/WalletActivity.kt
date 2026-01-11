@@ -24,40 +24,49 @@ class WalletActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_wallet)
+        try {
+            setContentView(R.layout.activity_wallet)
 
-        tokenManager = TokenManager(this)
-        val user = tokenManager.getUserSession()
+            tokenManager = TokenManager(this)
+            val user = tokenManager.getUserSession()
 
-        val balanceText = findViewById<TextView>(R.id.balanceText)
-        val amountInput = findViewById<EditText>(R.id.amountInput)
-        val btnAddMoney = findViewById<Button>(R.id.btnAddMoney)
-        recyclerHistory = findViewById(R.id.recyclerHistory)
+            val balanceText = findViewById<TextView>(R.id.balanceText) ?: return
+            val amountInput = findViewById<EditText>(R.id.amountInput) ?: return
+            val btnAddMoney = findViewById<Button>(R.id.btnAddMoney) ?: return
+            recyclerHistory = findViewById(R.id.recyclerHistory) ?: return
 
-        val balance = user?.walletBalance ?: 0.0
-        balanceText.text = "₹ ${balance.toInt()}"
+            val balance = user?.walletBalance ?: 0.0
+            balanceText.text = "₹ ${balance.toInt()}"
 
-        // Setup History Recycler
-        recyclerHistory.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
-        historyAdapter = HistoryAdapter(transactions)
-        recyclerHistory.adapter = historyAdapter
+            // Setup History Recycler
+            recyclerHistory.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+            historyAdapter = HistoryAdapter(transactions)
+            recyclerHistory.adapter = historyAdapter
 
-        btnAddMoney.setOnClickListener {
-            val amountStr = amountInput.text.toString()
-            val amount = amountStr.toIntOrNull()
+            btnAddMoney.setOnClickListener {
+                try {
+                    val amountStr = amountInput.text.toString()
+                    val amount = amountStr.toIntOrNull()
 
-            if (amount == null || amount < 1) {
-                Toast.makeText(this, "Enter valid amount", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+                    if (amount == null || amount < 1) {
+                        Toast.makeText(this, "Enter valid amount", Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
+
+                    val intent = Intent(this, com.astro5star.app.ui.payment.PaymentActivity::class.java)
+                    intent.putExtra("amount", amount.toDouble())
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
 
-            // Launch Native Payment SDK
-            val intent = Intent(this, com.astro5star.app.ui.payment.PaymentActivity::class.java)
-            intent.putExtra("amount", amount.toDouble())
-            startActivity(intent)
-        }
+            try { loadPaymentHistory() } catch (e: Exception) { e.printStackTrace() }
 
-        loadPaymentHistory()
+        } catch (e: Exception) {
+            android.util.Log.e("WalletActivity", "onCreate failed", e)
+            Toast.makeText(this, "Error loading wallet. Please try again.", Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onResume() {

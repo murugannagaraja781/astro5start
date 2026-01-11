@@ -57,54 +57,58 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_home)
+        try {
+            setContentView(R.layout.activity_home)
 
-        tokenManager = TokenManager(this)
+            tokenManager = TokenManager(this)
 
-        // Init views
-        recyclerView = findViewById(R.id.recyclerAstrologers)
-        progressBar = findViewById(R.id.progressBar)
-        tvWalletBalance = findViewById(R.id.tvWalletBalance)
-        tvHoroscope = findViewById(R.id.tvHoroscope)
+            // Init views - with null safety
+            recyclerView = findViewById(R.id.recyclerAstrologers) ?: return showFatalError()
+            progressBar = findViewById(R.id.progressBar) ?: return showFatalError()
+            tvWalletBalance = findViewById(R.id.tvWalletBalance) ?: return showFatalError()
+            tvHoroscope = findViewById(R.id.tvHoroscope) ?: return showFatalError()
 
-        // Setup RecyclerView
-        adapter = AstrologerAdapter(
-            emptyList(),
-            onChatClick = { astro -> startChat(astro) },
-            onAudioClick = { astro -> startCall(astro, "audio") },
-            onVideoClick = { astro -> startCall(astro, "video") }
-        )
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        recyclerView.adapter = adapter
+            // Setup RecyclerView
+            adapter = AstrologerAdapter(
+                emptyList(),
+                onChatClick = { astro -> startChat(astro) },
+                onAudioClick = { astro -> startCall(astro, "audio") },
+                onVideoClick = { astro -> startCall(astro, "video") }
+            )
+            recyclerView.layoutManager = LinearLayoutManager(this)
+            recyclerView.adapter = adapter
 
-        // Wallet click
-        findViewById<View>(R.id.layoutWallet).setOnClickListener {
-            startActivity(Intent(this, WalletActivity::class.java))
+            // Wallet click
+            findViewById<View>(R.id.layoutWallet)?.setOnClickListener {
+                startActivity(Intent(this, WalletActivity::class.java))
+            }
+
+            // Logout
+            findViewById<View>(R.id.btnLogout)?.setOnClickListener {
+                tokenManager.clearSession()
+                SocketManager.disconnect()
+                val intent = Intent(this, com.astro5star.app.ui.guest.GuestDashboardActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                finish()
+            }
+
+            // Load data with try-catch
+            try { loadWalletBalance() } catch (e: Exception) { Log.e(TAG, "loadWalletBalance failed", e) }
+            try { loadDailyHoroscope() } catch (e: Exception) { Log.e(TAG, "loadDailyHoroscope failed", e) }
+            try { loadAstrologers() } catch (e: Exception) { Log.e(TAG, "loadAstrologers failed", e) }
+            try { setupBanner() } catch (e: Exception) { Log.e(TAG, "setupBanner failed", e) }
+            try { setupRasiList() } catch (e: Exception) { Log.e(TAG, "setupRasiList failed", e) }
+            try { setupSocket() } catch (e: Exception) { Log.e(TAG, "setupSocket failed", e) }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "onCreate failed", e)
+            Toast.makeText(this, "Error loading page. Please restart.", Toast.LENGTH_LONG).show()
         }
+    }
 
-        // Logout
-        findViewById<View>(R.id.btnLogout).setOnClickListener {
-            tokenManager.clearSession()
-            SocketManager.disconnect()
-            val intent = Intent(this, com.astro5star.app.ui.guest.GuestDashboardActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
-            finish()
-        }
-
-        // Load data
-        loadWalletBalance()
-        loadDailyHoroscope()
-        loadAstrologers()
-
-        // Setup Banners
-        setupBanner()
-
-        // Setup Rasi List
-        setupRasiList()
-
-        // Setup Socket for real-time updates
-        setupSocket()
+    private fun showFatalError() {
+        Toast.makeText(this, "Critical error. Please restart.", Toast.LENGTH_LONG).show()
     }
 
     private fun loadWalletBalance() {
