@@ -344,25 +344,35 @@ class HomeActivity : AppCompatActivity() {
 
     // Banner Banner Setup
     private fun setupBanner() {
-        val viewPager: androidx.viewpager2.widget.ViewPager2 = findViewById(R.id.bannerViewPager)
-        val indicatorLayout: android.widget.LinearLayout = findViewById(R.id.layoutIndicators)
+        try {
+            val viewPager: androidx.viewpager2.widget.ViewPager2? = findViewById(R.id.bannerViewPager)
+            val indicatorLayout: android.widget.LinearLayout? = findViewById(R.id.layoutIndicators)
 
-        // Green Theme Banners
-        val banners = listOf(
-            HomeBanner("Universe Secrets", "Unlock your cosmic potential today", R.drawable.ic_match),
-            HomeBanner("Love Compatibility", "Check processed matching instantly", android.R.drawable.ic_menu_myplaces),
-            HomeBanner("Ask an Astrologer", "Get instant guidance from experts", android.R.drawable.ic_menu_call)
-        )
-
-        viewPager.adapter = BannerAdapter(banners)
-        setupIndicators(indicatorLayout, banners.size)
-        updateIndicators(indicatorLayout, 0)
-
-        viewPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                updateIndicators(indicatorLayout, position)
+            if (viewPager == null || indicatorLayout == null) {
+                Log.e(TAG, "Banner views not found")
+                return
             }
-        })
+
+            // Green Theme Banners
+            // Use local drawables to avoid crashes with system resources
+            val banners = listOf(
+                HomeBanner("Universe Secrets", "Unlock your cosmic potential today", R.drawable.ic_match),
+                HomeBanner("Love Compatibility", "Check processed matching instantly", R.drawable.ic_match),
+                HomeBanner("Ask an Astrologer", "Get instant guidance from experts", R.drawable.ic_match)
+            )
+
+            viewPager.adapter = BannerAdapter(banners)
+            setupIndicators(indicatorLayout, banners.size)
+            updateIndicators(indicatorLayout, 0)
+
+            viewPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+                override fun onPageSelected(position: Int) {
+                    updateIndicators(indicatorLayout, position)
+                }
+            })
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting up banner", e)
+        }
     }
 
     private fun setupIndicators(layout: android.widget.LinearLayout, count: Int) {
@@ -374,8 +384,7 @@ class HomeActivity : AppCompatActivity() {
 
         for (i in 0 until count) {
             val dot = android.widget.ImageView(this)
-            dot.setImageDrawable(androidx.core.content.ContextCompat.getDrawable(this, R.drawable.bg_input_rounded)) // Re-using rounded bg as circle placeholder or create new
-            // Better to create a simple circle drawable or use code
+            // Use GradientDrawable directly
              val drawable = android.graphics.drawable.GradientDrawable()
              drawable.shape = android.graphics.drawable.GradientDrawable.OVAL
              drawable.setSize(20, 20)
@@ -386,16 +395,21 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun updateIndicators(layout: android.widget.LinearLayout, position: Int) {
-        for (i in 0 until layout.childCount) {
-            val dot = layout.getChildAt(i) as android.widget.ImageView
-            val drawable = dot.drawable as android.graphics.drawable.GradientDrawable
-            if (i == position) {
-                drawable.setColor(androidx.core.content.ContextCompat.getColor(this, R.color.primary))
-                drawable.setSize(24, 24)
-            } else {
-                drawable.setColor(android.graphics.Color.LTGRAY)
-                drawable.setSize(16, 16)
+        try {
+            for (i in 0 until layout.childCount) {
+                val dot = layout.getChildAt(i) as? android.widget.ImageView ?: continue
+                val drawable = dot.drawable as? android.graphics.drawable.GradientDrawable ?: continue
+
+                if (i == position) {
+                    drawable.setColor(androidx.core.content.ContextCompat.getColor(this, R.color.primary))
+                    drawable.setSize(24, 24)
+                } else {
+                    drawable.setColor(android.graphics.Color.LTGRAY)
+                    drawable.setSize(16, 16)
+                }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating indicators", e)
         }
     }
 
