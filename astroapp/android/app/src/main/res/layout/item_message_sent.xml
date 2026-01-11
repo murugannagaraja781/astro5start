@@ -9,15 +9,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="#1B5E20"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
+        android:background="@drawable/bg_message_sent"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
         android:gravity="bottom"
-        android:descendantFocusability="blocksDescendants"
         android:elevation="2dp">
-        <!-- Ideally this background should be a drawable with rounded corners -->
 
         <TextView
             android:id="@+id/textMessage"
@@ -33,9 +31,9 @@
             android:layout_width="14dp"
             android:layout_height="14dp"
             android:src="@drawable/ic_check"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="8dp"
             android:layout_marginBottom="2dp"
             android:scaleType="fitCenter"
-            android:alpha="0.8"/>
+            android:tint="#CCFFFFFF"/>
     </LinearLayout>
 </LinearLayout>

@@ -3,29 +3,115 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="#F8F9FA"
     android:padding="24dp"
-    android:gravity="center">
+    android:gravity="center_horizontal">
 
+    <!-- Gradient Overlay View (Top half) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:background="@drawable/bg_gradient_primary"
+        android:alpha="0.1"
+        android:layout_marginTop="-200dp"/>
+
+    <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"/>
+
+    <!-- Centered Icon Circle -->
+    <FrameLayout
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:background="@drawable/circle_bg"
+        android:backgroundTint="#F0FDF4"
+        android:layout_marginBottom="32dp">
+        <ImageView
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_match"
+            android:layout_gravity="center"
+            android:tint="@color/primary"/>
+    </FrameLayout>
+
+    <!-- Title -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Login"
-        android:textSize="28sp"
+        android:text="Verification"
+        android:textSize="26sp"
         android:textStyle="bold"
-        android:layout_marginBottom="32dp"/>
+        android:textColor="@color/text_primary"
+        android:layout_marginBottom="8dp"/>
 
-    <EditText
-        android:id="@+id/phoneInput"
+    <!-- Subtitle -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Please enter your phone number"
+        android:textSize="16sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="40dp"/>
+
+    <!-- Phone Number Label -->
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Enter Mobile Number"
-        android:inputType="phone"
-        android:layout_marginBottom="16dp"/>
+        android:text="Phone Number"
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp"
+        android:layout_marginBottom="8dp"/>
 
+    <!-- Input Container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@drawable/bg_input_rounded"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:layout_marginBottom="32dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="16dp"
+            android:src="@android:drawable/ic_input_add"
+            android:tint="@color/text_secondary"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="+91"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="12dp"/>
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="24dp"
+            android:background="#E5E7EB"/>
+
+        <EditText
+            android:id="@+id/phoneInput"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@null"
+            android:hint=" Phone Number"
+            android:inputType="phone"
+            android:textSize="16sp"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_secondary"
+            android:layout_marginStart="12dp"/>
+    </LinearLayout>
+
+    <!-- Get OTP Button -->
     <Button
         android:id="@+id/btnSendOtp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Get OTP" />
+        android:layout_height="56dp"
+        android:text="Get OTP"
+        style="@style/ButtonStyle.Primary"/>
+
+    <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1.5"/>
 
 </LinearLayout>

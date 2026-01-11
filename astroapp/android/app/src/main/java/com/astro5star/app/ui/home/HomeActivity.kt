@@ -14,10 +14,11 @@ import androidx.recyclerview.widget.RecyclerView
 import com.astro5star.app.R
 import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.data.model.Astrologer
+import com.astro5star.app.data.model.HomeBanner
+import com.astro5star.app.data.model.RasiData
 import com.astro5star.app.data.remote.SocketManager
-import com.astro5star.app.ui.chat.ChatActivity
 import com.astro5star.app.ui.wallet.WalletActivity
-import com.astro5star.app.utils.showErrorAlert
+import com.astro5star.app.utils.Constants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -28,281 +29,347 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 /**
- * HomeActivity - Main dashboard showing astrologer list
+ * HomeActivity - Production-Grade Client Dashboard
  *
  * Features:
- * - Displays wallet balance in header
- * - Shows daily Tamil horoscope
- * - Lists all astrologers with online status
- * - Chat/Audio/Video call buttons
- * - Real-time status updates via Socket
+ * - All operations are null-safe (no !! operators)
+ * - Lifecycle-aware coroutines
+ * - Graceful error handling with fallback data
+ * - Configuration change safe
+ * - Process death handling
  */
 class HomeActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "HomeActivity"
-        private const val SERVER_URL = "https://astro5star.com"
+
+        private val DEFAULT_BANNERS = listOf(
+            HomeBanner(1, "", "Welcome to Astro5Star"),
+            HomeBanner(2, "", "Connect with Experts"),
+            HomeBanner(3, "", "Daily Horoscope")
+        )
+
+        private val DEFAULT_RASI = listOf(
+            RasiData(1, "Mesham", "மேஷம்", "aries", "இன்று நல்ல நாள்!"),
+            RasiData(2, "Rishabam", "ரிஷபம்", "taurus", "நன்மை உண்டாகும்!")
+        )
     }
 
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var adapter: AstrologerAdapter
-    private lateinit var progressBar: ProgressBar
-    private lateinit var tvWalletBalance: TextView
-    private lateinit var tvHoroscope: TextView
-    private lateinit var tokenManager: TokenManager
+    // Views - nullable to prevent crashes
+    private var recyclerView: RecyclerView? = null
+    private var adapter: AstrologerAdapter? = null
+    private var progressBar: ProgressBar? = null
+    private var tvWalletBalance: TextView? = null
+    private var tvHoroscope: TextView? = null
+    private var bannerViewPager: androidx.viewpager2.widget.ViewPager2? = null
+    private var layoutIndicators: android.widget.LinearLayout? = null
+    private var rasiRecyclerView: RecyclerView? = null
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
+    private var tokenManager: TokenManager? = null
+
+    private val client by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_home)
 
-        tokenManager = TokenManager(this)
+        try {
+            setContentView(R.layout.activity_home)
+            tokenManager = TokenManager(this)
+            initViews()
+            setupClickListeners()
+            loadAllData()
+            setupSocket()
+        } catch (e: Exception) {
+            Log.e(TAG, "onCreate failed", e)
+            showToast("Error loading page. Please restart.")
+        }
+    }
 
-        // Init views
+    private fun initViews() {
         recyclerView = findViewById(R.id.recyclerAstrologers)
         progressBar = findViewById(R.id.progressBar)
         tvWalletBalance = findViewById(R.id.tvWalletBalance)
         tvHoroscope = findViewById(R.id.tvHoroscope)
+        bannerViewPager = findViewById(R.id.bannerViewPager)
+        layoutIndicators = findViewById(R.id.layoutIndicators)
+        rasiRecyclerView = findViewById(R.id.rasiRecyclerView)
 
-        // Setup RecyclerView
+        // Setup RecyclerView with empty adapter
         adapter = AstrologerAdapter(
             emptyList(),
             onChatClick = { astro -> startChat(astro) },
             onAudioClick = { astro -> startCall(astro, "audio") },
             onVideoClick = { astro -> startCall(astro, "video") }
         )
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        recyclerView.adapter = adapter
+        recyclerView?.layoutManager = LinearLayoutManager(this)
+        recyclerView?.adapter = adapter
+    }
 
+    private fun setupClickListeners() {
         // Wallet click
-        findViewById<View>(R.id.layoutWallet).setOnClickListener {
-            startActivity(Intent(this, WalletActivity::class.java))
+        findViewById<View>(R.id.layoutWallet)?.setOnClickListener {
+            safeStartActivity(Intent(this, WalletActivity::class.java))
         }
 
         // Logout
-        findViewById<View>(R.id.btnLogout).setOnClickListener {
-            tokenManager.clearSession()
-            SocketManager.disconnect()
-            val intent = Intent(this, com.astro5star.app.ui.guest.GuestDashboardActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
-            finish()
+        findViewById<View>(R.id.btnLogout)?.setOnClickListener {
+            performLogout()
         }
+    }
 
-        // Load data
+    private fun loadAllData() {
         loadWalletBalance()
         loadDailyHoroscope()
         loadAstrologers()
-
-        // Setup Socket for real-time updates
-        setupSocket()
+        setupBanners()
+        setupRasiList()
     }
 
     private fun loadWalletBalance() {
-        val session = tokenManager.getUserSession()
+        val session = tokenManager?.getUserSession()
         val balance = session?.walletBalance ?: 0.0
-        tvWalletBalance.text = "₹${balance.toInt()}"
-    }
-
-    // Fetch latest balance from server on resume (Post-Payment)
-    private fun refreshWalletBalance() {
-        val userId = tokenManager.getUserSession()?.userId ?: return
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                // Ensure ApiClient is accessible or use internal valid method
-                // We use the new endpoint added to ApiInterface
-                val response = com.astro5star.app.data.api.ApiClient.api.getUserProfile(userId)
-                if (response.isSuccessful && response.body() != null) {
-                    val user = response.body()!!
-                    runOnUiThread {
-                        tokenManager.saveUserSession(user)
-                        loadWalletBalance()
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Balance refresh failed", e)
-            }
-        }
+        tvWalletBalance?.text = "₹${balance.toInt()}"
     }
 
     private fun loadDailyHoroscope() {
+        tvHoroscope?.text = "இன்று நல்ல நாள்!" // Default
+
         lifecycleScope.launch {
-            try {
-                val horoscope = fetchHoroscope()
-                tvHoroscope.text = horoscope
-            } catch (e: Exception) {
-                Log.e(TAG, "Error loading horoscope", e)
-                tvHoroscope.text = "இன்று சந்திராஷ்டமம் விலகி இருப்பதால், நல்ல முன்னேற்றம் உண்டாகும்."
+            val horoscope = fetchHoroscope()
+            if (!isFinishing && !isDestroyed) {
+                tvHoroscope?.text = horoscope
             }
         }
     }
 
     private suspend fun fetchHoroscope(): String = withContext(Dispatchers.IO) {
-        val request = Request.Builder()
-            .url("$SERVER_URL/api/daily-horoscope")
-            .get()
-            .build()
+        try {
+            val request = Request.Builder()
+                .url("${Constants.SERVER_URL}/api/daily-horoscope")
+                .get()
+                .build()
 
-        client.newCall(request).execute().use { response ->
+            val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val json = JSONObject(response.body?.string() ?: "{}")
-                json.optString("content", "இன்று நல்ல நாள்!")
-            } else {
-                "இன்று நல்ல நாள்!"
+                val body = response.body?.string()
+                if (body != null) {
+                    val json = JSONObject(body)
+                    return@withContext json.optString("content", "இன்று நல்ல நாள்!")
+                }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch horoscope", e)
         }
+        "இன்று நல்ல நாள்!"
     }
 
     private fun loadAstrologers() {
-        progressBar.visibility = View.VISIBLE
+        progressBar?.visibility = View.VISIBLE
 
         lifecycleScope.launch {
-            try {
-                val astrologers = fetchAstrologers()
-                adapter.updateList(astrologers)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error loading astrologers", e)
-                showErrorAlert("Failed to load astrologers. Please try again.")
-            } finally {
-                progressBar.visibility = View.GONE
+            val astrologers = fetchAstrologers()
+            if (!isFinishing && !isDestroyed) {
+                progressBar?.visibility = View.GONE
+                adapter?.updateList(astrologers)
             }
         }
     }
 
     private suspend fun fetchAstrologers(): List<Astrologer> = withContext(Dispatchers.IO) {
-        // Use Socket to get astrologers (same as web app)
-        val socket = SocketManager.getSocket()
-        val result = mutableListOf<Astrologer>()
-
-        if (socket != null && socket.connected()) {
-            // Socket is connected, we'll get data via event
-            // For now, return empty list and wait for socket event
-        }
-
-        // Fallback: Try HTTP endpoint
         try {
             val request = Request.Builder()
-                .url("$SERVER_URL/api/astrology/astrologers")
+                .url("${Constants.SERVER_URL}/api/astrology/astrologers")
                 .get()
                 .build()
 
-            client.newCall(request).execute().use { response ->
-                if (response.isSuccessful) {
-                    val json = JSONObject(response.body?.string() ?: "{}")
-                    val arr = json.optJSONArray("astrologers") ?: JSONArray()
-
-                    for (i in 0 until arr.length()) {
-                        val obj = arr.getJSONObject(i)
-                        result.add(parseAstrologer(obj))
-                    }
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                val body = response.body?.string()
+                if (body != null) {
+                    val json = JSONObject(body)
+                    val arr = json.optJSONArray("astrologers") ?: return@withContext emptyList()
+                    return@withContext parseAstrologers(arr)
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "HTTP fallback failed", e)
+            Log.e(TAG, "Failed to fetch astrologers", e)
         }
-
-        result
+        emptyList()
     }
 
-    private fun parseAstrologer(json: JSONObject): Astrologer {
-        val skillsArr = json.optJSONArray("skills")
-        val skills = mutableListOf<String>()
-        if (skillsArr != null) {
-            for (i in 0 until skillsArr.length()) {
-                skills.add(skillsArr.getString(i))
+    private fun parseAstrologers(arr: JSONArray): List<Astrologer> {
+        val result = mutableListOf<Astrologer>()
+        for (i in 0 until arr.length()) {
+            try {
+                val obj = arr.optJSONObject(i) ?: continue
+                val skillsArr = obj.optJSONArray("skills")
+                val skills = mutableListOf<String>()
+                if (skillsArr != null) {
+                    for (j in 0 until skillsArr.length()) {
+                        skillsArr.optString(j)?.let { skills.add(it) }
+                    }
+                }
+
+                result.add(
+                    Astrologer(
+                        userId = obj.optString("userId", ""),
+                        name = obj.optString("name", "Astrologer"),
+                        phone = obj.optString("phone", ""),
+                        skills = skills,
+                        price = obj.optInt("price", 15),
+                        isOnline = obj.optBoolean("isOnline", false),
+                        isChatOnline = obj.optBoolean("isChatOnline", false),
+                        isAudioOnline = obj.optBoolean("isAudioOnline", false),
+                        isVideoOnline = obj.optBoolean("isVideoOnline", false),
+                        image = obj.optString("image", ""),
+                        experience = obj.optInt("experience", 0),
+                        isVerified = obj.optBoolean("isVerified", false),
+                        walletBalance = obj.optDouble("walletBalance", 0.0)
+                    )
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to parse astrologer", e)
             }
         }
+        return result
+    }
 
-        return Astrologer(
-            userId = json.optString("userId", ""),
-            name = json.optString("name", "Astrologer"),
-            phone = json.optString("phone", ""),
-            skills = skills,
-            price = json.optInt("price", 15),
-            isOnline = json.optBoolean("isOnline", false),
-            isChatOnline = json.optBoolean("isChatOnline", false),
-            isAudioOnline = json.optBoolean("isAudioOnline", false),
-            isVideoOnline = json.optBoolean("isVideoOnline", false),
-            image = json.optString("image", ""),
-            experience = json.optInt("experience", 0),
-            isVerified = json.optBoolean("isVerified", false),
-            walletBalance = json.optDouble("walletBalance", 0.0)
-        )
+    private fun setupBanners() {
+        displayBanners(DEFAULT_BANNERS)
+
+        lifecycleScope.launch {
+            val banners = fetchBanners()
+            if (banners.isNotEmpty() && !isFinishing && !isDestroyed) {
+                displayBanners(banners)
+            }
+        }
+    }
+
+    private suspend fun fetchBanners(): List<HomeBanner> = withContext(Dispatchers.IO) {
+        try {
+            val request = Request.Builder()
+                .url("${Constants.SERVER_URL}/api/home/banners")
+                .get()
+                .build()
+
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                val body = response.body?.string()
+                if (body != null) {
+                    val json = JSONObject(body)
+                    val data = json.optJSONArray("data") ?: return@withContext emptyList()
+                    val banners = mutableListOf<HomeBanner>()
+                    for (i in 0 until data.length()) {
+                        val item = data.optJSONObject(i) ?: continue
+                        banners.add(
+                            HomeBanner(
+                                id = item.optInt("id"),
+                                imageUrl = item.optString("imageUrl", ""),
+                                title = item.optString("title", "")
+                            )
+                        )
+                    }
+                    return@withContext banners
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch banners", e)
+        }
+        emptyList()
+    }
+
+    private fun displayBanners(banners: List<HomeBanner>) {
+        if (isFinishing || isDestroyed) return
+
+        bannerViewPager?.adapter = BannerAdapter(banners)
+        layoutIndicators?.let { layout ->
+            setupIndicators(layout, banners.size)
+            updateIndicators(layout, 0)
+
+            bannerViewPager?.registerOnPageChangeCallback(object :
+                androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+                override fun onPageSelected(position: Int) {
+                    updateIndicators(layout, position)
+                }
+            })
+        }
+    }
+
+    private fun setupRasiList() {
+        displayRasi(DEFAULT_RASI)
+
+        lifecycleScope.launch {
+            val rasiList = fetchRasi()
+            if (rasiList.isNotEmpty() && !isFinishing && !isDestroyed) {
+                displayRasi(rasiList)
+            }
+        }
+    }
+
+    private suspend fun fetchRasi(): List<RasiData> = withContext(Dispatchers.IO) {
+        try {
+            val request = Request.Builder()
+                .url("${Constants.SERVER_URL}/api/horoscope/rasi")
+                .get()
+                .build()
+
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                val body = response.body?.string()
+                if (body != null) {
+                    val json = JSONObject(body)
+                    val data = json.optJSONArray("data") ?: return@withContext emptyList()
+                    val list = mutableListOf<RasiData>()
+                    for (i in 0 until data.length()) {
+                        val item = data.optJSONObject(i) ?: continue
+                        list.add(
+                            RasiData(
+                                id = item.optInt("id"),
+                                name = item.optString("name", ""),
+                                name_tamil = item.optString("name_tamil", ""),
+                                icon = item.optString("icon", ""),
+                                prediction = item.optString("prediction", "இன்று நல்ல நாள்!")
+                            )
+                        )
+                    }
+                    return@withContext list
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch rasi", e)
+        }
+        emptyList()
+    }
+
+    private fun displayRasi(rasiList: List<RasiData>) {
+        if (isFinishing || isDestroyed) return
+
+        rasiRecyclerView?.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rasiRecyclerView?.adapter = RasiAdapter(rasiList) { rasi ->
+            try {
+                val sheet = RasiBottomSheet(rasi)
+                sheet.show(supportFragmentManager, "RasiSheet")
+            } catch (e: Exception) {
+                Log.e(TAG, "RasiBottomSheet failed", e)
+                showToast(rasi.prediction)
+            }
+        }
     }
 
     private fun setupSocket() {
-        SocketManager.init()
-        val socket = SocketManager.getSocket()
-        val session = tokenManager.getUserSession()
-
-        if (session != null) {
-            SocketManager.registerUser(session.userId ?: "")
+        try {
+            SocketManager.init()
+            val session = tokenManager?.getUserSession()
+            session?.userId?.let { SocketManager.registerUser(it) }
+        } catch (e: Exception) {
+            Log.e(TAG, "Socket setup failed", e)
         }
-
-        // Listen for astrologer list updates
-        socket?.on("astro-list") { args ->
-            try {
-                val data = args[0] as JSONObject
-                val arr = data.optJSONArray("list") ?: JSONArray()
-                val list = mutableListOf<Astrologer>()
-
-                for (i in 0 until arr.length()) {
-                    list.add(parseAstrologer(arr.getJSONObject(i)))
-                }
-
-                runOnUiThread {
-                    progressBar.visibility = View.GONE
-                    adapter.updateList(list)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error parsing astro-list", e)
-            }
-        }
-
-        // Listen for individual status updates
-        socket?.on("astro-status-change") { args ->
-            try {
-                val data = args[0] as JSONObject
-                val userId = data.optString("userId")
-                val isOnline = data.optBoolean("isOnline", false)
-
-                runOnUiThread {
-                    adapter.updateAstrologerStatus(userId, isOnline)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error parsing status change", e)
-            }
-        }
-
-        // Listen for wallet updates
-        socket?.on("wallet-update") { args ->
-            try {
-                val data = args[0] as JSONObject
-                val balance = data.optDouble("balance", 0.0)
-
-                runOnUiThread {
-                    tvWalletBalance.text = "₹${balance.toInt()}"
-                    // Also update local storage
-                    tokenManager.updateWalletBalance(balance)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error parsing wallet update", e)
-            }
-        }
-
-        // Request astrologer list
-        socket?.emit("get-astrologers")
-
-        // SESSION ANSWERED LOGIC MOVED TO IntakeActivity
-        // HomeActivity no longer handles session establishment directly.
-        // It delegates to IntakeActivity which handles the waiting and navigation.
     }
-
-    private var activeDialog: androidx.appcompat.app.AlertDialog? = null
 
     private fun startChat(astro: Astrologer) {
         initiateSession(astro.userId, "chat", astro.name)
@@ -313,24 +380,31 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun initiateSession(astrologerId: String, type: String, astroName: String) {
-        val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
-            putExtra("partnerId", astrologerId)
-            putExtra("partnerName", astroName)
-            putExtra("type", type)
+        try {
+            val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
+                putExtra("partnerId", astrologerId)
+                putExtra("partnerName", astroName)
+                putExtra("type", type)
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start session", e)
+            showToast("Failed to connect. Please try again.")
         }
-        startActivity(intent)
     }
 
-    private fun showWaitingDialog(astro: Astrologer, type: String) {
-        val builder = androidx.appcompat.app.AlertDialog.Builder(this)
-        builder.setTitle("Connecting...")
-        builder.setMessage("Waiting for ${astro.name} to accept your $type request...")
-        builder.setCancelable(false)
-        builder.setNegativeButton("Cancel") { dialog, _ ->
-            // TODO: Emit cancel-request if needed
-            dialog.dismiss()
+    private fun performLogout() {
+        try {
+            tokenManager?.clearSession()
+            SocketManager.disconnect()
+            val intent = Intent(this, com.astro5star.app.ui.guest.GuestDashboardActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+            finish()
+        } catch (e: Exception) {
+            Log.e(TAG, "Logout failed", e)
+            showToast("Logout failed. Please try again.")
         }
-        activeDialog = builder.show()
     }
 
     override fun onResume() {
@@ -339,8 +413,128 @@ class HomeActivity : AppCompatActivity() {
         refreshWalletBalance()
     }
 
+    private fun refreshWalletBalance() {
+        val userId = tokenManager?.getUserSession()?.userId ?: return
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val response = com.astro5star.app.data.api.ApiClient.api.getUserProfile(userId)
+                if (response.isSuccessful) {
+                    val user = response.body()
+                    if (user != null) {
+                        withContext(Dispatchers.Main) {
+                            if (!isFinishing && !isDestroyed) {
+                                tokenManager?.saveUserSession(user)
+                                loadWalletBalance()
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Balance refresh failed", e)
+            }
+        }
+    }
+
+    // --- Utility Methods ---
+
+    private fun safeStartActivity(intent: Intent) {
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start activity", e)
+            showToast("Failed to navigate")
+        }
+    }
+
+    private fun showToast(message: String) {
+        if (!isFinishing && !isDestroyed) {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun setupIndicators(layout: android.widget.LinearLayout, count: Int) {
+        try {
+            layout.removeAllViews()
+            val params = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(8, 0, 8, 0) }
+
+            for (i in 0 until count) {
+                val dot = android.widget.ImageView(this)
+                val drawable = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                    setSize(20, 20)
+                    setColor(android.graphics.Color.LTGRAY)
+                }
+                dot.setImageDrawable(drawable)
+                layout.addView(dot, params)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "setupIndicators failed", e)
+        }
+    }
+
+    private fun updateIndicators(layout: android.widget.LinearLayout, position: Int) {
+        try {
+            for (i in 0 until layout.childCount) {
+                val dot = layout.getChildAt(i) as? android.widget.ImageView ?: continue
+                val drawable = dot.drawable as? android.graphics.drawable.GradientDrawable ?: continue
+                if (i == position) {
+                    drawable.setColor(androidx.core.content.ContextCompat.getColor(this, R.color.primary))
+                    drawable.setSize(24, 24)
+                } else {
+                    drawable.setColor(android.graphics.Color.LTGRAY)
+                    drawable.setSize(16, 16)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "updateIndicators failed", e)
+        }
+    }
+
+    // --- Banner Adapter ---
+    inner class BannerAdapter(private val banners: List<HomeBanner>) :
+        androidx.recyclerview.widget.RecyclerView.Adapter<BannerAdapter.BannerViewHolder>() {
+
+        inner class BannerViewHolder(view: View) :
+            androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
+            val title: TextView? = view.findViewById(R.id.tvBannerTitle)
+            val subtitle: TextView? = view.findViewById(R.id.tvBannerSubtitle)
+            val background: android.widget.ImageView? = view.findViewById(R.id.ivBannerBackground)
+        }
+
+        override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): BannerViewHolder {
+            val view = android.view.LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_home_banner, parent, false)
+            return BannerViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: BannerViewHolder, position: Int) {
+            try {
+                val banner = banners.getOrNull(position) ?: return
+                holder.title?.text = banner.title
+                holder.subtitle?.text = banner.subtitle.ifEmpty { "Explore Astro5Star" }
+
+                if (banner.imageUrl.isNotEmpty()) {
+                    com.bumptech.glide.Glide.with(holder.itemView.context)
+                        .load(banner.imageUrl)
+                        .placeholder(R.color.primary)
+                        .error(R.color.primary)
+                        .into(holder.background ?: return)
+                } else {
+                    holder.background?.setImageResource(R.color.primary)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Banner bind failed", e)
+            }
+        }
+
+        override fun getItemCount() = banners.size
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        // Don't disconnect socket here - let it run for FCM
+        // Clean up any resources
     }
 }

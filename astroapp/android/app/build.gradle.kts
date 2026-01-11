@@ -106,4 +106,10 @@ dependencies {
 
     // PhonePe Payment Gateway
     implementation("phonepe.intentsdk.android.release:IntentSDK:5.3.0")
+
+    // UI Components
+    implementation("androidx.viewpager2:viewpager2:1.0.0")
+
+    // Image Loading
+    implementation("com.github.bumptech.glide:glide:4.16.0")
 }

@@ -10,12 +10,12 @@
         android:layout_height="wrap_content"
         android:text="Compatibility Match"
         android:textSize="20sp"
-        android:textStyle="bold"
-        android:textColor="@color/text_on_primary"
+        android:fontFamily="sans-serif-medium"
+        android:textColor="@color/primary"
         android:padding="16dp"
-        android:background="@color/primary"
+        android:background="#FFFFFF"
         android:gravity="center"
-        android:elevation="4dp"/>
+        android:elevation="2dp"/>
 
     <ProgressBar
         android:id="@+id/progressBar"
