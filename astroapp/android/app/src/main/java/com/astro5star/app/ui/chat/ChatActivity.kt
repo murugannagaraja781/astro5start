@@ -72,120 +72,138 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun setupContent() {
-        recyclerChat = findViewById(R.id.recyclerChat)
-        val inputMessage = findViewById<EditText>(R.id.inputMessage)
-        val btnSend = findViewById<Button>(R.id.btnSend)
-        val btnEndChat = findViewById<Button>(R.id.btnEndChat)
-        val btnChart = findViewById<android.widget.ImageButton>(R.id.btnChart)
-        tvChatTitle = findViewById(R.id.tvChatTitle)
+        try {
+            recyclerChat = findViewById(R.id.recyclerChat)
+            val inputMessage = findViewById<EditText>(R.id.inputMessage)
+            val btnSend = findViewById<View>(R.id.btnSend) // Use View to be safe, or ImageButton
+            val btnEndChat = findViewById<Button>(R.id.btnEndChat)
+            val btnChart = findViewById<android.widget.ImageButton>(R.id.btnChart)
+            tvChatTitle = findViewById(R.id.tvChatTitle)
 
-        // Set Title
-        val partnerName = intent.getStringExtra("toUserName") ?: "Chat"
-        tvChatTitle.text = partnerName
+            // Set Title
+            val partnerName = intent.getStringExtra("toUserName") ?: "Chat"
+            tvChatTitle.text = partnerName
 
-        // Chart Button Logic
-        val role = TokenManager(this).getUserSession()?.role
-        if (role == "astrologer") {
-            btnChart.visibility = View.VISIBLE
-            btnChart.setOnClickListener {
-                if (clientBirthData != null) {
-                    val intent = Intent(this, com.astro5star.app.ui.chart.ChartDisplayActivity::class.java)
-                    intent.putExtra("birthData", clientBirthData.toString())
-                    startActivity(intent)
-                } else {
-                     Toast.makeText(this, "Waiting for Client Data...", Toast.LENGTH_SHORT).show()
+            // Chart Button Logic
+            val role = TokenManager(this).getUserSession()?.role
+            if (role == "astrologer") {
+                btnChart.visibility = View.VISIBLE
+                btnChart.setOnClickListener {
+                    try {
+                        if (clientBirthData != null) {
+                            val intent = Intent(this, com.astro5star.app.ui.chart.ChartDisplayActivity::class.java)
+                            intent.putExtra("birthData", clientBirthData.toString())
+                            startActivity(intent)
+                        } else {
+                             Toast.makeText(this, "Waiting for Client Data...", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
+
+                // Match Button Logic
+                val btnMatch = findViewById<android.widget.ImageButton>(R.id.btnMatch)
+                // Check visibility based on data availability
+                if (clientBirthData?.has("partner") == true) {
+                    btnMatch.visibility = View.VISIBLE
+                }
+
+                btnMatch.setOnClickListener {
+                    try {
+                        if (clientBirthData != null && clientBirthData!!.has("partner")) {
+                             val intent = Intent(this, com.astro5star.app.ui.chart.MatchDisplayActivity::class.java)
+                             intent.putExtra("birthData", clientBirthData.toString())
+                             startActivity(intent)
+                        } else {
+                            Toast.makeText(this, "Partner details not available", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) { e.printStackTrace() }
                 }
             }
 
-            // Match Button Logic
-            val btnMatch = findViewById<android.widget.ImageButton>(R.id.btnMatch)
-            // Check visibility based on data availability
-            if (clientBirthData?.has("partner") == true) {
-                btnMatch.visibility = View.VISIBLE
+            // End Chat Logic
+            btnEndChat.setOnClickListener {
+                try {
+                    if (sessionId != null) {
+                        SocketManager.endSession(sessionId)
+                        SoundManager.playEndChatSound()
+                        Toast.makeText(this, "Chat Ended", Toast.LENGTH_SHORT).show()
+                    }
+                    finish()
+                } catch (e: Exception) { e.printStackTrace() }
             }
 
-            btnMatch.setOnClickListener {
-                if (clientBirthData != null && clientBirthData!!.has("partner")) {
-                     val intent = Intent(this, com.astro5star.app.ui.chart.MatchDisplayActivity::class.java)
-                     intent.putExtra("birthData", clientBirthData.toString())
-                     startActivity(intent)
-                } else {
-                    Toast.makeText(this, "Partner details not available", Toast.LENGTH_SHORT).show()
+            adapter = ChatAdapter(messages)
+            recyclerChat?.layoutManager = LinearLayoutManager(this)
+            recyclerChat?.adapter = adapter
+
+            // Typing Indicator Listeners
+            inputMessage.addTextChangedListener(object : android.text.TextWatcher {
+                override fun afterTextChanged(s: android.text.Editable?) {}
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                    try {
+                        if (sessionId != null) {
+                           if (!isTyping) {
+                               isTyping = true
+                               SocketManager.getSocket()?.emit("typing", JSONObject().apply { put("sessionId", sessionId) })
+                           }
+                           typingHandler.removeCallbacksAndMessages(null)
+                           typingHandler.postDelayed({
+                               isTyping = false
+                               SocketManager.getSocket()?.emit("stop-typing", JSONObject().apply { put("sessionId", sessionId) })
+                           }, 2000)
+                        }
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
+            })
+
+            btnSend.setOnClickListener {
+                try {
+                    val text = inputMessage.text.toString().trim()
+                    if (text.isEmpty()) return@setOnClickListener
+
+                    if (toUserId == null) {
+                        Toast.makeText(this, "No recipient user specified", Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
+
+                    // Stop typing explicitly
+                    isTyping = false
+                    typingHandler.removeCallbacksAndMessages(null)
+                    try { SocketManager.getSocket()?.emit("stop-typing", JSONObject().apply { put("sessionId", sessionId) }) } catch (e: Exception) {}
+
+                    val messageId = UUID.randomUUID().toString()
+                    val payload = JSONObject()
+                    payload.put("toUserId", toUserId)
+                    payload.put("sessionId", sessionId)
+                    payload.put("messageId", messageId)
+                    payload.put("timestamp", System.currentTimeMillis())
+
+                    val content = JSONObject()
+                    content.put("text", text)
+                    payload.put("content", content)
+
+                    SocketManager.getSocket()?.emit("chat-message", payload)
+
+                    SoundManager.playSentSound()
+
+                    runOnUiThread {
+                        messages.add(ChatMessage(text, true))
+                        adapter.notifyItemInserted(messages.size - 1)
+                        recyclerChat?.scrollToPosition(messages.size - 1)
+                    }
+                    inputMessage.setText("")
+                } catch (e: Exception) {
+                    android.util.Log.e("ChatActivity", "Send Failed", e)
+                    Toast.makeText(this, "Send Failed", Toast.LENGTH_SHORT).show()
                 }
             }
+
+            connectSocket()
+        } catch (e: Exception) {
+             android.util.Log.e("ChatActivity", "setupContent Failed", e)
+             Toast.makeText(this, "Chat UI Error", Toast.LENGTH_SHORT).show()
         }
-
-        // End Chat Logic
-        btnEndChat.setOnClickListener {
-            if (sessionId != null) {
-                SocketManager.endSession(sessionId)
-                SoundManager.playEndChatSound()
-                Toast.makeText(this, "Chat Ended", Toast.LENGTH_SHORT).show()
-            }
-            finish()
-        }
-
-        adapter = ChatAdapter(messages)
-        recyclerChat?.layoutManager = LinearLayoutManager(this)
-        recyclerChat?.adapter = adapter
-
-        // Typing Indicator Listeners
-        inputMessage.addTextChangedListener(object : android.text.TextWatcher {
-            override fun afterTextChanged(s: android.text.Editable?) {}
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                if (sessionId != null) {
-                   if (!isTyping) {
-                       isTyping = true
-                       SocketManager.getSocket()?.emit("typing", JSONObject().apply { put("sessionId", sessionId) })
-                   }
-                   typingHandler.removeCallbacksAndMessages(null)
-                   typingHandler.postDelayed({
-                       isTyping = false
-                       SocketManager.getSocket()?.emit("stop-typing", JSONObject().apply { put("sessionId", sessionId) })
-                   }, 2000)
-                }
-            }
-        })
-
-        btnSend.setOnClickListener {
-            val text = inputMessage.text.toString().trim()
-            if (text.isEmpty()) return@setOnClickListener
-
-            if (toUserId == null) {
-                Toast.makeText(this, "No recipient user specified", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            // Stop typing explicitly
-            isTyping = false
-            typingHandler.removeCallbacksAndMessages(null)
-            SocketManager.getSocket()?.emit("stop-typing", JSONObject().apply { put("sessionId", sessionId) })
-
-            val messageId = UUID.randomUUID().toString()
-            val payload = JSONObject()
-            payload.put("toUserId", toUserId)
-            payload.put("sessionId", sessionId)
-            payload.put("messageId", messageId)
-            payload.put("timestamp", System.currentTimeMillis())
-
-            val content = JSONObject()
-            content.put("text", text)
-            payload.put("content", content)
-
-            SocketManager.getSocket()?.emit("chat-message", payload)
-
-            SoundManager.playSentSound()
-
-            runOnUiThread {
-                messages.add(ChatMessage(text, true))
-                adapter.notifyItemInserted(messages.size - 1)
-                recyclerChat?.scrollToPosition(messages.size - 1)
-            }
-            inputMessage.setText("")
-        }
-
-        connectSocket()
     }
 
     private fun connectSocket() {
