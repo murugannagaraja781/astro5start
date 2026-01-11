@@ -87,6 +87,23 @@
             android:padding="16dp">
 
             <!-- Daily Horoscope Card -->
+            <!-- Banner Carousel -->
+            <androidx.viewpager2.widget.ViewPager2
+                android:id="@+id/bannerViewPager"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:layout_marginBottom="8dp"/>
+
+            <!-- Dots Indicator -->
+            <LinearLayout
+                android:id="@+id/layoutIndicators"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+            </LinearLayout>
+
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

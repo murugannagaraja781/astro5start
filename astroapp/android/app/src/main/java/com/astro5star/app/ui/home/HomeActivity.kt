@@ -98,6 +98,9 @@ class HomeActivity : AppCompatActivity() {
         loadDailyHoroscope()
         loadAstrologers()
 
+        // Setup Banners
+        setupBanner()
+
         // Setup Socket for real-time updates
         setupSocket()
     }
@@ -337,6 +340,89 @@ class HomeActivity : AppCompatActivity() {
         super.onResume()
         loadWalletBalance()
         refreshWalletBalance()
+    }
+
+    // Banner Banner Setup
+    private fun setupBanner() {
+        val viewPager: androidx.viewpager2.widget.ViewPager2 = findViewById(R.id.bannerViewPager)
+        val indicatorLayout: android.widget.LinearLayout = findViewById(R.id.layoutIndicators)
+
+        // Green Theme Banners
+        val banners = listOf(
+            HomeBanner("Universe Secrets", "Unlock your cosmic potential today", R.drawable.ic_match),
+            HomeBanner("Love Compatibility", "Check processed matching instantly", android.R.drawable.ic_menu_myplaces),
+            HomeBanner("Ask an Astrologer", "Get instant guidance from experts", android.R.drawable.ic_menu_call)
+        )
+
+        viewPager.adapter = BannerAdapter(banners)
+        setupIndicators(indicatorLayout, banners.size)
+        updateIndicators(indicatorLayout, 0)
+
+        viewPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                updateIndicators(indicatorLayout, position)
+            }
+        })
+    }
+
+    private fun setupIndicators(layout: android.widget.LinearLayout, count: Int) {
+        layout.removeAllViews()
+        val params = android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { setMargins(8, 0, 8, 0) }
+
+        for (i in 0 until count) {
+            val dot = android.widget.ImageView(this)
+            dot.setImageDrawable(androidx.core.content.ContextCompat.getDrawable(this, R.drawable.bg_input_rounded)) // Re-using rounded bg as circle placeholder or create new
+            // Better to create a simple circle drawable or use code
+             val drawable = android.graphics.drawable.GradientDrawable()
+             drawable.shape = android.graphics.drawable.GradientDrawable.OVAL
+             drawable.setSize(20, 20)
+             drawable.setColor(android.graphics.Color.LTGRAY)
+             dot.setImageDrawable(drawable)
+            layout.addView(dot, params)
+        }
+    }
+
+    private fun updateIndicators(layout: android.widget.LinearLayout, position: Int) {
+        for (i in 0 until layout.childCount) {
+            val dot = layout.getChildAt(i) as android.widget.ImageView
+            val drawable = dot.drawable as android.graphics.drawable.GradientDrawable
+            if (i == position) {
+                drawable.setColor(androidx.core.content.ContextCompat.getColor(this, R.color.primary))
+                drawable.setSize(24, 24)
+            } else {
+                drawable.setColor(android.graphics.Color.LTGRAY)
+                drawable.setSize(16, 16)
+            }
+        }
+    }
+
+    data class HomeBanner(val title: String, val subtitle: String, val iconRes: Int)
+
+    inner class BannerAdapter(private val banners: List<HomeBanner>) :
+        androidx.recyclerview.widget.RecyclerView.Adapter<BannerAdapter.BannerViewHolder>() {
+
+        inner class BannerViewHolder(view: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
+            val title: TextView = view.findViewById(R.id.tvBannerTitle)
+            val subtitle: TextView = view.findViewById(R.id.tvBannerSubtitle)
+            // val icon: ImageView = view.findViewById(R.id.ivBannerIcon) // If exists
+        }
+
+        override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): BannerViewHolder {
+            val view = android.view.LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_home_banner, parent, false)
+            return BannerViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: BannerViewHolder, position: Int) {
+            val banner = banners[position]
+            holder.title.text = banner.title
+            holder.subtitle.text = banner.subtitle
+        }
+
+        override fun getItemCount() = banners.size
     }
 
     override fun onDestroy() {
