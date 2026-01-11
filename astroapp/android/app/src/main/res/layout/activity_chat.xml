@@ -30,7 +30,7 @@
             android:orientation="vertical"
             android:layout_centerVertical="true"
             android:layout_toEndOf="@id/ivAvatar"
-            android:layout_marginStart="8dp">
+            android:layout_marginStart="12dp">
 
             <TextView
                 android:id="@+id/tvChatTitle"
@@ -39,7 +39,8 @@
                 android:text="Consultation"
                 android:textColor="@color/text_primary"
                 android:textSize="18sp"
-                android:textStyle="bold"/>
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.01"/>
              <!-- Could add status/timer here -->
         </LinearLayout>
 
