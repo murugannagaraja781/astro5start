@@ -100,6 +100,9 @@ class HomeActivity : AppCompatActivity() {
         // Setup Banners
         setupBanner()
 
+        // Setup Rasi List
+        setupRasiList()
+
         // Setup Socket for real-time updates
         setupSocket()
     }
@@ -341,7 +344,8 @@ class HomeActivity : AppCompatActivity() {
         refreshWalletBalance()
     }
 
-    // Banner Banner Setup
+    // --- Home APIs ---
+
     private fun setupBanner() {
         try {
             val viewPager: androidx.viewpager2.widget.ViewPager2? = findViewById(R.id.bannerViewPager)
@@ -352,25 +356,100 @@ class HomeActivity : AppCompatActivity() {
                 return
             }
 
-            // Green Theme Banners
-            // Use local drawables to avoid crashes with system resources
-            val banners = listOf(
-                HomeBanner("Universe Secrets", "Unlock your cosmic potential today", R.drawable.ic_match),
-                HomeBanner("Love Compatibility", "Check processed matching instantly", R.drawable.ic_match),
-                HomeBanner("Ask an Astrologer", "Get instant guidance from experts", R.drawable.ic_match)
-            )
+            // Fetch Banners from API
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                     val request = Request.Builder()
+                        .url("${com.astro5star.app.utils.Constants.SERVER_URL}/api/home/banners")
+                        .get()
+                        .build()
 
-            viewPager.adapter = BannerAdapter(banners)
-            setupIndicators(indicatorLayout, banners.size)
-            updateIndicators(indicatorLayout, 0)
+                     val response = client.newCall(request).execute()
+                     if (response.isSuccessful) {
+                         val json = JSONObject(response.body?.string() ?: "{}")
+                         val data = json.optJSONArray("data") ?: JSONArray()
+                         val banners = mutableListOf<com.astro5star.app.data.model.HomeBanner>()
 
-            viewPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
-                override fun onPageSelected(position: Int) {
-                    updateIndicators(indicatorLayout, position)
+                         for (i in 0 until data.length()) {
+                             val item = data.getJSONObject(i)
+                             banners.add(
+                                 com.astro5star.app.data.model.HomeBanner(
+                                     item.optInt("id"),
+                                     item.optString("imageUrl"),
+                                     item.optString("title")
+                                 )
+                             )
+                         }
+
+                         // If API empty or failed, use defaults (but here we just use what we get)
+                         if (banners.isNotEmpty()) {
+                             runOnUiThread {
+                                 // Check if activity is still valid
+                                 if (!isFinishing && !isDestroyed) {
+                                     viewPager.adapter = BannerAdapter(banners)
+                                     setupIndicators(indicatorLayout, banners.size)
+                                     updateIndicators(indicatorLayout, 0)
+
+                                     viewPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+                                         override fun onPageSelected(position: Int) {
+                                             updateIndicators(indicatorLayout, position)
+                                         }
+                                     })
+                                 }
+                             }
+                         }
+                     }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error fetching banners", e)
                 }
-            })
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error setting up banner", e)
+        }
+    }
+
+    private fun setupRasiList() {
+        val recycler = findViewById<RecyclerView>(R.id.rasiRecyclerView)
+        recycler.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val request = Request.Builder()
+                    .url("${com.astro5star.app.utils.Constants.SERVER_URL}/api/horoscope/rasi")
+                    .get()
+                    .build()
+
+                val response = client.newCall(request).execute()
+                if (response.isSuccessful) {
+                    val json = JSONObject(response.body?.string() ?: "{}")
+                    val data = json.optJSONArray("data") ?: JSONArray()
+                    val rasiList = mutableListOf<com.astro5star.app.data.model.RasiData>()
+
+                    for (i in 0 until data.length()) {
+                        val item = data.getJSONObject(i)
+                        rasiList.add(
+                            com.astro5star.app.data.model.RasiData(
+                                item.optInt("id"),
+                                item.optString("name"),
+                                item.optString("name_tamil"),
+                                item.optString("icon"),
+                                item.optString("prediction")
+                            )
+                        )
+                    }
+
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed) {
+                            recycler.adapter = RasiAdapter(rasiList) { rasi ->
+                                val sheet = RasiBottomSheet(rasi)
+                                sheet.show(supportFragmentManager, "RasiSheet")
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading rasi data", e)
+            }
         }
     }
 
@@ -383,12 +462,11 @@ class HomeActivity : AppCompatActivity() {
 
         for (i in 0 until count) {
             val dot = android.widget.ImageView(this)
-            // Use GradientDrawable directly
-             val drawable = android.graphics.drawable.GradientDrawable()
-             drawable.shape = android.graphics.drawable.GradientDrawable.OVAL
-             drawable.setSize(20, 20)
-             drawable.setColor(android.graphics.Color.LTGRAY)
-             dot.setImageDrawable(drawable)
+            val drawable = android.graphics.drawable.GradientDrawable()
+            drawable.shape = android.graphics.drawable.GradientDrawable.OVAL
+            drawable.setSize(20, 20)
+            drawable.setColor(android.graphics.Color.LTGRAY)
+            dot.setImageDrawable(drawable)
             layout.addView(dot, params)
         }
     }
@@ -398,7 +476,6 @@ class HomeActivity : AppCompatActivity() {
             for (i in 0 until layout.childCount) {
                 val dot = layout.getChildAt(i) as? android.widget.ImageView ?: continue
                 val drawable = dot.drawable as? android.graphics.drawable.GradientDrawable ?: continue
-
                 if (i == position) {
                     drawable.setColor(androidx.core.content.ContextCompat.getColor(this, R.color.primary))
                     drawable.setSize(24, 24)
@@ -407,20 +484,16 @@ class HomeActivity : AppCompatActivity() {
                     drawable.setSize(16, 16)
                 }
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error updating indicators", e)
-        }
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
-    data class HomeBanner(val title: String, val subtitle: String, val iconRes: Int)
-
-    inner class BannerAdapter(private val banners: List<HomeBanner>) :
+    inner class BannerAdapter(private val banners: List<com.astro5star.app.data.model.HomeBanner>) :
         androidx.recyclerview.widget.RecyclerView.Adapter<BannerAdapter.BannerViewHolder>() {
 
         inner class BannerViewHolder(view: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
             val title: TextView = view.findViewById(R.id.tvBannerTitle)
             val subtitle: TextView = view.findViewById(R.id.tvBannerSubtitle)
-            // val icon: ImageView = view.findViewById(R.id.ivBannerIcon) // If exists
+            val background: android.widget.ImageView = view.findViewById(R.id.ivBannerBackground)
         }
 
         override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): BannerViewHolder {
@@ -432,7 +505,18 @@ class HomeActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: BannerViewHolder, position: Int) {
             val banner = banners[position]
             holder.title.text = banner.title
-            holder.subtitle.text = banner.subtitle
+            holder.subtitle.text = banner.subtitle.ifEmpty { "Explore Astro5Star" }
+
+            // Load Image with Glide
+            if (banner.imageUrl.isNotEmpty()) {
+                 com.bumptech.glide.Glide.with(holder.itemView.context)
+                     .load(banner.imageUrl)
+                     .placeholder(R.color.primary)
+                     .error(R.color.error)
+                     .into(holder.background)
+            } else {
+                 holder.background.setImageResource(R.color.primary)
+            }
         }
 
         override fun getItemCount() = banners.size
@@ -440,6 +524,5 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Don't disconnect socket here - let it run for FCM
     }
 }
