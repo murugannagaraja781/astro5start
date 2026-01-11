@@ -1,192 +1,216 @@
 package com.astro5star.app.ui.wallet
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.astro5star.app.R
 import com.astro5star.app.data.api.ApiClient
 import com.astro5star.app.data.local.TokenManager
+import com.astro5star.app.data.remote.SocketManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.util.ArrayList
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 
+/**
+ * WalletActivity - Production-Grade Implementation
+ *
+ * Features:
+ * - All operations are null-safe
+ * - Lifecycle-aware coroutines
+ * - No !! operators
+ * - Graceful error handling
+ */
 class WalletActivity : AppCompatActivity() {
 
-    private lateinit var tokenManager: TokenManager
-    private lateinit var recyclerHistory: androidx.recyclerview.widget.RecyclerView
-    private lateinit var historyAdapter: HistoryAdapter
-    private val transactions = java.util.ArrayList<org.json.JSONObject>()
+    companion object {
+        private const val TAG = "WalletActivity"
+    }
+
+    private var tokenManager: TokenManager? = null
+    private var recyclerHistory: RecyclerView? = null
+    private var historyAdapter: HistoryAdapter? = null
+    private val transactions = java.util.ArrayList<JSONObject>()
+
+    private var balanceText: TextView? = null
+    private var amountInput: EditText? = null
+    private var btnAddMoney: Button? = null
+
+    private val client by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         try {
             setContentView(R.layout.activity_wallet)
-
             tokenManager = TokenManager(this)
-            val user = tokenManager.getUserSession()
+            initViews()
+            setupClickListeners()
+            loadData()
+        } catch (e: Exception) {
+            Log.e(TAG, "onCreate failed", e)
+            showToast("Error loading wallet. Please try again.")
+        }
+    }
 
-            val balanceText = findViewById<TextView>(R.id.balanceText) ?: return
-            val amountInput = findViewById<EditText>(R.id.amountInput) ?: return
-            val btnAddMoney = findViewById<Button>(R.id.btnAddMoney) ?: return
-            recyclerHistory = findViewById(R.id.recyclerHistory) ?: return
+    private fun initViews() {
+        balanceText = findViewById(R.id.balanceText)
+        amountInput = findViewById(R.id.amountInput)
+        btnAddMoney = findViewById(R.id.btnAddMoney)
+        recyclerHistory = findViewById(R.id.recyclerHistory)
 
-            val balance = user?.walletBalance ?: 0.0
-            balanceText.text = "₹ ${balance.toInt()}"
+        // Setup history RecyclerView
+        recyclerHistory?.layoutManager = LinearLayoutManager(this)
+        historyAdapter = HistoryAdapter(transactions)
+        recyclerHistory?.adapter = historyAdapter
+    }
 
-            // Setup History Recycler
-            recyclerHistory.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
-            historyAdapter = HistoryAdapter(transactions)
-            recyclerHistory.adapter = historyAdapter
+    private fun setupClickListeners() {
+        btnAddMoney?.setOnClickListener {
+            handleAddMoney()
+        }
+    }
 
-            btnAddMoney.setOnClickListener {
-                try {
-                    val amountStr = amountInput.text.toString()
-                    val amount = amountStr.toIntOrNull()
+    private fun loadData() {
+        updateBalanceUI()
+        loadPaymentHistory()
+    }
 
-                    if (amount == null || amount < 1) {
-                        Toast.makeText(this, "Enter valid amount", Toast.LENGTH_SHORT).show()
-                        return@setOnClickListener
-                    }
+    private fun handleAddMoney() {
+        try {
+            val amountStr = amountInput?.text?.toString() ?: ""
+            val amount = amountStr.toIntOrNull()
 
-                    val intent = Intent(this, com.astro5star.app.ui.payment.PaymentActivity::class.java)
-                    intent.putExtra("amount", amount.toDouble())
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
+            if (amount == null || amount < 1) {
+                showToast("Enter valid amount")
+                return
             }
 
-            try { loadPaymentHistory() } catch (e: Exception) { e.printStackTrace() }
-
+            val intent = Intent(this, com.astro5star.app.ui.payment.PaymentActivity::class.java)
+            intent.putExtra("amount", amount.toDouble())
+            startActivity(intent)
         } catch (e: Exception) {
-            android.util.Log.e("WalletActivity", "onCreate failed", e)
-            Toast.makeText(this, "Error loading wallet. Please try again.", Toast.LENGTH_LONG).show()
+            Log.e(TAG, "handleAddMoney failed", e)
+            showToast("Error processing payment")
         }
     }
 
     override fun onResume() {
         super.onResume()
         loadPaymentHistory()
-        refreshWalletBalance() // Fetch latest from server
+        refreshWalletBalance()
+        setupSocketListener()
+    }
 
-        // Listen for real-time updates as backup
-        com.astro5star.app.data.remote.SocketManager.onWalletUpdate { newBalance ->
-            runOnUiThread {
-                tokenManager.updateWalletBalance(newBalance)
-                updateBalanceUI()
+    private fun setupSocketListener() {
+        try {
+            SocketManager.onWalletUpdate { newBalance ->
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) {
+                        tokenManager?.updateWalletBalance(newBalance)
+                        updateBalanceUI()
+                    }
+                }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Socket listener setup failed", e)
         }
     }
 
     private fun refreshWalletBalance() {
-        val userId = tokenManager.getUserSession()?.userId ?: return
-        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+        val userId = tokenManager?.getUserSession()?.userId ?: return
+
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val response = ApiClient.api.getUserProfile(userId)
-                if (response.isSuccessful && response.body() != null) {
-                    val user = response.body()!!
-                    runOnUiThread {
-                        tokenManager.saveUserSession(user) // Update local cache
-                        updateBalanceUI()
+                if (response.isSuccessful) {
+                    val user = response.body()
+                    if (user != null) {
+                        withContext(Dispatchers.Main) {
+                            if (!isFinishing && !isDestroyed) {
+                                tokenManager?.saveUserSession(user)
+                                updateBalanceUI()
+                            }
+                        }
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e(TAG, "Balance refresh failed", e)
             }
         }
     }
 
     override fun onPause() {
         super.onPause()
-        com.astro5star.app.data.remote.SocketManager.off("wallet-update")
+        try {
+            SocketManager.off("wallet-update")
+        } catch (e: Exception) {
+            Log.e(TAG, "Socket cleanup failed", e)
+        }
     }
 
     private fun updateBalanceUI() {
-        val user = tokenManager.getUserSession()
+        val user = tokenManager?.getUserSession()
         val balance = user?.walletBalance ?: 0.0
-        findViewById<TextView>(R.id.balanceText).text = "₹ ${balance.toInt()}"
+        balanceText?.text = "₹ ${balance.toInt()}"
     }
 
     private fun loadPaymentHistory() {
-        val userId = tokenManager.getUserSession()?.userId ?: return
+        val userId = tokenManager?.getUserSession()?.userId ?: return
 
-        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val request = okhttp3.Request.Builder()
+                val request = Request.Builder()
                     .url("https://astro5star.com/api/payment/history/$userId")
                     .get()
                     .build()
 
-                val client = okhttp3.OkHttpClient()
-                client.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) {
-                        val body = response.body?.string()
-                        val json = org.json.JSONObject(body ?: "{}")
-                        val data = json.optJSONArray("data")
+                val response = client.newCall(request).execute()
+                if (response.isSuccessful) {
+                    val body = response.body?.string()
+                    if (body != null) {
+                        val json = JSONObject(body)
+                        val arr = json.optJSONArray("transactions") ?: return@launch
 
-                        val newTransactions = ArrayList<org.json.JSONObject>()
-                        if (data != null) {
-                            for (i in 0 until data.length()) {
-                                newTransactions.add(data.getJSONObject(i))
-                            }
+                        val newTransactions = mutableListOf<JSONObject>()
+                        for (i in 0 until arr.length()) {
+                            arr.optJSONObject(i)?.let { newTransactions.add(it) }
                         }
 
-                        runOnUiThread {
-                            transactions.clear()
-                            transactions.addAll(newTransactions)
-                            historyAdapter.notifyDataSetChanged()
+                        withContext(Dispatchers.Main) {
+                            if (!isFinishing && !isDestroyed) {
+                                transactions.clear()
+                                transactions.addAll(newTransactions)
+                                historyAdapter?.notifyDataSetChanged()
+                            }
                         }
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e(TAG, "Payment history load failed", e)
             }
         }
     }
 
-    // Inner Adapter Class
-    class HistoryAdapter(private val list: List<org.json.JSONObject>) : androidx.recyclerview.widget.RecyclerView.Adapter<HistoryAdapter.ViewHolder>() {
-
-        class ViewHolder(view: android.view.View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
-            val text1: TextView = view.findViewById(android.R.id.text1)
-            val text2: TextView = view.findViewById(android.R.id.text2)
+    private fun showToast(message: String) {
+        if (!isFinishing && !isDestroyed) {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         }
-
-        override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): ViewHolder {
-            val view = android.view.LayoutInflater.from(parent.context)
-                .inflate(android.R.layout.simple_list_item_2, parent, false)
-            return ViewHolder(view)
-        }
-
-        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val item = list[position]
-            val amount = item.optDouble("amount", 0.0)
-            val status = item.optString("status", "pending")
-            val dateStr = item.optString("createdAt", "")
-
-            // Format Amount
-            holder.text1.text = "₹ ${amount.toInt()}"
-            holder.text1.setTextColor(if (status == "success") android.graphics.Color.parseColor("#047857") else android.graphics.Color.RED)
-            holder.text1.setTypeface(null, android.graphics.Typeface.BOLD)
-
-            // Format Date & Status
-            // Simple date parsing or just raw
-            var displayDate = dateStr
-            try {
-                // If standard ISO string 2025-01-10T...
-                if (dateStr.contains("T")) {
-                     displayDate = dateStr.substring(0, 10) + " " + dateStr.substring(11, 16)
-                }
-            } catch(e:Exception){}
-
-            holder.text2.text = "${status.uppercase()} • $displayDate"
-        }
-
-        override fun getItemCount() = list.size
     }
 }
