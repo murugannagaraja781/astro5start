@@ -41,7 +41,6 @@ class HomeActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "HomeActivity"
-        private const val SERVER_URL = "https://astro5star.com"
     }
 
     private lateinit var recyclerView: RecyclerView
@@ -146,7 +145,7 @@ class HomeActivity : AppCompatActivity() {
 
     private suspend fun fetchHoroscope(): String = withContext(Dispatchers.IO) {
         val request = Request.Builder()
-            .url("$SERVER_URL/api/daily-horoscope")
+            .url("${com.astro5star.app.utils.Constants.SERVER_URL}/api/daily-horoscope")
             .get()
             .build()
 
@@ -189,7 +188,7 @@ class HomeActivity : AppCompatActivity() {
         // Fallback: Try HTTP endpoint
         try {
             val request = Request.Builder()
-                .url("$SERVER_URL/api/astrology/astrologers")
+                .url("${com.astro5star.app.utils.Constants.SERVER_URL}/api/astrology/astrologers")
                 .get()
                 .build()
 
