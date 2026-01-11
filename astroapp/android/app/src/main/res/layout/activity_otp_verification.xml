@@ -3,37 +3,89 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="@color/background"
     android:padding="24dp"
-    android:gravity="center">
+    android:gravity="center_horizontal">
 
+    <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"/>
+
+    <!-- Centered Icon Circle -->
+    <FrameLayout
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:background="@drawable/circle_bg"
+        android:backgroundTint="#F0FDF4"
+        android:layout_marginBottom="32dp">
+        <ImageView
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_match"
+            android:layout_gravity="center"
+            android:tint="@color/primary"/>
+    </FrameLayout>
+
+    <!-- Title -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Verify OTP"
-        android:textSize="28sp"
+        android:text="Verification Code"
+        android:textSize="26sp"
         android:textStyle="bold"
-        android:layout_marginBottom="32dp"/>
+        android:textColor="@color/text_primary"
+        android:layout_marginBottom="8dp"/>
 
+    <!-- Subtitle -->
     <TextView
         android:id="@+id/verificationMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Enter OTP sent to your number"
-        android:layout_marginBottom="16dp"/>
+        android:text="Enter the verification code sent\nto you"
+        android:textAlignment="center"
+        android:textSize="14sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="32dp"/>
 
-    <EditText
-        android:id="@+id/otpInput"
+    <!-- OTP Input (Simplified for standard EditText, but styled separately in future if needed) -->
+    <!-- Ideally we use PinView, but sticking to EditText for reliability with existing logic -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Enter 4-digit OTP"
-        android:inputType="number"
-        android:maxLength="4"
-        android:layout_marginBottom="16dp"/>
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="24dp">
+
+        <!-- Single Input for now, simulating blocks requires library or multiple edittexts -->
+        <EditText
+            android:id="@+id/otpInput"
+            android:layout_width="200dp"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_input_rounded"
+            android:gravity="center"
+            android:hint="* * * *"
+            android:inputType="number"
+            android:maxLength="4"
+            android:textSize="24sp"
+            android:letterSpacing="0.4"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"/>
+
+    </LinearLayout>
 
     <Button
         android:id="@+id/btnVerifyOtp"
         android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Verify"
+        style="@style/ButtonStyle.Primary"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Verify &amp; Login" />
+        android:text="Didn't receive a code? Resend"
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp"/>
+
+    <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1.5"/>
 
 </LinearLayout>
