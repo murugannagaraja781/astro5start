@@ -42,7 +42,7 @@ class PaymentActivity : AppCompatActivity() {
         private const val TAG = "PaymentActivity"
         private const val MERCHANT_ID = "M22LBBWEJKI6A"
         private const val B2B_PG_REQUEST_CODE = 777
-        private const val USE_NATIVE_SDK = false // Toggle this to switch between Native and Web
+        private const val USE_NATIVE_SDK = true // Toggle this to switch between Native and Web
         private const val SERVER_URL = "https://astro5star.com"
     }
 
@@ -152,22 +152,7 @@ class PaymentActivity : AppCompatActivity() {
         tokenManager = TokenManager(this)
 
         // Initialize PhonePe SDK (Only if using Native)
-        if (USE_NATIVE_SDK) {
-            try {
-                 PhonePeKt.init(
-                    context = this,
-                    merchantId = MERCHANT_ID,
-                    flowId = "CITIZEN_APP",
-                    phonePeEnvironment = PhonePeEnvironment.RELEASE,
-                    enableLogging = true,
-                    appId = null
-                )
-            } catch (e: Exception) {
-                Log.e(TAG, "PhonePe Init Error", e)
-                showError("SDK Init Failed: ${e.message}")
-                return
-            }
-        }
+        // PhonePe SDK Initialized in AstrologerApp
 
         val amount = intent.getDoubleExtra("amount", 0.0)
         if (amount <= 0.0) {
@@ -335,31 +320,16 @@ class PaymentActivity : AppCompatActivity() {
              return false
         }
 
-        // Handle Specific Schemes (PhonePe, GPay, Paytm) - With Fallback to Generic UPI
+        // Handle Specific Schemes - Prioritize Native Launch
         if (url.startsWith("phonepe://") || url.startsWith("tez://") || url.startsWith("paytmmp://") || url.startsWith("gpay://") || url.startsWith("bhim://")) {
             try {
-                // Try specific launch first
                 val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(intent)
                 return true
             } catch (e: Exception) {
-                Log.e(TAG, "Specific App Launch Failed, Retrying as Generic UPI", e)
-                try {
-                     // FALLBACK: Replace scheme with 'upi://' and show App Chooser
-                     // This allows PhonePe/GPay to be picked from the standard list even if their custom scheme fails
-                     val rawUri = android.net.Uri.parse(url)
-                     val genericBuilder = rawUri.buildUpon().scheme("upi")
-                     val genericIntent = Intent(Intent.ACTION_VIEW, genericBuilder.build())
-
-                     val chooser = Intent.createChooser(genericIntent, "Pay using...")
-                     chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                     startActivity(chooser)
-                     return true
-                } catch (ex: Exception) {
-                     Toast.makeText(this@PaymentActivity, "App not installed", Toast.LENGTH_SHORT).show()
-                     return true
-                }
+                Log.e(TAG, "Direct Native Scheme Launch Failed", e)
+                // Fallthrough to Generic UPI converter if direct native launch fails (e.g. app not handled)
             }
         }
 
