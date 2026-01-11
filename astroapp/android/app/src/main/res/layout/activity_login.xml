@@ -3,9 +3,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/background"
+    android:background="#F8F9FA"
     android:padding="24dp"
     android:gravity="center_horizontal">
+
+    <!-- Gradient Overlay View (Top half) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:background="@drawable/bg_gradient_primary"
+        android:alpha="0.1"
+        android:layout_marginTop="-200dp"/>
 
     <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"/>
 
