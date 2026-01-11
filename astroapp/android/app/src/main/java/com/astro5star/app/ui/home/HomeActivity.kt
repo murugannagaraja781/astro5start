@@ -401,6 +401,19 @@ class HomeActivity : AppCompatActivity() {
                      }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error fetching banners", e)
+                    // Fallback: Load default banners
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed) {
+                            val defaultBanners = listOf(
+                                com.astro5star.app.data.model.HomeBanner(1, "", "Welcome to Astro5Star"),
+                                com.astro5star.app.data.model.HomeBanner(2, "", "Connect with Experts"),
+                                com.astro5star.app.data.model.HomeBanner(3, "", "Daily Horoscope")
+                            )
+                            viewPager.adapter = BannerAdapter(defaultBanners)
+                            setupIndicators(indicatorLayout, defaultBanners.size)
+                            updateIndicators(indicatorLayout, 0)
+                        }
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -449,6 +462,21 @@ class HomeActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading rasi data", e)
+                // Fallback: Load default rasi
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) {
+                        val defaultRasi = listOf(
+                            com.astro5star.app.data.model.RasiData(1, "Mesham", "மேஷம்", "aries", "இன்று நல்ல நாள்!"),
+                            com.astro5star.app.data.model.RasiData(2, "Rishabam", "ரிஷபம்", "taurus", "புதிய தொடக்கம்!"),
+                            com.astro5star.app.data.model.RasiData(3, "Mithunam", "மிதுனம்", "gemini", "நன்மை உண்டாகும்!"),
+                            com.astro5star.app.data.model.RasiData(4, "Kadagam", "கடகம்", "cancer", "சிறந்த நேரம்!")
+                        )
+                        recycler.adapter = RasiAdapter(defaultRasi) { rasi ->
+                            val sheet = RasiBottomSheet(rasi)
+                            sheet.show(supportFragmentManager, "RasiSheet")
+                        }
+                    }
+                }
             }
         }
     }
