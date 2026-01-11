@@ -33,6 +33,39 @@ class ChatActivity : AppCompatActivity() {
     private var typingHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var isTyping = false;
     private lateinit var tvChatTitle: TextView
+    private lateinit var tvTypingStatus: TextView
+    private lateinit var tvSessionTimer: TextView
+
+    // Timer
+    private var chatDurationSeconds = 0
+    private var timerHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val timerRunnable = object : Runnable {
+        override fun run() {
+            chatDurationSeconds++
+            val minutes = chatDurationSeconds / 60
+            val seconds = chatDurationSeconds % 60
+            tvSessionTimer.text = String.format("%02d:%02d", minutes, seconds)
+            timerHandler.postDelayed(this, 1000)
+        }
+    }
+
+    private val editIntakeLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+             val dataStr = result.data?.getStringExtra("birthData")
+             if (dataStr != null) {
+                 try {
+                     val newData = JSONObject(dataStr)
+                     clientBirthData = newData
+                     Toast.makeText(this, "Details Updated", Toast.LENGTH_SHORT).show()
+                     // Emit update to server/astrologer
+                     SocketManager.getSocket()?.emit("client-birth-chart", JSONObject().apply {
+                         put("sessionId", sessionId)
+                         put("birthData", newData)
+                     })
+                 } catch (e: Exception) { e.printStackTrace() }
+             }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,7 +111,13 @@ class ChatActivity : AppCompatActivity() {
             val btnSend = findViewById<View>(R.id.btnSend) // Use View to be safe, or ImageButton
             val btnEndChat = findViewById<Button>(R.id.btnEndChat)
             val btnChart = findViewById<android.widget.ImageButton>(R.id.btnChart)
+            val btnEditIntake = findViewById<android.widget.ImageButton>(R.id.btnEditIntake)
             tvChatTitle = findViewById(R.id.tvChatTitle)
+            tvTypingStatus = findViewById(R.id.tvTypingStatus)
+            tvSessionTimer = findViewById(R.id.tvSessionTimer)
+
+            // Start Timer
+            timerHandler.post(timerRunnable)
 
             // Set Title
             val partnerName = intent.getStringExtra("toUserName") ?: "Chat"
@@ -129,6 +168,16 @@ class ChatActivity : AppCompatActivity() {
                         Toast.makeText(this, "Chat Ended", Toast.LENGTH_SHORT).show()
                     }
                     finish()
+                } catch (e: Exception) { e.printStackTrace() }
+            }
+
+            // Edit Intake Logic
+            btnEditIntake.setOnClickListener {
+                try {
+                    val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java)
+                    intent.putExtra("isEditMode", true)
+                    intent.putExtra("existingData", clientBirthData?.toString())
+                    editIntakeLauncher.launch(intent)
                 } catch (e: Exception) { e.printStackTrace() }
             }
 
@@ -245,13 +294,12 @@ class ChatActivity : AppCompatActivity() {
         // Typing Events
         socket?.on("typing") {
             runOnUiThread {
-                tvChatTitle.text = "Typing..."
+                tvTypingStatus.visibility = View.VISIBLE
             }
         }
         socket?.on("stop-typing") {
              runOnUiThread {
-                val partnerName = intent.getStringExtra("toUserName") ?: "Chat"
-                tvChatTitle.text = partnerName
+                tvTypingStatus.visibility = View.GONE
             }
         }
 
@@ -303,6 +351,7 @@ class ChatActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        timerHandler.removeCallbacks(timerRunnable)
         try {
             SocketManager.off("chat-message")
             SocketManager.off("session-ended")

@@ -36,6 +36,9 @@ class IntakeActivity : AppCompatActivity() {
     private var partnerLongitude: Double? = null
     private var partnerTimezone: Double? = null
 
+    private var isEditMode = false
+    private var existingData: JSONObject? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_intake)
@@ -43,6 +46,12 @@ class IntakeActivity : AppCompatActivity() {
         partnerId = intent.getStringExtra("partnerId")
         type = intent.getStringExtra("type")
         partnerName = intent.getStringExtra("partnerName")
+        isEditMode = intent.getBooleanExtra("isEditMode", false)
+
+        val dataStr = intent.getStringExtra("existingData")
+        if (dataStr != null) {
+            try { existingData = JSONObject(dataStr) } catch(e: Exception){}
+        }
 
         etPlace = findViewById(R.id.etPlace)
         etPartnerPlace = findViewById(R.id.etPartnerPlace)
@@ -52,10 +61,57 @@ class IntakeActivity : AppCompatActivity() {
         setupSpinners()
         setupPartnerCheckbox()
 
-        loadIntakeDetails()
+        if (isEditMode && existingData != null) {
+            prefillForm(existingData!!)
+        } else {
+            loadIntakeDetails()
+        }
 
-        findViewById<Button>(R.id.btnConnect).setOnClickListener {
+        val btnConnect = findViewById<Button>(R.id.btnConnect)
+        if (isEditMode) {
+            btnConnect.text = "Update Details"
+        }
+
+        btnConnect.setOnClickListener {
             submitForm()
+        }
+    }
+
+    private fun prefillForm(data: JSONObject) {
+        findViewById<EditText>(R.id.etName).setText(data.optString("name"))
+        val city = data.optString("city")
+        etPlace.setText(city)
+        // Note: Lat/Lon/Timezone needs to be set manually or we assume user re-selects if empty
+        // Best effort: set lat/lon if available in JSON
+        selectedLatitude = data.optDouble("latitude", 0.0)
+        selectedLongitude = data.optDouble("longitude", 0.0)
+        selectedTimezone = data.optDouble("timezone", 5.5)
+
+        findViewById<EditText>(R.id.etDay).setText(data.optInt("day").toString())
+        findViewById<EditText>(R.id.etMonth).setText(data.optInt("month").toString())
+        findViewById<EditText>(R.id.etYear).setText(data.optInt("year").toString())
+        findViewById<EditText>(R.id.etHour).setText(data.optInt("hour").toString())
+        findViewById<EditText>(R.id.etMinute).setText(data.optInt("minute").toString())
+
+        val gender = data.optString("gender", "Male")
+        if (gender == "Female") findViewById<RadioButton>(R.id.rbFemale).isChecked = true
+        else findViewById<RadioButton>(R.id.rbMale).isChecked = true
+
+        val marital = data.optString("maritalStatus", "Single")
+        // Set spinner selection logic omitted for brevity, user can re-select or we match index
+        // ... (Optional: Match Spinner)
+
+        // Partner Data
+        val pData = data.optJSONObject("partner")
+        if (pData != null) {
+             findViewById<android.widget.CheckBox>(R.id.cbPartner).isChecked = true
+             findViewById<EditText>(R.id.etPartnerName).setText(pData.optString("name"))
+             etPartnerPlace.setText(pData.optString("city"))
+             findViewById<EditText>(R.id.etPartnerDay).setText(pData.optInt("day").toString())
+             findViewById<EditText>(R.id.etPartnerMonth).setText(pData.optInt("month").toString())
+             findViewById<EditText>(R.id.etPartnerYear).setText(pData.optInt("year").toString())
+             findViewById<EditText>(R.id.etPartnerHour).setText(pData.optInt("hour").toString())
+             findViewById<EditText>(R.id.etPartnerMinute).setText(pData.optInt("minute").toString())
         }
     }
 
@@ -296,8 +352,15 @@ class IntakeActivity : AppCompatActivity() {
         // Send intake details (optional redundancy, but good for saving history before session)
         SocketManager.getSocket()?.emit("save-intake-details", birthData)
 
-        // Initiate Session
-        initiateSession(birthData)
+        if (isEditMode) {
+             val resultIntent = Intent()
+             resultIntent.putExtra("birthData", birthData.toString())
+             setResult(RESULT_OK, resultIntent)
+             finish()
+        } else {
+             // Initiate Session
+             initiateSession(birthData)
+        }
     }
 
     private fun initiateSession(birthData: JSONObject) {

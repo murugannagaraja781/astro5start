@@ -335,16 +335,45 @@ class PaymentActivity : AppCompatActivity() {
              return false
         }
 
-        // Handle UPI and Payment Deep Links
-        if (url.startsWith("upi://") || url.startsWith("phonepe://") || url.startsWith("tez://") || url.startsWith("paytmmp://") || url.startsWith("gpay://") || url.startsWith("bhim://")) {
+        // Handle Specific Schemes (PhonePe, GPay, Paytm) - With Fallback to Generic UPI
+        if (url.startsWith("phonepe://") || url.startsWith("tez://") || url.startsWith("paytmmp://") || url.startsWith("gpay://") || url.startsWith("bhim://")) {
             try {
+                // Try specific launch first
                 val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(intent)
                 return true
             } catch (e: Exception) {
-                Log.e(TAG, "Deep Link Error", e)
-                Toast.makeText(this@PaymentActivity, "App not installed for this payment method", Toast.LENGTH_SHORT).show()
+                Log.e(TAG, "Specific App Launch Failed, Retrying as Generic UPI", e)
+                try {
+                     // FALLBACK: Replace scheme with 'upi://' and show App Chooser
+                     // This allows PhonePe/GPay to be picked from the standard list even if their custom scheme fails
+                     val rawUri = android.net.Uri.parse(url)
+                     val genericBuilder = rawUri.buildUpon().scheme("upi")
+                     val genericIntent = Intent(Intent.ACTION_VIEW, genericBuilder.build())
+
+                     val chooser = Intent.createChooser(genericIntent, "Pay using...")
+                     chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                     startActivity(chooser)
+                     return true
+                } catch (ex: Exception) {
+                     Toast.makeText(this@PaymentActivity, "App not installed", Toast.LENGTH_SHORT).show()
+                     return true
+                }
+            }
+        }
+
+        // Handle UPI and Specific Payment Schemes (Unified - FORCE APP CHOOSER)
+        if (url.startsWith("upi://")) {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                val chooser = Intent.createChooser(intent, "Pay using...")
+                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(chooser)
+                return true
+            } catch (e: Exception) {
+                Log.e(TAG, "UPI Launcher Error", e)
+                Toast.makeText(this@PaymentActivity, "No App found for this payment", Toast.LENGTH_SHORT).show()
                 return true
             }
         }

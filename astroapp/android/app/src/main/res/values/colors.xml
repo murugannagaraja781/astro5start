@@ -1,37 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Strict Design System Colors -->
-    <!-- Primary: Deep Forest Green -->
-    <color name="primary">#1B5E20</color>
-    <!-- Secondary: Soft Natural Green -->
-    <color name="primary_variant">#4CAF50</color>
-    <color name="secondary">#4CAF50</color>
-    <!-- Accent: Mint Green -->
-    <color name="accent">#A5D6A7</color>
+    <!-- Brand Colors (Emerald & Gold Premium) -->
+    <color name="brand_emerald_dark">#0F3D2E</color>  <!-- Primary -->
+    <color name="brand_emerald_royal">#1E6F5C</color> <!-- Secondary -->
+    <color name="brand_gold">#D4AF37</color>          <!-- Accent -->
+    <color name="brand_bg_soft">#EAF4EF</color>       <!-- Background -->
+    <color name="brand_card_white">#F4FBF7</color>    <!-- Card Surface -->
 
-    <!-- Backgrounds (Light Premium) -->
-    <color name="background">#F8F9FA</color> <!-- Soft Off-White -->
-    <color name="surface">#FFFFFF</color>    <!-- Pure White Cards -->
+    <!-- Text Colors -->
+    <color name="text_primary">#102A21</color>        <!-- Dark Green -->
+    <color name="text_secondary">#6B8F7A</color>      <!-- Muted Olive -->
+    <color name="text_white">#FFFFFF</color>
 
-    <!-- Text (Dark on Light) -->
-    <color name="text_primary">#111827</color> <!-- Dark Slate Text -->
-    <color name="text_muted">#6B7280</color>
-    <color name="text_secondary">#6B7280</color>
-    <color name="text_on_primary">#FFFFFF</color>
+    <!-- Functional -->
+    <color name="status_online">#D4AF37</color>       <!-- Gold pulse -->
+    <color name="divider_gold">#4DD4AF37</color>      <!-- Low opacity gold -->
 
-    <!-- Status -->
-    <color name="success">#4CAF50</color>
-    <color name="error">#EF5350</color>
-    <color name="warning">#F59E0B</color>
+    <!-- Mapping to Standard Names for Compatibility -->
+    <color name="primary">@color/brand_emerald_dark</color>
+    <color name="primary_variant">@color/brand_emerald_royal</color>
+    <color name="on_primary">@color/text_white</color>
+    <color name="secondary">@color/brand_gold</color>
+    <color name="background">@color/brand_bg_soft</color>
+    <color name="surface">@color/brand_card_white</color>
+    <color name="error">#B00020</color>
 
-    <!-- Incoming Call / Chat Specific (Light Mode Adapatation) -->
-    <color name="call_background">#FFFFFF</color>
-    <color name="call_text_primary">#111827</color>
-    <color name="call_text_secondary">#6B7280</color>
-    <color name="call_text_tertiary">#9CA3AF</color>
+    <!-- Missing Resources Fixed -->
+    <color name="text_on_primary">@color/text_white</color>
+    <color name="text_muted">@color/text_secondary</color>
+    <color name="accent">@color/brand_gold</color>
+    <color name="colorPrimary">@color/brand_emerald_dark</color>
+    <color name="colorPrimaryDark">@color/brand_emerald_dark</color>
+    <color name="colorAccent">@color/brand_gold</color>
 
+    <!-- More Legacy/Call Colors -->
+    <color name="avatar_background">#E0E0E0</color>
     <color name="call_accept">#4CAF50</color>
-    <color name="call_reject">#EF5350</color>
+    <color name="call_reject">#F44336</color>
 
-    <color name="avatar_background">#E5E7EB</color>
+    <!-- Legacy/Fallback -->
+    <color name="black">#102A21</color>
+    <color name="white">#FFFFFF</color>
+    <color name="purple_200">#D4AF37</color>
+    <color name="purple_500">#0F3D2E</color>
+    <color name="purple_700">#0F3D2E</color>
+    <color name="teal_200">#1E6F5C</color>
+    <color name="teal_700">#0F3D2E</color>
+    <color name="success">#4CAF50</color>
+    <color name="warning">#FFC107</color>
 </resources>

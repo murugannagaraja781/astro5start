@@ -1,57 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="12dp"
-    style="@style/CardStyle">
+    android:layout_margin="10dp"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="8dp"
+    app:cardBackgroundColor="@android:color/transparent">
+    <!-- Using transparent here to let internal layout handle the special border and bg -->
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:background="@drawable/bg_card_premium"
+        android:padding="16dp">
 
-        <!-- Top Row: Image + Info + Status -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-            <!-- Profile Image -->
+            <!-- Avatar with Gold Ring -->
             <FrameLayout
-                android:layout_width="65dp"
-                android:layout_height="65dp">
+                android:layout_width="70dp"
+                android:layout_height="70dp">
 
                 <ImageView
                     android:id="@+id/imgAstrologer"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:src="@drawable/ic_person_placeholder"
-                    android:scaleType="centerCrop"
-                    android:background="@drawable/circle_bg"/>
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_margin="2dp"
+                    android:padding="2dp"
+                    android:src="@android:drawable/sym_def_app_icon"
+                    android:scaleType="centerCrop"/>
+                    <!-- Actual image loading will happen in adapter. Ideally circle crop. -->
 
-                <!-- Online Status Indicator -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_ring_gold"/>
+
+                <!-- Online Dot (ID Restored) -->
                 <View
                     android:id="@+id/statusIndicator"
                     android:layout_width="14dp"
                     android:layout_height="14dp"
                     android:layout_gravity="bottom|end"
-                    android:background="@drawable/status_offline"/>
+                    android:background="@drawable/bg_status_online"
+                    android:layout_marginBottom="4dp"
+                    android:layout_marginEnd="4dp"/>
             </FrameLayout>
 
-            <!-- Info Section -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginStart="12dp">
+                android:layout_marginStart="16dp">
 
-                <!-- Name Row -->
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical">
@@ -61,109 +71,107 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Astrologer Name"
-                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="@color/text_primary"/>
+                        android:fontFamily="sans-serif-medium"/>
 
-                    <!-- Verified Badge -->
                     <TextView
                         android:id="@+id/tvVerified"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="✓"
+                        android:textColor="@color/brand_gold"
                         android:textSize="14sp"
-                        android:textColor="@color/secondary"
-                        android:layout_marginStart="4dp"
+                        android:textStyle="bold"
+                        android:layout_marginStart="6dp"
                         android:visibility="gone"/>
                 </LinearLayout>
 
-                <!-- Skills -->
                 <TextView
                     android:id="@+id/tvSkills"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Vedic, Prashna"
-                    android:textSize="13sp"
+                    android:text="Vedic, Tarot, Numerology"
                     android:textColor="@color/text_secondary"
-                    android:layout_marginTop="2dp"
-                    android:maxLines="1"
-                    android:ellipsize="end"/>
+                    android:textSize="13sp"
+                    android:layout_marginTop="2dp"/>
 
-                <!-- Experience & Price -->
-                <LinearLayout
+                <TextView
+                    android:id="@+id/tvExperience"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="4dp">
+                    android:text="10 Years Exp"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:layout_marginTop="2dp"/>
+            </LinearLayout>
 
-                    <TextView
-                        android:id="@+id/tvExperience"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="⭐ 5 yrs"
-                        android:textSize="12sp"
-                        android:textColor="#F59E0B"/> <!-- Gold for star can stay or use accent -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="end">
 
-                    <TextView
-                        android:id="@+id/tvPrice"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="₹15/min"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/primary"
-                        android:layout_marginStart="12dp"/>
-                </LinearLayout>
+                <TextView
+                    android:id="@+id/tvPrice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="₹15/min"
+                    android:textColor="@color/brand_gold"
+                    android:textSize="16sp"
+                    android:textStyle="bold"/>
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Action Buttons Row -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/divider_gold"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="12dp"/>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="12dp"
-            android:gravity="center">
+            android:weightSum="3">
 
-            <!-- Chat Button -->
             <Button
                 android:id="@+id/btnChat"
                 android:layout_width="0dp"
                 android:layout_height="40dp"
                 android:layout_weight="1"
-                android:text="💬 Chat"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_button_secondary"
+                android:text="Chat"
+                android:textColor="@color/text_primary"
                 android:textSize="12sp"
-                android:textAllCaps="false"
-                android:background="@drawable/btn_chat_bg"
-                android:textColor="@color/primary"
-                android:layout_marginEnd="6dp"/>
+                app:backgroundTint="@null"/>
 
-            <!-- Audio Call Button -->
             <Button
                 android:id="@+id/btnAudio"
                 android:layout_width="0dp"
                 android:layout_height="40dp"
                 android:layout_weight="1"
-                android:text="📞 Audio"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_button_primary"
+                android:text="Call"
+                android:textColor="@color/brand_gold"
                 android:textSize="12sp"
-                android:textAllCaps="false"
-                android:background="@drawable/btn_audio_bg"
-                android:textColor="@color/primary"
-                android:layout_marginHorizontal="6dp"/>
+                app:backgroundTint="@null"/>
 
-            <!-- Video Call Button -->
             <Button
                 android:id="@+id/btnVideo"
                 android:layout_width="0dp"
                 android:layout_height="40dp"
                 android:layout_weight="1"
-                android:text="📹 Video"
+                android:background="@drawable/bg_button_secondary"
+                android:text="Video"
+                android:textColor="@color/text_primary"
                 android:textSize="12sp"
-                android:textAllCaps="false"
-                android:background="@drawable/btn_video_bg"
-                android:textColor="@color/warning"
-                android:layout_marginStart="6dp"/>
-                 <!-- Warning Color for Video? Or just Orange. Let's keep Orange if it fits -->
+                app:backgroundTint="@null"/>
         </LinearLayout>
+
     </LinearLayout>
 </androidx.cardview.widget.CardView>

@@ -2,62 +2,90 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background">
+    android:background="@color/brand_bg_soft">
 
-    <!-- Header (Minimal, White) -->
+    <!-- Premium Header -->
     <RelativeLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/surface"
-        android:elevation="4dp"
+        android:background="@drawable/bg_gradient_header"
+        android:elevation="8dp"
         android:paddingStart="16dp"
         android:paddingEnd="16dp">
-
-        <ImageView
-            android:id="@+id/ivAvatar"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/ic_chart"
-            android:background="@drawable/ic_double_check"
-            android:backgroundTint="@color/avatar_background"
-            android:layout_centerVertical="true"
-             android:visibility="gone"/>
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:layout_centerVertical="true"
-            android:layout_toEndOf="@id/ivAvatar"
-            android:layout_marginStart="8dp">
+            android:layout_marginStart="8dp"
+            android:layout_toStartOf="@id/btnEditIntake">
 
             <TextView
                 android:id="@+id/tvChatTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Consultation"
-                android:textColor="@color/text_primary"
+                android:textColor="@color/brand_gold"
                 android:textSize="18sp"
-                android:textStyle="bold"/>
-             <!-- Could add status/timer here -->
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:ellipsize="end"
+                android:maxLines="1"/>
+
+            <TextView
+                android:id="@+id/tvTypingStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Typing..."
+                android:textColor="#E0E0E0"
+                android:textSize="12sp"
+                android:fontFamily="sans-serif"
+                android:visibility="gone"/>
         </LinearLayout>
 
         <Button
             android:id="@+id/btnEndChat"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="36dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:text="End Chat"
+            android:text="End"
             android:textSize="12sp"
-            android:backgroundTint="#EF5350"
-            android:textColor="#FFFFFF"
+            android:background="@drawable/bg_button_secondary"
+            android:textColor="@color/text_primary"
             android:minHeight="36dp"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"/>
+            app:backgroundTint="@null"
+            xmlns:app="http://schemas.android.com/apk/res-auto"/>
+
+        <TextView
+            android:id="@+id/tvSessionTimer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toStartOf="@id/btnEndChat"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="12dp"
+            android:text="00:00"
+            android:textColor="@color/text_white"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnEditIntake"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_toStartOf="@id/tvSessionTimer"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_edit"
+            android:tint="@color/brand_gold"
+            android:contentDescription="Edit Details"
+            android:scaleType="centerInside"/>
+
     </RelativeLayout>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -69,14 +97,14 @@
         android:padding="8dp"
         android:clipToPadding="false"/>
 
-    <!-- Input Area (White, Clean) -->
+    <!-- Premium Input Area -->
     <LinearLayout
         android:id="@+id/layoutInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:padding="12dp"
-        android:background="@color/surface"
+        android:padding="16dp"
+        android:background="@color/brand_card_white"
         android:elevation="16dp"
         android:orientation="horizontal"
         android:gravity="center_vertical">
@@ -107,31 +135,27 @@
         <EditText
             android:id="@+id/inputMessage"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="50dp"
             android:layout_weight="1"
-            android:hint="Type something..."
+            android:hint="Type your message..."
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
             android:background="@drawable/bg_input_rounded"
             android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_muted"
-            android:textSize="15sp"/>
-            <!-- Need a light bg drawable for input, reusing spinner dark name but should be generic or use shape -->
-            <!-- Actually better to use a simple shape inline or standard style if available, but I'll assume I can just use a color or standard background -->
-            <!-- Let's assume standard edit text background for now to avoid creating more drawables if possible, OR create a simple shape. -->
-            <!-- I will use a simple color background for now OR I should create a bg_input.xml. -->
-            <!-- I'll use android:background="@color/background" and some padding/radius via code or just simple background. -->
+            android:textColorHint="@color/text_secondary"
+            android:textSize="16sp"/>
 
         <ImageButton
             android:id="@+id/btnSend"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
             android:src="@drawable/ic_check"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="@color/primary"
-            android:layout_marginStart="8dp"
-            android:contentDescription="Send"/>
-            <!-- Ideally send icon -->
+            android:background="@drawable/bg_button_primary"
+            android:tint="@color/brand_gold"
+            android:layout_marginStart="12dp"
+            android:contentDescription="Send"
+            android:padding="12dp"
+            android:scaleType="fitCenter"/>
 
     </LinearLayout>
 </RelativeLayout>

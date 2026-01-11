@@ -189,6 +189,27 @@ class CallActivity : AppCompatActivity() {
                 PERMISSION_REQ_CODE
             )
         }
+
+        startBackgroundService()
+    }
+
+    private fun startBackgroundService() {
+        val serviceIntent = android.content.Intent(this, com.astro5star.app.CallForegroundService::class.java).apply {
+            action = "ACTION_START_CALL"
+            putExtra("partnerName", partnerName)
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
+        }
+    }
+
+    private fun stopBackgroundService() {
+        val serviceIntent = android.content.Intent(this, com.astro5star.app.CallForegroundService::class.java).apply {
+            action = "ACTION_STOP_SERVICE"
+        }
+        startService(serviceIntent)
     }
 
     private fun setSpeakerphoneOn(on: Boolean) {
@@ -501,6 +522,7 @@ class CallActivity : AppCompatActivity() {
     }
 
     private fun endCall() {
+        stopBackgroundService()
         SocketManager.endSession(sessionId)
         finish()
     }
