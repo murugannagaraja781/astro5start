@@ -132,18 +132,36 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
+            <!-- Earnings Action -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnWithdraw"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Request Withdrawal"
+                android:layout_marginBottom="24dp"
+                app:icon="@android:drawable/ic_menu_send"
+                app:iconGravity="textStart"
+                android:backgroundTint="#4CAF50"/>
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Recent Calls"
+                android:text="Recent History"
                 android:textStyle="bold"
+                android:textSize="18sp"
                 android:layout_marginBottom="8dp"/>
 
-            <!-- Call history list placeholder -->
-            <TextView
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerHistory"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="No recent calls"
+                android:nestedScrollingEnabled="false"/>
+
+            <TextView
+                android:id="@+id/tvEmptyHistory"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No recent sessions"
                 android:gravity="center"
                 android:padding="32dp"
                 android:textColor="#999999"/>

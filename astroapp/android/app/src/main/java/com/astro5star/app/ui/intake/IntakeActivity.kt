@@ -20,6 +20,7 @@ class IntakeActivity : AppCompatActivity() {
     private var partnerId: String? = null
     private var type: String? = null
     private var partnerName: String? = null
+    private var partnerImage: String? = null
 
 
     private var selectedLatitude: Double? = null
@@ -39,6 +40,9 @@ class IntakeActivity : AppCompatActivity() {
     private var isEditMode = false
     private var existingData: JSONObject? = null
 
+    private var isSearchingForClient = true
+    private val CITY_SEARCH_REQUEST_CODE = 1001
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_intake)
@@ -46,6 +50,7 @@ class IntakeActivity : AppCompatActivity() {
         partnerId = intent.getStringExtra("partnerId")
         type = intent.getStringExtra("type")
         partnerName = intent.getStringExtra("partnerName")
+        partnerImage = intent.getStringExtra("partnerImage")
         isEditMode = intent.getBooleanExtra("isEditMode", false)
 
         val dataStr = intent.getStringExtra("existingData")
@@ -55,8 +60,9 @@ class IntakeActivity : AppCompatActivity() {
 
         etPlace = findViewById(R.id.etPlace)
         etPartnerPlace = findViewById(R.id.etPartnerPlace)
-        setupAutocomplete(etPlace, true)
-        setupAutocomplete(etPartnerPlace, false)
+
+        setupCitySearch(etPlace, true)
+        setupCitySearch(etPartnerPlace, false)
 
         setupSpinners()
         setupPartnerCheckbox()
@@ -135,64 +141,34 @@ class IntakeActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupAutocomplete(autoCompleteTextView: android.widget.AutoCompleteTextView, isClient: Boolean) {
-        val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, cityList)
-        autoCompleteTextView.setAdapter(adapter)
-
-        autoCompleteTextView.addTextChangedListener(object : android.text.TextWatcher {
-            override fun afterTextChanged(s: android.text.Editable?) {}
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                if (s.isNullOrEmpty() || s.length < 3) return
-
-                searchRunnable?.let { searchHandler.removeCallbacks(it) }
-                searchRunnable = Runnable { fetchCities(s.toString(), autoCompleteTextView) }
-                searchHandler.postDelayed(searchRunnable!!, 500)
-            }
-        })
-
-        autoCompleteTextView.setOnItemClickListener { parent, _, position, _ ->
-            val selection = parent.getItemAtPosition(position) as String
-            val cityData = cityMap[selection]
-            if (cityData != null) {
-                val lat = cityData.optDouble("latitude")
-                val lon = cityData.optDouble("longitude")
-                if (isClient) {
-                    selectedLatitude = lat
-                    selectedLongitude = lon
-                    fetchTimezone(lat, lon, true)
-                } else {
-                    partnerLatitude = lat
-                    partnerLongitude = lon
-                    fetchTimezone(lat, lon, false)
-                }
-            }
+    private fun setupCitySearch(view: android.widget.TextView, isClient: Boolean) {
+        view.isFocusable = false
+        view.isClickable = true
+        view.setOnClickListener {
+            isSearchingForClient = isClient
+            val intent = Intent(this, com.astro5star.app.ui.city.CitySearchActivity::class.java)
+            startActivityForResult(intent, CITY_SEARCH_REQUEST_CODE)
         }
     }
 
-    private fun fetchCities(query: String, view: android.widget.AutoCompleteTextView) {
-        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-            try {
-                val payload = com.google.gson.JsonObject().apply { addProperty("query", query) }
-                val response = apiInterface.searchCity(payload)
-                if (response.isSuccessful && response.body() != null) {
-                    val results = response.body()!!.getAsJsonArray("results")
-                    cityList.clear()
-                    cityMap.clear()
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == CITY_SEARCH_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
+            val name = data.getStringExtra("name")
+            val lat = data.getDoubleExtra("lat", 0.0)
+            val lon = data.getDoubleExtra("lon", 0.0)
+            val displayName = data.getStringExtra("display_name")
 
-                    results.forEach { element ->
-                        val obj = JSONObject(element.toString())
-                        val displayName = obj.getString("name") + ", " + obj.optString("state", "")
-                        cityList.add(displayName)
-                        cityMap[displayName] = obj
-                    }
-
-                    runOnUiThread {
-                        (view.adapter as android.widget.ArrayAdapter<String>).notifyDataSetChanged()
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            if (isSearchingForClient) {
+                etPlace.setText(name)
+                selectedLatitude = lat
+                selectedLongitude = lon
+                fetchTimezone(lat, lon, true)
+            } else {
+                etPartnerPlace.setText(name)
+                partnerLatitude = lat
+                partnerLongitude = lon
+                fetchTimezone(lat, lon, false)
             }
         }
     }
@@ -375,22 +351,69 @@ class IntakeActivity : AppCompatActivity() {
                     val sessionId = response.optString("sessionId")
                     waitForAnswer(sessionId)
                 } else {
-                    showErrorAlert("Failed to connect to server.")
+                    val errorMsg = response?.optString("error") ?: "Failed to connect to server."
+                    showErrorAlert(errorMsg)
                 }
             }
         }
     }
 
+    private var waitingDialog: androidx.appcompat.app.AlertDialog? = null
+    private var waitTimer: android.os.CountDownTimer? = null
+
     private fun waitForAnswer(sessionId: String) {
-        // Better UX: Show "Connecting..." dialog here.
-        val progressDialog = android.app.ProgressDialog(this)
-        progressDialog.setMessage("Waiting for Astrologer...")
-        progressDialog.setCancelable(false)
-        progressDialog.show()
+        val dialogView = layoutInflater.inflate(R.layout.dialog_waiting_for_astrologer, null)
+        val builder = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(false)
+
+        waitingDialog = builder.create()
+        waitingDialog?.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+        waitingDialog?.show()
+
+        // Init Dialog Views
+        val tvName = dialogView.findViewById<android.widget.TextView>(R.id.tvAstrologerName)
+        val imgAstro = dialogView.findViewById<android.widget.ImageView>(R.id.imgAstrologer)
+        val tvTimer = dialogView.findViewById<android.widget.TextView>(R.id.tvTimer)
+        val btnCancel = dialogView.findViewById<android.widget.Button>(R.id.btnCancelRequest)
+
+        tvName.text = "Waiting for $partnerName..."
+
+        if (!partnerImage.isNullOrEmpty()) {
+            com.bumptech.glide.Glide.with(this)
+                .load(partnerImage)
+                .circleCrop()
+                .placeholder(R.mipmap.ic_launcher_round)
+                .into(imgAstro)
+        }
+
+        // Start 30s Timer
+        waitTimer = object : android.os.CountDownTimer(30000, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                tvTimer.text = "${millisUntilFinished / 1000}s"
+            }
+
+            override fun onFinish() {
+                handleNoAnswer(sessionId)
+            }
+        }.start()
+
+        // Cancel Button
+        btnCancel.setOnClickListener {
+            waitTimer?.cancel()
+            waitingDialog?.dismiss()
+            waitingDialog = null
+            // Optional: Emit cancel event to server so astrologer stops ringing
+            // SocketManager.getSocket()?.emit("cancel-request", JSONObject().put("sessionId", sessionId))
+            finish()
+        }
 
         SocketManager.onSessionAnswered { data ->
              runOnUiThread {
-                progressDialog.dismiss()
+                waitTimer?.cancel()
+                waitingDialog?.dismiss()
+                waitingDialog = null
+
                 val accepted = data.optBoolean("accept", false)
                 if (accepted) {
                      navigateToSession(sessionId, type!!)
@@ -399,6 +422,15 @@ class IntakeActivity : AppCompatActivity() {
                 }
              }
         }
+    }
+
+    private fun handleNoAnswer(sessionId: String) {
+        waitTimer?.cancel()
+        waitingDialog?.dismiss()
+        waitingDialog = null
+
+        Toast.makeText(this, "Astrologer is busy. Please try again later.", Toast.LENGTH_LONG).show()
+        finish()
     }
 
     private fun navigateToSession(sessionId: String, type: String) {

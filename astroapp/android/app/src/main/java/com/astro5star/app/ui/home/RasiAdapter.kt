@@ -28,10 +28,16 @@ class RasiAdapter(
         val rasi = rasiList[position]
         holder.name.text = rasi.name_tamil
 
-        // In a real app, use Glide/Picasso to load iconUrl.
-        // Here we map names/ids to local drawables if available, or generic.
-        // Assuming we rely on generic for now or mapping.
-        holder.icon.setImageResource(R.drawable.ic_match) // Placeholder, ideally map 'aries' to R.drawable.ic_aries etc.
+        // Map ID to drawable dynamically
+        val context = holder.itemView.context
+        val iconName = "ic_rasi_${rasi.id}"
+        val resId = context.resources.getIdentifier(iconName, "drawable", context.packageName)
+
+        if (resId != 0) {
+            holder.icon.setImageResource(resId)
+        } else {
+            holder.icon.setImageResource(R.drawable.ic_match) // Fallback
+        }
 
         holder.itemView.setOnClickListener { onRasiClick(rasi) }
     }

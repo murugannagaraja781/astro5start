@@ -362,8 +362,10 @@ const SessionSchema = new mongoose.Schema({
   toUserId: String,
   type: String,
   startTime: Number,
+  startTime: Number,
   endTime: Number,
-  duration: Number
+  duration: Number,
+  totalEarned: Number // Phase 16: Track session earnings
 });
 const Session = mongoose.model('Session', SessionSchema);
 
@@ -850,7 +852,9 @@ async function endSessionRecord(sessionId) {
   // Update Session in DB
   await Session.updateOne({ sessionId }, {
     endTime,
-    duration: billableSeconds * 1000
+    duration: billableSeconds * 1000,
+    totalEarned: s.totalEarned || 0,
+    status: 'ended'
   });
 
   // Update PairMonth Cumulative Seconds (Phase 4)
@@ -1409,7 +1413,17 @@ io.on('connection', (socket) => {
       // }
 
       if (userActiveSession.has(toUserId)) {
-        return cb({ ok: false, error: 'User busy' });
+        const existingSessionId = userActiveSession.get(toUserId);
+        const existingSession = activeSessions.get(existingSessionId);
+
+        // FIX: Check if the "busy" user is actually busy with the SAME caller (stale session situation)
+        if (existingSession && existingSession.users.includes(fromUserId)) {
+          console.log(`[Session] Stale session ${existingSessionId} detected between ${fromUserId} and ${toUserId}. Auto-cleaning.`);
+          // Force end the old session so we can start the new one
+          await endSessionRecord(existingSessionId);
+        } else {
+          return cb({ ok: false, error: 'User busy' });
+        }
       }
 
       const sessionId = crypto.randomUUID();

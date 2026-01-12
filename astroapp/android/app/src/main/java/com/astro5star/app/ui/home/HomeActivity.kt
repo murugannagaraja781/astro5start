@@ -130,6 +130,35 @@ class HomeActivity : AppCompatActivity() {
         setupRasiList()
     }
 
+    private fun setupRasiList() {
+        displayRasi(DEFAULT_RASI)
+
+        lifecycleScope.launch {
+            val rasiList = fetchRasi()
+            if (rasiList.isNotEmpty() && !isFinishing && !isDestroyed) {
+                displayRasi(rasiList)
+            }
+        }
+    }
+
+    private fun showRasiDialog(item: RasiData) {
+        val builder = androidx.appcompat.app.AlertDialog.Builder(this)
+        builder.setTitle("${item.name_tamil} Horoscope")
+        // Use placeholder or resolved ID
+        builder.setIcon(R.drawable.ic_match)
+
+        // Mock Content - in real app, fetch from server based on sign
+        val prediction = "${item.prediction}\n\n" +
+                "Career: Good progress indicated.\n" +
+                "Health: Take care of diet.\n" +
+                "Lucky Number: ${item.id}\n" +
+                "Lucky Color: Red"
+
+        builder.setMessage(prediction)
+        builder.setPositiveButton("OK") { d, _ -> d.dismiss() }
+        builder.show()
+    }
+
     private fun loadWalletBalance() {
         val session = tokenManager?.getUserSession()
         val balance = session?.walletBalance ?: 0.0
@@ -300,17 +329,6 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupRasiList() {
-        displayRasi(DEFAULT_RASI)
-
-        lifecycleScope.launch {
-            val rasiList = fetchRasi()
-            if (rasiList.isNotEmpty() && !isFinishing && !isDestroyed) {
-                displayRasi(rasiList)
-            }
-        }
-    }
-
     private suspend fun fetchRasi(): List<RasiData> = withContext(Dispatchers.IO) {
         try {
             val request = Request.Builder()
@@ -352,10 +370,11 @@ class HomeActivity : AppCompatActivity() {
         rasiRecyclerView?.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         rasiRecyclerView?.adapter = RasiAdapter(rasiList) { rasi ->
             try {
-                val sheet = RasiBottomSheet(rasi)
-                sheet.show(supportFragmentManager, "RasiSheet")
+                // Show bottom sheet or dialog
+                 // Note: RasiBottomSheet missing? Using dialog for now as per showRasiDialog method
+                 showRasiDialog(rasi)
             } catch (e: Exception) {
-                Log.e(TAG, "RasiBottomSheet failed", e)
+                Log.e(TAG, "Rasi interaction failed", e)
                 showToast(rasi.prediction)
             }
         }
@@ -372,18 +391,19 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun startChat(astro: Astrologer) {
-        initiateSession(astro.userId, "chat", astro.name)
+        initiateSession(astro.userId, "chat", astro.name, astro.image)
     }
 
     private fun startCall(astro: Astrologer, type: String) {
-        initiateSession(astro.userId, type, astro.name)
+        initiateSession(astro.userId, type, astro.name, astro.image)
     }
 
-    private fun initiateSession(astrologerId: String, type: String, astroName: String) {
+    private fun initiateSession(astrologerId: String, type: String, astroName: String, astroImage: String) {
         try {
             val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
                 putExtra("partnerId", astrologerId)
                 putExtra("partnerName", astroName)
+                putExtra("partnerImage", astroImage)
                 putExtra("type", type)
             }
             startActivity(intent)

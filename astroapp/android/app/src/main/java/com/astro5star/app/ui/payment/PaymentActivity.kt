@@ -356,23 +356,15 @@ class PaymentActivity : AppCompatActivity() {
                     try {
                         startActivity(intent)
                         return true
-                    } catch (e: android.content.ActivityNotFoundException) {
-                        val fallbackUrl = intent.getStringExtra("browser_fallback_url")
-                        if (!fallbackUrl.isNullOrEmpty()) {
-                            if (::webView.isInitialized) {
-                                webView.post { webView.loadUrl(fallbackUrl) }
-                            }
-                            return true
-                        }
-                        Toast.makeText(this@PaymentActivity, "Payment App not installed", Toast.LENGTH_SHORT).show()
-                        return true
                     }
+                } catch (ex: Exception) {
+                     Log.e(TAG, "Intent Parse Error", ex)
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Intent Parse Error", e)
             }
+
+            Toast.makeText(this@PaymentActivity, "App not installed for this payment method", Toast.LENGTH_SHORT).show()
+            return true // Consume event to prevent WebView error
         }
-        return false
     }
 
     private fun showError(message: String) {
