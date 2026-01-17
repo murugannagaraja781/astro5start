@@ -7665,36 +7665,9 @@
     }
 
     function showSummary(data) {
-      const modal = document.getElementById('sessionSummaryModal');
-      const text = document.getElementById('summaryText');
-      const amt = modal.querySelector('.summary-amount');
-
-      modal.classList.remove('hidden');
-
-      if (state.me.role === 'client') {
-        text.innerText = "Total Deducted";
-        amt.innerText = '₹' + (data.deducted || 0);
-        amt.style.color = '#DC2626';
-      } else {
-        text.innerText = "Total Earnings";
-        amt.innerText = '₹' + (data.earned || 0);
-        amt.style.color = '#059669';
-      }
-
-      // Add Duration Display
-      if (typeof data.duration !== 'undefined') {
-        const dSec = data.duration;
-        const dMin = Math.floor(dSec / 60);
-        const dRem = dSec % 60;
-        let dText = document.getElementById('summaryDuration');
-        if (!dText) {
-          dText = document.createElement('div');
-          dText.id = 'summaryDuration';
-          dText.style.cssText = "font-size:1rem; color:#6B7280; margin-bottom:10px;";
-          amt.parentNode.insertBefore(dText, amt);
-        }
-        dText.innerText = `Billed Duration: ${dMin}m ${dRem}s`;
-      }
+      // User requested to remove this popup
+      // const modal = document.getElementById('sessionSummaryModal');
+      // ...
     }
   </script>
 
