@@ -1444,10 +1444,14 @@ io.on('connection', (socket) => {
         const existingSessionId = userActiveSession.get(toUserId);
         const existingSession = activeSessions.get(existingSessionId);
 
-        // FIX: Check if the "busy" user is actually busy with the SAME caller (stale session situation)
-        if (existingSession && existingSession.users.includes(fromUserId)) {
+        if (!existingSession) {
+          // Ghost session cleanup
+          console.log(`[Session] Ghost session ${existingSessionId} detected for ${toUserId}. Auto-cleaning.`);
+          userActiveSession.delete(toUserId);
+        }
+        else if (existingSession.users.includes(fromUserId)) {
+          // Same caller retrying
           console.log(`[Session] Stale session ${existingSessionId} detected between ${fromUserId} and ${toUserId}. Auto-cleaning.`);
-          // Force end the old session so we can start the new one
           await endSessionRecord(existingSessionId);
         } else {
           return cb({ ok: false, error: 'User busy' });
