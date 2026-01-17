@@ -303,10 +303,21 @@ class CallActivity : AppCompatActivity() {
 
         // Only init Video if Video Call
         if (callType == "video") {
-            localView.init(eglBase.eglBaseContext, null)
+            // Initialize remote view (full screen)
             remoteView.init(eglBase.eglBaseContext, null)
-            localView.setMirror(true)
-            localView.setZOrderMediaOverlay(true)
+            remoteView.setEnableHardwareScaler(true)
+            remoteView.setScalingType(org.webrtc.RendererCommon.ScalingType.SCALE_ASPECT_FILL)
+
+            // Initialize local view (PIP - self view)
+            localView.init(eglBase.eglBaseContext, null)
+            localView.setEnableHardwareScaler(true)
+            localView.setMirror(true)  // Mirror for selfie camera
+            localView.setZOrderMediaOverlay(true)  // Show above remote view
+            localView.setScalingType(org.webrtc.RendererCommon.ScalingType.SCALE_ASPECT_FILL)
+
+            // Make sure local view is visible
+            localView.visibility = View.VISIBLE
+            Log.d(TAG, "Video views initialized successfully")
         }
 
         val audioSource = peerConnectionFactory.createAudioSource(MediaConstraints())
@@ -318,10 +329,18 @@ class CallActivity : AppCompatActivity() {
                 val surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", eglBase.eglBaseContext)
                 val videoSource = peerConnectionFactory.createVideoSource(videoCapturer!!.isScreencast)
                 videoCapturer!!.initialize(surfaceTextureHelper, this, videoSource.capturerObserver)
-                videoCapturer!!.startCapture(640, 480, 30)
+
+                // Start camera capture with higher resolution for better quality
+                videoCapturer!!.startCapture(1280, 720, 30)
+                Log.d(TAG, "Camera capturer started: 1280x720 @30fps")
 
                 localVideoTrack = peerConnectionFactory.createVideoTrack("100", videoSource)
+                localVideoTrack?.setEnabled(true)  // Ensure video track is enabled
                 localVideoTrack?.addSink(localView)
+                Log.d(TAG, "Local video track created and added to local view")
+            } else {
+                Log.e(TAG, "ERROR: Could not create camera capturer!")
+                Toast.makeText(this, "Camera not available", Toast.LENGTH_SHORT).show()
             }
         }
 
