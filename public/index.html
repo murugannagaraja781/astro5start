@@ -599,6 +599,47 @@
       display: none !important;
     }
 
+    /* --- 30s Circular Loader --- */
+    .countdown-wrapper {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 20px;
+    }
+
+    .countdown-svg {
+      width: 100px;
+      height: 100px;
+      transform: rotate(-90deg);
+    }
+
+    .countdown-circle-bg {
+      fill: none;
+      stroke: #E5E7EB;
+      stroke-width: 8;
+    }
+
+    .countdown-circle-fg {
+      fill: none;
+      stroke: #059669;
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-dasharray: 251;
+      /* 2 * PI * 40 */
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 1s linear;
+    }
+
+    .countdown-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #059669;
+    }
+
     .admin-card {
       background: white;
       border-radius: 12px;
@@ -4597,27 +4638,75 @@
     }
 
     // Session Request Logic
+    // Global reference to calling timeout/interval to clear them later
+    let callingInterval = null;
+    let callingTimeout = null;
+
     window.requestSession = (targetId, type) => {
       const titles = { chat: 'Chat', audio: 'Audio Call', video: 'Video Call' };
+
+      // 1. Create 30s Countdown Loader Modal
       const modal = document.createElement('div');
       modal.id = 'calling-modal';
       modal.className = 'modal-overlay';
       modal.innerHTML = `
-        <div class="call-popup" style="background:white; padding:20px; border-radius:15px; text-align:center;">
-          ${type !== 'chat' ? `<div class="spinner-astro" style="margin: 0 auto 15px;"></div>` : ''}
-          <h3>Requesting ${titles[type]}...</h3>
-          <button onclick="document.getElementById('calling-modal').remove()" style="margin-top:10px; padding:8px 20px; border-radius:8px; border:none; background:#ccc;">Cancel</button>
+        <div class="call-popup" style="background:white; padding:30px; border-radius:20px; text-align:center; width:90%; max-width:350px;">
+          <h3 style="margin-top:0; color:#111827;">Requesting ${titles[type]}...</h3>
+          <p style="color:#6B7280; font-size:0.9rem; margin-bottom:20px;">Waiting for astrologer to accept...</p>
+
+          <div class="countdown-wrapper">
+            <svg class="countdown-svg">
+              <circle class="countdown-circle-bg" cx="50" cy="50" r="40"></circle>
+              <circle class="countdown-circle-fg" id="countdown-progress" cx="50" cy="50" r="40"></circle>
+            </svg>
+            <div class="countdown-text" id="countdown-text">30</div>
+          </div>
+
+          <button id="btnCancelRequest" style="padding:10px 25px; border-radius:30px; border:none; background:#EF4444; color:white; font-weight:600; cursor:pointer;">Cancel</button>
         </div>
       `;
       document.body.appendChild(modal);
 
+      // 2. Start Countdown Logic
+      const progressCircle = document.getElementById('countdown-progress');
+      const textDisplay = document.getElementById('countdown-text');
+      const totalTime = 30;
+      let timeLeft = totalTime;
+      const circumference = 2 * Math.PI * 40; // ~251
+
+      callingInterval = setInterval(() => {
+        timeLeft--;
+        textDisplay.textContent = timeLeft;
+        const offset = circumference - (timeLeft / totalTime) * circumference;
+        progressCircle.style.strokeDashoffset = offset;
+
+        if (timeLeft <= 0) {
+          cancelCalling('No answer from astrologer.');
+        }
+      }, 1000);
+
+      // Cancel Button
+      document.getElementById('btnCancelRequest').onclick = () => cancelCalling('Cancelled by user.');
+
+      function cancelCalling(reason) {
+        clearInterval(callingInterval);
+        clearTimeout(callingTimeout);
+        if (document.getElementById('calling-modal')) document.getElementById('calling-modal').remove();
+        if (reason) alert(reason);
+        // Also emit end-session if we created one? The server handles timeout usually.
+      }
+
+      // 3. Emit Request
       socket.emit('request-session', { toUserId: targetId, type }, (res) => {
         if (res.ok) {
-          initSession(res.sessionId, targetId, type, true, null);
-          document.getElementById('calling-modal').remove();
+          // Store pending session details for when 'session-answered' comes
+          state.tempSessionId = res.sessionId;
+          state.tempTargetId = targetId;
+          state.tempType = type;
+          // DO NOT initSession yet. Wait for 'session-answered'.
+          console.log('[Session] Request sent, waiting for acceptance...', res.sessionId);
         } else {
-          document.getElementById('calling-modal').remove();
-          alert('Request failed: ' + res.error);
+          cancelCalling('Request failed: ' + res.error);
         }
       });
     };
@@ -4713,13 +4802,29 @@
     socket.on('session-answered', (data) => {
       console.log('[Session] session-answered received:', data);
 
-      if (!state.session) {
-        console.warn('[Session] No active session - ignoring session-answered');
+      // 1. Cleanup Loader
+      if (typeof callingInterval !== 'undefined') clearInterval(callingInterval);
+      if (document.getElementById('calling-modal')) document.getElementById('calling-modal').remove();
+
+      // 2. Validate Session Context
+      // We look for either an active session OR a pending one
+      const relevantSessionId = state.session ? state.session.id : state.tempSessionId;
+
+      if (!relevantSessionId || relevantSessionId !== data.sessionId) {
+        console.warn('[Session] Ignoring unrelated session-answered event', data.sessionId);
         return;
       }
 
       if (data.accept) {
-        console.log('[Session] Call accepted, starting WebRTC as initiator');
+        console.log('[Session] Call accepted!');
+
+        // If we haven't initialized the session UI yet (which we haven't for the caller), do it now
+        if (!state.session) {
+          // We are the caller
+          initSession(data.sessionId, state.tempTargetId || data.fromUserId, state.tempType || data.type, true, null);
+        }
+
+        console.log('[Session] Starting WebRTC as initiator');
         if (state.session.type === 'chat') {
           startTimer();
         } else {
@@ -4729,6 +4834,7 @@
         alert('Request Rejected');
         sSes.classList.add('hidden');
         state.session = null;
+        state.tempSessionId = null;
       }
     });
 
@@ -4902,8 +5008,11 @@
         };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
+        // Local Stream
         if (state.session.type === 'video') {
-          document.getElementById('localVideo').srcObject = stream;
+          const lv = document.getElementById('localVideo');
+          lv.srcObject = stream;
+          lv.play().catch(e => console.warn('Local Video Play Error:', e));
         }
 
         const p = new SimplePeer({ initiator, stream, trickle: false });
@@ -4915,6 +5024,7 @@
         });
 
         p.on('stream', s => {
+          console.log('[WebRTC] Received Remote Stream');
           if (window.ReactNativeWebView) {
             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'VIBRATE' }));
           }
@@ -4923,6 +5033,15 @@
 
           const rv = document.getElementById('remoteVideo');
           rv.srcObject = s;
+          rv.muted = false; // Ensure audio is on
+
+          rv.play().then(() => {
+            console.log('[WebRTC] Remote Video/Audio Playing');
+          }).catch(e => {
+            console.error('[WebRTC] Remote Video Play Error:', e);
+            // Fallback: Show a "Tap to Unmute" button if autoplay blocked?
+          });
+
           if (state.session.type === 'audio') {
             rv.style.opacity = 0;
           } else {
@@ -4933,6 +5052,7 @@
 
         p.on('error', err => {
           console.error('Peer Error', err);
+          alert('Connection Error: ' + (err.message || 'Unknown Peer Error'));
         });
 
         p.on('data', data => {
@@ -4946,7 +5066,7 @@
         state.localStream = stream;
       } catch (e) {
         console.error(e);
-        alert('Device Error: ' + e.message);
+        alert('Device/Connection Error: ' + e.message);
         const loader = document.getElementById('connectionStatus');
         if (loader) loader.textContent = 'Error: ' + e.message;
       }
