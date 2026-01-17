@@ -2,14 +2,14 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/brand_bg_soft">
+    android:background="#0B1A2D">
 
     <!-- Premium Header -->
     <RelativeLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@drawable/bg_gradient_header"
+        android:background="#1F4E79"
         android:elevation="8dp"
         android:paddingStart="16dp"
         android:paddingEnd="16dp">
@@ -104,7 +104,7 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:padding="16dp"
-        android:background="@color/brand_card_white"
+        android:background="#1F4E79"
         android:elevation="16dp"
         android:orientation="horizontal"
         android:gravity="center_vertical">
@@ -141,8 +141,8 @@
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
             android:background="@drawable/bg_input_rounded"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_secondary"
+            android:textColor="#F2F4FF"
+            android:textColorHint="#B0B0B0"
             android:textSize="16sp"/>
 
         <ImageButton

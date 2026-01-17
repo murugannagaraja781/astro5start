@@ -1,67 +1,112 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Brand Colors (Red, Cream, Avocado Premium) -->
-    <color name="brand_true_red">#D32F2F</color>      <!-- Primary / "True Red" -->
-    <color name="brand_true_red_dark">#B71C1C</color> <!-- Darker red for gradients/status bar -->
-    <color name="brand_cream">#FFF8E1</color>         <!-- Background / "Cream" -->
-    <color name="brand_avocado">#568203</color>       <!-- Accent / "Avocado" -->
+    <!-- PREMIUM GREEN PALETTE -->
+    <!-- 1. Base Background - Warm White (Spiritual) -->
+    <color name="royal_midnight_blue">#FFF8EE</color>
 
-    <color name="brand_card_white">#FFFFFF</color>    <!-- Card Surface (White looks best on Cream) -->
-    <color name="brand_ripple">#20D32F2F</color>      <!-- Red Ripple -->
+    <!-- 2. Main Identity - Luxury Green (Cards) -->
+    <color name="peacock_teal">#003D33</color>
 
-    <!-- Text Colors -->
-    <color name="text_primary">#212121</color>        <!-- Nearly Black -->
-    <color name="text_secondary">#5D4037</color>      <!-- Brownish Grey (warm contrast on cream) -->
-    <color name="text_white">#FFFFFF</color>
-    <color name="text_on_red">#FFFFFF</color>
+    <!-- 3. Accent - Bright Emerald / Neon Green -->
+    <color name="peacock_green">#69F0AE</color>
 
-    <!-- Functional -->
-    <color name="status_online">#568203</color>       <!-- Avocado for Online -->
-    <color name="status_busy">#D32F2F</color>         <!-- Red for Busy -->
-    <color name="divider_cream">#D7CCC8</color>       <!-- Darker cream/brown separator -->
+    <!-- 4. Highlight - Bright Gold -->
+    <color name="royal_gold">#FFD700</color>
 
-    <!-- Mapping to Standard Names for Compatibility -->
-    <color name="primary">@color/brand_true_red</color>
-    <color name="primary_variant">@color/brand_true_red_dark</color>
-    <color name="on_primary">@color/text_on_red</color>
+    <!-- 5. Feather Glow - Soft Green/Gold for gradients -->
+    <color name="feather_glow">#00BFA5</color>
 
-    <color name="secondary">@color/brand_avocado</color>
-    <color name="secondary_variant">@color/brand_avocado</color>
-    <color name="on_secondary">@color/text_white</color>
+    <!-- 6. Text - Charcoal Dark (#333333) -->
+    <color name="soft_ivory">#333333</color>
 
-    <color name="background">@color/brand_cream</color>
-    <color name="surface">@color/brand_card_white</color>
-    <color name="error">#B00020</color>
+    <!-- 7. Text on Card - Charcoal Dark (for Silver Card) -->
+    <color name="text_on_card">#333333</color>
+    <color name="void_black">#000000</color>
+    <color name="error_red">#CF6679</color>
+    <color name="status_green">#00C853</color>
+    <color name="status_red">#D50000</color>
 
-    <!-- Missing Resources Fixed -->
-    <color name="text_on_primary">@color/text_on_red</color>
-    <color name="text_muted">@color/text_secondary</color>
-    <color name="accent">@color/brand_avocado</color>
+    <!-- Mappings for System/Legacy -->
+    <color name="colorPrimary">@color/peacock_teal</color>
+    <color name="colorPrimaryDark">@color/royal_midnight_blue</color>
+    <color name="colorAccent">@color/peacock_green</color>
 
-    <color name="colorPrimary">@color/brand_true_red</color>
-    <color name="colorPrimaryDark">@color/brand_true_red_dark</color>
-    <color name="colorAccent">@color/brand_avocado</color>
+    <color name="primary">@color/peacock_teal</color>
+    <color name="primary_variant">@color/royal_midnight_blue</color>
+    <color name="on_primary">#FFFFFF</color>
 
-    <!-- More Legacy/Call Colors -->
-    <color name="avatar_background">#E0E0E0</color>
-    <color name="call_accept">#568203</color> <!-- Avocado -->
-    <color name="call_reject">#D32F2F</color> <!-- Red -->
+    <color name="secondary">@color/royal_gold</color>
+    <color name="secondary_variant">@color/peacock_green</color>
+    <color name="on_secondary">@color/royal_midnight_blue</color>
 
-    <!-- Legacy/Fallback -->
-    <color name="black">#212121</color>
+    <color name="background">@color/royal_midnight_blue</color>
+    <color name="on_background">@color/soft_ivory</color>
+
+    <color name="surface">@color/brand_card_white</color> <!-- Mapped to White Card -->
+    <color name="on_surface">@color/soft_ivory</color>
+
+    <color name="error">@color/error_red</color>
+    <color name="on_error">@color/void_black</color>
+
+    <color name="status_online">@color/status_green</color>
+    <color name="status_busy">@color/status_red</color>
+    <color name="divider">@color/peacock_green</color>
     <color name="white">#FFFFFF</color>
-    <color name="purple_200">#EF9A9A</color>
-    <color name="purple_500">#D32F2F</color>
-    <color name="purple_700">#C62828</color>
-    <color name="teal_200">#A5D6A7</color>
-    <color name="teal_700">#568203</color>
-    <color name="success">#568203</color>
-    <color name="warning">#FFA000</color>
+    <color name="black">@color/void_black</color>
 
-    <!-- Compatibility Mappings for Layouts -->
-    <color name="brand_gold">#FFA000</color> <!-- Keep Gold for stars/accents -->
-    <color name="brand_emerald_dark">@color/brand_true_red</color>
-    <color name="brand_emerald_royal">@color/brand_avocado</color>
-    <color name="brand_bg_soft">@color/brand_cream</color>
-    <color name="divider_gold">@color/divider_cream</color>
+    <!-- LEGACY COMPATIBILITY -->
+    <color name="text_primary">@color/soft_ivory</color>
+    <color name="text_secondary">@color/royal_gold</color>
+    <color name="text_white">#FFFFFF</color>
+    <color name="text_on_red">@color/soft_ivory</color>
+    <color name="text_muted">#B0BEC5</color>
+    <color name="text_on_primary">@color/soft_ivory</color>
+
+    <color name="brand_true_red">@color/peacock_teal</color> <!-- Replaced Red with Dark Green -->
+    <color name="brand_true_red_dark">@color/royal_midnight_blue</color>
+    <color name="brand_bg_soft">#FFF8EE</color>
+    <color name="brand_card_white">#FFFFFF</color>
+    <color name="bg_surface_variant">@color/peacock_teal</color>
+    <color name="divider_cream">@color/peacock_green</color>
+    <color name="divider_gold">@color/royal_gold</color>
+    <color name="brand_ripple">@color/peacock_green</color>
+
+    <color name="brand_avocado">@color/royal_gold</color>
+    <color name="brand_gold">@color/royal_gold</color>
+    <color name="brand_orange">@color/peacock_green</color>
+    <color name="brand_purple">@color/peacock_teal</color>
+    <color name="brand_emerald_royal">@color/peacock_green</color>
+    <color name="brand_emerald_dark">@color/peacock_teal</color>
+    <color name="brand_gold_dark">@color/royal_gold</color>
+    <color name="brand_status_online">@color/status_green</color>
+    <color name="avatar_background">@color/peacock_teal</color>
+    <color name="accent">@color/royal_gold</color>
+
+    <color name="neuro_indigo">@color/royal_midnight_blue</color>
+    <color name="galaxy_blue">@color/peacock_teal</color>
+    <color name="kuber_gold">@color/royal_gold</color>
+    <color name="muted_gold">@color/royal_gold</color>
+    <color name="starlight_white">@color/soft_ivory</color>
+    <color name="nebula_blue">@color/peacock_teal</color>
+    <color name="nebula_purple">@color/peacock_teal</color>
+
+    <!-- Gradient Colors -->
+    <color name="gradient_start">#004D25</color>
+    <color name="gradient_center">#003318</color>
+    <color name="gradient_end">#001A05</color>
+
+    <!-- Default Material colors -->
+    <color name="purple_200">@color/peacock_green</color>
+    <color name="purple_500">@color/peacock_teal</color>
+    <color name="purple_700">@color/royal_midnight_blue</color>
+    <color name="teal_200">@color/peacock_green</color>
+    <color name="teal_700">@color/peacock_green</color>
+
+    <!-- Call Colors -->
+    <color name="call_accept">#00E676</color>
+    <color name="call_reject">#FF5252</color>
+
+    <!-- Action Button Colors -->
+    <color name="action_chat">@color/peacock_green</color>
+    <color name="action_call">@color/royal_gold</color>
 </resources>

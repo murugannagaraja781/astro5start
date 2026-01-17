@@ -22,17 +22,23 @@ class AstrologerAdapter(
     private val onVideoClick: (Astrologer) -> Unit
 ) : RecyclerView.Adapter<AstrologerAdapter.ViewHolder>() {
 
+
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val imgAstrologer: ImageView = view.findViewById(R.id.imgAstrologer)
         val statusIndicator: View = view.findViewById(R.id.statusIndicator)
         val tvName: TextView = view.findViewById(R.id.tvName)
         val tvVerified: TextView = view.findViewById(R.id.tvVerified)
         val tvSkills: TextView = view.findViewById(R.id.tvSkills)
+        val tvLanguage: TextView? = view.findViewById(R.id.tvLanguage) // Nullable as it might not be in all layouts if referenced dynamically
         val tvExperience: TextView = view.findViewById(R.id.tvExperience)
         val tvPrice: TextView = view.findViewById(R.id.tvPrice)
-        val btnChat: Button = view.findViewById(R.id.btnChat)
-        val btnAudio: Button = view.findViewById(R.id.btnAudio)
-        val btnVideo: Button = view.findViewById(R.id.btnVideo)
+        val tvOrders: TextView = view.findViewById(R.id.tvOrders)
+
+        // Actions
+        val btnCallAction: View = view.findViewById(R.id.btnCallAction)
+        val btnVideoAction: View = view.findViewById(R.id.btnVideoAction)
+        // Chat is hidden or removed in new layout, but we might want to keep logic if needed.
+        // The layout has btnChat set to GONE.
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -46,55 +52,41 @@ class AstrologerAdapter(
 
         // Name
         holder.tvName.text = astro.name
-
-        // Verified badge
         holder.tvVerified.visibility = if (astro.isVerified) View.VISIBLE else View.GONE
 
         // Skills
-        holder.tvSkills.text = if (astro.skills.isNotEmpty()) {
-            astro.skills.joinToString(", ")
-        } else {
-            "Vedic Astrology"
-        }
+        holder.tvSkills.text = if (astro.skills.isNotEmpty()) astro.skills.joinToString(", ") else "Vedic, Prashana"
+
+        // Language (Mock or from data if available, defaulting to mock for now as per design)
+        holder.tvLanguage?.text = "English, Tamil"
 
         // Experience
-        holder.tvExperience.text = "⭐ ${astro.experience} yrs"
+        holder.tvExperience.text = "Exp: ${astro.experience} Years"
 
         // Price
-        holder.tvPrice.text = "₹${astro.price}/min"
+        holder.tvPrice.text = "₹ ${astro.price}/min"
 
-        // Online status - Check if ANY service is online
+        // Orders
+        holder.tvOrders.text = "${astro.orders} orders"
+
+        // Online status
         val isAnyOnline = astro.isChatOnline || astro.isAudioOnline || astro.isVideoOnline || astro.isOnline
         holder.statusIndicator.setBackgroundResource(
             if (isAnyOnline) R.drawable.status_online else R.drawable.status_offline
         )
 
-        // Button states based on individual service availability
-        updateButtonState(holder.btnChat, astro.isChatOnline || astro.isOnline)
-        updateButtonState(holder.btnAudio, astro.isAudioOnline || astro.isOnline)
-        updateButtonState(holder.btnVideo, astro.isVideoOnline || astro.isOnline)
+        // Button Click Listeners (Mapping New Buttons to Old Actions)
+        holder.btnCallAction.setOnClickListener { onAudioClick(astro) }
+        holder.btnVideoAction.setOnClickListener { onVideoClick(astro) }
 
-        // Click listeners
-        holder.btnChat.setOnClickListener { onChatClick(astro) }
-        holder.btnAudio.setOnClickListener { onAudioClick(astro) }
-        holder.btnVideo.setOnClickListener { onVideoClick(astro) }
-    }
-
-    private fun updateButtonState(button: Button, isActive: Boolean) {
-        // ALWAYS ENABLE button regardless of status to allow Offline calls (handled by FCM)
-        button.isEnabled = true
-        // Optional: Visual cue for Offline (e.g., lower opacity or different text color),
-        // but user asked for "Offline call poganum", so we keep it clickable.
-        button.alpha = if (isActive) 1.0f else 0.5f
+        // Online Visual Cues
+        holder.btnCallAction.alpha = if (astro.isAudioOnline || astro.isOnline) 1.0f else 0.5f
+        holder.btnVideoAction.alpha = if (astro.isVideoOnline || astro.isOnline) 1.0f else 0.5f
     }
 
     override fun getItemCount() = astrologers.size
 
-    /**
-     * Update the list of astrologers
-     */
     fun updateList(newList: List<Astrologer>) {
-        // Sort: Online first (true > false), then by Name or Experience
         astrologers = newList.sortedWith(
             compareByDescending<Astrologer> {
                 it.isOnline || it.isChatOnline || it.isAudioOnline || it.isVideoOnline
@@ -103,13 +95,9 @@ class AstrologerAdapter(
         notifyDataSetChanged()
     }
 
-    /**
-     * Update a single astrologer's status (for real-time updates)
-     */
     fun updateAstrologerStatus(userId: String, isOnline: Boolean) {
         val index = astrologers.indexOfFirst { it.userId == userId }
         if (index >= 0) {
-            // Create updated astrologer
             val updated = astrologers[index].copy(isOnline = isOnline)
             val mutableList = astrologers.toMutableList()
             mutableList[index] = updated
@@ -118,3 +106,4 @@ class AstrologerAdapter(
         }
     }
 }
+

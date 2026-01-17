@@ -77,6 +77,7 @@ dependencies {
 
     // Image Loading
     implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("de.hdodenhof:circleimageview:3.1.0")
 
     // Firebase
     // Firebase
@@ -112,8 +113,8 @@ dependencies {
     // PhonePe Payment Gateway
     implementation("phonepe.intentsdk.android.release:IntentSDK:5.3.0")
 
-    // UI Components
-    implementation("androidx.viewpager2:viewpager2:1.0.0")
+    // Icons
+    implementation("androidx.compose.material:material-icons-extended:1.6.0")
 
     // Jetpack Compose
     val composeBom = platform("androidx.compose:compose-bom:2024.02.01")
@@ -128,4 +129,10 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // Unit Testing
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.mockito:mockito-core:5.8.0")
+    testImplementation("org.mockito:mockito-inline:5.2.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
 }

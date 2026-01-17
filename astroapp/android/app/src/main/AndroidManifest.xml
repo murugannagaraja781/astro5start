@@ -98,7 +98,9 @@
         </activity>
 
         <activity android:name=".ui.guest.GuestDashboardActivity" />
+        <activity android:name=".ui.dashboard.ClientDashboardActivity" />
         <activity android:name=".ui.astro.AstrologerDashboardActivity" />
+        <activity android:name=".ui.admin.SuperPowerAdminDashboardActivity" android:exported="false" android:theme="@style/Theme.FCMCallApp"/>
         <activity android:name=".ui.payment.PaymentActivity" />
         <activity android:name=".ui.auth.LoginActivity" />
         <activity android:name=".ui.auth.OtpVerificationActivity" />
@@ -192,11 +194,11 @@
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="incoming_calls" />
 
-        <!-- PhonePe SDK Configuration -->
-        <meta-data
-            android:name="com.phonepe.android.sdk.isUAT"
-            android:value="false" />
-
+        <activity
+            android:name=".ui.profile.AstrologerProfileActivity"
+            android:screenOrientation="portrait"
+            android:exported="false"
+            android:theme="@style/Theme.FCMCallApp"/>
     </application>
 
 </manifest>

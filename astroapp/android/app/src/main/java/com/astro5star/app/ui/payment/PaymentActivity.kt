@@ -57,7 +57,7 @@ class PaymentActivity : AppCompatActivity() {
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(Color.parseColor("#0B1D2A")) // DeepSpaceNavy
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT
@@ -75,7 +75,7 @@ class PaymentActivity : AppCompatActivity() {
         statusText = TextView(this).apply {
             text = "Initializing Payment..."
             textSize = 18f
-            setTextColor(Color.BLACK)
+            setTextColor(Color.parseColor("#F2F4FF")) // StarWhite
             gravity = Gravity.CENTER
             setPadding(0, 30, 0, 0)
         }
@@ -152,7 +152,22 @@ class PaymentActivity : AppCompatActivity() {
         tokenManager = TokenManager(this)
 
         // Initialize PhonePe SDK (Only if using Native)
-        // PhonePe SDK Initialized in AstrologerApp
+        if (USE_NATIVE_SDK) {
+            try {
+                 PhonePeKt.init(
+                    context = this,
+                    merchantId = MERCHANT_ID,
+                    flowId = "CITIZEN_APP",
+                    phonePeEnvironment = PhonePeEnvironment.RELEASE,
+                    enableLogging = true,
+                    appId = null
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "PhonePe Init Error", e)
+                showError("SDK Init Failed: ${e.message}")
+                return
+            }
+        }
 
         val amount = intent.getDoubleExtra("amount", 0.0)
         if (amount <= 0.0) {
@@ -320,40 +335,28 @@ class PaymentActivity : AppCompatActivity() {
              return false
         }
 
-        // Handle Specific Schemes - Prioritize Native Launch
-        if (url.startsWith("phonepe://") || url.startsWith("tez://") || url.startsWith("paytmmp://") || url.startsWith("gpay://") || url.startsWith("bhim://")) {
-            try {
-                val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(intent)
-                return true
-            } catch (e: Exception) {
-                Log.e(TAG, "Direct Native Scheme Launch Failed", e)
-                // Fallthrough to Generic UPI converter if direct native launch fails (e.g. app not handled)
-            }
+        val uri = android.net.Uri.parse(url)
+        val scheme = uri.scheme ?: ""
+
+        // Allow HTTP/HTTPS to load in WebView naturally
+        if (scheme.equals("http", ignoreCase = true) || scheme.equals("https", ignoreCase = true)) {
+            return false
         }
 
-        // Handle UPI and Specific Payment Schemes (Unified - FORCE APP CHOOSER)
-        if (url.startsWith("upi://")) {
-            try {
-                val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
-                val chooser = Intent.createChooser(intent, "Pay using...")
-                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(chooser)
-                return true
-            } catch (e: Exception) {
-                Log.e(TAG, "UPI Launcher Error", e)
-                Toast.makeText(this@PaymentActivity, "No App found for this payment", Toast.LENGTH_SHORT).show()
-                return true
-            }
-        }
+        // For EVERYTHING else (phonepe://, tez://, upi://, intent://), try to launch external app
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, uri)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+            return true
+        } catch (e: Exception) {
+            Log.e(TAG, "Standard Launch Error", e)
 
-        // Handle Intent URLs (Optimistic Try-Catch)
-        if (url.startsWith("intent://")) {
-            try {
-                val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
-                if (intent != null) {
-                    try {
+            // Special Handling for 'intent://' if standard launch failed
+            if (scheme.equals("intent", ignoreCase = true)) {
+                try {
+                    val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+                    if (intent != null) {
                         startActivity(intent)
                         return true
                     }

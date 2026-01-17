@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FFC107"
+        app:elevation="0dp">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize">
+
+            <ImageView
+                android:id="@+id/btnBack"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                app:tint="@color/black"
+                android:layout_marginEnd="16dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Profile"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
+
+             <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_share"
+                app:tint="@color/black"
+                android:layout_gravity="end"
+                android:layout_marginEnd="16dp"/>
+        </androidx.appcompat.widget.Toolbar>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <!-- Yellow Header Curve Extension -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:background="#FFC107"
+                android:layout_marginBottom="-40dp"/>
+
+            <!-- Avatar -->
+            <FrameLayout
+                android:layout_width="120dp"
+                android:layout_height="120dp">
+
+                <!-- Using a hexagon shape if possible, strictly mimicking circle for now with ring -->
+                <de.hdodenhof.circleimageview.CircleImageView
+                    android:id="@+id/imgProfile"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/circle_avatar_placeholder"
+                    app:civ_border_width="4dp"
+                    app:civ_border_color="#FFFFFF"/>
+
+                <ImageView
+                    android:id="@+id/imgVerifiedBadge"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@android:drawable/checkbox_on_background"
+                    app:tint="#4CAF50"
+                    android:layout_gravity="bottom|end"
+                    android:layout_margin="8dp"/>
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tvProfileName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Monika"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:layout_marginTop="12dp"/>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="4dp">
+
+                <TextView
+                    android:text="★★★★★"
+                    android:textColor="#FFC107"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+                 <TextView
+                    android:text=" 8942 orders"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tarot, Face Reading, Life Coach"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="4dp"/>
+
+            <!-- Stats Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="3"
+                android:padding="16dp"
+                android:layout_marginTop="16dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/sym_action_chat" app:tint="@color/black"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="49k Mins" android:textStyle="bold" android:textColor="@color/black" android:layout_marginTop="4dp"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/sym_action_call" app:tint="@color/black"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="31k Mins" android:textStyle="bold" android:textColor="@color/black" android:layout_marginTop="4dp"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_menu_my_calendar" app:tint="@color/black"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="5 years Exp" android:textStyle="bold" android:textColor="@color/black" android:layout_marginTop="4dp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Bio -->
+            <TextView
+                android:id="@+id/tvBio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Monika is a Tarot Reader in India. She love to help her clients when they are in need. Her ...show more"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"/>
+
+            <!-- Action Buttons -->
+             <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginTop="24dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp">
+
+                <Button
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1.5"
+                    android:text="Follow"
+                    android:backgroundTint="#FFD54F"
+                    android:textColor="@color/black"
+                    android:textStyle="bold"/>
+
+                <ImageButton
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:background="@drawable/bg_card_premium_dark"
+                    android:src="@android:drawable/sym_action_chat"
+                    android:tint="#000000"
+                    android:layout_marginStart="16dp"/>
+
+                <ImageButton
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:background="@drawable/bg_card_premium_dark"
+                    android:src="@android:drawable/sym_action_call"
+                    android:tint="#000000"
+                    android:layout_marginStart="16dp"/>
+            </LinearLayout>
+
+            <!-- Gallery / Reviews Section (Placeholder) -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="User Reviews"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:padding="16dp"
+                android:layout_marginTop="16dp"/>
+
+             <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingStart="16dp">
+                 <!-- Sample circular images -->
+                 <ImageView android:layout_width="60dp" android:layout_height="60dp" android:src="@drawable/bg_circle_soft" android:backgroundTint="#1A237E" android:layout_marginEnd="8dp"/>
+                 <ImageView android:layout_width="60dp" android:layout_height="60dp" android:src="@drawable/bg_circle_soft" android:backgroundTint="#004D40" android:layout_marginEnd="8dp"/>
+                 <ImageView android:layout_width="60dp" android:layout_height="60dp" android:src="@drawable/bg_circle_soft" android:backgroundTint="#D81B60" android:layout_marginEnd="8dp"/>
+             </LinearLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

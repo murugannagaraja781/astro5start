@@ -12,15 +12,6 @@
         android:orientation="vertical"
         android:padding="24dp">
 
-        <!-- Gradient Overlay View (Top half) -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:background="@drawable/bg_gradient_primary"
-            android:alpha="0.1"
-            android:layout_marginTop="-200dp"
-            android:layout_marginBottom="-100dp"/>
-
         <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"

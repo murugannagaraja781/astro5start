@@ -141,6 +141,24 @@ object SocketManager {
         }
     }
 
+    fun updateServiceStatus(userId: String, service: String, isEnabled: Boolean) {
+        val data = JSONObject().apply {
+            put("userId", userId)
+            put("service", service) // "chat", "call", "video"
+            put("isEnabled", isEnabled)
+        }
+        socket?.emit("update-service-status", data)
+    }
+
+    fun onAstrologerUpdate(listener: (JSONObject) -> Unit) {
+        socket?.on("astrologer-update") { args ->
+            if (args != null && args.isNotEmpty()) {
+                val data = args[0] as JSONObject
+                listener(data)
+            }
+        }
+    }
+
     fun disconnect() {
         socket?.disconnect()
         socket = null

@@ -4,14 +4,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#f5f5f5">
+    android:background="@color/brand_bg_soft">
 
     <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="#FFFFFF"
+        android:background="@drawable/bg_gradient_header_dark"
         android:padding="16dp"
         android:elevation="4dp"
         android:gravity="center_vertical">
@@ -23,7 +23,7 @@
             android:text="Astrologer Console"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:textColor="#333333"/>
+            android:textColor="@color/brand_gold"/>
 
         <ImageButton
             android:id="@+id/btnLogout"
@@ -31,7 +31,7 @@
             android:layout_height="48dp"
             android:src="@android:drawable/ic_lock_power_off"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="#D32F2F"/>
+            app:tint="@color/brand_gold"/>
     </LinearLayout>
 
     <ScrollView
@@ -48,31 +48,33 @@
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="8dp"
+                app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
-                app:cardBackgroundColor="#FFFFFF"
+                app:cardBackgroundColor="@android:color/transparent"
                 android:layout_marginBottom="16dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="20dp"
+                    android:background="@drawable/bg_card_premium_dark">
 
                     <TextView
                         android:id="@+id/tvAstroName"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Astrologer Name"
-                        android:textSize="18sp"
-                        android:textStyle="bold"/>
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_on_card"/>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Wallet Earnings"
-                        android:textSize="12sp"
-                        android:textColor="#777777"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_on_card"
                         android:layout_marginTop="8dp"/>
 
                     <TextView
@@ -80,9 +82,9 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="₹0.00"
-                        android:textSize="24sp"
+                        android:textSize="32sp"
                         android:textStyle="bold"
-                        android:textColor="#4CAF50"/>
+                        android:textColor="@color/brand_status_online"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -90,17 +92,18 @@
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="8dp"
+                app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
-                app:cardBackgroundColor="#FFFFFF"
+                app:cardBackgroundColor="@android:color/transparent"
                 android:layout_marginBottom="16dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="16dp"
-                    android:gravity="center_vertical">
+                    android:padding="20dp"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/bg_card_premium_dark">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -112,16 +115,17 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Online Status"
-                            android:textSize="16sp"
-                            android:textStyle="bold"/>
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_on_card"/>
 
                         <TextView
                             android:id="@+id/tvStatusLabel"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="You are currently Offline"
-                            android:textSize="12sp"
-                            android:textColor="#777777"/>
+                            android:textSize="14sp"
+                            android:textColor="@color/text_on_card"/>
                     </LinearLayout>
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
@@ -136,20 +140,22 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnWithdraw"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:text="Request Withdrawal"
                 android:layout_marginBottom="24dp"
                 app:icon="@android:drawable/ic_menu_send"
                 app:iconGravity="textStart"
-                android:backgroundTint="#4CAF50"/>
+                app:backgroundTint="@color/brand_true_red"
+                android:textColor="@android:color/white"/>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Recent History"
                 android:textStyle="bold"
-                android:textSize="18sp"
-                android:layout_marginBottom="8dp"/>
+                android:textSize="20sp"
+                android:textColor="@color/text_primary"
+                android:layout_marginBottom="12dp"/>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerHistory"
@@ -164,7 +170,7 @@
                 android:text="No recent sessions"
                 android:gravity="center"
                 android:padding="32dp"
-                android:textColor="#999999"/>
+                android:textColor="@color/text_secondary"/>
 
         </LinearLayout>
     </ScrollView>

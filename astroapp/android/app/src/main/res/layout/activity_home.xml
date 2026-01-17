@@ -10,7 +10,7 @@
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_gradient_header"
+        android:background="@drawable/bg_gradient_header_dark"
         app:elevation="8dp">
 
         <androidx.appcompat.widget.Toolbar
@@ -88,7 +88,7 @@
                     android:layout_marginEnd="12dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@android:drawable/ic_lock_power_off"
-                    android:tint="@color/brand_card_white"/>
+                    android:tint="@color/brand_gold"/>
 
             </RelativeLayout>
         </androidx.appcompat.widget.Toolbar>
@@ -162,7 +162,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:background="@drawable/bg_card_premium"
+                    android:background="@drawable/bg_card_premium_dark"
                     android:padding="20dp">
 
                     <LinearLayout

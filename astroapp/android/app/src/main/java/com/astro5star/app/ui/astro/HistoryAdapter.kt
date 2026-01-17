@@ -50,7 +50,7 @@ class HistoryAdapter(
         // For now, let's use ID or placeholder.
         val name = "Client"
 
-        holder.tvUserName.text = name
+        holder.tvName.text = name
         holder.tvEarned.text = "+ ₹$earned"
 
         // Date Format

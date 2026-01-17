@@ -17,5 +17,7 @@ data class Astrologer(
     val image: String = "",
     val experience: Int = 0,
     val isVerified: Boolean = false,
-    val walletBalance: Double = 0.0
+    val walletBalance: Double = 0.0,
+    val rating: Double = 5.0,
+    val orders: Int = 0
 )

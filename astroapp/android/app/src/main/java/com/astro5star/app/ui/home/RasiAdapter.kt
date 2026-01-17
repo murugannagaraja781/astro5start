@@ -7,40 +7,30 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.astro5star.app.R
-import com.astro5star.app.data.model.RasiData
+
+data class RasiItem(val id: Int, val name: String, val iconRes: Int)
 
 class RasiAdapter(
-    private val rasiList: List<RasiData>,
-    private val onRasiClick: (RasiData) -> Unit
+    private val items: List<RasiItem>,
+    private val onClick: (RasiItem) -> Unit
 ) : RecyclerView.Adapter<RasiAdapter.RasiViewHolder>() {
 
     class RasiViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val icon: ImageView = view.findViewById(R.id.ivRasiIcon)
-        val name: TextView = view.findViewById(R.id.tvRasiName)
+        val tvName: TextView = view.findViewById(R.id.tvRasiName)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RasiViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_rasi, parent, false)
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_rasi, parent, false)
         return RasiViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: RasiViewHolder, position: Int) {
-        val rasi = rasiList[position]
-        holder.name.text = rasi.name_tamil
-
-        // Map ID to drawable dynamically
-        val context = holder.itemView.context
-        val iconName = "ic_rasi_${rasi.id}"
-        val resId = context.resources.getIdentifier(iconName, "drawable", context.packageName)
-
-        if (resId != 0) {
-            holder.icon.setImageResource(resId)
-        } else {
-            holder.icon.setImageResource(R.drawable.ic_match) // Fallback
-        }
-
-        holder.itemView.setOnClickListener { onRasiClick(rasi) }
+        val item = items[position]
+        holder.tvName.text = item.name
+        // holder.imgRasi.setImageResource(item.iconRes) // Removed as per request
+        holder.itemView.setOnClickListener { onClick(item) }
     }
 
-    override fun getItemCount() = rasiList.size
+    override fun getItemCount() = items.size
 }
