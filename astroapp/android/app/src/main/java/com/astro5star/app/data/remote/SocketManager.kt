@@ -159,6 +159,29 @@ object SocketManager {
         }
     }
 
+    /**
+     * Listen for incoming session requests (calls/chats) when app is in foreground.
+     * This is CRITICAL because FCM only works reliably when app is in background/killed.
+     * When app is in foreground, server sends via socket instead of FCM.
+     */
+    fun onIncomingSession(listener: (JSONObject) -> Unit) {
+        socket?.off("incoming-session") // Remove any existing listener first
+        socket?.on("incoming-session") { args ->
+            if (args != null && args.isNotEmpty()) {
+                val data = args[0] as JSONObject
+                Log.d(TAG, "Incoming session received: $data")
+                listener(data)
+            }
+        }
+    }
+
+    /**
+     * Remove incoming session listener (call when activity is destroyed)
+     */
+    fun offIncomingSession() {
+        socket?.off("incoming-session")
+    }
+
     fun disconnect() {
         socket?.disconnect()
         socket = null

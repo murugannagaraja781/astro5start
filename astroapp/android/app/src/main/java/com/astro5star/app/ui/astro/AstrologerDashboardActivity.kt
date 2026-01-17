@@ -118,7 +118,44 @@ class AstrologerDashboardActivity : ComponentActivity() {
         if (userId != null) SocketManager.registerUser(userId)
         val socket = SocketManager.getSocket()
         socket?.connect()
-        // Note: Real-time updates should ideally use a ViewModel and StateFlow
+
+        // CRITICAL FIX: Listen for incoming calls when app is in foreground
+        // FCM only works when app is in background/killed. When in foreground,
+        // the server sends via socket instead of FCM.
+        SocketManager.onIncomingSession { data ->
+            val sessionId = data.optString("sessionId", "")
+            val fromUserId = data.optString("fromUserId", "Unknown")
+            val type = data.optString("type", "audio")
+            val birthDataStr = data.optString("birthData", null)
+
+            // Get caller name from database or use ID
+            val callerName = data.optString("callerName", fromUserId)
+
+            android.util.Log.d("AstrologerDashboard", "Incoming session: $sessionId from $fromUserId type=$type")
+
+            // Launch IncomingCallActivity on main thread
+            runOnUiThread {
+                val intent = Intent(this@AstrologerDashboardActivity, com.astro5star.app.IncomingCallActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    putExtra("callerId", fromUserId)
+                    putExtra("callerName", callerName)
+                    putExtra("callId", sessionId)
+                    putExtra("callType", type)
+                    if (birthDataStr != null) {
+                        putExtra("birthData", birthDataStr)
+                    }
+                }
+                startActivity(intent)
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Clean up the incoming session listener
+        SocketManager.offIncomingSession()
     }
 }
 
@@ -299,7 +336,7 @@ fun AstrologerDashboardScreen(
 fun ServiceToggleRow(userId: String) {
     val services = remember {
         mutableStateListOf(
-            ServiceData("Chat", true, Icons.Default.Chat),
+            ServiceData("Chat", false, Icons.Default.Chat),  // FIX: Initially OFF
             ServiceData("Call", false, Icons.Default.Call),
             ServiceData("Video", false, Icons.Default.Person)
         )

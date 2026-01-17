@@ -1497,6 +1497,7 @@ io.on('connection', (socket) => {
         io.to(targetSocketId).emit('incoming-session', {
           sessionId,
           fromUserId,
+          callerName: fromUser?.name || 'Client',  // FIX: Add caller name for display
           type,
           birthData: birthData || null
         });
@@ -1504,8 +1505,10 @@ io.on('connection', (socket) => {
         console.log(`[Session] Socket notification sent to ${toUserId}`);
       }
 
-      // Send FCM Push Notification ONLY if socket not connected (user in background/killed)
-      if (!socketSent && toUser && toUser.fcmToken) {
+      // IMPROVED: Send FCM Push Notification as BACKUP (even if socket sent)
+      // This ensures the call reaches the user if socket message is missed/dropped
+      // The Android app handles duplicate by showing only one IncomingCallActivity
+      if (toUser && toUser.fcmToken) {
         const fcmData = {
           type: 'INCOMING_CALL',
           sessionId: sessionId,
@@ -1523,7 +1526,7 @@ io.on('connection', (socket) => {
 
         sendFcmV1Push(toUser.fcmToken, fcmData, fcmNotification)
           .then(result => {
-            console.log(`[FCM v1] Session Push to ${toUserId}: Success=${result.success}`);
+            console.log(`[FCM v1] Session Push to ${toUserId}: Success=${result.success} (socketSent=${socketSent})`);
             if (!result.success && (result.error?.includes('Requested entity was not found') || result.error === 'UNREGISTERED')) {
               // Token is stale/invalid
               User.updateOne({ userId: toUserId }, { $unset: { fcmToken: 1 } })
