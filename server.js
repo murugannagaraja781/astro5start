@@ -1288,6 +1288,34 @@ io.on('connection', (socket) => {
     } catch (e) { console.error(e); }
   });
 
+  // --- Update Service Status (Individual Toggles from Android) ---
+  socket.on('update-service-status', async (data) => {
+    const userId = data.userId || socketToUser.get(socket.id);
+    if (!userId) return;
+
+    try {
+      const update = {};
+      const isEnabled = !!data.isEnabled;
+
+      if (data.service === 'chat') update.isChatOnline = isEnabled;
+      if (data.service === 'call') update.isAudioOnline = isEnabled; // 'call' maps to 'audio'
+      if (data.service === 'video') update.isVideoOnline = isEnabled;
+
+      let user = await User.findOne({ userId });
+      if (user) {
+        Object.assign(user, update);
+        // Recalculate global online status
+        user.isOnline = user.isChatOnline || user.isAudioOnline || user.isVideoOnline;
+        user.isAvailable = user.isOnline;
+        user.lastSeen = new Date();
+        await user.save();
+
+        broadcastAstroUpdate();
+        console.log(`[Service Status] ${user.name} updated ${data.service}: ${isEnabled}`);
+      }
+    } catch (e) { console.error('update-service-status error:', e); }
+  });
+
   // --- Mobile App Specific Status Update ---
   socket.on('update-status', async (data) => {
     const userId = data.userId || socketToUser.get(socket.id);
