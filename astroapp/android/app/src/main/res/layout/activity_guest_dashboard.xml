@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/brand_bg_soft"
+    android:background="#FFF8F0"
     android:animateLayoutChanges="true">
 
     <androidx.core.widget.NestedScrollView
@@ -15,90 +15,300 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingBottom="80dp">
+            android:paddingBottom="100dp">
 
-            <!-- Premium Header (Green Theme) -->
-            <FrameLayout
+            <!-- Light Theme Header -->
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="300dp"
-                android:background="@drawable/bg_gradient_header_dark">
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:background="#FFFFFF"
+                android:elevation="4dp">
 
+                <!-- Logo Icon -->
                 <ImageView
-                    android:id="@+id/imgLogo"
-                    android:layout_width="120dp"
-                    android:layout_height="120dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/app_logo"
-                    android:layout_marginBottom="40dp"/>
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@mipmap/ic_launcher"
+                    android:contentDescription="Logo"/>
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="ASTRO 5 STAR"
-                    android:textSize="26sp"
-                    android:letterSpacing="0.1"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:text="Astro 5 Star"
+                    android:textSize="22sp"
                     android:textStyle="bold"
-                    android:textColor="@color/brand_gold"
-                    android:layout_gravity="center"
-                    android:layout_marginTop="50dp"/>
+                    android:textColor="#C9A227"/>
 
-                 <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="பிரீமியம் ஜோதிட சேவைகள்"
-                    android:textSize="14sp"
-                    android:textColor="@color/text_secondary"
-                    android:layout_gravity="center"
-                    android:layout_marginTop="80dp"/>
-            </FrameLayout>
+                <!-- Menu Icon -->
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@android:drawable/ic_menu_more"
+                    android:tint="#666666"/>
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp"
-                android:layout_marginTop="-40dp">
+                android:padding="16dp">
 
-                <!-- Daily Rasi Palan Card -->
+                <!-- Rasi Palan Section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ராசி பலன்"
+                    android:textColor="#C9A227"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="16dp"/>
+
+                <!-- Rasi Grid - Row 1 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginBottom="12dp">
+
+                    <include layout="@layout/item_rasi_guest" android:id="@+id/rasi1"/>
+                    <include layout="@layout/item_rasi_guest" android:id="@+id/rasi2"/>
+                    <include layout="@layout/item_rasi_guest" android:id="@+id/rasi3"/>
+                    <include layout="@layout/item_rasi_guest" android:id="@+id/rasi4"/>
+                </LinearLayout>
+
+                <!-- Rasi Grid - Row 2 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginBottom="12dp">
+
+                    <include layout="@layout/item_rasi_guest" android:id="@+id/rasi5"/>
+                    <include layout="@layout/item_rasi_guest" android:id="@+id/rasi6"/>
+                    <include layout="@layout/item_rasi_guest" android:id="@+id/rasi7"/>
+                    <include layout="@layout/item_rasi_guest" android:id="@+id/rasi8"/>
+                </LinearLayout>
+
+                <!-- Rasi Grid - Row 3 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginBottom="24dp">
+
+                    <include layout="@layout/item_rasi_guest" android:id="@+id/rasi9"/>
+                    <include layout="@layout/item_rasi_guest" android:id="@+id/rasi10"/>
+                    <include layout="@layout/item_rasi_guest" android:id="@+id/rasi11"/>
+                    <include layout="@layout/item_rasi_guest" android:id="@+id/rasi12"/>
+                </LinearLayout>
+
+                <!-- Featured Astrologers Section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="பிரீமியம் ஆலோசனை"
+                    android:textColor="#C9A227"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp"/>
+
+                <!-- Horizontal Featured Cards (Placeholder) -->
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:scrollbars="none"
+                    android:layout_marginBottom="24dp">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <!-- Featured Card 1 -->
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="140dp"
+                            android:layout_height="180dp"
+                            android:layout_marginEnd="12dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="4dp"
+                            app:cardBackgroundColor="#FFFFFF">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical"
+                                android:gravity="center"
+                                android:padding="12dp">
+
+                                <ImageView
+                                    android:layout_width="70dp"
+                                    android:layout_height="70dp"
+                                    android:src="@drawable/ic_person"
+                                    android:background="@drawable/circle_bg"
+                                    android:backgroundTint="#F5E6D3"
+                                    android:padding="15dp"
+                                    android:tint="#C9A227"/>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Dr. Sharma"
+                                    android:textColor="#333333"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold"
+                                    android:layout_marginTop="8dp"/>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Top Rated"
+                                    android:textColor="#FFFFFF"
+                                    android:textSize="10sp"
+                                    android:background="@drawable/pill_bg"
+                                    android:backgroundTint="#C9A227"
+                                    android:paddingHorizontal="12dp"
+                                    android:paddingVertical="4dp"
+                                    android:layout_marginTop="6dp"/>
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+
+                        <!-- Featured Card 2 -->
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="140dp"
+                            android:layout_height="180dp"
+                            android:layout_marginEnd="12dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="4dp"
+                            app:cardBackgroundColor="#FFFFFF">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical"
+                                android:gravity="center"
+                                android:padding="12dp">
+
+                                <ImageView
+                                    android:layout_width="70dp"
+                                    android:layout_height="70dp"
+                                    android:src="@drawable/ic_person"
+                                    android:background="@drawable/circle_bg"
+                                    android:backgroundTint="#F5E6D3"
+                                    android:padding="15dp"
+                                    android:tint="#C9A227"/>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Pandit Ji"
+                                    android:textColor="#333333"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold"
+                                    android:layout_marginTop="8dp"/>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Top Rated"
+                                    android:textColor="#FFFFFF"
+                                    android:textSize="10sp"
+                                    android:background="@drawable/pill_bg"
+                                    android:backgroundTint="#C9A227"
+                                    android:paddingHorizontal="12dp"
+                                    android:paddingVertical="4dp"
+                                    android:layout_marginTop="6dp"/>
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+
+                        <!-- Featured Card 3 -->
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="140dp"
+                            android:layout_height="180dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="4dp"
+                            app:cardBackgroundColor="#FFFFFF">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical"
+                                android:gravity="center"
+                                android:padding="12dp">
+
+                                <ImageView
+                                    android:layout_width="70dp"
+                                    android:layout_height="70dp"
+                                    android:src="@drawable/ic_person"
+                                    android:background="@drawable/circle_bg"
+                                    android:backgroundTint="#F5E6D3"
+                                    android:padding="15dp"
+                                    android:tint="#C9A227"/>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Guru Ji"
+                                    android:textColor="#333333"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold"
+                                    android:layout_marginTop="8dp"/>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Top Rated"
+                                    android:textColor="#FFFFFF"
+                                    android:textSize="10sp"
+                                    android:background="@drawable/pill_bg"
+                                    android:backgroundTint="#C9A227"
+                                    android:paddingHorizontal="12dp"
+                                    android:paddingVertical="4dp"
+                                    android:layout_marginTop="6dp"/>
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+                    </LinearLayout>
+                </HorizontalScrollView>
+
+                <!-- Daily Horoscope Card -->
                 <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:cardCornerRadius="20dp"
-                    app:cardElevation="8dp"
-                    app:cardBackgroundColor="@android:color/transparent">
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="#FFFFFF"
+                    android:layout_marginBottom="24dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/bg_card_premium_dark"
                         android:orientation="vertical"
-                        android:padding="24dp">
+                        android:padding="20dp">
 
-                        <LinearLayout
-                            android:layout_width="match_parent"
+                        <TextView
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="✨ இன்றைய ராசி பலன்"
-                                android:textSize="18sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/brand_gold"/>
-                        </LinearLayout>
+                            android:text="✨ இன்றைய ராசி பலன்"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="#C9A227"/>
 
                         <TextView
                             android:id="@+id/tvGuestHoroscope"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
-                            android:text="காஸ்மிக் வழிகாட்டலை ஏற்றுகிறது..."
+                            android:layout_marginTop="12dp"
+                            android:text="Loading horoscope..."
                             android:textSize="14sp"
-                            android:lineSpacingMultiplier="1.5"
-                            android:textColor="@color/text_on_card"
-                            android:fontFamily="sans-serif-light"/>
+                            android:lineSpacingMultiplier="1.4"
+                            android:textColor="#555555"/>
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
@@ -106,12 +316,11 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="சிறந்த ஜோதிடர்கள்"
-                    android:textColor="@color/text_primary"
-                    android:textSize="22sp"
+                    android:text="All Astrologers"
+                    android:textColor="#333333"
+                    android:textSize="18sp"
                     android:textStyle="bold"
-                    android:layout_marginTop="32dp"
-                    android:layout_marginBottom="16dp"/>
+                    android:layout_marginBottom="12dp"/>
 
                 <!-- RecyclerView for Astrologers -->
                 <androidx.recyclerview.widget.RecyclerView
@@ -127,21 +336,24 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:layout_marginTop="24dp"
-                    android:indeterminateTint="@color/brand_gold"/>
-
-                <!-- Bottom Note -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="பிரீமியம் அம்சங்களை திறக்க உள்நுழையவும்"
-                    android:layout_gravity="center_horizontal"
-                    android:textColor="@color/text_secondary"
-                    android:layout_marginTop="32dp"
-                    android:layout_marginBottom="16dp"/>
+                    android:indeterminateTint="#C9A227"/>
 
             </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <!-- Bottom Navigation -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNav"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom"
+        android:background="#FFFFFF"
+        android:elevation="8dp"
+        app:labelVisibilityMode="labeled"
+        app:itemIconTint="#C9A227"
+        app:itemTextColor="#666666"
+        app:menu="@menu/bottom_nav_guest"/>
 
     <!-- Floating Login Button -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
@@ -149,12 +361,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="24dp"
-        android:text="தொடங்கவும்"
-        android:textColor="@color/royal_midnight_blue"
-        android:textSize="16sp"
+        android:layout_marginBottom="72dp"
+        android:text="Login / Sign Up"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
         android:textStyle="bold"
-        app:backgroundTint="@color/brand_gold"
-        app:icon="@android:drawable/ic_lock_power_off"
-        app:iconTint="@color/royal_midnight_blue"/>
+        app:backgroundTint="#C9A227"
+        app:icon="@android:drawable/ic_menu_myplaces"
+        app:iconTint="#FFFFFF"/>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

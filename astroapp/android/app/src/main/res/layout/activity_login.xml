@@ -18,10 +18,11 @@
 
         <ImageView
             android:id="@+id/imgLoginLogo"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
             android:layout_gravity="center_horizontal"
-            android:src="@drawable/app_logo"
+            android:src="@drawable/ic_astro_gold_logo"
+            android:scaleType="fitCenter"
             android:layout_marginBottom="16dp"/>
 
         <TextView

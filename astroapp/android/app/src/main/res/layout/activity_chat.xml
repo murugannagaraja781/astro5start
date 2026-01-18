@@ -1,36 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0B1A2D">
+    android:background="#ECE5DD">
 
-    <!-- Premium Header -->
+    <!-- WhatsApp Style Gold Header -->
     <RelativeLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="#1F4E79"
-        android:elevation="8dp"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp">
+        android:layout_height="60dp"
+        android:background="#C9A227"
+        android:elevation="4dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="12dp">
 
+        <!-- Back Arrow -->
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_revert"
+            android:tint="#FFFFFF"
+            android:contentDescription="Back"/>
+
+        <!-- Profile Photo -->
+        <ImageView
+            android:id="@+id/imgProfile"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@id/btnBack"
+            android:layout_marginStart="4dp"
+            android:src="@drawable/ic_person"
+            android:background="@drawable/circle_bg"
+            android:backgroundTint="#FFFFFF"
+            android:padding="8dp"
+            android:tint="#C9A227"/>
+
+        <!-- Name & Status -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:layout_centerVertical="true"
-            android:layout_marginStart="8dp"
-            android:layout_toStartOf="@id/btnEditIntake">
+            android:layout_toEndOf="@id/imgProfile"
+            android:layout_marginStart="12dp"
+            android:layout_toStartOf="@id/headerActions">
 
             <TextView
                 android:id="@+id/tvChatTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Consultation"
-                android:textColor="@color/brand_gold"
-                android:textSize="18sp"
+                android:text="Astrologer Name"
+                android:textColor="#FFFFFF"
+                android:textSize="17sp"
                 android:textStyle="bold"
-                android:fontFamily="sans-serif-medium"
                 android:ellipsize="end"
                 android:maxLines="1"/>
 
@@ -38,56 +65,73 @@
                 android:id="@+id/tvTypingStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Typing..."
-                android:textColor="#E0E0E0"
-                android:textSize="12sp"
-                android:fontFamily="sans-serif"
-                android:visibility="gone"/>
+                android:text="Online"
+                android:textColor="#F5F5F5"
+                android:textSize="13sp"/>
         </LinearLayout>
 
-        <Button
-            android:id="@+id/btnEndChat"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
-            android:text="End"
-            android:textSize="12sp"
-            android:background="@drawable/bg_button_secondary"
-            android:textColor="@color/text_primary"
-            android:minHeight="36dp"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            app:backgroundTint="@null"
-            xmlns:app="http://schemas.android.com/apk/res-auto"/>
-
-        <TextView
-            android:id="@+id/tvSessionTimer"
+        <!-- Action Buttons -->
+        <LinearLayout
+            android:id="@+id/headerActions"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_toStartOf="@id/btnEndChat"
+            android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:layout_marginEnd="12dp"
-            android:text="00:00"
-            android:textColor="@color/text_white"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:orientation="horizontal">
 
-        <ImageButton
-            android:id="@+id/btnEditIntake"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_toStartOf="@id/tvSessionTimer"
-            android:layout_centerVertical="true"
-            android:layout_marginEnd="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_edit"
-            android:tint="@color/brand_gold"
-            android:contentDescription="Edit Details"
-            android:scaleType="centerInside"/>
+            <!-- Video Call -->
+            <ImageButton
+                android:id="@+id/btnVideoCall"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_camera"
+                android:tint="#FFFFFF"
+                android:contentDescription="Video Call"/>
 
+            <!-- Voice Call -->
+            <ImageButton
+                android:id="@+id/btnVoiceCall"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_call"
+                android:tint="#FFFFFF"
+                android:contentDescription="Voice Call"/>
+
+            <!-- End Chat Button -->
+            <Button
+                android:id="@+id/btnEndChat"
+                android:layout_width="60dp"
+                android:layout_height="32dp"
+                android:background="@drawable/pill_bg"
+                android:backgroundTint="#FF5252"
+                android:text="End"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="8dp"/>
+
+            <!-- Timer Badge -->
+            <TextView
+                android:id="@+id/tvSessionTimer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:text="00:00"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:background="@drawable/pill_bg"
+                android:backgroundTint="#8B7500"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:layout_marginStart="8dp"/>
+        </LinearLayout>
     </RelativeLayout>
 
+    <!-- Chat RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerChat"
         android:layout_width="match_parent"
@@ -95,67 +139,137 @@
         android:layout_below="@id/headerLayout"
         android:layout_above="@id/layoutInput"
         android:padding="8dp"
-        android:clipToPadding="false"/>
+        android:clipToPadding="false"
+        android:background="#ECE5DD"/>
 
-    <!-- Premium Input Area -->
+    <!-- WhatsApp Style Input Area -->
     <LinearLayout
         android:id="@+id/layoutInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:padding="16dp"
-        android:background="#1F4E79"
-        android:elevation="16dp"
+        android:padding="6dp"
+        android:background="#ECE5DD"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
-        <ImageButton
-            android:id="@+id/btnChart"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@drawable/ic_chart"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:layout_marginEnd="8dp"
-            android:contentDescription="View Chart"
-            android:visibility="gone"
-            android:tint="@color/text_secondary"/>
-
-        <ImageButton
-            android:id="@+id/btnMatch"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginEnd="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_match"
-            android:scaleType="centerInside"
-            android:visibility="gone"
-            android:contentDescription="View Match"
-            android:tint="@color/text_secondary"/>
-
-        <EditText
-            android:id="@+id/inputMessage"
+        <!-- Input Card -->
+        <androidx.cardview.widget.CardView
             android:layout_width="0dp"
-            android:layout_height="50dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="Type your message..."
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:background="@drawable/bg_input_rounded"
-            android:textColor="#F2F4FF"
-            android:textColorHint="#B0B0B0"
-            android:textSize="16sp"/>
+            app:cardCornerRadius="24dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="#FFFFFF">
 
-        <ImageButton
-            android:id="@+id/btnSend"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:src="@drawable/ic_check"
-            android:background="@drawable/bg_button_primary"
-            android:tint="@color/brand_gold"
-            android:layout_marginStart="12dp"
-            android:contentDescription="Send"
-            android:padding="12dp"
-            android:scaleType="fitCenter"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp">
 
+                <!-- Emoji Button -->
+                <ImageButton
+                    android:id="@+id/btnEmoji"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_slideshow"
+                    android:tint="#8B8B8B"
+                    android:contentDescription="Emoji"/>
+
+                <!-- Message Input -->
+                <EditText
+                    android:id="@+id/inputMessage"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:hint="Type a message"
+                    android:background="@android:color/transparent"
+                    android:textColor="#333333"
+                    android:textColorHint="#8B8B8B"
+                    android:textSize="16sp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:maxLines="4"
+                    android:inputType="textMultiLine"/>
+
+                <!-- Attachment Button -->
+                <ImageButton
+                    android:id="@+id/btnAttachment"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_add"
+                    android:tint="#8B8B8B"
+                    android:rotation="45"
+                    android:contentDescription="Attach"/>
+
+                <!-- Camera Button -->
+                <ImageButton
+                    android:id="@+id/btnCamera"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_camera"
+                    android:tint="#8B8B8B"
+                    android:contentDescription="Camera"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Send/Mic Button -->
+        <FrameLayout
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="6dp">
+
+            <!-- Send Button (visible when text entered) -->
+            <ImageButton
+                android:id="@+id/btnSend"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:background="@drawable/circle_bg"
+                android:backgroundTint="#C9A227"
+                android:src="@android:drawable/ic_menu_send"
+                android:tint="#FFFFFF"
+                android:padding="14dp"
+                android:elevation="4dp"
+                android:contentDescription="Send"
+                android:visibility="gone"/>
+
+            <!-- Mic Button (visible when no text) -->
+            <ImageButton
+                android:id="@+id/btnMic"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:background="@drawable/circle_bg"
+                android:backgroundTint="#C9A227"
+                android:src="@android:drawable/ic_btn_speak_now"
+                android:tint="#FFFFFF"
+                android:padding="12dp"
+                android:elevation="4dp"
+                android:contentDescription="Record Voice"/>
+        </FrameLayout>
     </LinearLayout>
+
+    <!-- Hidden buttons for backward compatibility -->
+    <!-- btnEndChat moved to header -->
+    <ImageButton
+        android:id="@+id/btnChart"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:visibility="gone"/>
+    <ImageButton
+        android:id="@+id/btnMatch"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:visibility="gone"/>
+    <ImageButton
+        android:id="@+id/btnEditIntake"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:visibility="gone"/>
+
 </RelativeLayout>

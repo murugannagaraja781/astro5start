@@ -226,10 +226,16 @@ fun HomeScreen(
 ) {
     val listState = rememberLazyListState()
 
+    // Light Cream Theme Colors
+    val LightCream = Color(0xFFFFF8F0)
+    val DarkText = Color(0xFF333333)
+    val GoldAccent = Color(0xFFC9A227)
+    val WhiteCard = Color(0xFFFFFFFF)
+
     Scaffold(
-        containerColor = RoyalMidnightBlue, // Base Background
+        containerColor = LightCream, // Light Cream Background
         topBar = {
-            HomeTopBar(walletBalance, onWalletClick, onLogoutClick)
+            HomeTopBarLight(walletBalance, onWalletClick, onLogoutClick)
         }
     ) { padding ->
         LazyColumn(
@@ -238,7 +244,7 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(RoyalMidnightBlue)
+                .background(LightCream)
         ) {
             // 1. Daily Horoscope Card
             item {
@@ -255,7 +261,7 @@ fun HomeScreen(
                 Text(
                     text = "ராசி பலன்",
                     style = MaterialTheme.typography.titleLarge,
-                    color = RoyalGold,
+                    color = Color(0xFFC9A227), // Gold
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
@@ -268,7 +274,7 @@ fun HomeScreen(
                 Text(
                     text = "பிரீமியம் ஆலோசனை",
                     style = MaterialTheme.typography.titleLarge,
-                    color = RoyalGold,
+                    color = Color(0xFFC9A227), // Gold
                     modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
                 )
             }
@@ -279,7 +285,7 @@ fun HomeScreen(
                     Box(modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = RoyalGold)
+                        CircularProgressIndicator(color = Color(0xFFC9A227))
                     }
                 }
             } else {
@@ -384,8 +390,91 @@ fun HomeTopBar(balance: Double, onWalletClick: () -> Unit, onLogoutClick: () -> 
     }
 }
 
+// Light Theme Top Bar
+@Composable
+fun HomeTopBarLight(balance: Double, onWalletClick: () -> Unit, onLogoutClick: () -> Unit) {
+    val GoldAccent = Color(0xFFC9A227)
+    val DarkText = Color(0xFF333333)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Logout Button
+            IconButton(onClick = onLogoutClick) {
+                Icon(
+                    painter = painterResource(id = android.R.drawable.ic_lock_power_off),
+                    contentDescription = "Logout",
+                    tint = GoldAccent
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Logo
+            Image(
+                painter = painterResource(id = R.drawable.logo_mayil),
+                contentDescription = "App Logo",
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, GoldAccent, CircleShape)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = "Astro 5 Star",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = GoldAccent
+                )
+                Text(
+                    text = "Divine Guidance",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF4CAF50) // Green
+                )
+            }
+        }
+
+        // Wallet Badge - Gold
+        Card(
+            onClick = onWalletClick,
+            shape = RoundedCornerShape(50),
+            colors = CardDefaults.cardColors(containerColor = GoldAccent),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Green dot
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(Color(0xFF4CAF50), CircleShape)
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Text(
+                    text = "₹${balance.toInt()}",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = Color.White
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun DailyHoroscopeCard(content: String) {
+    val GoldAccent = Color(0xFFC9A227)
+    val DarkText = Color(0xFF333333)
+
     // Breathing Animation
     val infiniteTransition = rememberInfiniteTransition(label = "CardBreath")
     val scale by infiniteTransition.animateFloat(
@@ -404,51 +493,32 @@ fun DailyHoroscopeCard(content: String) {
             .padding(16.dp)
             .scale(scale),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = PeacockTeal),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, RoyalGold.copy(alpha = 0.5f))
+        border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.5f))
     ) {
-        Box {
-            // Gradient Overlay for "Feather" feel
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                            colors = listOf(
-                                NebulaPurple, // Emerald
-                                GalaxyViolet, // Teal
-                                DeepSpaceNavy // Dark Green
-                            )
-                        )
-                    )
-            )
-
-            Column(
-                modifier = Modifier.padding(20.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_rasi_1), // Using a generic star/moon icon if avl, else Rasi 1
-                        contentDescription = null,
-                        tint = RoyalGold,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "இன்றைய ராசி பலன்",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = RoyalGold
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
+        Column(
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = content,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = SoftIvory,
-                    lineHeight = 26.sp
+                    text = "✨",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "இன்றைய ராசி பலன்",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = GoldAccent
                 )
             }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = content,
+                style = MaterialTheme.typography.bodyLarge,
+                color = DarkText,
+                lineHeight = 26.sp
+            )
         }
     }
 }
@@ -491,6 +561,9 @@ fun RasiGridSection(onClick: (ComposeRasiItem) -> Unit) {
 
 @Composable
 fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
+    val GoldAccent = Color(0xFFC9A227)
+    val DarkText = Color(0xFF333333)
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -500,15 +573,15 @@ fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
         Box(
             modifier = Modifier
                 .size(64.dp)
-                .background(MoonDarkGreen, CircleShape)
-                .border(2.dp, RoyalGold, CircleShape)
-                .clip(CircleShape), // Clip content to circle
+                .background(Color(0xFF1A1E28), CircleShape) // Dark background for rasi icons
+                .border(2.dp, GoldAccent, CircleShape)
+                .clip(CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Image(
                 painter = painterResource(id = item.iconRes),
                 contentDescription = item.name,
-                contentScale = ContentScale.Crop, // Fill the circle
+                contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -516,7 +589,7 @@ fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
         Text(
             text = item.name,
             style = MaterialTheme.typography.labelSmall,
-            color = SoftIvory,
+            color = DarkText, // Dark text for light theme
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -529,20 +602,24 @@ fun AstrologerCard(
     onChatClick: (Astrologer) -> Unit,
     onCallClick: (Astrologer, String) -> Unit
 ) {
+    val GoldAccent = Color(0xFFC9A227)
+    val DarkText = Color(0xFF333333)
+    val LightGreen = Color(0xFF4CAF50)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = PeacockTeal),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, RoyalGold.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.3f))
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Profile Image with "Eye" Border
+            // Profile Image
             Box {
                  Image(
                     painter = painterResource(id = R.drawable.ic_person_placeholder),
@@ -550,14 +627,14 @@ fun AstrologerCard(
                     modifier = Modifier
                         .size(72.dp)
                         .clip(CircleShape)
-                        .border(2.dp, RoyalGold, CircleShape)
+                        .border(2.dp, GoldAccent, CircleShape)
                 )
                 if (astro.isOnline) {
                     Box(
                         modifier = Modifier
                             .size(16.dp)
-                            .background(Color(0xFF00C853), CircleShape)
-                            .border(2.dp, RoyalMidnightBlue, CircleShape)
+                            .background(LightGreen, CircleShape)
+                            .border(2.dp, Color.White, CircleShape)
                             .align(Alignment.BottomEnd)
                     )
                 }
@@ -569,49 +646,76 @@ fun AstrologerCard(
                 Text(
                     text = astro.name,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = SoftIvory
+                    color = DarkText
                 )
                 Text(
                     text = "${astro.experience} Yrs • ${astro.skills.take(2).joinToString(", ")}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = PeacockGreen
+                    color = LightGreen
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "₹${astro.price}/min",
                     style = MaterialTheme.typography.titleSmall,
-                    color = RoyalGold
+                    color = GoldAccent
                 )
             }
         }
 
-        // Actions with Tonal Style
+        // Actions
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(RoyalMidnightBlue.copy(alpha = 0.4f))
+                .background(Color(0xFFF5F5F5))
                 .padding(10.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            ActionButton(
+            ActionButtonLight(
                 text = "அரட்டை",
                 icon = Icons.Rounded.Chat,
                 active = astro.isChatOnline,
                 onClick = { onChatClick(astro) }
             )
-            ActionButton(
-                text = "அழைப்பு", // Shortened from "Audio" for better fit
+            ActionButtonLight(
+                text = "அழைப்பு",
                 icon = Icons.Rounded.Call,
                 active = astro.isAudioOnline,
                 onClick = { onCallClick(astro, "audio") }
             )
-            ActionButton(
+            ActionButtonLight(
                 text = "வீடியோ",
                 icon = Icons.Rounded.VideoCall,
                 active = astro.isVideoOnline,
                 onClick = { onCallClick(astro, "video") }
             )
         }
+    }
+}
+
+@Composable
+fun ActionButtonLight(text: String, icon: ImageVector, active: Boolean, onClick: () -> Unit) {
+    val GoldAccent = Color(0xFFC9A227)
+    val containerColor = if (active) GoldAccent else Color(0xFFE0E0E0)
+    val contentColor = if (active) Color.White else Color(0xFF9E9E9E)
+
+    Button(
+        onClick = onClick,
+        enabled = active,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor,
+            contentColor = contentColor
+        ),
+        shape = RoundedCornerShape(12.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+        modifier = Modifier.height(36.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = text, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
     }
 }
 

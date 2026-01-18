@@ -41,6 +41,14 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import java.util.ArrayList
+import androidx.compose.foundation.Image
+import com.astro5star.app.ui.auth.AppBackground
+import com.astro5star.app.ui.auth.CardBackground
+import com.astro5star.app.ui.auth.GoldAccent
+import com.astro5star.app.ui.auth.TextWhite
+import com.astro5star.app.ui.auth.TextGrey
+import com.astro5star.app.ui.auth.PrimaryOrange
+import com.astro5star.app.ui.auth.GoldenRainEffect
 
 class WalletActivity : ComponentActivity() {
 
@@ -161,6 +169,8 @@ class WalletActivity : ComponentActivity() {
     }
 }
 
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WalletScreen(
@@ -171,204 +181,250 @@ fun WalletScreen(
 ) {
     var amountInput by remember { mutableStateOf("") }
 
-    Scaffold(
-        containerColor = DeepSpaceNavy,
-        topBar = {
-            TopAppBar(
-                title = { Text("எனது டிவைன் வாலட்", color = StarWhite, fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DeepSpaceNavy,
-                    titleContentColor = StarWhite
-                ),
-                actions = {
-                    IconButton(onClick = onRefreshHistory) {
-                        Icon(Icons.Rounded.History, contentDescription = "புதுப்பி", tint = MetallicGold)
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        LazyColumn(
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppBackground)
+    ) {
+         // Background Effect
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .background(DeepSpaceNavy)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            // 1. Balance Card (Credit Card Style)
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, AntiqueGold.copy(alpha = 0.5f))
-                ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        // Background Gradient
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.linearGradient(
-                                        listOf(CosmicBlue, NebulaPurple)
-                                    )
-                                )
-                        )
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(GoldAccent.copy(alpha = 0.15f), Color.Transparent),
+                        center = androidx.compose.ui.geometry.Offset(500f, 500f),
+                        radius = 1000f
+                    )
+                )
+        )
+        GoldenRainEffect()
 
-                        // Texture/Pattern circles
-                        Box(
-                            modifier = Modifier
-                                .offset(x = 100.dp, y = (-50).dp)
-                                .size(200.dp)
-                                .background(GalaxyViolet.copy(alpha = 0.1f), CircleShape)
-                        )
-
-                        // Content
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(24.dp),
-                            verticalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("கிடைக்கும் இருப்பு", color = CardText.copy(alpha = 0.7f))
-                                Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null, tint = MetallicGold)
-                            }
-
-                            Text(
-                                text = "₹ ${balance.toInt()}",
-                                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-                                color = PremiumGold
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Astro 5 Star", color = PremiumGold, fontWeight = FontWeight.Bold)
-                                Text("**** **** 8888", color = CardText.copy(alpha = 0.5f))
-                            }
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = { Text("My Divine Wallet", color = GoldAccent, fontWeight = FontWeight.Bold, fontSize = 22.sp) },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = GoldAccent
+                    ),
+                    actions = {
+                        IconButton(onClick = onRefreshHistory) {
+                            Icon(Icons.Rounded.History, contentDescription = "Refresh", tint = TextWhite)
                         }
                     }
-                }
-            }
-
-            // 2. Add Money Section
-            item {
-                Text(
-                    text = "வாலட்டை ரீசார்ஜ் செய்யவும்",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MetallicGold
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = amountInput,
-                        onValueChange = { amountInput = it.filter { char -> char.isDigit() } },
-                        label = { Text("தொகையை உள்ளிடவும் (₹)", color = ConstellationCyan) },
-                        modifier = Modifier.weight(1f),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = MetallicGold,
-                            unfocusedBorderColor = AntiqueGold,
-                            containerColor = CosmicBlue.copy(alpha = 0.3f), // Transparent-ish
-                            focusedTextColor = StarWhite,
-                            unfocusedTextColor = StarWhite
-                        ),
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Button(
-                        onClick = {
-                            val amt = amountInput.toIntOrNull() ?: 0
-                            onAddMoney(amt)
-                        },
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MetallicGold),
-                        modifier = Modifier
-                            .height(56.dp)
-                            .width(80.dp),
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Icon(Icons.Rounded.AddCircle, contentDescription = "சேர்", tint = DeepSpaceNavy, modifier = Modifier.size(28.dp))
-                    }
-                }
-            }
-
-            // 3. Transactions List
-            item {
-                Text(
-                    text = "பரிவர்த்தனை வரலாறு",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MetallicGold
                 )
             }
-
-            items(transactions) { transaction ->
-                val amount = transaction.optDouble("amount", 0.0)
-                val status = transaction.optString("status", "pending")
-                val dateStr = transaction.optString("createdAt", "")
-                // Simple parser for demonstration
-                val displayDate = if(dateStr.length > 10) dateStr.substring(0, 10) else dateStr
-
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = CosmicBlue.copy(alpha = 0.5f)),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
+        ) { padding ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // 1. Balance Card (Premium Gold Card)
+                item {
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .height(200.dp)
+                            .border(1.dp, GoldAccent.copy(alpha=0.6f), RoundedCornerShape(18.dp)),
+                        shape = RoundedCornerShape(18.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardBackground)
                     ) {
-                        // Icon based on status
-                        Box(
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            // Subtle Gold Gradient Overlay
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.linearGradient(
+                                            colors = listOf(
+                                                Color(0xFF2C241B), // Dark Cocoa
+                                                Color(0xFF000000)
+                                            )
+                                        )
+                                    )
+                            )
+
+                            // Decorative Circles
+                             Box(
+                                modifier = Modifier
+                                    .offset(x = 180.dp, y = (-80).dp)
+                                    .size(250.dp)
+                                    .background(GoldAccent.copy(alpha = 0.05f), CircleShape)
+                            )
+
+                            // Content
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(24.dp),
+                                verticalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Available Balance", color = TextGrey, fontSize = 14.sp)
+                                    Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null, tint = GoldAccent)
+                                }
+
+                                Text(
+                                    text = "₹ ${balance.toInt()}",
+                                    style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = TextWhite
+                                )
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("ASTRO 5 STAR", color = GoldAccent, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                                    Text("**** 8888", color = TextGrey)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 2. Decorative Divider
+                item {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                         Image(
+                            painter = painterResource(id = R.drawable.gold_frame_divider),
+                            contentDescription = "Divider",
                             modifier = Modifier
-                                .size(40.dp)
-                                .background(DeepSpaceNavy, CircleShape)
-                                .border(1.dp, AntiqueGold.copy(alpha=0.3f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                           Text(
-                               text = if (status == "success") "✓" else "!",
-                               color = if(status=="success") Color(0xFF00C853) else GalaxyViolet,
-                               fontWeight = FontWeight.Bold
-                           )
-                        }
+                                .fillMaxWidth(0.8f)
+                                .height(40.dp),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Fit
+                        )
+                    }
+                }
 
-                        Spacer(modifier = Modifier.width(16.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "${status.uppercase()}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (status == "success") Color(0xFF00C853) else GalaxyViolet,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = displayDate,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = CardText.copy(alpha=0.6f)
-                            )
-                        }
-
+                // 3. Add Money Section
+                item {
+                    Column {
                         Text(
-                            text = "₹${amount.toInt()}",
+                            text = "Add Funds",
                             style = MaterialTheme.typography.titleMedium,
-                            color = CardText,
+                            color = TextWhite,
                             fontWeight = FontWeight.Bold
                         )
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            OutlinedTextField(
+                                value = amountInput,
+                                onValueChange = { amountInput = it.filter { char -> char.isDigit() } },
+                                label = { Text("Amount (₹)", color = TextGrey) },
+                                modifier = Modifier.weight(1f),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = GoldAccent,
+                                    unfocusedBorderColor = GoldAccent.copy(alpha=0.3f),
+                                    focusedContainerColor = CardBackground,
+                                    unfocusedContainerColor = CardBackground,
+                                    cursorColor = GoldAccent,
+                                    focusedTextColor = TextWhite,
+                                    unfocusedTextColor = TextWhite,
+                                    focusedLabelColor = GoldAccent,
+                                    unfocusedLabelColor = TextGrey
+                                ),
+                                singleLine = true
+                            )
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Button(
+                                onClick = {
+                                    val amt = amountInput.toIntOrNull() ?: 0
+                                    onAddMoney(amt)
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryOrange), // Orange for Action
+                                modifier = Modifier
+                                    .height(56.dp)
+                                    .width(80.dp),
+                                contentPadding = PaddingValues(0.dp)
+                            ) {
+                                Icon(Icons.Rounded.AddCircle, contentDescription = "Add", tint = TextWhite, modifier = Modifier.size(28.dp))
+                            }
+                        }
+                    }
+                }
+
+                // 4. Transactions List
+                item {
+                     Text(
+                        text = "History",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextWhite,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                items(transactions) { transaction ->
+                    val amount = transaction.optDouble("amount", 0.0)
+                    val status = transaction.optString("status", "pending")
+                    val dateStr = transaction.optString("createdAt", "")
+                    val displayDate = if(dateStr.length > 10) dateStr.substring(0, 10) else dateStr
+
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = CardBackground),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, GoldAccent.copy(alpha=0.1f), RoundedCornerShape(12.dp))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Status Icon
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(AppBackground, CircleShape)
+                                    .border(1.dp, if(status == "success") Color(0xFF4CAF50) else PrimaryOrange, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                               Text(
+                                   text = if (status == "success") "✓" else "!",
+                                   color = if(status=="success") Color(0xFF4CAF50) else PrimaryOrange,
+                                   fontWeight = FontWeight.Bold
+                               )
+                            }
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = status.uppercase(),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (status == "success") Color(0xFF4CAF50) else PrimaryOrange,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = displayDate,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextGrey
+                                )
+                            }
+
+                            Text(
+                                text = "₹${amount.toInt()}",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = GoldAccent,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }

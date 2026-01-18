@@ -93,15 +93,19 @@ class MainActivity : AppCompatActivity() {
                 }
                 "admin" -> {
                     // Placeholder for now, typically native or webview
-                    startActivity(Intent(this, com.astro5star.app.ui.guest.GuestDashboardActivity::class.java))
+                    val intent = Intent(this, com.astro5star.app.ui.dashboard.ClientDashboardActivity::class.java)
+                    intent.putExtra("IS_GUEST", true)
+                    startActivity(intent)
                 }
                 else -> { // "user" or default
-                    startActivity(Intent(this, HomeActivity::class.java))
+                    startActivity(Intent(this, com.astro5star.app.ui.dashboard.ClientDashboardActivity::class.java))
                 }
             }
         } else {
             Log.d(TAG, "User not logged in, going to Guest Dashboard")
-            startActivity(Intent(this, com.astro5star.app.ui.guest.GuestDashboardActivity::class.java))
+            val intent = Intent(this, com.astro5star.app.ui.dashboard.ClientDashboardActivity::class.java)
+            intent.putExtra("IS_GUEST", true)
+            startActivity(intent)
         }
         finish()
     }

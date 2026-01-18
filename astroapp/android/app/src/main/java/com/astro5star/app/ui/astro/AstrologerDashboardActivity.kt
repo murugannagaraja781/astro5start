@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.data.remote.SocketManager
-import com.astro5star.app.ui.guest.GuestDashboardActivity
+import com.astro5star.app.ui.auth.LoginActivity
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -85,7 +85,7 @@ class AstrologerDashboardActivity : ComponentActivity() {
     private fun performLogout() {
         tokenManager.clearSession()
         SocketManager.disconnect()
-        val intent = Intent(this, GuestDashboardActivity::class.java)
+        val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()

@@ -43,17 +43,23 @@ class CallActivity : AppCompatActivity() {
     // Queue for ICE candidates received before remote description is set
     private val pendingIceCandidates = LinkedList<IceCandidate>()
 
+    // CORRECT TURN Configuration for Mobile Networks
+    // Priority: TURNS (443 TLS) first → TURN (3478 UDP) fallback
     private val iceServers = listOf(
-        PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
-        // Custom TURN Server
-        PeerConnection.IceServer.builder("turn:68.183.244.27:3478")
+        // PRIMARY: TURNS over TLS on port 443 (Works on ALL mobile networks!)
+        PeerConnection.IceServer.builder("turns:turn.astro5star.com:443?transport=tcp")
             .setUsername("turnuser")
             .setPassword("VeryStrongPasswordHere2025!")
             .createIceServer(),
-        PeerConnection.IceServer.builder("turn:68.183.244.27:3478?transport=tcp")
+
+        // FALLBACK: TURN over UDP on port 3478 (For Wi-Fi/unrestricted networks)
+        PeerConnection.IceServer.builder("turn:turn.astro5star.com:3478?transport=udp")
             .setUsername("turnuser")
             .setPassword("VeryStrongPasswordHere2025!")
-            .createIceServer()
+            .createIceServer(),
+
+        // STUN as last resort (peer-to-peer if possible)
+        PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
     )
 
     private var isMuted = false

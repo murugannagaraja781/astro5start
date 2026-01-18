@@ -1,21 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
+    android:background="#0E0B08"
     tools:context=".IncomingCallActivity">
 
-    <!-- Top Status Bar Area (Optional) -->
+    <!-- Background Glow Effect (Optional) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="400dp"
+        android:background="@drawable/bg_gradient_gold_overlay"
+        android:alpha="0.1"/>
+
+    <!-- Top Status Bar Area -->
     <TextView
         android:id="@+id/tvIncomingLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="100dp"
-        android:text="Incoming call"
-        android:textColor="@color/text_secondary"
-        android:textSize="16sp" />
+        android:layout_marginTop="80dp"
+        android:text="Incoming Call"
+        android:textColor="#D4AF37"
+        android:letterSpacing="0.1"
+        android:textAllCaps="true"
+        android:textSize="14sp"
+        android:textStyle="bold" />
 
     <!-- Center Avatar Area -->
     <LinearLayout
@@ -26,41 +37,50 @@
         android:orientation="vertical"
         android:gravity="center">
 
-        <!-- Avatar Container with Shadow/Glow effect simulated by background -->
+        <!-- Avatar Container with Gold Border -->
         <FrameLayout
-            android:layout_width="160dp"
-            android:layout_height="160dp"
-            android:background="@drawable/circle_bg"
-            android:backgroundTint="@color/surface"
-            android:padding="20dp">
+            android:layout_width="180dp"
+            android:layout_height="180dp"
+            android:background="@drawable/circle_bg_gold_border"
+            android:padding="8dp">
 
-            <ImageView
-                android:id="@+id/ivAvatar"
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:src="@drawable/ic_person_placeholder"
-                android:scaleType="centerCrop" />
+                app:cardCornerRadius="90dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#2C2118">
+
+                <ImageView
+                    android:id="@+id/ivAvatar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_person_placeholder"
+                    android:scaleType="centerCrop" />
+            </androidx.cardview.widget.CardView>
         </FrameLayout>
 
-        <Space android:layout_width="match_parent" android:layout_height="24dp" />
+        <Space android:layout_width="match_parent" android:layout_height="32dp" />
 
         <TextView
             android:id="@+id/callerNameText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Astrologer Name"
-            android:textColor="@color/text_primary"
-            android:textSize="24sp"
-            android:textStyle="bold" />
+            android:textColor="#FFFFFF"
+            android:textSize="28sp"
+            android:fontFamily="sans-serif-medium"
+            android:textStyle="bold"
+            android:gravity="center"/>
 
         <TextView
             android:id="@+id/callerIdText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="8dp"
             android:text="Calling..."
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp" />
+            android:textColor="#B0B0B0"
+            android:textSize="16sp" />
 
     </LinearLayout>
 
@@ -69,7 +89,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_marginBottom="60dp"
+        android:layout_marginBottom="80dp"
         android:gravity="center"
         android:orientation="horizontal">
 
@@ -84,21 +104,25 @@
                 android:id="@+id/rejectButton"
                 android:layout_width="72dp"
                 android:layout_height="72dp"
-                android:background="@drawable/btn_rounded_action_red"
+                android:background="@drawable/btn_circle_red_ripple"
                 android:src="@android:drawable/ic_menu_close_clear_cancel"
                 android:tint="#FFFFFF"
+                android:elevation="8dp"
                 android:contentDescription="Decline" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Decline"
-                android:textColor="@color/text_secondary"
+                android:textColor="#FF5252"
                 android:textSize="12sp"
-                android:layout_marginTop="8dp"/>
+                android:layout_marginTop="12dp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.05"
+                android:textStyle="bold"/>
         </LinearLayout>
 
-        <Space android:layout_width="40dp" android:layout_height="wrap_content" />
+        <Space android:layout_width="80dp" android:layout_height="wrap_content" />
 
         <!-- Accept Button -->
         <LinearLayout
@@ -111,21 +135,23 @@
                 android:id="@+id/acceptButton"
                 android:layout_width="72dp"
                 android:layout_height="72dp"
-                android:background="@drawable/btn_rounded_action_green"
+                android:background="@drawable/btn_circle_green_ripple"
                 android:src="@android:drawable/ic_menu_call"
                 android:tint="#FFFFFF"
+                android:elevation="8dp"
                 android:contentDescription="Accept" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Accept"
-                android:textColor="@color/text_secondary"
+                android:textColor="#00E676"
                 android:textSize="12sp"
-                android:layout_marginTop="8dp"/>
+                android:layout_marginTop="12dp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.05"
+                android:textStyle="bold"/>
         </LinearLayout>
-
-
 
     </LinearLayout>
 

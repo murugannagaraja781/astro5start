@@ -18,10 +18,23 @@ import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.data.remote.SocketManager
 import com.astro5star.app.utils.SoundManager
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 
 // Status: "sent", "delivered", "read"
-data class ChatMessage(val text: String, val isSent: Boolean, var status: String = "sent")
+data class ChatMessage(
+    val text: String,
+    val isSent: Boolean,
+    var status: String = "sent",
+    val timestamp: Long = System.currentTimeMillis()
+) {
+    fun getFormattedTime(): String {
+        val sdf = SimpleDateFormat("hh:mm a", Locale.getDefault())
+        return sdf.format(Date(timestamp))
+    }
+}
 
 class ChatActivity : AppCompatActivity() {
 
@@ -185,12 +198,20 @@ class ChatActivity : AppCompatActivity() {
             recyclerChat?.layoutManager = LinearLayoutManager(this)
             recyclerChat?.adapter = adapter
 
-            // Typing Indicator Listeners
+            // Get send and mic buttons
+            val btnMic = findViewById<android.widget.ImageButton>(R.id.btnMic)
+
+            // Typing Indicator Listeners + Send/Mic Toggle
             inputMessage.addTextChangedListener(object : android.text.TextWatcher {
                 override fun afterTextChanged(s: android.text.Editable?) {}
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                     try {
+                        // Toggle Send/Mic button based on text
+                        val hasText = !s.isNullOrEmpty()
+                        btnSend.visibility = if (hasText) View.VISIBLE else View.GONE
+                        btnMic.visibility = if (hasText) View.GONE else View.VISIBLE
+
                         if (sessionId != null) {
                            if (!isTyping) {
                                isTyping = true
@@ -205,6 +226,11 @@ class ChatActivity : AppCompatActivity() {
                     } catch (e: Exception) { e.printStackTrace() }
                 }
             })
+
+            // Mic button for voice recording (placeholder)
+            btnMic.setOnClickListener {
+                Toast.makeText(this, "Hold to record voice message", Toast.LENGTH_SHORT).show()
+            }
 
             btnSend.setOnClickListener {
                 try {
@@ -382,13 +408,26 @@ class ChatActivity : AppCompatActivity() {
             val msg = list[position]
             if (holder is SentHolder) {
                 holder.text.text = msg.text
-                if (msg.status == "read") {
-                    holder.status.setImageResource(R.drawable.ic_double_check)
-                } else {
-                    holder.status.setImageResource(R.drawable.ic_check)
+                holder.time.text = msg.getFormattedTime()
+
+                // Update status icon based on message status
+                when (msg.status) {
+                    "read" -> {
+                        holder.status.setImageResource(R.drawable.ic_double_check)
+                        holder.status.setColorFilter(0xFF34B7F1.toInt()) // Blue ticks
+                    }
+                    "delivered" -> {
+                        holder.status.setImageResource(R.drawable.ic_double_check)
+                        holder.status.setColorFilter(0xFF8B8B8B.toInt()) // Grey ticks
+                    }
+                    else -> {
+                        holder.status.setImageResource(R.drawable.ic_check)
+                        holder.status.setColorFilter(0xFF8B8B8B.toInt()) // Grey single tick
+                    }
                 }
             } else if (holder is ReceivedHolder) {
                 holder.text.text = msg.text
+                holder.time.text = msg.getFormattedTime()
             }
         }
 
@@ -396,10 +435,12 @@ class ChatActivity : AppCompatActivity() {
 
         class SentHolder(view: View) : RecyclerView.ViewHolder(view) {
             val text: TextView = view.findViewById(R.id.textMessage)
+            val time: TextView = view.findViewById(R.id.tvTime)
             val status: ImageView = view.findViewById(R.id.ivStatus)
         }
         class ReceivedHolder(view: View) : RecyclerView.ViewHolder(view) {
             val text: TextView = view.findViewById(R.id.textMessage)
+            val time: TextView = view.findViewById(R.id.tvTime)
         }
     }
 }
