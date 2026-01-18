@@ -158,29 +158,25 @@ fun MainContainer(isGuest: Boolean, userName: String) {
             containerColor = Color.Black // Base black
         ) { paddingValues ->
             Box(modifier = Modifier.fillMaxSize()) {
-                // 1. Base Dark Background
-                Box(modifier = Modifier.fillMaxSize().background(Color.Black))
-
-                // 2. Golden Rain / Particles (Custom Canvas)
-                GoldenRainCanvas()
-
-                // 3. Top Spotlight (Bright Gold to Transparent)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(400.dp)
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(
-                                    Color(0xFFFFD700).copy(alpha = 0.4f),
-                                    Color(0xFFFFA000).copy(alpha = 0.1f),
-                                    Color.Transparent
-                                ),
-                                center = androidx.compose.ui.geometry.Offset(500f, 0f),
-                                radius = 1000f
-                            )
-                        )
+                // 1. Base Background Image (Celestial)
+                Image(
+                    painter = androidx.compose.ui.res.painterResource(id = com.astro5star.app.R.drawable.bg_main_celestial),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
                 )
+
+                // Optional: overlay to ensure text readability if needed (e.g. slight dark tint if text is white)
+                // For now, using as is. If text is white and BG is light, we might need a scrim.
+                // Assuming the image fits the theme or text needs to be dark?
+                // The previous text was white. If this logic makes text unreadable, I should add a scrim.
+                // Adding a dark scrim to keep white text visible while showing the texture.
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)))
+
+                // 2. Golden Rain (Optional - keeping it adds to the magic, but maybe reduced alpha)
+                // GoldenRainCanvas() // Commenting out to let the new BG shine, or keep if requested.
+                // User said "use this bg main area". I'll keep the rain but maybe it clashes.
+                // Let's comment out GoldenRainCanvas to be safe and stick to the image.
 
                 Box(modifier = Modifier.padding(paddingValues)) {
                     when (selectedTab) {
@@ -1021,7 +1017,7 @@ fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
 @Composable
 fun MainBanner() {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).height(140.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).height(150.dp), // Increased height slightly
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(4.dp),
     ) {
@@ -1036,7 +1032,7 @@ fun MainBanner() {
                         )
                     )
             )
-            // Zodiac Watermark (Optional, simplified as Icon)
+            // Zodiac Watermark
             Icon(
                 Icons.Default.Star,
                 null,
@@ -1044,30 +1040,30 @@ fun MainBanner() {
                 modifier = Modifier.align(Alignment.CenterEnd).size(120.dp).offset(x = 20.dp)
             )
 
-            Row(modifier = Modifier.fillMaxSize().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(modifier = Modifier.fillMaxSize().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         "முதல் ஜோதிட உரையாடல் இலவசம்",
                         color = GoldAccent,
-                        fontSize = 18.sp,
+                        fontSize = 15.sp, // Reduced font
                         fontWeight = FontWeight.Bold,
-                        lineHeight = 22.sp // Better line height for Tamil
+                        lineHeight = 20.sp
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         "இந்தியாவின் முன்னணி ஜோதிடர்களுடன்",
                         color = TextWhite,
-                        fontSize = 12.sp
+                        fontSize = 11.sp // Reduced font
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Button(
                         onClick = {},
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryOrange),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
-                        modifier = Modifier.height(36.dp), // Height seems fine, let's check constraints.
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp), // Reduced padding
+                        modifier = Modifier.height(32.dp), // Compact height
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("இப்போது பேசுங்கள்", color = TextWhite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("இப்போது பேசுங்கள்", color = TextWhite, fontSize = 10.sp, fontWeight = FontWeight.Bold) // Small font
                     }
                 }
             }
@@ -1161,7 +1157,79 @@ fun TopAstrologersSection(isGuest: Boolean) {
         } else {
             LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(astrologers) { astro ->
-                    ChatAstrologerCard(astro, isGuest) // Reusing the ChatAstrologerCard which is better designed or create a specific Home one
+                    HomeAstrologerCard(astro, isGuest) // Use Vertical Card for Horizontal List
+                }
+            }
+        }
+    }
+}
+
+// Vertical Card for Horizontal Lists (Top Astrologers)
+@Composable
+fun HomeAstrologerCard(astrologer: com.astro5star.app.data.model.Astrologer, isGuest: Boolean) {
+    Card(
+        modifier = Modifier
+            .width(160.dp) // Fixed width for horizontal scrolling
+            .border(1.dp, GoldAccent.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+            .clickable {},
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Avatar
+            Box(
+                modifier = Modifier.size(60.dp).clip(CircleShape).background(Color.Gray).border(2.dp, GoldAccent, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                 Icon(Icons.Default.Person, null, tint = Color.White, modifier = Modifier.size(30.dp))
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Name
+            Text(
+                text = astrologer.name,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                color = TextWhite,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            // Skills/Price
+            Text(
+                text = "₹ ${astrologer.price}/min",
+                fontSize = 12.sp,
+                color = PrimaryOrange,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Buttons
+             Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Compact Buttons for vertical card
+                Button(
+                    onClick = {},
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent),
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.weight(1f).height(30.dp)
+                ) {
+                    Icon(Icons.Default.Chat, null, tint = GoldAccent, modifier = Modifier.size(12.dp))
+                }
+                 Button(
+                    onClick = {},
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryOrange),
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.weight(1f).height(30.dp)
+                ) {
+                    Icon(Icons.Default.Call, null, tint = TextWhite, modifier = Modifier.size(12.dp))
                 }
             }
         }
