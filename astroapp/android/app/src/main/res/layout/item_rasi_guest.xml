@@ -39,7 +39,7 @@
         android:layout_height="wrap_content"
         android:text="மேஷம்"
         android:textSize="11sp"
-        android:textColor="#333333"
+        android:textColor="@color/white"
         android:textStyle="bold"
         android:layout_marginTop="6dp"
         android:maxLines="1"

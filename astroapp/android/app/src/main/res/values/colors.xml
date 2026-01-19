@@ -1,112 +1,122 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- PREMIUM GREEN PALETTE -->
-    <!-- 1. Base Background - Warm White (Spiritual) -->
-    <color name="royal_midnight_blue">#FFF8EE</color>
+    <!-- ASTROCONNECT DESIGN SYSTEM PALETTE -->
 
-    <!-- 2. Main Identity - Luxury Green (Cards) -->
-    <color name="peacock_teal">#003D33</color>
+    <!-- 1. Primary Colors (Space & Purple) -->
+    <color name="space_900">#0f172a</color> <!-- Primary Background, Status Bar -->
+    <color name="space_800">#1e293b</color> <!-- Cards, Bottom Sheets -->
+    <color name="space_700">#334155</color> <!-- Borders, Dividers -->
+    <color name="purple_600">#6366f1</color> <!-- Primary Actions, FABs -->
+    <color name="purple_500">#8b5cf6</color> <!-- Accents -->
+    <color name="purple_100">#e0e7ff</color> <!-- Light Backgrounds -->
 
-    <!-- 3. Accent - Bright Emerald / Neon Green -->
-    <color name="peacock_green">#69F0AE</color>
+    <!-- 2. Accent Colors (Gold & Orange) -->
+    <color name="gold_500">#f59e0b</color> <!-- Icons, Stars -->
+    <color name="gold_400">#fbbf24</color> <!-- Gradient Start -->
+    <color name="orange_600">#ea580c</color> <!-- Brand Text -->
+    <color name="orange_100">#ffedd5</color> <!-- Light Orange BG -->
 
-    <!-- 4. Highlight - Bright Gold -->
-    <color name="royal_gold">#FFD700</color>
+    <!-- 3. Functional Colors -->
+    <color name="background_light">#f9fafb</color>
+    <color name="surface_white">#ffffff</color>
+    <color name="text_primary">#111827</color>
+    <color name="text_secondary">#4b5563</color>
+    <color name="text_placeholder">#9ca3af</color>
 
-    <!-- 5. Feather Glow - Soft Green/Gold for gradients -->
-    <color name="feather_glow">#00BFA5</color>
-
-    <!-- 6. Text - Charcoal Dark (#333333) -->
-    <color name="soft_ivory">#333333</color>
-
-    <!-- 7. Text on Card - Charcoal Dark (for Silver Card) -->
-    <color name="text_on_card">#333333</color>
+    <!-- 4. Legacy Mappings (To prevent crashes) -->
+    <!-- Mapping old "Violet" names to new Design System -->
+    <color name="royal_midnight_blue">@color/space_900</color>
+    <color name="peacock_teal">@color/purple_600</color>
+    <color name="peacock_green">@color/purple_500</color>
+    <color name="royal_gold">@color/gold_500</color>
+    <color name="feather_glow">@color/purple_500</color>
+    <color name="soft_ivory">@color/text_primary</color>
+    <color name="text_on_card">@color/text_primary</color>
     <color name="void_black">#000000</color>
     <color name="error_red">#CF6679</color>
-    <color name="status_green">#00C853</color>
-    <color name="status_red">#D50000</color>
+    <color name="status_green">#10B981</color> <!-- Emerald 500 equivalent -->
+    <color name="status_red">#EF4444</color>   <!-- Red 500 equivalent -->
 
-    <!-- Mappings for System/Legacy -->
-    <color name="colorPrimary">@color/peacock_teal</color>
-    <color name="colorPrimaryDark">@color/royal_midnight_blue</color>
-    <color name="colorAccent">@color/peacock_green</color>
+    <!-- System Mappings -->
+    <color name="colorPrimary">@color/purple_600</color>
+    <color name="colorPrimaryDark">@color/space_900</color>
+    <color name="colorAccent">@color/gold_500</color>
 
-    <color name="primary">@color/peacock_teal</color>
-    <color name="primary_variant">@color/royal_midnight_blue</color>
+    <color name="primary">@color/purple_600</color>
+    <color name="primary_variant">@color/space_900</color>
     <color name="on_primary">#FFFFFF</color>
 
-    <color name="secondary">@color/royal_gold</color>
-    <color name="secondary_variant">@color/peacock_green</color>
-    <color name="on_secondary">@color/royal_midnight_blue</color>
+    <color name="secondary">@color/gold_500</color>
+    <color name="secondary_variant">@color/gold_400</color>
+    <color name="on_secondary">@color/space_900</color>
 
-    <color name="background">@color/royal_midnight_blue</color>
-    <color name="on_background">@color/soft_ivory</color>
+    <color name="background">@color/background_light</color>
+    <color name="on_background">@color/text_primary</color>
 
-    <color name="surface">@color/brand_card_white</color> <!-- Mapped to White Card -->
-    <color name="on_surface">@color/soft_ivory</color>
+    <color name="surface">@color/surface_white</color>
+    <color name="on_surface">@color/text_primary</color>
 
     <color name="error">@color/error_red</color>
-    <color name="on_error">@color/void_black</color>
+    <color name="on_error">#FFFFFF</color>
 
     <color name="status_online">@color/status_green</color>
     <color name="status_busy">@color/status_red</color>
-    <color name="divider">@color/peacock_green</color>
+    <color name="divider">@color/space_700</color>
     <color name="white">#FFFFFF</color>
     <color name="black">@color/void_black</color>
 
-    <!-- LEGACY COMPATIBILITY -->
-    <color name="text_primary">@color/soft_ivory</color>
-    <color name="text_secondary">@color/royal_gold</color>
+    <!-- Legacy Compatibility Mappings -->
+    <color name="text_primary_old">@color/text_primary</color> <!-- Renamed to avoid duplicate -->
     <color name="text_white">#FFFFFF</color>
-    <color name="text_on_red">@color/soft_ivory</color>
-    <color name="text_muted">#B0BEC5</color>
-    <color name="text_on_primary">@color/soft_ivory</color>
+    <color name="text_on_red">#FFFFFF</color>
+    <color name="text_muted">@color/text_secondary</color>
+    <color name="text_on_primary">#FFFFFF</color>
 
-    <color name="brand_true_red">@color/peacock_teal</color> <!-- Replaced Red with Dark Green -->
-    <color name="brand_true_red_dark">@color/royal_midnight_blue</color>
-    <color name="brand_bg_soft">#FFF8EE</color>
-    <color name="brand_card_white">#FFFFFF</color>
-    <color name="bg_surface_variant">@color/peacock_teal</color>
-    <color name="divider_cream">@color/peacock_green</color>
-    <color name="divider_gold">@color/royal_gold</color>
-    <color name="brand_ripple">@color/peacock_green</color>
-
-    <color name="brand_avocado">@color/royal_gold</color>
-    <color name="brand_gold">@color/royal_gold</color>
-    <color name="brand_orange">@color/peacock_green</color>
-    <color name="brand_purple">@color/peacock_teal</color>
-    <color name="brand_emerald_royal">@color/peacock_green</color>
-    <color name="brand_emerald_dark">@color/peacock_teal</color>
-    <color name="brand_gold_dark">@color/royal_gold</color>
+    <color name="brand_true_red">@color/purple_600</color>
+    <color name="brand_true_red_dark">@color/space_900</color>
+    <color name="brand_bg_soft">@color/purple_100</color>
+    <color name="brand_card_white">@color/surface_white</color>
+    <color name="bg_surface_variant">@color/purple_100</color>
+    <color name="divider_cream">@color/space_700</color>
+    <color name="divider_gold">@color/gold_500</color>
+    <color name="brand_ripple">@color/purple_100</color>
+    <color name="brand_avocado">@color/gold_500</color>
+    <color name="brand_gold">@color/gold_500</color>
+    <color name="brand_orange">@color/orange_600</color>
+    <color name="brand_purple">@color/purple_600</color>
+    <color name="brand_emerald_royal">@color/purple_500</color>
+    <color name="brand_emerald_dark">@color/space_800</color>
+    <color name="brand_gold_dark">@color/gold_500</color>
     <color name="brand_status_online">@color/status_green</color>
-    <color name="avatar_background">@color/peacock_teal</color>
-    <color name="accent">@color/royal_gold</color>
+    <color name="avatar_background">@color/purple_100</color>
+    <color name="accent">@color/gold_500</color>
 
-    <color name="neuro_indigo">@color/royal_midnight_blue</color>
-    <color name="galaxy_blue">@color/peacock_teal</color>
-    <color name="kuber_gold">@color/royal_gold</color>
-    <color name="muted_gold">@color/royal_gold</color>
-    <color name="starlight_white">@color/soft_ivory</color>
-    <color name="nebula_blue">@color/peacock_teal</color>
-    <color name="nebula_purple">@color/peacock_teal</color>
+    <color name="neuro_indigo">@color/space_900</color>
+    <color name="galaxy_blue">@color/space_800</color>
+    <color name="kuber_gold">@color/gold_500</color>
+    <color name="muted_gold">@color/gold_400</color>
+    <color name="starlight_white">@color/surface_white</color>
+    <color name="nebula_blue">@color/purple_600</color>
+    <color name="nebula_purple">@color/purple_500</color>
 
     <!-- Gradient Colors -->
-    <color name="gradient_start">#004D25</color>
-    <color name="gradient_center">#003318</color>
-    <color name="gradient_end">#001A05</color>
+    <color name="gradient_start">@color/space_900</color>
+    <color name="gradient_center">@color/space_800</color>
+    <color name="gradient_end">@color/purple_600</color>
 
     <!-- Default Material colors -->
-    <color name="purple_200">@color/peacock_green</color>
-    <color name="purple_500">@color/peacock_teal</color>
-    <color name="purple_700">@color/royal_midnight_blue</color>
-    <color name="teal_200">@color/peacock_green</color>
-    <color name="teal_700">@color/peacock_green</color>
+    <color name="purple_200">@color/purple_100</color>
+    <color name="purple_500_legacy">@color/purple_500</color>
+    <color name="purple_700">@color/purple_600</color>
+    <color name="teal_200">@color/gold_400</color>
+    <color name="teal_700">@color/gold_500</color>
 
     <!-- Call Colors -->
-    <color name="call_accept">#00E676</color>
-    <color name="call_reject">#FF5252</color>
+    <color name="call_accept">@color/status_green</color>
+    <color name="call_reject">@color/status_red</color>
 
     <!-- Action Button Colors -->
-    <color name="action_chat">@color/peacock_green</color>
-    <color name="action_call">@color/royal_gold</color>
+    <color name="action_chat">@color/purple_600</color>
+    <color name="action_call">@color/gold_500</color>
+
 </resources>

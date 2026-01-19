@@ -334,12 +334,23 @@ fun AstrologerDashboardScreen(
 
 @Composable
 fun ServiceToggleRow(userId: String) {
+    val context = LocalContext.current
     val services = remember {
         mutableStateListOf(
-            ServiceData("Chat", false, Icons.Default.Chat),  // FIX: Initially OFF
+            ServiceData("Chat", false, Icons.Default.Chat),
             ServiceData("Call", false, Icons.Default.Call),
             ServiceData("Video", false, Icons.Default.Person)
         )
+    }
+
+    // Helper to update global status
+    fun syncGlobalStatus() {
+        val isAnyOnline = services.any { it.isEnabled }
+        val data = JSONObject().apply {
+            put("userId", userId)
+            put("isOnline", isAnyOnline)
+        }
+        SocketManager.getSocket()?.emit("update-status", data)
     }
 
     Card(
@@ -383,7 +394,17 @@ fun ServiceToggleRow(userId: String) {
                             checked = service.isEnabled,
                             onCheckedChange = { isChecked ->
                                 services[index] = service.copy(isEnabled = isChecked)
-                                SocketManager.updateServiceStatus(userId, service.name.lowercase(), isChecked)
+
+                                // FIX 1: Map "Call" to "audio" for backend compatibility
+                                val backendServiceName = if (service.name == "Call") "audio" else service.name.lowercase()
+                                SocketManager.updateServiceStatus(userId, backendServiceName, isChecked)
+
+                                // FIX 2: Auto-sync global online status
+                                syncGlobalStatus()
+
+                                if (isChecked) {
+                                    Toast.makeText(context, "${service.name} Online", Toast.LENGTH_SHORT).show()
+                                }
                             },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = DashboardWhite,

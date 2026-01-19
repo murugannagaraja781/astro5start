@@ -4,14 +4,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/brand_bg_soft">
+    android:background="@drawable/bg_gradient_primary">
 
     <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="@drawable/bg_gradient_header_dark"
+        android:background="@drawable/bg_gradient_header"
         android:padding="16dp"
         android:elevation="4dp"
         android:gravity="center_vertical">

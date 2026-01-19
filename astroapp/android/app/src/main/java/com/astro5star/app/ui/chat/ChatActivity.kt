@@ -2,282 +2,132 @@ package com.astro5star.app.ui.chat
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Button
-import android.widget.EditText
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.animation.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.astro5star.app.R
 import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.data.remote.SocketManager
 import com.astro5star.app.utils.SoundManager
+import com.astro5star.app.ui.auth.GoldAccent
+import com.astro5star.app.ui.auth.TextWhite
 import org.json.JSONObject
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.UUID
+import java.util.*
+import kotlinx.coroutines.launch
 
-// Status: "sent", "delivered", "read"
-data class ChatMessage(
+data class ComposeChatMessage(
+    val id: String = UUID.randomUUID().toString(),
     val text: String,
     val isSent: Boolean,
-    var status: String = "sent",
     val timestamp: Long = System.currentTimeMillis()
-) {
-    fun getFormattedTime(): String {
-        val sdf = SimpleDateFormat("hh:mm a", Locale.getDefault())
-        return sdf.format(Date(timestamp))
-    }
-}
+)
 
-class ChatActivity : AppCompatActivity() {
+class ChatActivity : ComponentActivity() {
 
-    private lateinit var adapter: ChatAdapter
-    private val messages = mutableListOf<ChatMessage>()
     private var toUserId: String? = null
     private var sessionId: String? = null
-    private var recyclerChat: RecyclerView? = null
-    private var typingHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private var isTyping = false;
-    private lateinit var tvChatTitle: TextView
-    private lateinit var tvTypingStatus: TextView
-    private lateinit var tvSessionTimer: TextView
+    private var partnerName: String? = null
 
-    // Timer
-    private var chatDurationSeconds = 0
-    private var timerHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val timerRunnable = object : Runnable {
-        override fun run() {
-            chatDurationSeconds++
-            val minutes = chatDurationSeconds / 60
-            val seconds = chatDurationSeconds % 60
-            tvSessionTimer.text = String.format("%02d:%02d", minutes, seconds)
-            timerHandler.postDelayed(this, 1000)
-        }
-    }
-
-    private val editIntakeLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK) {
-             val dataStr = result.data?.getStringExtra("birthData")
-             if (dataStr != null) {
-                 try {
-                     val newData = JSONObject(dataStr)
-                     clientBirthData = newData
-                     Toast.makeText(this, "Details Updated", Toast.LENGTH_SHORT).show()
-                     // Emit update to server/astrologer
-                     SocketManager.getSocket()?.emit("client-birth-chart", JSONObject().apply {
-                         put("sessionId", sessionId)
-                         put("birthData", newData)
-                     })
-                 } catch (e: Exception) { e.printStackTrace() }
-             }
-        }
-    }
+    // Using mutableStateList for Compose reactivity
+    private val messages = mutableStateListOf<ComposeChatMessage>()
+    private var isTyping = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_chat)
         handleIntent(intent)
-    }
 
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        handleIntent(intent)
-    }
+        setContent {
+             // Theme Colors from User Prompt
+             val deepForestGreen = Color(0xFF012E1A) // Deep Forest Green
+             val trueBlack = Color.Black
+             val premiumGradient = Brush.verticalGradient(
+                 colors = listOf(deepForestGreen, trueBlack)
+             )
 
-    private var clientBirthData: JSONObject? = null
+             Box(modifier = Modifier.fillMaxSize().background(premiumGradient)) {
+                 // Background Particles (Optional Placeholder)
+                 // Image(painter = painterResource(id = R.drawable.bg_gold_particles), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = 0.2f)
+
+                 ChatScreen(
+                     partnerName = partnerName ?: "Astrologer",
+                     messages = messages,
+                     onSend = { text -> sendMessage(text) },
+                     onBack = { finish() },
+                     onVideoCall = {
+                         // Video Call Logic Placeholder
+                         Toast.makeText(this@ChatActivity, "Video Call Feature", Toast.LENGTH_SHORT).show()
+                     }
+                 )
+             }
+        }
+
+        connectSocket()
+    }
 
     private fun handleIntent(intent: Intent?) {
         toUserId = intent?.getStringExtra("toUserId")
         sessionId = intent?.getStringExtra("sessionId")
-        val birthDataStr = intent?.getStringExtra("birthData")
-        if (!birthDataStr.isNullOrEmpty()) {
-             try {
-                val obj = JSONObject(birthDataStr)
-                if (obj.length() > 0) {
-                     clientBirthData = obj
-                     Toast.makeText(this, "Client Birth Data Received", Toast.LENGTH_SHORT).show()
-                }
-             } catch (e: Exception) { e.printStackTrace() }
-        }
+        partnerName = intent?.getStringExtra("toUserName")
 
-        if (sessionId == null) {
+         if (sessionId == null) {
             Toast.makeText(this, "Session ID Missing", Toast.LENGTH_SHORT).show()
-            finish()
-            return
+             finish()
         }
-
-        setupContent()
     }
 
-    private fun setupContent() {
+    private fun sendMessage(text: String) {
+        if (text.isBlank() || sessionId == null || toUserId == null) return
+
         try {
-            recyclerChat = findViewById(R.id.recyclerChat)
-            val inputMessage = findViewById<EditText>(R.id.inputMessage)
-            val btnSend = findViewById<View>(R.id.btnSend) // Use View to be safe, or ImageButton
-            val btnEndChat = findViewById<Button>(R.id.btnEndChat)
-            val btnChart = findViewById<android.widget.ImageButton>(R.id.btnChart)
-            val btnEditIntake = findViewById<android.widget.ImageButton>(R.id.btnEditIntake)
-            tvChatTitle = findViewById(R.id.tvChatTitle)
-            tvTypingStatus = findViewById(R.id.tvTypingStatus)
-            tvSessionTimer = findViewById(R.id.tvSessionTimer)
-
-            // Start Timer
-            timerHandler.post(timerRunnable)
-
-            // Set Title
-            val partnerName = intent.getStringExtra("toUserName") ?: "Chat"
-            tvChatTitle.text = partnerName
-
-            // Chart Button Logic
-            val role = TokenManager(this).getUserSession()?.role
-            if (role == "astrologer") {
-                btnChart.visibility = View.VISIBLE
-                btnChart.setOnClickListener {
-                    try {
-                        if (clientBirthData != null) {
-                            val intent = Intent(this, com.astro5star.app.ui.chart.ChartDisplayActivity::class.java)
-                            intent.putExtra("birthData", clientBirthData.toString())
-                            startActivity(intent)
-                        } else {
-                             Toast.makeText(this, "Waiting for Client Data...", Toast.LENGTH_SHORT).show()
-                        }
-                    } catch (e: Exception) { e.printStackTrace() }
-                }
-
-                // Match Button Logic
-                val btnMatch = findViewById<android.widget.ImageButton>(R.id.btnMatch)
-                // Check visibility based on data availability
-                if (clientBirthData?.has("partner") == true) {
-                    btnMatch.visibility = View.VISIBLE
-                }
-
-                btnMatch.setOnClickListener {
-                    try {
-                        if (clientBirthData != null && clientBirthData!!.has("partner")) {
-                             val intent = Intent(this, com.astro5star.app.ui.chart.MatchDisplayActivity::class.java)
-                             intent.putExtra("birthData", clientBirthData.toString())
-                             startActivity(intent)
-                        } else {
-                            Toast.makeText(this, "Partner details not available", Toast.LENGTH_SHORT).show()
-                        }
-                    } catch (e: Exception) { e.printStackTrace() }
-                }
+            val messageId = UUID.randomUUID().toString()
+            val payload = JSONObject().apply {
+                put("toUserId", toUserId)
+                put("sessionId", sessionId)
+                put("messageId", messageId)
+                put("timestamp", System.currentTimeMillis())
+                put("content", JSONObject().put("text", text))
             }
 
-            // End Chat Logic
-            btnEndChat.setOnClickListener {
-                try {
-                    if (sessionId != null) {
-                        SocketManager.endSession(sessionId)
-                        SoundManager.playEndChatSound()
-                        Toast.makeText(this, "Chat Ended", Toast.LENGTH_SHORT).show()
-                    }
-                    finish()
-                } catch (e: Exception) { e.printStackTrace() }
-            }
+            SocketManager.getSocket()?.emit("chat-message", payload)
+            SoundManager.playSentSound()
+            messages.add(ComposeChatMessage(messageId, text, true))
 
-            // Edit Intake Logic
-            btnEditIntake.setOnClickListener {
-                try {
-                    val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java)
-                    intent.putExtra("isEditMode", true)
-                    intent.putExtra("existingData", clientBirthData?.toString())
-                    editIntakeLauncher.launch(intent)
-                } catch (e: Exception) { e.printStackTrace() }
-            }
-
-            adapter = ChatAdapter(messages)
-            recyclerChat?.layoutManager = LinearLayoutManager(this)
-            recyclerChat?.adapter = adapter
-
-            // Get send and mic buttons
-            val btnMic = findViewById<android.widget.ImageButton>(R.id.btnMic)
-
-            // Typing Indicator Listeners + Send/Mic Toggle
-            inputMessage.addTextChangedListener(object : android.text.TextWatcher {
-                override fun afterTextChanged(s: android.text.Editable?) {}
-                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                    try {
-                        // Toggle Send/Mic button based on text
-                        val hasText = !s.isNullOrEmpty()
-                        btnSend.visibility = if (hasText) View.VISIBLE else View.GONE
-                        btnMic.visibility = if (hasText) View.GONE else View.VISIBLE
-
-                        if (sessionId != null) {
-                           if (!isTyping) {
-                               isTyping = true
-                               SocketManager.getSocket()?.emit("typing", JSONObject().apply { put("sessionId", sessionId) })
-                           }
-                           typingHandler.removeCallbacksAndMessages(null)
-                           typingHandler.postDelayed({
-                               isTyping = false
-                               SocketManager.getSocket()?.emit("stop-typing", JSONObject().apply { put("sessionId", sessionId) })
-                           }, 2000)
-                        }
-                    } catch (e: Exception) { e.printStackTrace() }
-                }
-            })
-
-            // Mic button for voice recording (placeholder)
-            btnMic.setOnClickListener {
-                Toast.makeText(this, "Hold to record voice message", Toast.LENGTH_SHORT).show()
-            }
-
-            btnSend.setOnClickListener {
-                try {
-                    val text = inputMessage.text.toString().trim()
-                    if (text.isEmpty()) return@setOnClickListener
-
-                    if (toUserId == null) {
-                        Toast.makeText(this, "No recipient user specified", Toast.LENGTH_SHORT).show()
-                        return@setOnClickListener
-                    }
-
-                    // Stop typing explicitly
-                    isTyping = false
-                    typingHandler.removeCallbacksAndMessages(null)
-                    try { SocketManager.getSocket()?.emit("stop-typing", JSONObject().apply { put("sessionId", sessionId) }) } catch (e: Exception) {}
-
-                    val messageId = UUID.randomUUID().toString()
-                    val payload = JSONObject()
-                    payload.put("toUserId", toUserId)
-                    payload.put("sessionId", sessionId)
-                    payload.put("messageId", messageId)
-                    payload.put("timestamp", System.currentTimeMillis())
-
-                    val content = JSONObject()
-                    content.put("text", text)
-                    payload.put("content", content)
-
-                    SocketManager.getSocket()?.emit("chat-message", payload)
-
-                    SoundManager.playSentSound()
-
-                    runOnUiThread {
-                        messages.add(ChatMessage(text, true))
-                        adapter.notifyItemInserted(messages.size - 1)
-                        recyclerChat?.scrollToPosition(messages.size - 1)
-                    }
-                    inputMessage.setText("")
-                } catch (e: Exception) {
-                    android.util.Log.e("ChatActivity", "Send Failed", e)
-                    Toast.makeText(this, "Send Failed", Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            connectSocket()
         } catch (e: Exception) {
-             android.util.Log.e("ChatActivity", "setupContent Failed", e)
-             Toast.makeText(this, "Chat UI Error", Toast.LENGTH_SHORT).show()
+            e.printStackTrace()
         }
     }
 
@@ -287,160 +137,208 @@ class ChatActivity : AppCompatActivity() {
         val myUserId = TokenManager(this).getUserSession()?.userId
 
         if (myUserId != null) {
-            if (SocketManager.getSocket()?.connected() == true) {
-                SocketManager.registerUser(myUserId) {
-                    runOnUiThread { checkAutoAccept() }
-                }
-            } else {
-                SocketManager.onConnect {
-                    SocketManager.registerUser(myUserId) {
-                        runOnUiThread { checkAutoAccept() }
-                    }
-                }
-                SocketManager.getSocket()?.connect()
-            }
+             SocketManager.registerUser(myUserId) {}
         }
 
-        // Listen for new messages
-        socket?.off("chat-message") // Avoid duplicates on re-init
+        socket?.off("chat-message")
         socket?.on("chat-message") { args ->
-            val data = args[0] as JSONObject
-            val content = data.getJSONObject("content")
-            val text = content.getString("text")
-
-            SoundManager.playReceiveSound()
-
-            runOnUiThread {
-                messages.add(ChatMessage(text, false))
-                adapter.notifyItemInserted(messages.size - 1)
-                recyclerChat?.scrollToPosition(messages.size - 1)
-            }
-        }
-
-        // Typing Events
-        socket?.on("typing") {
-            runOnUiThread {
-                tvTypingStatus.visibility = View.VISIBLE
-            }
-        }
-        socket?.on("stop-typing") {
-             runOnUiThread {
-                tvTypingStatus.visibility = View.GONE
-            }
-        }
-
-        // Listen for Birth Data Update
-        socket?.on("client-birth-chart") { args ->
             try {
-                 val data = args[0] as JSONObject
-                 val bData = data.optJSONObject("birthData")
-                 if (bData != null) {
-                     clientBirthData = bData
-                     runOnUiThread {
-                         Toast.makeText(this@ChatActivity, "Client Data Updated", Toast.LENGTH_SHORT).show()
-                         // Refresh Match Button Visibility
-                         val role = TokenManager(this@ChatActivity).getUserSession()?.role
-                         if (role == "astrologer" && bData.has("partner")) {
-                             findViewById<View>(R.id.btnMatch).visibility = View.VISIBLE
-                         }
-                     }
-                 }
+                val data = args[0] as JSONObject
+                val content = data.getJSONObject("content")
+                val text = content.getString("text")
+                SoundManager.playReceiveSound()
+                runOnUiThread {
+                    messages.add(ComposeChatMessage(text = text, isSent = false))
+                }
             } catch (e: Exception) { e.printStackTrace() }
         }
+    }
+}
 
-        // Listen for Session End
-        socket?.off("session-ended")
-        socket?.on("session-ended") { args ->
-            SoundManager.playEndChatSound()
-            runOnUiThread {
-                Toast.makeText(this@ChatActivity, "Partner ended the chat", Toast.LENGTH_SHORT).show()
-                finish()
-            }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatScreen(
+    partnerName: String,
+    messages: List<ComposeChatMessage>,
+    onSend: (String) -> Unit,
+    onBack: () -> Unit,
+    onVideoCall: () -> Unit
+) {
+    val listState = rememberLazyListState()
+
+    // Auto Scroll
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
         }
     }
 
-    private fun checkAutoAccept() {
-        val isNewRequest = intent.getBooleanExtra("isNewRequest", false)
-        if (isNewRequest) {
-            SoundManager.playAcceptSound()
-            val payload = JSONObject().apply {
-                put("sessionId", sessionId)
-                put("toUserId", toUserId) // This matches server expectation if toUserId is Caller
-                put("accept", true)
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = {
+             // Glassmorphism Header
+             Box(
+                 modifier = Modifier
+                     .fillMaxWidth()
+                     .background(Color.Black.copy(alpha = 0.4f)) // Semi-transparent
+                     .statusBarsPadding()
+             ) {
+                 TopAppBar(
+                     title = {
+                          Row(verticalAlignment = Alignment.CenterVertically) {
+                              // Astrologer Pic Placeholder
+                              Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Gray)) {
+                                  // Image(painter = ..., contentDescription = null)
+                              }
+                              Spacer(modifier = Modifier.width(10.dp))
+                              Column {
+                                  Text(partnerName, color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                  Text("Online", color = GoldAccent, fontSize = 12.sp)
+                              }
+                          }
+                     },
+                     navigationIcon = {
+                         IconButton(onClick = onBack) {
+                             Icon(Icons.Default.ArrowBack, "Back", tint = TextWhite)
+                         }
+                     },
+                     actions = {
+                         IconButton(onClick = onVideoCall) {
+                             Icon(Icons.Default.Videocam, "Video Call", tint = GoldAccent)
+                         }
+                     },
+                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                 )
+             }
+        },
+        bottomBar = {
+             ChatInputArea(onSend = onSend)
+        }
+    ) { padding ->
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(messages) { msg ->
+                ChatBubble(message = msg)
             }
-            SocketManager.getSocket()?.emit("answer-session", payload)
-
-            val connectPayload = JSONObject().apply { put("sessionId", sessionId) }
-            SocketManager.getSocket()?.emit("session-connect", connectPayload)
         }
     }
+}
 
-    override fun onDestroy() {
-        super.onDestroy()
-        timerHandler.removeCallbacks(timerRunnable)
-        try {
-            SocketManager.off("chat-message")
-            SocketManager.off("session-ended")
-            SocketManager.off("typing")
-            SocketManager.off("stop-typing")
-        } catch (e: Exception) {
-            e.printStackTrace()
+@Composable
+fun ChatBubble(message: ComposeChatMessage) {
+    val isSent = message.isSent
+    val alignment = if (isSent) Alignment.CenterEnd else Alignment.CenterStart
+
+    // User requested: "User's messages in a rich gold gradient container"
+    // "Astrologer's messages in a semi-transparent dark frosted glass container with golden borders"
+
+    val goldGradient = Brush.horizontalGradient(
+        colors = listOf(Color(0xFFFFD700), Color(0xFFFFA000)) // Gold Gradient
+    )
+
+    val astroBgColor = Color.Black.copy(alpha = 0.6f)
+    val astroBorder = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFD700).copy(alpha=0.5f))
+
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = alignment
+    ) {
+        Box(
+            modifier = Modifier
+                .widthIn(max = 280.dp)
+                .clip(RoundedCornerShape(
+                    topStart = 16.dp,
+                    topEnd = 16.dp,
+                    bottomStart = if (isSent) 16.dp else 2.dp,
+                    bottomEnd = if (isSent) 2.dp else 16.dp
+                ))
+                .then(
+                    if (isSent) Modifier.background(goldGradient)
+                    else Modifier.background(astroBgColor).border(astroBorder, RoundedCornerShape(16.dp))
+                )
+                .padding(12.dp)
+        ) {
+            Column {
+                Text(
+                    text = message.text,
+                    color = if (isSent) Color.Black else Color.White,
+                    fontSize = 15.sp
+                )
+                Text(
+                    text = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(message.timestamp)),
+                    color = if (isSent) Color.Black.copy(alpha=0.6f) else Color.Gray,
+                    fontSize = 10.sp,
+                    modifier = Modifier.align(Alignment.End).padding(top = 4.dp)
+                )
+            }
         }
     }
+}
 
-    class ChatAdapter(private val list: List<ChatMessage>) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+@Composable
+fun ChatInputArea(onSend: (String) -> Unit) {
+    var text by remember { mutableStateOf("") }
 
-        override fun getItemViewType(position: Int): Int {
-            return if (list[position].isSent) 1 else 0
+    // Sleek Input Area
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black.copy(alpha = 0.8f))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Attachment
+        IconButton(onClick = {}) {
+            Icon(Icons.Default.AttachFile, null, tint = GoldAccent)
         }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-            return if (viewType == 1) {
-                val view = LayoutInflater.from(parent.context).inflate(R.layout.item_message_sent, parent, false)
-                SentHolder(view)
-            } else {
-                val view = LayoutInflater.from(parent.context).inflate(R.layout.item_message_received, parent, false)
-                ReceivedHolder(view)
+        // Input Field
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(45.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color(0xFF1E1E1E))
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            BasicTextField(
+                value = text,
+                onValueChange = { text = it },
+                textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+                cursorBrush = SolidColor(GoldAccent),
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (text.isEmpty()) {
+                Text("Type a message...", color = Color.Gray)
             }
         }
 
-        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-            val msg = list[position]
-            if (holder is SentHolder) {
-                holder.text.text = msg.text
-                holder.time.text = msg.getFormattedTime()
+        Spacer(modifier = Modifier.width(8.dp))
 
-                // Update status icon based on message status
-                when (msg.status) {
-                    "read" -> {
-                        holder.status.setImageResource(R.drawable.ic_double_check)
-                        holder.status.setColorFilter(0xFF34B7F1.toInt()) // Blue ticks
-                    }
-                    "delivered" -> {
-                        holder.status.setImageResource(R.drawable.ic_double_check)
-                        holder.status.setColorFilter(0xFF8B8B8B.toInt()) // Grey ticks
-                    }
-                    else -> {
-                        holder.status.setImageResource(R.drawable.ic_check)
-                        holder.status.setColorFilter(0xFF8B8B8B.toInt()) // Grey single tick
-                    }
-                }
-            } else if (holder is ReceivedHolder) {
-                holder.text.text = msg.text
-                holder.time.text = msg.getFormattedTime()
+        if (text.isNotEmpty()) {
+            // Send Button
+            IconButton(
+                onClick = {
+                    onSend(text)
+                    text = ""
+                },
+                modifier = Modifier.background(GoldAccent, CircleShape)
+            ) {
+                Icon(Icons.Default.Send, null, tint = Color.Black)
             }
-        }
-
-        override fun getItemCount() = list.size
-
-        class SentHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val text: TextView = view.findViewById(R.id.textMessage)
-            val time: TextView = view.findViewById(R.id.tvTime)
-            val status: ImageView = view.findViewById(R.id.ivStatus)
-        }
-        class ReceivedHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val text: TextView = view.findViewById(R.id.textMessage)
-            val time: TextView = view.findViewById(R.id.tvTime)
+        } else {
+            // Mic Button
+            IconButton(onClick = {}) {
+                Icon(Icons.Default.Mic, null, tint = GoldAccent)
+            }
         }
     }
 }

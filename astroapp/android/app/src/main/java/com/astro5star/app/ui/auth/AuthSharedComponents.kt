@@ -8,13 +8,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
-// Dark Luxury Palette Shared
-val AppBackground = Color(0xFF0E0B08)
-val CardBackground = Color(0xFF1A120B)
-val GoldAccent = Color(0xFFD4AF37)
+// Space & Purple Shared Palette
+val AppBackground = Color(0xFF0F172A) // Space900
+val CardBackground = Color(0xFF1E293B) // Space800
+val GoldAccent = Color(0xFFF59E0B)    // Gold500
 val TextWhite = Color(0xFFFFFFFF)
-val TextGrey = Color(0xFFAAAAAA)
-val PrimaryOrange = Color(0xFFE65100)
+val TextGrey = Color(0xFF94A3B8)      // Slate400
+val PrimaryOrange = Color(0xFF6366F1) // Purple600 (Mapped to Primary Action)
 
 @Composable
 fun GoldenRainEffect() {

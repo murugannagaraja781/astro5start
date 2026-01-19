@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFF8F0"
+    android:background="@color/background_light"
     android:animateLayoutChanges="true">
 
     <androidx.core.widget.NestedScrollView
@@ -17,14 +17,14 @@
             android:orientation="vertical"
             android:paddingBottom="100dp">
 
-            <!-- Light Theme Header -->
+            <!-- Header (Gradient) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:padding="16dp"
-                android:background="#FFFFFF"
+                android:background="@drawable/bg_gradient_header"
                 android:elevation="4dp">
 
                 <!-- Logo Icon -->
@@ -32,7 +32,8 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:src="@mipmap/ic_launcher"
-                    android:contentDescription="Logo"/>
+                    android:contentDescription="Logo"
+                    app:tint="@color/white"/>
 
                 <TextView
                     android:layout_width="0dp"
@@ -42,20 +43,22 @@
                     android:text="Astro 5 Star"
                     android:textSize="22sp"
                     android:textStyle="bold"
-                    android:textColor="#C9A227"/>
+                    android:textColor="@color/white"/>
 
                 <!-- Menu Icon -->
                 <ImageView
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:src="@android:drawable/ic_menu_more"
-                    android:tint="#666666"/>
+                    app:tint="@color/white"/>
             </LinearLayout>
 
+            <!-- Main Content Container (Space Background) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
+                android:background="@drawable/bg_gradient_primary"
                 android:padding="16dp">
 
                 <!-- Rasi Palan Section -->
@@ -63,7 +66,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="ராசி பலன்"
-                    android:textColor="#C9A227"
+                    android:textColor="@color/gold_500"
                     android:textSize="20sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="16dp"/>
@@ -115,12 +118,12 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="பிரீமியம் ஆலோசனை"
-                    android:textColor="#C9A227"
+                    android:textColor="@color/gold_500"
                     android:textSize="20sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp"/>
 
-                <!-- Horizontal Featured Cards (Placeholder) -->
+                <!-- Horizontal Featured Cards -->
                 <HorizontalScrollView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -139,7 +142,7 @@
                             android:layout_marginEnd="12dp"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="4dp"
-                            app:cardBackgroundColor="#FFFFFF">
+                            app:cardBackgroundColor="@color/surface_white">
 
                             <LinearLayout
                                 android:layout_width="match_parent"
@@ -153,15 +156,15 @@
                                     android:layout_height="70dp"
                                     android:src="@drawable/ic_person"
                                     android:background="@drawable/circle_bg"
-                                    android:backgroundTint="#F5E6D3"
+                                    android:backgroundTint="@color/purple_100"
                                     android:padding="15dp"
-                                    android:tint="#C9A227"/>
+                                    app:tint="@color/purple_600"/>
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="Dr. Sharma"
-                                    android:textColor="#333333"
+                                    android:textColor="@color/text_primary"
                                     android:textSize="13sp"
                                     android:textStyle="bold"
                                     android:layout_marginTop="8dp"/>
@@ -170,10 +173,10 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="Top Rated"
-                                    android:textColor="#FFFFFF"
+                                    android:textColor="@color/white"
                                     android:textSize="10sp"
                                     android:background="@drawable/pill_bg"
-                                    android:backgroundTint="#C9A227"
+                                    android:backgroundTint="@color/gold_500"
                                     android:paddingHorizontal="12dp"
                                     android:paddingVertical="4dp"
                                     android:layout_marginTop="6dp"/>
@@ -187,9 +190,9 @@
                             android:layout_marginEnd="12dp"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="4dp"
-                            app:cardBackgroundColor="#FFFFFF">
+                            app:cardBackgroundColor="@color/surface_white">
 
-                            <LinearLayout
+                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
                                 android:orientation="vertical"
@@ -201,15 +204,15 @@
                                     android:layout_height="70dp"
                                     android:src="@drawable/ic_person"
                                     android:background="@drawable/circle_bg"
-                                    android:backgroundTint="#F5E6D3"
+                                    android:backgroundTint="@color/purple_100"
                                     android:padding="15dp"
-                                    android:tint="#C9A227"/>
+                                    app:tint="@color/purple_600"/>
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="Pandit Ji"
-                                    android:textColor="#333333"
+                                    android:textColor="@color/text_primary"
                                     android:textSize="13sp"
                                     android:textStyle="bold"
                                     android:layout_marginTop="8dp"/>
@@ -218,10 +221,10 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="Top Rated"
-                                    android:textColor="#FFFFFF"
+                                    android:textColor="@color/white"
                                     android:textSize="10sp"
                                     android:background="@drawable/pill_bg"
-                                    android:backgroundTint="#C9A227"
+                                    android:backgroundTint="@color/gold_500"
                                     android:paddingHorizontal="12dp"
                                     android:paddingVertical="4dp"
                                     android:layout_marginTop="6dp"/>
@@ -234,7 +237,7 @@
                             android:layout_height="180dp"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="4dp"
-                            app:cardBackgroundColor="#FFFFFF">
+                            app:cardBackgroundColor="@color/surface_white">
 
                             <LinearLayout
                                 android:layout_width="match_parent"
@@ -248,15 +251,15 @@
                                     android:layout_height="70dp"
                                     android:src="@drawable/ic_person"
                                     android:background="@drawable/circle_bg"
-                                    android:backgroundTint="#F5E6D3"
+                                    android:backgroundTint="@color/purple_100"
                                     android:padding="15dp"
-                                    android:tint="#C9A227"/>
+                                    app:tint="@color/purple_600"/>
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="Guru Ji"
-                                    android:textColor="#333333"
+                                    android:textColor="@color/text_primary"
                                     android:textSize="13sp"
                                     android:textStyle="bold"
                                     android:layout_marginTop="8dp"/>
@@ -265,10 +268,10 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="Top Rated"
-                                    android:textColor="#FFFFFF"
+                                    android:textColor="@color/white"
                                     android:textSize="10sp"
                                     android:background="@drawable/pill_bg"
-                                    android:backgroundTint="#C9A227"
+                                    android:backgroundTint="@color/gold_500"
                                     android:paddingHorizontal="12dp"
                                     android:paddingVertical="4dp"
                                     android:layout_marginTop="6dp"/>
@@ -283,7 +286,7 @@
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="4dp"
-                    app:cardBackgroundColor="#FFFFFF"
+                    app:cardBackgroundColor="@color/surface_white"
                     android:layout_marginBottom="24dp">
 
                     <LinearLayout
@@ -298,7 +301,7 @@
                             android:text="✨ இன்றைய ராசி பலன்"
                             android:textSize="16sp"
                             android:textStyle="bold"
-                            android:textColor="#C9A227"/>
+                            android:textColor="@color/purple_600"/>
 
                         <TextView
                             android:id="@+id/tvGuestHoroscope"
@@ -308,7 +311,7 @@
                             android:text="Loading horoscope..."
                             android:textSize="14sp"
                             android:lineSpacingMultiplier="1.4"
-                            android:textColor="#555555"/>
+                            android:textColor="@color/text_secondary"/>
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
@@ -317,7 +320,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="All Astrologers"
-                    android:textColor="#333333"
+                    android:textColor="@color/white"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp"/>
@@ -336,7 +339,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:layout_marginTop="24dp"
-                    android:indeterminateTint="#C9A227"/>
+                    android:indeterminateTint="@color/gold_500"/>
 
             </LinearLayout>
         </LinearLayout>
@@ -351,8 +354,8 @@
         android:background="#FFFFFF"
         android:elevation="8dp"
         app:labelVisibilityMode="labeled"
-        app:itemIconTint="#C9A227"
-        app:itemTextColor="#666666"
+        app:itemIconTint="@color/purple_600"
+        app:itemTextColor="@color/text_primary"
         app:menu="@menu/bottom_nav_guest"/>
 
     <!-- Floating Login Button -->
@@ -363,11 +366,11 @@
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="72dp"
         android:text="Login / Sign Up"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/white"
         android:textSize="14sp"
         android:textStyle="bold"
-        app:backgroundTint="#C9A227"
+        app:backgroundTint="@color/purple_600"
         app:icon="@android:drawable/ic_menu_myplaces"
-        app:iconTint="#FFFFFF"/>
+        app:iconTint="@color/white"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

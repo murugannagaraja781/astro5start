@@ -207,15 +207,25 @@
                     android:rotation="45"
                     android:contentDescription="Attach"/>
 
-                <!-- Camera Button -->
+                <!-- Rasi Chart Button -->
                 <ImageButton
-                    android:id="@+id/btnCamera"
+                    android:id="@+id/btnRasiChart"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@android:drawable/ic_menu_camera"
-                    android:tint="#8B8B8B"
-                    android:contentDescription="Camera"/>
+                    android:src="@android:drawable/ic_menu_view"
+                    android:tint="#C9A227"
+                    android:contentDescription="View Rasi Chart"/>
+
+                <!-- Consultation Details Button -->
+                <ImageButton
+                    android:id="@+id/btnConsultationDetails"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_edit"
+                    android:tint="#C9A227"
+                    android:contentDescription="Consultation Details"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 

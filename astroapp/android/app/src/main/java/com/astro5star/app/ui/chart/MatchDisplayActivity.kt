@@ -127,17 +127,17 @@ class MatchDisplayActivity : AppCompatActivity() {
             <html>
             <head>
                 <style>
-                    body { font-family: sans-serif; padding: 16px; background-color: #FAFAFA; }
-                    .card { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 16px; }
-                    h2 { color: #673AB7; text-align: center; }
+                    body { font-family: sans-serif; padding: 16px; background-color: #13001A; color: #F3E5F5; }
+                    .card { background: #2C003E; padding: 16px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 16px; border: 1px solid #4A0072; }
+                    h2 { color: #E040FB; text-align: center; } /* Amethyst */
                     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    th { background-color: #f2f2f2; color: #333; }
-                    .good { color: green; font-weight: bold; }
-                    .bad { color: red; font-weight: bold; }
-                    .avg { color: orange; font-weight: bold; }
-                    .score-box { text-align: center; font-size: 24px; font-weight: bold; color: #673AB7; margin: 20px 0; }
-                    pre { background: #eee; padding: 10px; overflow: auto; font-size: 10px; }
+                    th, td { border: 1px solid #4A0072; padding: 8px; text-align: left; }
+                    th { background-color: #4A0072; color: #FFFFFF; }
+                    .good { color: #00C853; font-weight: bold; }
+                    .bad { color: #FF5252; font-weight: bold; }
+                    .avg { color: #FFD700; font-weight: bold; }
+                    .score-box { text-align: center; font-size: 24px; font-weight: bold; color: #E040FB; margin: 20px 0; }
+                    pre { background: #1F002B; padding: 10px; overflow: auto; font-size: 10px; color: #B39DDB; border: 1px solid #4A0072; }
                 </style>
             </head>
             <body>

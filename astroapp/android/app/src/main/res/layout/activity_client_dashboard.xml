@@ -1,36 +1,146 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:gravity="center_horizontal">
+    android:background="@color/background_light">
 
-    <TextView
-        android:id="@+id/welcomeText"
-        android:layout_width="wrap_content"
+    <!-- HEADER -->
+    <LinearLayout
+        android:id="@+id/headerContainer"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Welcome Client"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="32dp"/>
+        android:orientation="vertical"
+        android:background="@drawable/bg_gradient_header"
+        android:padding="20dp"
+        android:elevation="4dp">
 
-    <Button
-        android:id="@+id/btnWallet"
+        <TextView
+            android:id="@+id/welcomeText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Welcome Client"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Your Astrology Dashboard"
+            android:textSize="14sp"
+            android:textColor="#E0E0E0"
+            android:layout_marginTop="4dp"/>
+    </LinearLayout>
+
+    <!-- CONTENT CONTAINER -->
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="My Wallet"
-        android:textSize="18sp"
-        android:layout_marginBottom="16dp"/>
+        android:layout_height="match_parent"
+        android:layout_below="@id/headerContainer"
+        android:layout_above="@id/footerContainer"
+        android:fillViewport="true">
 
-    <Button
-        android:id="@+id/btnChatMock"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:background="@drawable/bg_gradient_primary"> <!-- Dark Space Background -->
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Quick Actions"
+                android:textColor="@color/gold_500"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp"/>
+
+            <Button
+                android:id="@+id/btnWallet"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="My Wallet"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:backgroundTint="@color/purple_600"
+                android:textColor="@color/white"
+                android:layout_marginBottom="16dp"/>
+
+            <Button
+                android:id="@+id/btnChatMock"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="Chat with Astrologer"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:backgroundTint="@color/purple_600"
+                android:textColor="@color/white"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Example Card for "Container" concept -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card_premium_dark"
+                android:padding="20dp"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Daily Horoscope"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/space_900"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="The stars align for new opportunities today."
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="8dp"/>
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- FOOTER (Bottom Nav Shim) -->
+    <LinearLayout
+        android:id="@+id/footerContainer"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="Chat with Astrologer"
-        android:textSize="18sp"
-        android:layout_marginBottom="16dp"/>
+        android:layout_height="56dp"
+        android:layout_alignParentBottom="true"
+        android:background="@color/surface_white"
+        android:elevation="16dp"
+        android:orientation="horizontal"
+        android:gravity="center">
 
-    <!-- Add Call Buttons later -->
+        <!-- Just icons as placeholders for Footer concept -->
+        <ImageView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@android:drawable/ic_menu_compass"
+            android:padding="12dp"
+            app:tint="@color/purple_600"/>
 
-</LinearLayout>
+        <ImageView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@android:drawable/ic_menu_my_calendar"
+            android:padding="12dp"
+            app:tint="@color/space_700"/>
+
+        <ImageView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@android:drawable/ic_menu_manage"
+            android:padding="12dp"
+            app:tint="@color/space_700"/>
+    </LinearLayout>
+
+</RelativeLayout>

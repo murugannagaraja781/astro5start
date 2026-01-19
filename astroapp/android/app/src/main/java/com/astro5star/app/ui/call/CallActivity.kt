@@ -45,21 +45,13 @@ class CallActivity : AppCompatActivity() {
 
     // CORRECT TURN Configuration for Mobile Networks
     // Priority: TURNS (443 TLS) first → TURN (3478 UDP) fallback
+    // User Provided ICE Config
     private val iceServers = listOf(
-        // PRIMARY: TURNS over TLS on port 443 (Works on ALL mobile networks!)
-        PeerConnection.IceServer.builder("turns:turn.astro5star.com:443?transport=tcp")
-            .setUsername("turnuser")
-            .setPassword("VeryStrongPasswordHere2025!")
-            .createIceServer(),
-
-        // FALLBACK: TURN over UDP on port 3478 (For Wi-Fi/unrestricted networks)
+        PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
         PeerConnection.IceServer.builder("turn:turn.astro5star.com:3478?transport=udp")
-            .setUsername("turnuser")
-            .setPassword("VeryStrongPasswordHere2025!")
-            .createIceServer(),
-
-        // STUN as last resort (peer-to-peer if possible)
-        PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
+            .setUsername("webrtcuser").setPassword("strongpassword123").createIceServer(),
+        PeerConnection.IceServer.builder("turns:turn.astro5star.com:5349")
+            .setUsername("webrtcuser").setPassword("strongpassword123").createIceServer()
     )
 
     private var isMuted = false
