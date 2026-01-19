@@ -1319,7 +1319,7 @@ io.on('connection', (socket) => {
       const isEnabled = !!data.isEnabled;
 
       if (data.service === 'chat') update.isChatOnline = isEnabled;
-      if (data.service === 'call') update.isAudioOnline = isEnabled; // 'call' maps to 'audio'
+      if (data.service === 'call' || data.service === 'audio') update.isAudioOnline = isEnabled; // 'call' or 'audio' maps to 'audio'
       if (data.service === 'video') update.isVideoOnline = isEnabled;
 
       let user = await User.findOne({ userId });
