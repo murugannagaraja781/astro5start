@@ -22,6 +22,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
@@ -67,6 +68,7 @@ class ChatActivity : ComponentActivity() {
     private var toUserName: String? = null
     private var sessionId: String? = null
     private var partnerName: String? = null
+    private var birthData: String? = null
 
     // Using mutableStateList for Compose reactivity
     private val messages = mutableStateListOf<ComposeChatMessage>()
@@ -106,13 +108,23 @@ class ChatActivity : ComponentActivity() {
                          endSession()
                      },
                      onEditForm = {
-                         val intent = Intent(this@ChatActivity, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
-                             putExtra("isEditMode", true)
-                             putExtra("partnerName", partnerName)
-                             // Pass validation data if we saved it, for now assume fresh edit or local storage
-                             // In real app, we'd pass existingData here
+                         // Check if we already have birth data to generate the chart
+                         if (birthData != null) {
+                             // Launch Chart Generation / Display directly
+                             val chartIntent = Intent(this@ChatActivity, com.astro5star.app.ui.chart.ChartDisplayActivity::class.java).apply {
+                                 putExtra("birthData", birthData)
+                             }
+                             startActivity(chartIntent)
+                         } else {
+                             // Fallback: Open Intake Form to enter details
+                             val intent = Intent(this@ChatActivity, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
+                                 putExtra("isEditMode", true)
+                                 putExtra("partnerName", partnerName)
+                                 // Pass validation data if we saved it, for now assume fresh edit or local storage
+                                 // In real app, we'd pass existingData here
+                             }
+                             intakeLauncher.launch(intent)
                          }
-                         intakeLauncher.launch(intent)
                      }
                  )
              }
@@ -125,6 +137,7 @@ class ChatActivity : ComponentActivity() {
         toUserId = intent?.getStringExtra("toUserId")
         sessionId = intent?.getStringExtra("sessionId")
         partnerName = intent?.getStringExtra("toUserName") ?: intent?.getStringExtra("partnerName")
+        birthData = intent?.getStringExtra("birthData")
 
          if (sessionId == null) {
             Toast.makeText(this, "Session ID Missing", Toast.LENGTH_SHORT).show()
@@ -284,7 +297,7 @@ fun ChatScreen(
              }
         },
         bottomBar = {
-             ChatInputArea(onSend = onSend)
+             ChatInputArea(onSend = onSend, onChartClick = onEditForm)
         }
     ) { padding ->
         LazyColumn(
@@ -352,7 +365,7 @@ fun ChatBubble(message: ComposeChatMessage) {
 }
 
 @Composable
-fun ChatInputArea(onSend: (String) -> Unit) {
+fun ChatInputArea(onSend: (String) -> Unit, onChartClick: () -> Unit) {
     var text by remember { mutableStateOf("") }
 
     // Sleek Input Area
@@ -366,6 +379,11 @@ fun ChatInputArea(onSend: (String) -> Unit) {
         // Attachment
         IconButton(onClick = {}) {
             Icon(Icons.Default.AttachFile, null, tint = GoldAccent)
+        }
+
+        // Chart / Details Form Icon
+        IconButton(onClick = onChartClick) {
+            Icon(Icons.Default.List, "Consultation/Chart", tint = GoldAccent)
         }
 
         // Input Field
