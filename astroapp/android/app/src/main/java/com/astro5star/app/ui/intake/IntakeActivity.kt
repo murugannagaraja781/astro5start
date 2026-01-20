@@ -73,6 +73,13 @@ class IntakeActivity : ComponentActivity() {
         val dataStr = intent.getStringExtra("existingData")
         if (dataStr != null) {
             try { existingData = JSONObject(dataStr) } catch(_: Exception){}
+        } else {
+            // Auto-fill: Load from SharedPreferences
+            val prefs = getSharedPreferences("IntakePrefs", MODE_PRIVATE)
+            val lastData = prefs.getString("last_intake_data", null)
+            if (lastData != null) {
+                try { existingData = JSONObject(lastData) } catch(_: Exception){}
+            }
         }
 
         setContent {
@@ -124,6 +131,10 @@ class IntakeActivity : ComponentActivity() {
              setResult(RESULT_OK, resultIntent)
              finish()
         } else {
+             // Auto-fill: Save to SharedPreferences
+             val prefs = getSharedPreferences("IntakePrefs", MODE_PRIVATE)
+             prefs.edit().putString("last_intake_data", birthData.toString()).apply()
+
              // Start Socket and Request
              if (partnerId == null || type == null) return
 
