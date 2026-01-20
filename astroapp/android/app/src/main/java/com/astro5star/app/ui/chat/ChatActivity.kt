@@ -1,9 +1,12 @@
 package com.astro5star.app.ui.chat
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.foundation.Image
@@ -19,9 +22,10 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,6 +52,7 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 data class ComposeChatMessage(
     val id: String = UUID.randomUUID().toString(),
@@ -59,6 +64,7 @@ data class ComposeChatMessage(
 class ChatActivity : ComponentActivity() {
 
     private var toUserId: String? = null
+    private var toUserName: String? = null
     private var sessionId: String? = null
     private var partnerName: String? = null
 
@@ -71,25 +77,42 @@ class ChatActivity : ComponentActivity() {
         handleIntent(intent)
 
         setContent {
-             // Theme Colors from User Prompt
-             val deepForestGreen = Color(0xFF012E1A) // Deep Forest Green
+             // Theme Colors
+             val deepForestGreen = Color(0xFF012E1A)
              val trueBlack = Color.Black
              val premiumGradient = Brush.verticalGradient(
                  colors = listOf(deepForestGreen, trueBlack)
              )
 
-             Box(modifier = Modifier.fillMaxSize().background(premiumGradient)) {
-                 // Background Particles (Optional Placeholder)
-                 // Image(painter = painterResource(id = R.drawable.bg_gold_particles), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = 0.2f)
+             // Intake Form Launcher
+             val intakeLauncher = rememberLauncherForActivityResult(
+                 contract = ActivityResultContracts.StartActivityForResult()
+             ) { result ->
+                 if (result.resultCode == Activity.RESULT_OK) {
+                     val dataStr = result.data?.getStringExtra("birthData")
+                     if (dataStr != null) {
+                         sendFormMessage(dataStr)
+                     }
+                 }
+             }
 
+             Box(modifier = Modifier.fillMaxSize().background(premiumGradient)) {
                  ChatScreen(
                      partnerName = partnerName ?: "Astrologer",
                      messages = messages,
                      onSend = { text -> sendMessage(text) },
                      onBack = { finish() },
-                     onVideoCall = {
-                         // Video Call Logic Placeholder
-                         Toast.makeText(this@ChatActivity, "Video Call Feature", Toast.LENGTH_SHORT).show()
+                     onEndSession = {
+                         endSession()
+                     },
+                     onEditForm = {
+                         val intent = Intent(this@ChatActivity, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
+                             putExtra("isEditMode", true)
+                             putExtra("partnerName", partnerName)
+                             // Pass validation data if we saved it, for now assume fresh edit or local storage
+                             // In real app, we'd pass existingData here
+                         }
+                         intakeLauncher.launch(intent)
                      }
                  )
              }
@@ -101,11 +124,11 @@ class ChatActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         toUserId = intent?.getStringExtra("toUserId")
         sessionId = intent?.getStringExtra("sessionId")
-        partnerName = intent?.getStringExtra("toUserName")
+        partnerName = intent?.getStringExtra("toUserName") ?: intent?.getStringExtra("partnerName")
 
          if (sessionId == null) {
             Toast.makeText(this, "Session ID Missing", Toast.LENGTH_SHORT).show()
-             finish()
+             // finish() // Allow debug
         }
     }
 
@@ -131,6 +154,28 @@ class ChatActivity : ComponentActivity() {
         }
     }
 
+    private fun sendFormMessage(formData: String) {
+        if (sessionId == null || toUserId == null) return
+        try {
+             val text = "Sent Updated Consultation Details"
+             val messageId = UUID.randomUUID().toString()
+             val payload = JSONObject().apply {
+                put("toUserId", toUserId)
+                put("sessionId", sessionId)
+                put("messageId", messageId)
+                put("timestamp", System.currentTimeMillis())
+                put("content", JSONObject().put("text", text).put("formData", formData))
+             }
+             SocketManager.getSocket()?.emit("chat-message", payload)
+             messages.add(ComposeChatMessage(messageId, text, true))
+        } catch (e: Exception) { e.printStackTrace() }
+    }
+
+    private fun endSession() {
+        SocketManager.endSession(sessionId)
+        finish()
+    }
+
     private fun connectSocket() {
         SocketManager.init()
         val socket = SocketManager.getSocket()
@@ -152,6 +197,13 @@ class ChatActivity : ComponentActivity() {
                 }
             } catch (e: Exception) { e.printStackTrace() }
         }
+
+        socket?.on("session-ended") {
+            runOnUiThread {
+                Toast.makeText(this, "Session Ended", Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        }
     }
 }
 
@@ -162,9 +214,20 @@ fun ChatScreen(
     messages: List<ComposeChatMessage>,
     onSend: (String) -> Unit,
     onBack: () -> Unit,
-    onVideoCall: () -> Unit
+    onEndSession: () -> Unit,
+    onEditForm: () -> Unit
 ) {
     val listState = rememberLazyListState()
+
+    // Session Timer (Count up for now)
+    var seconds by remember { mutableStateOf(0L) }
+    LaunchedEffect(Unit) {
+        while(true) {
+            delay(1000)
+            seconds++
+        }
+    }
+    val timeStr = String.format("%02d:%02d", seconds / 60, seconds % 60)
 
     // Auto Scroll
     LaunchedEffect(messages.size) {
@@ -186,14 +249,10 @@ fun ChatScreen(
                  TopAppBar(
                      title = {
                           Row(verticalAlignment = Alignment.CenterVertically) {
-                              // Astrologer Pic Placeholder
-                              Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Gray)) {
-                                  // Image(painter = ..., contentDescription = null)
-                              }
-                              Spacer(modifier = Modifier.width(10.dp))
                               Column {
                                   Text(partnerName, color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                  Text("Online", color = GoldAccent, fontSize = 12.sp)
+                                  // Timer Display
+                                  Text(timeStr, color = GoldAccent, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                               }
                           }
                      },
@@ -203,9 +262,22 @@ fun ChatScreen(
                          }
                      },
                      actions = {
-                         IconButton(onClick = onVideoCall) {
-                             Icon(Icons.Default.Videocam, "Video Call", tint = GoldAccent)
+                         // Edit Form Button
+                         IconButton(onClick = onEditForm) {
+                             Icon(Icons.Default.Edit, "Intake Form", tint = TextWhite)
                          }
+
+                         // End Session Button
+                         Button(
+                             onClick = onEndSession,
+                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)), // Red
+                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                             shape = RoundedCornerShape(16.dp),
+                             modifier = Modifier.height(32.dp)
+                         ) {
+                             Text("End", color = Color.White, fontSize = 12.sp)
+                         }
+                         Spacer(modifier = Modifier.width(8.dp))
                      },
                      colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                  )
@@ -235,9 +307,6 @@ fun ChatScreen(
 fun ChatBubble(message: ComposeChatMessage) {
     val isSent = message.isSent
     val alignment = if (isSent) Alignment.CenterEnd else Alignment.CenterStart
-
-    // User requested: "User's messages in a rich gold gradient container"
-    // "Astrologer's messages in a semi-transparent dark frosted glass container with golden borders"
 
     val goldGradient = Brush.horizontalGradient(
         colors = listOf(Color(0xFFFFD700), Color(0xFFFFA000)) // Gold Gradient
