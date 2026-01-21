@@ -85,6 +85,13 @@ class CallActivity : AppCompatActivity() {
         isInitiator = intent.getBooleanExtra("isInitiator", false)
         callType = intent.getStringExtra("type") ?: intent.getStringExtra("callType") ?: "video"
 
+        // DEBUG: Log all intent extras to trace callType issue
+        Log.d(TAG, "=== CallActivity Intent Extras ===")
+        Log.d(TAG, "type extra: ${intent.getStringExtra("type")}")
+        Log.d(TAG, "callType extra: ${intent.getStringExtra("callType")}")
+        Log.d(TAG, "Final callType: $callType")
+        Log.d(TAG, "partnerName: $partnerName, sessionId: $sessionId")
+
         // Init Views
         remoteView = findViewById(R.id.remote_view)
         localView = findViewById(R.id.local_view)
