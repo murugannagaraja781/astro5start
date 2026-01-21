@@ -70,25 +70,25 @@ import com.astro5star.app.ui.call.CallActivity
 import com.astro5star.app.data.remote.SocketManager
 
 // SPACE & PURPLE THEME PALETTE (Design System)
-val Space900 = Color(0xFF0F172A) // Primary Background
-val Space800 = Color(0xFF1E293B) // Cards, Bottom Sheets
+val Space900 = Color(0xFFBCE09D) // New Green Background
+val Space800 = Color(0xFFF5FCF4) // New Mint Card
 val Space700 = Color(0xFF334155) // Borders
 val Purple600 = Color(0xFF6366F1) // Primary Action
 val Purple500 = Color(0xFF8B5CF6) // Accents
 val Gold500 = Color(0xFFF59E0B)   // Icons/Stars
 val Orange600 = Color(0xFFEA580C) // Brand Colors
 val SurfaceWhite = Color(0xFFFFFFFF) // White Components
-val TextPrimary = Color(0xFFFFFFFF) // White Text on Dark
-val TextSecondary = Color(0xFF94A3B8) // Muted Text
+val TextPrimary = Color(0xFF000000) // Black Text on Light
+val TextSecondary = Color(0xFF475569) // Dark Grey Text
 val TextBlack = Color(0xFF111827) // Dark Text on White
 
 // Mapped Colors for Compatibility
-val AppBackground = Space900 // Dark Space Background
-val CardBackground = Space800 // Dark Space Cards
-val DarkPremiumGreen = Space900 // Header Background (Gradient used instead)
+val AppBackground = Space900
+val CardBackground = Space800
+val DarkPremiumGreen = Space900
 val GoldAccent = Gold500
 val PrimaryOrange = Orange600
-val TextWhite = TextPrimary // White
+val TextWhite = TextPrimary
 val TextRealWhite = SurfaceWhite
 val TextGold = Gold500
 val TextGrey = TextSecondary
@@ -170,14 +170,7 @@ fun MainContainer(isGuest: Boolean, userName: String) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFF4348f8), // User Requested Blue 1
-                                Color(0xFF5f60f3)  // User Requested Blue 2
-                            )
-                        )
-                    )
+                    .background(AppBackground) // Solid Green Background
                     .padding(paddingValues)
             ) {
                 when (selectedTab) {
@@ -848,7 +841,7 @@ fun HomeScreenContent(isGuest: Boolean, userName: String, isTamil: Boolean, onMe
                         Box(
                             modifier = Modifier
                                 .size(50.dp)
-                                .background(AppBackground, CircleShape)
+                                .background(Color(0x80F5FCF4), CircleShape) // Milk Green Transparent
                                 .border(1.dp, GoldAccent, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
@@ -979,8 +972,8 @@ fun FeatureIconGrid() {
                 Box(
                     modifier = Modifier
                         .size(50.dp)
-                        .border(1.dp, GoldAccent, CircleShape)
-                        .background(CardBackground, CircleShape),
+                        .background(Color(0x80F5FCF4), CircleShape) // Milk Green Transparent
+                        .border(1.dp, GoldAccent, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(icon, null, tint = GoldAccent, modifier = Modifier.size(24.dp))
@@ -1046,8 +1039,27 @@ fun RasiGridSection(onClick: (ComposeRasiItem) -> Unit) {
     }
 }
 
+// Rasi Colors Map (Milk/Pastel Shades)
+// Rasi Colors Map (Very Light / Material 50 Shades)
+val RasiColors = mapOf(
+    "Aries" to Color(0xFFFFEBEE),      // Very Light Red
+    "Taurus" to Color(0xFFE8F5E9),     // Very Light Green
+    "Gemini" to Color(0xFFFFFDE7),     // Very Light Yellow
+    "Cancer" to Color(0xFFFAFAFA),     // Very Light Silver/White
+    "Leo" to Color(0xFFFFF3E0),        // Very Light Orange
+    "Virgo" to Color(0xFFE0F2F1),      // Very Light Teal
+    "Libra" to Color(0xFFE3F2FD),      // Very Light Blue
+    "Scorpio" to Color(0xFFFCE4EC),    // Very Light Pink
+    "Sagittarius" to Color(0xFFF3E5F5),// Very Light Purple
+    "Capricorn" to Color(0xFFE8EAF6),  // Very Light Indigo
+    "Aquarius" to Color(0xFFE0F7FA),   // Very Light Cyan
+    "Pisces" to Color(0xFFE1F5FE)      // Very Light Light Blue
+)
+
 @Composable
 fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
+    val bgColor = RasiColors[item.name] ?: Color(0xFFF5FCF4) // Default to Mint if not found
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -1057,17 +1069,9 @@ fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
         Box(
             modifier = Modifier
                 .size(60.dp)
-                .clip(RoundedCornerShape(16.dp))
-                // Deep Purple Gradient for contrast with Gold Icons
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF311B92), // Deep Purple 900
-                            Color(0xFF4527A0)  // Deep Purple 800
-                        )
-                    )
-                )
-                .border(1.dp, Color(0xFFFFF8E1), RoundedCornerShape(16.dp)),
+                .clip(RoundedCornerShape(16.dp)) // Rounded Square 16dp
+                .background(bgColor) // Rasi Specific Light Saturated Color
+                .border(1.dp, GoldAccent, RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
              Image(

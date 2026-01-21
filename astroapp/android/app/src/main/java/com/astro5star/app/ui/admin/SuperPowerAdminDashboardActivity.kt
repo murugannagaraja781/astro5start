@@ -104,6 +104,7 @@ fun SuperPowerScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color(0xFFBCE09D)) // New Green Background
                 .padding(padding)
                 .padding(16.dp)
         ) {
@@ -111,7 +112,7 @@ fun SuperPowerScreen(
             Text(
                 "ஜோதிட தீம் தேர்ந்தெடுக்கவும்",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = Color.Black // Ensure visibility on Green
             )
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -146,7 +147,8 @@ fun SuperPowerScreen(
                     .height(150.dp)
                     .clickable { launcher.launch("image/*") },
                 shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF5FCF4)), // Mint Card
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.DarkGray)
             ) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                     bannerUri?.let { uriString ->

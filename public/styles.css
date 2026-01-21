@@ -1,7 +1,9 @@
  /* === Celestial Design System (Premium Astrology Edition) === */
  :root {
-   --bg-dark: #0a0a1a;
-   --bg-card: #0f1729;
+   --bg-dark: #bce09d;
+   /* New Green Background */
+   --bg-card: #f5fcf4;
+   /* New Mint Card */
    --bg-glass: rgba(255, 255, 255, 0.05);
    --primary: #d4af37;
    --primary-glow: rgba(212, 175, 55, 0.15);
