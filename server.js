@@ -1315,24 +1315,41 @@ io.on('connection', (socket) => {
     if (!userId) return;
 
     try {
-      const update = {};
       const isEnabled = !!data.isEnabled;
 
+      // Update in-memory status for background/foreground restore
+      const statusMap = savedAstroStatus.get(userId) || { chat: false, audio: false, video: false };
+      if (data.service === 'chat') statusMap.chat = isEnabled;
+      if (data.service === 'call' || data.service === 'audio') statusMap.audio = isEnabled;
+      if (data.service === 'video') statusMap.video = isEnabled;
+      statusMap.timestamp = Date.now();
+      savedAstroStatus.set(userId, statusMap);
+
+      const update = {};
       if (data.service === 'chat') update.isChatOnline = isEnabled;
-      if (data.service === 'call' || data.service === 'audio') update.isAudioOnline = isEnabled; // 'call' or 'audio' maps to 'audio'
+      if (data.service === 'call' || data.service === 'audio') update.isAudioOnline = isEnabled;
       if (data.service === 'video') update.isVideoOnline = isEnabled;
 
       let user = await User.findOne({ userId });
       if (user) {
         Object.assign(user, update);
-        // Recalculate global online status
-        user.isOnline = user.isChatOnline || user.isAudioOnline || user.isVideoOnline;
+        // Recalculate global online status based on current map state
+        const isAnyOnline = statusMap.chat || statusMap.audio || statusMap.video;
+
+        user.isOnline = isAnyOnline;
         user.isAvailable = user.isOnline;
         user.lastSeen = new Date();
         await user.save();
 
-        broadcastAstroUpdate();
-        console.log(`[Service Status] ${user.name} updated ${data.service}: ${isEnabled}`);
+        // Broadcast to all clients explicitly
+        io.emit('astrologer-update', {
+          userId,
+          ...update,
+          isOnline: isAnyOnline
+        });
+
+        // broadcastAstroUpdate(); // Redundant if we emit above, but harmless
+        console.log(`[Service Status] ${user.name} updated ${data.service}: ${isEnabled} => Online: ${isAnyOnline}`);
       }
     } catch (e) { console.error('update-service-status error:', e); }
   });
@@ -1460,6 +1477,25 @@ io.on('connection', (socket) => {
       // if (!isAvailable) {
       //   return cb({ ok: false, error: 'Astrologer is offline' });
       // }
+
+      // --- BUSY CHECK ---
+      if (userActiveSession.has(toUserId)) {
+        const existingSessionId = userActiveSession.get(toUserId);
+        const existingSession = activeSessions.get(existingSessionId);
+
+        if (!existingSession) {
+          // Ghost session cleanup
+          console.log(`[Session] Ghost session ${existingSessionId} detected for ${toUserId}. Auto-cleaning.`);
+          userActiveSession.delete(toUserId);
+        }
+        else if (existingSession.users.includes(fromUserId)) {
+          // Same caller retrying - allow (maybe a reconnect attempt)
+          console.log(`[Session] Re-connect attempt to ${existingSessionId} from ${fromUserId}`);
+        } else {
+          // Genuine Busy
+          return cb({ ok: false, error: 'User is busy' });
+        }
+      }
 
       if (userActiveSession.has(toUserId)) {
         const existingSessionId = userActiveSession.get(toUserId);
@@ -1630,6 +1666,9 @@ io.on('connection', (socket) => {
 
       if (!accept) {
         endSessionRecord(sessionId);
+      } else {
+        userActiveSession.set(fromUserId, sessionId);
+        userActiveSession.set(toUserId, sessionId);
       }
 
       io.to(targetSocketId).emit('session-answered', {
@@ -1672,7 +1711,9 @@ io.on('connection', (socket) => {
         const targetSocketId = userSockets.get(fromUserId);
 
         if (accept) {
-          // Notify caller that call was accepted
+          userActiveSession.set(astrologerId, sessionId);
+          userActiveSession.set(fromUserId, sessionId);
+
           if (targetSocketId) {
             io.to(targetSocketId).emit('session-answered', {
               sessionId,
@@ -1685,7 +1726,6 @@ io.on('connection', (socket) => {
           console.log(`[Native] Call accepted - Session: ${sessionId}, From: ${fromUserId}, To: ${astrologerId}`);
           if (typeof cb === 'function') cb({ ok: true, fromUserId });
         } else {
-          // Call rejected
           if (targetSocketId) {
             io.to(targetSocketId).emit('session-answered', {
               sessionId,
@@ -1705,6 +1745,9 @@ io.on('connection', (socket) => {
       const targetSocketId = userSockets.get(fromUserId);
 
       if (accept) {
+        userActiveSession.set(astrologerId, sessionId);
+        userActiveSession.set(fromUserId, sessionId);
+
         if (targetSocketId) {
           io.to(targetSocketId).emit('session-answered', {
             sessionId,
@@ -1777,6 +1820,16 @@ io.on('connection', (socket) => {
       }
 
       endSessionRecord(sessionId);
+
+      const sessionData = activeSessions.get(sessionId);
+      if (sessionData) {
+        sessionData.users.forEach(uid => userActiveSession.delete(uid));
+      } else {
+        userActiveSession.delete(fromUserId); // Fallback
+        // Try to clean partner from DB session?
+        // Ideally activeSessions has it. If not, memory might be stale but grace period handles it.
+      }
+
       console.log(`[Session] Ended by ${fromUserId}: ${sessionId}`);
 
     } catch (e) { console.error('end-session error', e); }
