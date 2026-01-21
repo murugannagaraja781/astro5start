@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import android.util.Log // Added Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -221,22 +222,33 @@ class ChatActivity : ComponentActivity() {
              SocketManager.registerUser(myUserId) { success ->
                  if (success && toUserId != null) {
                      runOnUiThread {
-                         // Optional: Show loading state or keep silent
+                         Log.d("ChatActivity", "User registered, fetching history for: $toUserId")
                      }
                      SocketManager.fetchChatHistory(toUserId!!) { historyJson ->
-                        val historyMessages = historyJson.map { json ->
+                        Log.d("ChatActivity", "History received size: ${historyJson.size}")
+
+                        val historyMessages = historyJson.mapNotNull { json ->
                             val isSentByMe = json.optString("fromUserId") == myUserId
 
-                            // Parse 'text' correctly from DB format vs Socket format
-                            val text = if (json.has("content")) {
-                                json.optJSONObject("content")?.optString("text")
-                            } else {
-                                json.optString("text")
-                            } ?: "Message"
+                            // Robust Text Parsing
+                            var text: String? = null
+                            if (json.has("content")) {
+                                val contentObj = json.optJSONObject("content")
+                                text = contentObj?.optString("text")
+                            }
+
+                            if (text.isNullOrEmpty()) {
+                                text = json.optString("text")
+                            }
+
+                            // Fallback for null strings
+                            if (text.isNullOrEmpty() || text.equals("null", ignoreCase = true)) {
+                                text = "Message"
+                            }
 
                             ComposeChatMessage(
                                 id = json.optString("messageId", UUID.randomUUID().toString()),
-                                text = text,
+                                text = text!!,
                                 isSent = isSentByMe,
                                 timestamp = json.optLong("timestamp", System.currentTimeMillis())
                             )
@@ -247,9 +259,12 @@ class ChatActivity : ComponentActivity() {
                             val existingIds = messages.map { it.id }.toSet()
                             val newMessages = historyMessages.filter { !existingIds.contains(it.id) }
 
+                            Log.d("ChatActivity", "New messages to add: ${newMessages.size}")
                             if (newMessages.isNotEmpty()) {
                                 messages.addAll(0, newMessages)
                                 messages.sortBy { it.timestamp }
+                            } else {
+                                Log.d("ChatActivity", "No new unique messages found in history")
                             }
                         }
                      }
@@ -470,7 +485,7 @@ fun ChatInputArea(onSend: (String) -> Unit, onChartClick: () -> Unit, isAstrolog
                 .clip(RoundedCornerShape(22.dp))
                 .background(Color(0xFF1E1E1E))
                 .padding(horizontal = 16.dp),
-            contentAlignment = Alignment.CenterStart
+                contentAlignment = Alignment.CenterStart
         ) {
             BasicTextField(
                 value = text,

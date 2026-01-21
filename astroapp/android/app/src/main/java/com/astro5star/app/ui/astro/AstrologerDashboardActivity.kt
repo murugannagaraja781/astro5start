@@ -83,6 +83,24 @@ class AstrologerDashboardActivity : ComponentActivity() {
     }
 
     private fun performLogout() {
+        val userId = tokenManager.getUserSession()?.userId
+        if (userId != null) {
+            // 1. Tell Server: Turn OFF all services
+            SocketManager.updateServiceStatus(userId, "chat", false)
+            SocketManager.updateServiceStatus(userId, "audio", false)
+            SocketManager.updateServiceStatus(userId, "video", false)
+
+            // 2. Tell Server: Go Global Offline
+            val data = JSONObject().apply {
+                put("userId", userId)
+                put("isOnline", false)
+            }
+            SocketManager.getSocket()?.emit("update-status", data)
+        }
+
+        // 3. Clear Local Service Toggles
+        getSharedPreferences("astro_prefs", MODE_PRIVATE).edit().clear().apply()
+
         tokenManager.clearSession()
         SocketManager.disconnect()
         val intent = Intent(this, LoginActivity::class.java)
@@ -381,7 +399,8 @@ fun ServiceToggleRow(userId: String) {
         )
     }
 
-    // Helper to update global status
+    // Helper to update global status - REMOVED to prevent overwriting individual toggles
+    /*
     fun syncGlobalStatus() {
         val isAnyOnline = services.any { it.isEnabled }
         val data = JSONObject().apply {
@@ -390,6 +409,7 @@ fun ServiceToggleRow(userId: String) {
         }
         SocketManager.getSocket()?.emit("update-status", data)
     }
+    */
 
     Card(
         colors = CardDefaults.cardColors(containerColor = DashboardWhite),
@@ -439,8 +459,8 @@ fun ServiceToggleRow(userId: String) {
                                 val backendServiceName = if (service.name == "Call") "audio" else service.name.lowercase()
                                 SocketManager.updateServiceStatus(userId, backendServiceName, isChecked)
 
-                                // FIX 2: Auto-sync global online status
-                                syncGlobalStatus()
+                                // FIX 2: Auto-sync global online status - REMOVED
+                                // syncGlobalStatus()
 
                                 if (isChecked) {
                                     Toast.makeText(context, "${service.name} Online", Toast.LENGTH_SHORT).show()
