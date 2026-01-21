@@ -1666,10 +1666,18 @@ io.on('connection', (socket) => {
     try {
       const { sessionId, toUserId, type, accept } = data || {};
       const fromUserId = socketToUser.get(socket.id);
-      if (!fromUserId || !sessionId || !toUserId) return;
+      if (!fromUserId || !sessionId || !toUserId) {
+        console.log(`[answer-session] Invalid data: fromUserId=${fromUserId}, sessionId=${sessionId}, toUserId=${toUserId}`);
+        return;
+      }
 
       const targetSocketId = userSockets.get(toUserId);
-      if (!targetSocketId) return;
+
+      // FIX: Log when client socket not found - helps debug connection issues
+      if (!targetSocketId) {
+        console.warn(`[answer-session] Client socket NOT FOUND for ${toUserId}. Client may have disconnected.`);
+        // Still process the session answer even if can't notify client
+      }
 
       if (!accept) {
         endSessionRecord(sessionId);
@@ -1678,15 +1686,19 @@ io.on('connection', (socket) => {
         userActiveSession.set(toUserId, sessionId);
       }
 
-      io.to(targetSocketId).emit('session-answered', {
-        sessionId,
-        fromUserId,
-        type,
-        accept: !!accept,
-      });
+      // Only emit if target socket exists
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('session-answered', {
+          sessionId,
+          fromUserId,
+          type,
+          accept: !!accept,
+        });
+        console.log(`[answer-session] ✅ Emitted session-answered to client ${toUserId}`);
+      }
 
       console.log(
-        `Session answer: sessionId=${sessionId}, type=${type}, from=${fromUserId}, to=${toUserId}, accept=${!!accept}`
+        `Session answer: sessionId=${sessionId}, type=${type}, from=${fromUserId}, to=${toUserId}, accept=${!!accept}, clientConnected=${!!targetSocketId}`
       );
     } catch (err) {
       console.error('answer-session error', err);

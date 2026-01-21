@@ -81,6 +81,7 @@ object SocketManager {
     }
 
     fun onSessionAnswered(listener: (JSONObject) -> Unit) {
+        socket?.off("session-answered") // FIX: Remove previous listener to prevent memory leak
         socket?.on("session-answered") { args ->
             if (args != null && args.isNotEmpty()) {
                 val data = args[0] as JSONObject
@@ -90,6 +91,7 @@ object SocketManager {
     }
 
     fun onSignal(listener: (JSONObject) -> Unit) {
+        socket?.off("signal") // FIX: Remove previous listener to prevent memory leak
         socket?.on("signal") { args ->
             if (args != null && args.isNotEmpty()) {
                 val data = args[0] as JSONObject
@@ -111,12 +113,14 @@ object SocketManager {
     }
 
     fun onSessionEnded(listener: () -> Unit) {
+        socket?.off("session-ended") // FIX: Remove previous listener to prevent memory leak
         socket?.on("session-ended") {
             listener()
         }
     }
 
     fun onWalletUpdate(listener: (Double) -> Unit) {
+        socket?.off("wallet-update") // FIX: Remove previous listener to prevent memory leak
         socket?.on("wallet-update") { args ->
             if (args != null && args.isNotEmpty()) {
                 val data = args[0] as? JSONObject
@@ -151,6 +155,7 @@ object SocketManager {
     }
 
     fun onAstrologerUpdate(listener: (JSONObject) -> Unit) {
+        socket?.off("astrologer-update") // FIX: Remove previous listener to prevent memory leak
         socket?.on("astrologer-update") { args ->
             if (args != null && args.isNotEmpty()) {
                 val data = args[0] as JSONObject

@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.astro5star.app.R
+import com.bumptech.glide.Glide
 import com.astro5star.app.data.remote.SocketManager
 import org.json.JSONObject
 import org.webrtc.*
@@ -143,7 +144,24 @@ class CallActivity : AppCompatActivity() {
             val audioLayout = findViewById<View>(R.id.audioLayout)
             audioLayout.visibility = View.VISIBLE
 
+
+            val partnerImage = intent.getStringExtra("partnerImage")
             findViewById<TextView>(R.id.tvAudioName).text = partnerName ?: "Unknown"
+
+            if (!partnerImage.isNullOrEmpty()) {
+                val ivAvatar = findViewById<android.widget.ImageView>(R.id.ivAudioAvatar)
+                Glide.with(this)
+                    .load(partnerImage)
+                    .circleCrop()
+                    .placeholder(R.drawable.bg_circle_white) // Fallback
+                    .error(R.drawable.bg_circle_white)
+                    .into(ivAvatar)
+            }
+
+            // Set Status Bar Color to match Audio UI Background
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                window.statusBarColor = android.graphics.Color.parseColor("#111827")
+            }
 
             configureAudioSettings()
 
@@ -282,9 +300,15 @@ class CallActivity : AppCompatActivity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        // Simply retry startCallLimit if mostly granted. detailed check omitted for brevity.
         if (requestCode == PERMISSION_REQ_CODE) {
-             startCallLimit()
+            // FIX: Check if permissions were actually granted
+            val allGranted = grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+            if (allGranted) {
+                startCallLimit()
+            } else {
+                Toast.makeText(this, "Permissions required for call", Toast.LENGTH_LONG).show()
+                finish() // Exit if permissions denied
+            }
         }
     }
 
@@ -294,6 +318,7 @@ class CallActivity : AppCompatActivity() {
 
         if (isInitiator) {
             tvStatus.text = "Calling..."
+            findViewById<TextView>(R.id.tvAudioStatus)?.text = "Calling..."
 
             // FIX: Initiator MUST also send session-connect to start billing
             val connectPayload = JSONObject().apply {
@@ -305,6 +330,7 @@ class CallActivity : AppCompatActivity() {
             createOffer()
         } else {
             tvStatus.text = "Connecting..."
+            findViewById<TextView>(R.id.tvAudioStatus)?.text = "Connecting..."
 
             val tokenManager = com.astro5star.app.data.local.TokenManager(this)
             val session = tokenManager.getUserSession()
@@ -405,18 +431,25 @@ class CallActivity : AppCompatActivity() {
             override fun onIceConnectionChange(newState: PeerConnection.IceConnectionState?) {
                 Log.d(TAG, "onIceConnectionChange: $newState")
                 runOnUiThread {
-                    when (newState) {
-                        PeerConnection.IceConnectionState.CONNECTED -> tvStatus.visibility = View.GONE
-                        PeerConnection.IceConnectionState.DISCONNECTED -> {
-                            // Don't end immediately, allow re-negotiation or timeout
-                            Toast.makeText(this@CallActivity, "Connection Unstable", Toast.LENGTH_SHORT).show()
+                    val statusText = when (newState) {
+                        PeerConnection.IceConnectionState.CONNECTED -> {
+                            tvStatus.visibility = View.GONE
+                            "Connected"
                         }
+                        PeerConnection.IceConnectionState.DISCONNECTED -> "Reconnecting..."
                         PeerConnection.IceConnectionState.FAILED -> {
-                            // Only end on FAILURE
-                            Toast.makeText(this@CallActivity, "Connection Failed", Toast.LENGTH_SHORT).show()
                             endCall()
+                            "Failed"
                         }
-                        else -> {}
+                        else -> "Connecting..."
+                    }
+                    tvStatus.text = statusText
+                    findViewById<TextView>(R.id.tvAudioStatus)?.text = statusText
+
+                    if (newState == PeerConnection.IceConnectionState.DISCONNECTED) {
+                         Toast.makeText(this@CallActivity, "Connection Unstable", Toast.LENGTH_SHORT).show()
+                    } else if (newState == PeerConnection.IceConnectionState.FAILED) {
+                         Toast.makeText(this@CallActivity, "Connection Failed", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -605,6 +638,10 @@ class CallActivity : AppCompatActivity() {
 
     private fun endCall() {
         Log.d(TAG, "endCall: Initiating manual disconnect")
+
+        // FIX: Stop timer immediately on call end
+        timerHandler.removeCallbacks(timerRunnable)
+
         stopBackgroundService()
 
         // 1. Send Explicit "bye" signal to peer (Redundancy)
@@ -625,21 +662,60 @@ class CallActivity : AppCompatActivity() {
         // 2. Notify Server to End Session (Billing)
         SocketManager.endSession(sessionId)
 
+        // 3. FIX: Close peer connection BEFORE finish to prevent ghost calls
+        try {
+            localAudioTrack?.setEnabled(false)
+            localVideoTrack?.setEnabled(false)
+            peerConnection.close()
+            Log.d(TAG, "PeerConnection closed before finish")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error closing peer connection", e)
+        }
+
         finish()
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        Log.d(TAG, "onDestroy: Full WebRTC cleanup")
+
         timerHandler.removeCallbacks(timerRunnable) // Stop Timer
+
+        // Remove socket listeners FIRST
         SocketManager.off("signal")
         SocketManager.off("session-ended")
+
+        // Full WebRTC cleanup to prevent ghost calls
         try {
-            peerConnection.close()
+            // 1. Dispose audio track
+            localAudioTrack?.setEnabled(false)
+            localAudioTrack?.dispose()
+            localAudioTrack = null
+
+            // 2. Dispose video track
+            localVideoTrack?.setEnabled(false)
+            localVideoTrack?.dispose()
+            localVideoTrack = null
+
+            // 3. Stop and dispose video capturer
             videoCapturer?.stopCapture()
+            videoCapturer?.dispose()
+            videoCapturer = null
+
+            // 4. Close peer connection
+            peerConnection.close()
+
+            // 5. Release views
             localView.release()
             remoteView.release()
+
+            // 6. Dispose factory and EGL
+            peerConnectionFactory.dispose()
+            eglBase.release()
+
+            Log.d(TAG, "WebRTC resources fully released")
         } catch (e: Exception) {
-            Log.e(TAG, "Error destroying", e)
+            Log.e(TAG, "Error destroying WebRTC resources", e)
         }
     }
 

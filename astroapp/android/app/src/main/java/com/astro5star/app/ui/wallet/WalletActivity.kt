@@ -138,7 +138,7 @@ class WalletActivity : ComponentActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val request = Request.Builder()
-                    .url("https://astro5star.com/api/payment/history/$userId")
+                    .url("${com.astro5star.app.utils.Constants.SERVER_URL}/api/payment/history/$userId")
                     .get()
                     .build()
 

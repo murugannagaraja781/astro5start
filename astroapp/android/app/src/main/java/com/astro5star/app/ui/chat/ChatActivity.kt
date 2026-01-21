@@ -239,9 +239,10 @@ class ChatActivity : ComponentActivity() {
                     text = json.optString("text")
                 }
 
-                // Fallback for null strings
+                // FIX: Better empty message handling with logging
                 if (text.isNullOrEmpty() || text.equals("null", ignoreCase = true)) {
-                    text = "Message"
+                    Log.w("ChatActivity", "Empty message received, raw: ${json.toString().take(100)}")
+                    text = "[Empty Message]" // More descriptive placeholder
                 }
 
                 ComposeChatMessage(
@@ -298,6 +299,14 @@ class ChatActivity : ComponentActivity() {
             try {
                 val data = args[0] as JSONObject
                 val messageId = data.optString("messageId", UUID.randomUUID().toString())
+                val fromUserId = data.optString("fromUserId", "") // FIX: Get sender ID
+
+                // FIX: Skip if this is my own message (already added locally in sendMessage)
+                val myUserId = TokenManager(this).getUserSession()?.userId
+                if (fromUserId == myUserId) {
+                    Log.d("ChatActivity", "Skipping own message echo: $messageId")
+                    return@on
+                }
 
                 // Parse 'text' correctly for real-time messages
                 val text = if (data.has("content")) {
@@ -349,6 +358,23 @@ class ChatActivity : ComponentActivity() {
                 }
                 finish()
             }
+        }
+    }
+
+    // FIX: Add proper cleanup to prevent ghost chats and memory leaks
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d("ChatActivity", "onDestroy: Cleaning up socket listeners")
+
+        // Remove all socket listeners
+        SocketManager.off("chat-message")
+        SocketManager.off("session-ended")
+
+        // End session if not already ended (e.g., user pressed back button)
+        // Only if session was still active
+        if (sessionId != null && !isFinishing) {
+            Log.d("ChatActivity", "Ending session on destroy: $sessionId")
+            SocketManager.endSession(sessionId)
         }
     }
 }

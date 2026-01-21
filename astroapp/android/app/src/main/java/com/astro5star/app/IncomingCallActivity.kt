@@ -81,6 +81,14 @@ class IncomingCallActivity : AppCompatActivity() {
         startRingtone()
         startVibration()
         handler.postDelayed(timeoutRunnable, CALL_TIMEOUT_MS)
+
+        // FIX: Use OnBackPressedCallback instead of deprecated onBackPressed
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Do nothing - user must accept or reject
+                Log.d(TAG, "Back pressed - ignoring (user must accept or reject)")
+            }
+        })
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -273,7 +281,24 @@ class IncomingCallActivity : AppCompatActivity() {
         stopRingtoneAndVibration()
         handler.removeCallbacks(timeoutRunnable)
 
-        // TODO: Send reject signal to server if needed
+        // FIX: Send reject signal to server
+        try {
+            com.astro5star.app.data.remote.SocketManager.init()
+            val tokenManager = com.astro5star.app.data.local.TokenManager(this)
+            val session = tokenManager.getUserSession()
+            if (session?.userId != null) {
+                com.astro5star.app.data.remote.SocketManager.registerUser(session.userId)
+            }
+            val payload = org.json.JSONObject().apply {
+                put("sessionId", callId)
+                put("toUserId", callerId)
+                put("accept", false)
+            }
+            com.astro5star.app.data.remote.SocketManager.getSocket()?.emit("answer-session", payload)
+            Log.d(TAG, "Reject signal sent for session: $callId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to send reject signal", e)
+        }
 
         // Stop foreground service
         stopService(Intent(this, CallForegroundService::class.java))
@@ -288,13 +313,4 @@ class IncomingCallActivity : AppCompatActivity() {
         Log.d(TAG, "IncomingCallActivity destroyed")
     }
 
-    /**
-     * Prevent back button from dismissing incoming call
-     * User must explicitly Accept or Reject
-     */
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        // Do nothing - user must accept or reject
-        Log.d(TAG, "Back pressed - ignoring (user must accept or reject)")
-    }
 }

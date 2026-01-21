@@ -160,6 +160,10 @@ class AstrologerDashboardActivity : ComponentActivity() {
 
                 runOnUiThread {
                     Toast.makeText(this, "Reconnected: Status Restored", Toast.LENGTH_SHORT).show()
+                    // FIX: Update activity - force refresh to sync UI state
+                    val tokenManagerLocal = TokenManager(this)
+                    val sessionLocal = tokenManagerLocal.getUserSession()
+                    // Optionally trigger a state refresh callback here if needed
                 }
             }
         }
@@ -214,7 +218,54 @@ fun AstrologerDashboardScreen(
     onToggleOnline: (Boolean) -> Unit
 ) {
     var walletBalance by remember { mutableDoubleStateOf(initialWallet) }
+    var totalEarnings by remember { mutableDoubleStateOf(0.0) }
+    var isLoadingEarnings by remember { mutableStateOf(false) }
     var isOnline by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // Indian Rupee Number Format
+    fun formatIndianCurrency(amount: Double): String {
+        val formatter = java.text.DecimalFormat("##,##,##0.00")
+        return "₹${formatter.format(amount)}"
+    }
+
+    // Fetch Earnings Function (Uses existing /api/user/:userId endpoint)
+    fun fetchEarnings() {
+        isLoadingEarnings = true
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val client = okhttp3.OkHttpClient.Builder().build()
+                val request = okhttp3.Request.Builder()
+                    .url("${com.astro5star.app.utils.Constants.SERVER_URL}/api/user/$sessionId")
+                    .get()
+                    .build()
+                val response = client.newCall(request).execute()
+                if (response.isSuccessful) {
+                    val json = org.json.JSONObject(response.body?.string() ?: "{}")
+                    val earnings = json.optDouble("totalEarnings", 0.0)
+                    val balance = json.optDouble("walletBalance", walletBalance)
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        totalEarnings = earnings
+                        walletBalance = balance
+                        isLoadingEarnings = false
+                        android.widget.Toast.makeText(context, "Earnings Updated!", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        isLoadingEarnings = false
+                        android.widget.Toast.makeText(context, "Failed to fetch earnings", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    isLoadingEarnings = false
+                    android.widget.Toast.makeText(context, "Network error", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     Scaffold(
         containerColor = Color(0xFFF0FDF4) // Silver/White
@@ -279,18 +330,60 @@ fun AstrologerDashboardScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                    Column(modifier = Modifier.padding(20.dp)) {
-                       Text("Total Earnings", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                       Row(
+                           modifier = Modifier.fillMaxWidth(),
+                           horizontalArrangement = Arrangement.SpaceBetween,
+                           verticalAlignment = Alignment.CenterVertically
+                       ) {
+                           Text("Total Earnings", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                           // Show Total Earnings Value
+                           Text(
+                               text = formatIndianCurrency(totalEarnings),
+                               color = Color(0xFF4ADE80), // Green for earnings
+                               fontSize = 24.sp,
+                               fontWeight = FontWeight.Bold
+                           )
+                       }
+
+                       Spacer(modifier = Modifier.height(8.dp))
+
+                       // Wallet Balance Row
+                       Row(
+                           modifier = Modifier.fillMaxWidth(),
+                           horizontalArrangement = Arrangement.SpaceBetween
+                       ) {
+                           Text("Wallet Balance", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
+                           Text(
+                               text = formatIndianCurrency(walletBalance),
+                               color = Color(0xFFFBBF24), // Gold for balance
+                               fontSize = 16.sp,
+                               fontWeight = FontWeight.SemiBold
+                           )
+                       }
+
                        Spacer(modifier = Modifier.height(16.dp))
+
                        Row(verticalAlignment = Alignment.CenterVertically) {
                            Button(
-                               onClick = {},
+                               onClick = { fetchEarnings() },
                                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White),
-                               shape = RoundedCornerShape(50)
+                               shape = RoundedCornerShape(50),
+                               enabled = !isLoadingEarnings
                            ) {
-                               Icon(Icons.Default.MonetizationOn, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                               Spacer(modifier = Modifier.width(8.dp))
-                               Text("View Earnings", color = Color.White)
+                               if (isLoadingEarnings) {
+                                   CircularProgressIndicator(
+                                       color = Color.White,
+                                       modifier = Modifier.size(16.dp),
+                                       strokeWidth = 2.dp
+                                   )
+                                   Spacer(modifier = Modifier.width(8.dp))
+                                   Text("Loading...", color = Color.White)
+                               } else {
+                                   Icon(Icons.Default.MonetizationOn, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                   Spacer(modifier = Modifier.width(8.dp))
+                                   Text("View Earnings", color = Color.White)
+                               }
                            }
                            Spacer(modifier = Modifier.weight(1f))
                            Button(

@@ -134,8 +134,16 @@ class FCMService : FirebaseMessagingService() {
      * - The notification with fullScreenIntent IS the official way to do this
      */
     private fun handleIncomingCall(data: Map<String, String>) {
-        val callerId = data["callerId"] ?: "Unknown"
-        val callerName = data["callerName"] ?: callerId
+        val callerId = data["callerId"] ?: ""
+        // FIX: Better callerName handling - check for empty string as well
+        var callerName = data["callerName"]
+        if (callerName.isNullOrBlank()) {
+            callerName = if (callerId.isNotBlank() && !callerId.contains("-")) {
+                callerId // Use callerId only if it's not a UUID
+            } else {
+                "Client" // Better fallback than "Unknown"
+            }
+        }
         // FIX: Server sends 'sessionId', manual test might send 'callId'
         val callId = data["sessionId"] ?: data["callId"] ?: System.currentTimeMillis().toString()
         val callType = data["callType"] ?: "audio" // Differentiate chat vs audio/video

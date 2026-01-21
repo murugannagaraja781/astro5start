@@ -184,18 +184,41 @@ class IntakeActivity : ComponentActivity() {
              isWaiting.value = true
              timeRemaining.value = 30
 
+             // FIX: Initialize socket and REGISTER user before requesting session
+             // This ensures server has socket mapping to send back session-answered
              SocketManager.init()
-             SocketManager.requestSession(partnerId!!, type!!, birthData) { response ->
+
+             val tokenManager = com.astro5star.app.data.local.TokenManager(this)
+             val userId = tokenManager.getUserSession()?.userId
+
+             if (userId == null) {
+                 Toast.makeText(this, "Please login first", Toast.LENGTH_SHORT).show()
+                 isWaiting.value = false
+                 return
+             }
+
+             // FIX: Register user on socket BEFORE requesting session
+             SocketManager.registerUser(userId) { registered ->
                  runOnUiThread {
-                     if (response?.optBoolean("ok") == true) {
-                         val sessionId = response.optString("sessionId")
-                         // Request Sent, Start Countdown
-                         startWaitingTimer()
-                         waitForAnswer(sessionId)
+                     if (registered) {
+                         android.util.Log.d("IntakeActivity", "User registered: $userId, now requesting session")
+                         // Now request session after registration complete
+                         SocketManager.requestSession(partnerId!!, type!!, birthData) { response ->
+                             runOnUiThread {
+                                 if (response?.optBoolean("ok") == true) {
+                                     val sessionId = response.optString("sessionId")
+                                     startWaitingTimer()
+                                     waitForAnswer(sessionId)
+                                 } else {
+                                     isWaiting.value = false
+                                     val error = response?.optString("error") ?: "Connection Failed"
+                                     Toast.makeText(this, error, Toast.LENGTH_SHORT).show()
+                                 }
+                             }
+                         }
                      } else {
-                         isWaiting.value = false // Hide if request failed
-                         val error = response?.optString("error") ?: "Connection Failed"
-                         Toast.makeText(this, error, Toast.LENGTH_SHORT).show()
+                         isWaiting.value = false
+                         Toast.makeText(this, "Connection failed", Toast.LENGTH_SHORT).show()
                      }
                  }
              }
@@ -224,8 +247,11 @@ class IntakeActivity : ComponentActivity() {
                          intent = Intent(this, CallActivity::class.java).apply {
                              putExtra("sessionId", sessionId)
                              putExtra("partnerId", partnerId)
+                             putExtra("partnerName", partnerName) // FIX: Added missing partnerName
                              putExtra("isInitiator", true)
                              putExtra("type", type)
+                             putExtra("callType", type) // FIX: Also pass as callType for compatibility
+                             putExtra("partnerImage", partnerImage)
                          }
                      }
                      startActivity(intent)
