@@ -119,6 +119,33 @@ class AstrologerDashboardActivity : ComponentActivity() {
         val socket = SocketManager.getSocket()
         socket?.connect()
 
+        // 1. Auto-Sync Status on Connection/Reconnection
+        SocketManager.onConnect {
+            val prefs = getSharedPreferences("astro_prefs", MODE_PRIVATE)
+            val isChatEnabled = prefs.getBoolean("service_chat", false)
+            val isCallEnabled = prefs.getBoolean("service_call", false)
+            val isVideoEnabled = prefs.getBoolean("service_video", false)
+
+            if (userId != null) {
+                // Sync individual services
+                SocketManager.updateServiceStatus(userId, "chat", isChatEnabled)
+                SocketManager.updateServiceStatus(userId, "audio", isCallEnabled)
+                SocketManager.updateServiceStatus(userId, "video", isVideoEnabled)
+
+                // Sync global online status
+                val isAnyOnline = isChatEnabled || isCallEnabled || isVideoEnabled
+                val data = JSONObject().apply {
+                    put("userId", userId)
+                    put("isOnline", isAnyOnline)
+                }
+                SocketManager.getSocket()?.emit("update-status", data)
+
+                runOnUiThread {
+                    Toast.makeText(this, "Reconnected: Status Restored", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
         // CRITICAL FIX: Listen for incoming calls when app is in foreground
         // FCM only works when app is in background/killed. When in foreground,
         // the server sends via socket instead of FCM.
@@ -335,11 +362,14 @@ fun AstrologerDashboardScreen(
 @Composable
 fun ServiceToggleRow(userId: String) {
     val context = LocalContext.current
+    // Persist preferences
+    val prefs = remember { context.getSharedPreferences("astro_prefs", android.content.Context.MODE_PRIVATE) }
+
     val services = remember {
         mutableStateListOf(
-            ServiceData("Chat", false, Icons.Default.Chat),
-            ServiceData("Call", false, Icons.Default.Call),
-            ServiceData("Video", false, Icons.Default.Person)
+            ServiceData("Chat", prefs.getBoolean("service_chat", false), Icons.Default.Chat),
+            ServiceData("Call", prefs.getBoolean("service_call", false), Icons.Default.Call),
+            ServiceData("Video", prefs.getBoolean("service_video", false), Icons.Default.Person)
         )
     }
 
@@ -394,6 +424,8 @@ fun ServiceToggleRow(userId: String) {
                             checked = service.isEnabled,
                             onCheckedChange = { isChecked ->
                                 services[index] = service.copy(isEnabled = isChecked)
+                                // Save to Prefs
+                                prefs.edit().putBoolean("service_${service.name.lowercase()}", isChecked).apply()
 
                                 // FIX 1: Map "Call" to "audio" for backend compatibility
                                 val backendServiceName = if (service.name == "Call") "audio" else service.name.lowercase()

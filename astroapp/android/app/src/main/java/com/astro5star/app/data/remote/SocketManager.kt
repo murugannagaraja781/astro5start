@@ -160,6 +160,30 @@ object SocketManager {
     }
 
     /**
+     * Fetch Chat History
+     */
+    fun fetchChatHistory(partnerId: String, callback: (List<JSONObject>) -> Unit) {
+        val payload = JSONObject().apply {
+            put("partnerId", partnerId)
+        }
+        socket?.emit("get-chat-messages", payload, Ack { args ->
+            val list = mutableListOf<JSONObject>()
+            if (args != null && args.isNotEmpty()) {
+                val response = args[0] as JSONObject
+                if (response.optBoolean("ok")) {
+                    val messages = response.optJSONArray("messages")
+                    if (messages != null) {
+                        for (i in 0 until messages.length()) {
+                            list.add(messages.getJSONObject(i))
+                        }
+                    }
+                }
+            }
+            callback(list)
+        })
+    }
+
+    /**
      * Listen for incoming session requests (calls/chats) when app is in foreground.
      * This is CRITICAL because FCM only works reliably when app is in background/killed.
      * When app is in foreground, server sends via socket instead of FCM.

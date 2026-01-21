@@ -1587,8 +1587,10 @@ fun ChatAstrologerCard(astrologer: com.astro5star.app.data.model.Astrologer, isG
                         color = if (isOnlineForChat) SuccessGreen else GoldAccent,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            if (isGuest) context.startActivity(Intent(context, LoginActivity::class.java))
-                            else startIntakeForSession(context, astrologer, "chat")
+                            if (astrologer.isChatOnline) {
+                                if (isGuest) context.startActivity(Intent(context, LoginActivity::class.java))
+                                else startIntakeForSession(context, astrologer, "chat")
+                            }
                         }
                     )
 
@@ -1600,8 +1602,10 @@ fun ChatAstrologerCard(astrologer: com.astro5star.app.data.model.Astrologer, isG
                         color = PrimaryOrange,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            if (isGuest) context.startActivity(Intent(context, LoginActivity::class.java))
-                            else startIntakeForSession(context, astrologer, "audio")
+                            if (astrologer.isAudioOnline) {
+                                if (isGuest) context.startActivity(Intent(context, LoginActivity::class.java))
+                                else startIntakeForSession(context, astrologer, "audio")
+                            }
                         }
                     )
 
@@ -1613,8 +1617,10 @@ fun ChatAstrologerCard(astrologer: com.astro5star.app.data.model.Astrologer, isG
                         color = TextPrimary,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            if (isGuest) context.startActivity(Intent(context, LoginActivity::class.java))
-                            else startIntakeForSession(context, astrologer, "video")
+                            if (astrologer.isVideoOnline) {
+                                if (isGuest) context.startActivity(Intent(context, LoginActivity::class.java))
+                                else startIntakeForSession(context, astrologer, "video")
+                            }
                         }
                     )
                 }

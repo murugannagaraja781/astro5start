@@ -60,7 +60,16 @@ data class ComposeChatMessage(
     val text: String,
     val isSent: Boolean,
     val timestamp: Long = System.currentTimeMillis()
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ComposeChatMessage) return false
+        return id == other.id
+    }
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+}
 
 class ChatActivity : ComponentActivity() {
 
@@ -69,6 +78,7 @@ class ChatActivity : ComponentActivity() {
     private var sessionId: String? = null
     private var partnerName: String? = null
     private var birthData: String? = null
+    private var isAstrologer: Boolean = false
 
     // Using mutableStateList for Compose reactivity
     private val messages = mutableStateListOf<ComposeChatMessage>()
@@ -77,6 +87,10 @@ class ChatActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleIntent(intent)
+
+        // flexible role check
+        val userSession = TokenManager(this).getUserSession()
+        isAstrologer = userSession?.role?.equals("astrologer", ignoreCase = true) == true
 
         setContent {
              // Theme Colors
@@ -93,6 +107,7 @@ class ChatActivity : ComponentActivity() {
                  if (result.resultCode == Activity.RESULT_OK) {
                      val dataStr = result.data?.getStringExtra("birthData")
                      if (dataStr != null) {
+                         this@ChatActivity.birthData = dataStr // Update local state for Chart generation
                          sendFormMessage(dataStr)
                      }
                  }
@@ -108,24 +123,30 @@ class ChatActivity : ComponentActivity() {
                          endSession()
                      },
                      onEditForm = {
-                         // Check if we already have birth data to generate the chart
+                         // Always open Intake Form to enter/edit details
+                         val intent = Intent(this@ChatActivity, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
+                             putExtra("isEditMode", true)
+                             putExtra("partnerName", partnerName)
+                         }
+                         intakeLauncher.launch(intent)
+                     },
+                     onGenerateChart = {
                          if (birthData != null) {
-                             // Launch Chart Generation / Display directly
                              val chartIntent = Intent(this@ChatActivity, com.astro5star.app.ui.chart.ChartDisplayActivity::class.java).apply {
                                  putExtra("birthData", birthData)
                              }
                              startActivity(chartIntent)
                          } else {
-                             // Fallback: Open Intake Form to enter details
+                             // Fallback if no data
+                             Toast.makeText(this@ChatActivity, "Consultation details missing", Toast.LENGTH_SHORT).show()
                              val intent = Intent(this@ChatActivity, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
                                  putExtra("isEditMode", true)
                                  putExtra("partnerName", partnerName)
-                                 // Pass validation data if we saved it, for now assume fresh edit or local storage
-                                 // In real app, we'd pass existingData here
                              }
                              intakeLauncher.launch(intent)
                          }
-                     }
+                     },
+                     isAstrologer = isAstrologer
                  )
              }
         }
@@ -180,7 +201,8 @@ class ChatActivity : ComponentActivity() {
                 put("content", JSONObject().put("text", text).put("formData", formData))
              }
              SocketManager.getSocket()?.emit("chat-message", payload)
-             messages.add(ComposeChatMessage(messageId, text, true))
+             // Silent update: Do not add to local messages
+             // messages.add(ComposeChatMessage(messageId, text, true))
         } catch (e: Exception) { e.printStackTrace() }
     }
 
@@ -198,15 +220,52 @@ class ChatActivity : ComponentActivity() {
              SocketManager.registerUser(myUserId) {}
         }
 
+        // Fetch History
+        if (toUserId != null) {
+            SocketManager.fetchChatHistory(toUserId!!) { historyJson ->
+                val historyMessages = historyJson.map { json ->
+                    val isSentByMe = json.optString("fromUserId") == myUserId
+                    // Safely extract text from content (which might be a string or object)
+                    val contentObj = json.optJSONObject("content")
+                    val text = contentObj?.optString("text") ?: "Media/File"
+
+                    ComposeChatMessage(
+                        id = json.optString("messageId", UUID.randomUUID().toString()),
+                        text = text,
+                        isSent = isSentByMe,
+                        timestamp = json.optLong("timestamp", System.currentTimeMillis())
+                    )
+                }
+
+                runOnUiThread {
+                    // Avoid duplicates (if any) and prepend/add
+                    // For simplicity, we can clear and add all if this is initial load
+                    // But to be safe with existing in-memory messages:
+                    val existingIds = messages.map { it.id }.toSet()
+                    val newMessages = historyMessages.filter { !existingIds.contains(it.id) }
+                    messages.addAll(0, newMessages) // Prepend history? Or just add all and sort?
+                    // Actually, sorting by timestamp is safest
+                    messages.sortBy { it.timestamp }
+                }
+            }
+        }
+
         socket?.off("chat-message")
         socket?.on("chat-message") { args ->
             try {
                 val data = args[0] as JSONObject
+                val messageId = data.optString("messageId", UUID.randomUUID().toString())
                 val content = data.getJSONObject("content")
                 val text = content.getString("text")
-                SoundManager.playReceiveSound()
-                runOnUiThread {
-                    messages.add(ComposeChatMessage(text = text, isSent = false))
+                val ts = data.optLong("timestamp", System.currentTimeMillis())
+
+                // Check duplicate before adding
+                val exists = messages.any { it.id == messageId }
+                if (!exists) {
+                    SoundManager.playReceiveSound()
+                    runOnUiThread {
+                        messages.add(ComposeChatMessage(id=messageId, text = text, isSent = false, timestamp = ts))
+                    }
                 }
             } catch (e: Exception) { e.printStackTrace() }
         }
@@ -228,7 +287,9 @@ fun ChatScreen(
     onSend: (String) -> Unit,
     onBack: () -> Unit,
     onEndSession: () -> Unit,
-    onEditForm: () -> Unit
+    onEditForm: () -> Unit,
+    onGenerateChart: () -> Unit,
+    isAstrologer: Boolean
 ) {
     val listState = rememberLazyListState()
 
@@ -297,7 +358,7 @@ fun ChatScreen(
              }
         },
         bottomBar = {
-             ChatInputArea(onSend = onSend, onChartClick = onEditForm)
+             ChatInputArea(onSend = onSend, onChartClick = onGenerateChart, isAstrologer = isAstrologer)
         }
     ) { padding ->
         LazyColumn(
@@ -325,7 +386,7 @@ fun ChatBubble(message: ComposeChatMessage) {
         colors = listOf(Color(0xFFFFD700), Color(0xFFFFA000)) // Gold Gradient
     )
 
-    val astroBgColor = Color.Black.copy(alpha = 0.6f)
+    val astroBgColor = Color(0xFF6A1B9A) // Purple for Astrologer
     val astroBorder = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFD700).copy(alpha=0.5f))
 
     Box(
@@ -365,7 +426,7 @@ fun ChatBubble(message: ComposeChatMessage) {
 }
 
 @Composable
-fun ChatInputArea(onSend: (String) -> Unit, onChartClick: () -> Unit) {
+fun ChatInputArea(onSend: (String) -> Unit, onChartClick: () -> Unit, isAstrologer: Boolean) {
     var text by remember { mutableStateOf("") }
 
     // Sleek Input Area
@@ -381,9 +442,11 @@ fun ChatInputArea(onSend: (String) -> Unit, onChartClick: () -> Unit) {
             Icon(Icons.Default.AttachFile, null, tint = GoldAccent)
         }
 
-        // Chart / Details Form Icon
-        IconButton(onClick = onChartClick) {
-            Icon(Icons.Default.List, "Consultation/Chart", tint = GoldAccent)
+        // Chart Icon: Only Show for Astrologers
+        if (isAstrologer) {
+            IconButton(onClick = onChartClick) {
+                Icon(Icons.Default.List, "Consultation/Chart", tint = GoldAccent)
+            }
         }
 
         // Input Field

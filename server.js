@@ -1887,6 +1887,31 @@ io.on('connection', (socket) => {
     } catch (e) { console.error(e); cb({ ok: false }); }
   });
 
+  // --- Get Chat Messages (History between two users) ---
+  socket.on('get-chat-messages', async (data, cb) => {
+    try {
+      const { partnerId } = data || {};
+      const userId = socketToUser.get(socket.id);
+
+      if (!userId || !partnerId) {
+        return cb && cb({ ok: false, error: 'Missing params' });
+      }
+
+      const messages = await ChatMessage.find({
+        $or: [
+          { fromUserId: userId, toUserId: partnerId },
+          { fromUserId: partnerId, toUserId: userId }
+        ]
+      }).sort({ timestamp: 1 }).limit(100); // Limit 100 for performance
+
+      cb && cb({ ok: true, messages });
+
+    } catch (e) {
+      console.error('get-chat-messages error', e);
+      cb && cb({ ok: false, error: e.message });
+    }
+  });
+
   // --- Receiver: delivered ack ---
   socket.on('message-delivered', (data) => {
     try {
