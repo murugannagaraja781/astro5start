@@ -1898,20 +1898,21 @@ io.on('connection', (socket) => {
   // --- Fetch Chat History ---
   socket.on('get-chat-messages', async (data, callback) => {
     try {
-      const { toUserId } = data || {};
+      const { toUserId, partnerId } = data || {};
+      const targetUserId = toUserId || partnerId;
       const fromUserId = socketToUser.get(socket.id);
 
-      if (!fromUserId || !toUserId) {
-        if (typeof callback === 'function') callback([]);
+      if (!fromUserId || !targetUserId) {
+        if (typeof callback === 'function') callback({ ok: false, messages: [] });
         return;
       }
 
-      console.log(`Fetching history between ${fromUserId} and ${toUserId}`);
+      console.log(`Fetching history between ${fromUserId} and ${targetUserId}`);
 
       const messages = await ChatMessage.find({
         $or: [
-          { fromUserId: fromUserId, toUserId: toUserId },
-          { fromUserId: toUserId, toUserId: fromUserId }
+          { fromUserId: fromUserId, toUserId: targetUserId },
+          { fromUserId: targetUserId, toUserId: fromUserId }
         ]
       })
         .sort({ timestamp: 1 })
@@ -1931,11 +1932,11 @@ io.on('connection', (socket) => {
       console.log(`Found ${formattedMessages.length} messages`);
 
       if (typeof callback === 'function') {
-        callback(formattedMessages);
+        callback({ ok: true, messages: formattedMessages });
       }
     } catch (err) {
       console.error('get-chat-messages error', err);
-      if (typeof callback === 'function') callback([]);
+      if (typeof callback === 'function') callback({ ok: false, messages: [] });
     }
   });
 
