@@ -217,37 +217,44 @@ class ChatActivity : ComponentActivity() {
         val myUserId = TokenManager(this).getUserSession()?.userId
 
         if (myUserId != null) {
-             SocketManager.registerUser(myUserId) {}
-        }
+             // Chain: Register -> Then Fetch History
+             SocketManager.registerUser(myUserId) { success ->
+                 if (success && toUserId != null) {
+                     runOnUiThread {
+                         // Optional: Show loading state or keep silent
+                     }
+                     SocketManager.fetchChatHistory(toUserId!!) { historyJson ->
+                        val historyMessages = historyJson.map { json ->
+                            val isSentByMe = json.optString("fromUserId") == myUserId
 
-        // Fetch History
-        if (toUserId != null) {
-            SocketManager.fetchChatHistory(toUserId!!) { historyJson ->
-                val historyMessages = historyJson.map { json ->
-                    val isSentByMe = json.optString("fromUserId") == myUserId
-                    // Safely extract text from content (which might be a string or object)
-                    val contentObj = json.optJSONObject("content")
-                    val text = contentObj?.optString("text") ?: "Media/File"
+                            // Parse 'text' correctly from DB format vs Socket format
+                            val text = if (json.has("content")) {
+                                json.optJSONObject("content")?.optString("text")
+                            } else {
+                                json.optString("text")
+                            } ?: "Message"
 
-                    ComposeChatMessage(
-                        id = json.optString("messageId", UUID.randomUUID().toString()),
-                        text = text,
-                        isSent = isSentByMe,
-                        timestamp = json.optLong("timestamp", System.currentTimeMillis())
-                    )
-                }
+                            ComposeChatMessage(
+                                id = json.optString("messageId", UUID.randomUUID().toString()),
+                                text = text,
+                                isSent = isSentByMe,
+                                timestamp = json.optLong("timestamp", System.currentTimeMillis())
+                            )
+                        }
 
-                runOnUiThread {
-                    // Avoid duplicates (if any) and prepend/add
-                    // For simplicity, we can clear and add all if this is initial load
-                    // But to be safe with existing in-memory messages:
-                    val existingIds = messages.map { it.id }.toSet()
-                    val newMessages = historyMessages.filter { !existingIds.contains(it.id) }
-                    messages.addAll(0, newMessages) // Prepend history? Or just add all and sort?
-                    // Actually, sorting by timestamp is safest
-                    messages.sortBy { it.timestamp }
-                }
-            }
+                        runOnUiThread {
+                            // Check duplicates using ID
+                            val existingIds = messages.map { it.id }.toSet()
+                            val newMessages = historyMessages.filter { !existingIds.contains(it.id) }
+
+                            if (newMessages.isNotEmpty()) {
+                                messages.addAll(0, newMessages)
+                                messages.sortBy { it.timestamp }
+                            }
+                        }
+                     }
+                 }
+             }
         }
 
         socket?.off("chat-message")
@@ -255,8 +262,14 @@ class ChatActivity : ComponentActivity() {
             try {
                 val data = args[0] as JSONObject
                 val messageId = data.optString("messageId", UUID.randomUUID().toString())
-                val content = data.getJSONObject("content")
-                val text = content.getString("text")
+
+                // Parse 'text' correctly for real-time messages
+                val text = if (data.has("content")) {
+                    data.getJSONObject("content").optString("text")
+                } else {
+                    data.optString("text")
+                } ?: ""
+
                 val ts = data.optLong("timestamp", System.currentTimeMillis())
 
                 // Check duplicate before adding

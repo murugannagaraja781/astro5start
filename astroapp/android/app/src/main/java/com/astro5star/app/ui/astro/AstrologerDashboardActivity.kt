@@ -199,9 +199,8 @@ fun AstrologerDashboardScreen(
     var isOnline by remember { mutableStateOf(false) }
 
     Scaffold(
-        containerColor = Color(0xFFF0FDF4) // Very light mint/white mix background from image? Or strictly NO GREEN? Reference image has very light green BG.
-        // User said "No Green Yellow Use". So I will use White/Silver.
-        .copy(alpha = 1f).let { DashboardSilver }, // Override to Silver
+        containerColor = Color(0xFFF0FDF4) // Silver/White
+        .copy(alpha = 1f).let { DashboardSilver },
         topBar = {
             Row(
                 modifier = Modifier
@@ -230,85 +229,96 @@ fun AstrologerDashboardScreen(
             }
         }
     ) { padding ->
-        Column(
+        // ROOT SCROLLABLE CONTAINER: LazyVerticalGrid
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Emergency Banner (Red)
-            Card(
-                colors = CardDefaults.cardColors(containerColor = DashboardRed),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Online for Emergency!", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text("Boost your earnings with emergency sessions.", color = Color.White.copy(alpha=0.9f), fontSize = 12.sp)
-                }
-            }
-
-            // 2. Earnings Card (Dark/Red instead of Green)
-            Card(
-                colors = CardDefaults.cardColors(containerColor = DashboardDark), // Using Dark instead of Green
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-               Column(modifier = Modifier.padding(20.dp)) {
-                   Text("Total Earnings", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                   Spacer(modifier = Modifier.height(16.dp))
-                   Row(verticalAlignment = Alignment.CenterVertically) {
-                       Button(
-                           onClick = {},
-                           colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                           border = androidx.compose.foundation.BorderStroke(1.dp, Color.White),
-                           shape = RoundedCornerShape(50)
-                       ) {
-                           Icon(Icons.Default.MonetizationOn, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                           Spacer(modifier = Modifier.width(8.dp))
-                           Text("View Earnings", color = Color.White)
-                       }
-                       Spacer(modifier = Modifier.weight(1f))
-                       Button(
-                           onClick = onWithdraw,
-                           colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                           shape = RoundedCornerShape(8.dp)
-                       ) {
-                           Text("Withdraw", color = DashboardDark, fontWeight = FontWeight.Bold)
-                       }
-                   }
-                   Spacer(modifier = Modifier.height(8.dp))
-                   Text("Min. ₹500 to Withdraw", color = Color.White.copy(alpha=0.7f), fontSize = 11.sp)
-               }
-            }
-
-            // 3. Today's Progress
-            Card(
-                colors = CardDefaults.cardColors(containerColor = DashboardWhite),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(2.dp)
-            ) {
-                Row(
-                   modifier = Modifier.padding(16.dp),
-                   verticalAlignment = Alignment.CenterVertically
+            // 1. Emergency Banner (Full Width)
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = DashboardRed),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Today's Progress", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DashboardDark)
-                        Text("0 hours left to complete target", fontSize = 12.sp, color = TextSecondary)
-                    }
-                    Box(contentAlignment = Alignment.Center) {
-                         CircularProgressIndicator(progress = 0f, trackColor = Color.LightGray, color = DashboardRed, modifier = Modifier.size(50.dp))
-                         Text("0m", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Online for Emergency!", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Boost your earnings with emergency sessions.", color = Color.White.copy(alpha=0.9f), fontSize = 12.sp)
                     }
                 }
             }
 
-            // 3b. Service Availability Toggles
-            ServiceToggleRow(sessionId)
+            // 2. Earnings Card (Full Width)
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = DashboardDark),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                   Column(modifier = Modifier.padding(20.dp)) {
+                       Text("Total Earnings", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                       Spacer(modifier = Modifier.height(16.dp))
+                       Row(verticalAlignment = Alignment.CenterVertically) {
+                           Button(
+                               onClick = {},
+                               colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                               border = androidx.compose.foundation.BorderStroke(1.dp, Color.White),
+                               shape = RoundedCornerShape(50)
+                           ) {
+                               Icon(Icons.Default.MonetizationOn, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                               Spacer(modifier = Modifier.width(8.dp))
+                               Text("View Earnings", color = Color.White)
+                           }
+                           Spacer(modifier = Modifier.weight(1f))
+                           Button(
+                               onClick = onWithdraw,
+                               colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                               shape = RoundedCornerShape(8.dp)
+                           ) {
+                               Text("Withdraw", color = DashboardDark, fontWeight = FontWeight.Bold)
+                           }
+                       }
+                       Spacer(modifier = Modifier.height(8.dp))
+                       Text("Min. ₹500 to Withdraw", color = Color.White.copy(alpha=0.7f), fontSize = 11.sp)
+                   }
+                }
+            }
 
-            // 4. Action Grid
+            // 3. Today's Progress (Full Width)
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = DashboardWhite),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(2.dp)
+                ) {
+                    Row(
+                       modifier = Modifier.padding(16.dp),
+                       verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Today's Progress", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DashboardDark)
+                            Text("0 hours left to complete target", fontSize = 12.sp, color = TextSecondary)
+                        }
+                        Box(contentAlignment = Alignment.Center) {
+                             CircularProgressIndicator(progress = 0f, trackColor = Color.LightGray, color = DashboardRed, modifier = Modifier.size(50.dp))
+                             Text("0m", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
+            // 3b. Service Availability Toggles (Full Width)
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }) {
+                ServiceToggleRow(sessionId)
+            }
+
+            // 4. Action Grid Items (3 Columns)
             val actions = listOf(
                 "Call" to Icons.Default.Call,
                 "Chat" to Icons.Default.Chat,
@@ -318,43 +328,41 @@ fun AstrologerDashboardScreen(
                 "Profile" to Icons.Default.Person
             )
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                 items(actions) { (label, icon) ->
-                     Card(
-                         colors = CardDefaults.cardColors(containerColor = DashboardWhite),
-                         shape = RoundedCornerShape(12.dp),
-                         elevation = CardDefaults.cardElevation(2.dp),
-                         modifier = Modifier.clickable { /* TODO */ }
+            items(actions) { (label, icon) ->
+                 Card(
+                     colors = CardDefaults.cardColors(containerColor = DashboardWhite),
+                     shape = RoundedCornerShape(12.dp),
+                     elevation = CardDefaults.cardElevation(2.dp),
+                     modifier = Modifier.clickable { /* TODO */ }
+                 ) {
+                     Column(
+                         modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                         horizontalAlignment = Alignment.CenterHorizontally
                      ) {
-                         Column(
-                             modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                             horizontalAlignment = Alignment.CenterHorizontally
+                         Box(
+                             modifier = Modifier.size(40.dp).background(Color(0xFFEEEEEE), CircleShape),
+                             contentAlignment = Alignment.Center
                          ) {
-                             Box(
-                                 modifier = Modifier.size(40.dp).background(Color(0xFFEEEEEE), CircleShape),
-                                 contentAlignment = Alignment.Center
-                             ) {
-                                 Icon(icon, null, tint = DashboardDark)
-                             }
-                             Spacer(modifier = Modifier.height(8.dp))
-                             Text(label, fontSize = 12.sp, color = DashboardDark)
+                             Icon(icon, null, tint = DashboardDark)
                          }
+                         Spacer(modifier = Modifier.height(8.dp))
+                         Text(label, fontSize = 12.sp, color = DashboardDark)
                      }
                  }
             }
 
-            // 5. Footer Links
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                 Text("Terms | Refunds | Shipping | Returns", fontSize = 11.sp, color = TextSecondary)
+            // 5. Footer Links (Full Width)
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                         Text("Terms | Refunds | Shipping | Returns", fontSize = 11.sp, color = TextSecondary)
+                    }
+                    Text("© 2024 Astro5Star", fontSize = 10.sp, color = TextSecondary)
+                }
             }
-            Text("© 2024 Astro5Star", fontSize = 10.sp, color = TextSecondary, modifier = Modifier.align(Alignment.CenterHorizontally))
         }
     }
 }
