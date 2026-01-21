@@ -1507,9 +1507,15 @@ fun PulsingGreenCircle(modifier: Modifier = Modifier) {
 fun ChatAstrologerCard(astrologer: com.astro5star.app.data.model.Astrologer, isGuest: Boolean) {
     val context = LocalContext.current
     val isOnlineForChat = astrologer.isChatOnline
+    val isBusy = astrologer.isBusy
 
     // Determine border color based on online status
-    val borderColor = if (isOnlineForChat) SuccessGreen else GoldAccent.copy(alpha = 0.3f)
+    // Priority: Busy (Red) > Online (Green) > Offline (Gold/Grey)
+    val borderColor = when {
+        isBusy -> Color.Red
+        isOnlineForChat -> SuccessGreen
+        else -> GoldAccent.copy(alpha = 0.3f)
+    }
 
     Card(
         modifier = Modifier
@@ -1561,7 +1567,14 @@ fun ChatAstrologerCard(astrologer: com.astro5star.app.data.model.Astrologer, isG
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
                                 .size(16.dp)
-                                .background(if (astrologer.isOnline) SuccessGreen else Color.Gray, CircleShape)
+                                .background(
+                                    when {
+                                        isBusy -> Color.Red
+                                        astrologer.isOnline -> SuccessGreen
+                                        else -> Color.Gray
+                                    },
+                                    CircleShape
+                                )
                                 .border(2.dp, CardBackground, CircleShape)
                         )
                     }

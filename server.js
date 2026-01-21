@@ -1270,8 +1270,15 @@ io.on('connection', (socket) => {
   async function broadcastAstroUpdate() {
     try {
       const astros = await User.find({ role: 'astrologer' });
-      io.emit('astrologers-list-update', astros);
-    } catch (e) { }
+      // Map to plain objects and inject strict 'isBusy' status
+      const mappedAstros = astros.map(a => {
+        const doc = a.toObject();
+        // Check if user is in an active session (map stores userId -> sessionId)
+        doc.isBusy = userActiveSession.has(doc.userId);
+        return doc;
+      });
+      io.emit('astrologers-list-update', mappedAstros);
+    } catch (e) { console.error('broadcastAstroUpdate error', e); }
   }
 
   // --- Get Astrologers List ---
@@ -1841,6 +1848,9 @@ io.on('connection', (socket) => {
       }
 
       console.log(`[Session] Ended by ${fromUserId}: ${sessionId}`);
+
+      // Broadcast 'Free' status
+      broadcastAstroUpdate();
 
     } catch (e) { console.error('end-session error', e); }
   });

@@ -68,6 +68,7 @@ class CallActivity : AppCompatActivity() {
             val seconds = callDurationSeconds % 60
             val timeStr = String.format("%02d:%02d", minutes, seconds)
             findViewById<TextView>(R.id.tvCallDuration).text = timeStr
+            findViewById<TextView>(R.id.tvAudioTime)?.text = timeStr
             timerHandler.postDelayed(this, 1000)
         }
     }
@@ -97,15 +98,9 @@ class CallActivity : AppCompatActivity() {
         val btnMic = findViewById<ImageButton>(R.id.btnMic)
         val btnVideo = findViewById<ImageButton>(R.id.btnVideo)
         val btnChat = findViewById<ImageButton>(R.id.btnChat)
-        val btnBack = findViewById<ImageButton>(R.id.btnBack)
+        // btnBack removed from XML for simplified Split Screen UI
 
         btnEndCall.setOnClickListener { endCall() }
-        btnBack.setOnClickListener {
-            // Back button acts as minimize or end call? Usually End Call in full screen flow, or just finish
-             // For now, let's make it end call to avoid confusion, or maybe just minimize (finish calls onDestroy which ends call)
-             // Let's ask user? No, standard behavior: End call.
-             endCall()
-        }
 
         btnChat.setOnClickListener {
              val intent = android.content.Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
@@ -131,24 +126,58 @@ class CallActivity : AppCompatActivity() {
         if (callType == "audio") {
             // Audio Call: Use this button for Speaker Toggle
             btnVideo.setImageResource(android.R.drawable.ic_lock_silent_mode_off) // Generic Speaker Icon
+
+            // Hide Split Screen Video Container
+            findViewById<View>(R.id.videoSplitLayout)?.visibility = View.GONE
+            findViewById<View>(R.id.remoteVideoCard)?.visibility = View.GONE
+            findViewById<View>(R.id.localVideoCard)?.visibility = View.GONE
+
             localView.visibility = View.GONE
-            // Keep remote view GONE for audio, or maybe show avatar?
-            // For full screen audio UI redesign, we might want a placeholder image in remoteView or just black
-            // Activity layout is black bg, so should be fine.
             remoteView.visibility = View.GONE
             findViewById<View>(android.R.id.content).setBackgroundColor(android.graphics.Color.BLACK)
 
-            setSpeakerphoneOn(false)
+            // Switch to Audio UI Layout
+            findViewById<View>(R.id.controlPanel).visibility = View.GONE
+            findViewById<View>(R.id.tvCallStatus).visibility = View.GONE // Use tvAudioStatus instead
+
+            val audioLayout = findViewById<View>(R.id.audioLayout)
+            audioLayout.visibility = View.VISIBLE
+
+            findViewById<TextView>(R.id.tvAudioName).text = partnerName ?: "Unknown"
+
+            configureAudioSettings()
+
+            // Bind New Audio Buttons
+            val btnAudioMic = findViewById<ImageButton>(R.id.btnAudioMic)
+            val btnAudioSpeaker = findViewById<ImageButton>(R.id.btnAudioSpeaker)
+            val btnAudioEndCall = findViewById<android.widget.Button>(R.id.btnAudioEndCall)
+
+            btnAudioEndCall.setOnClickListener { endCall() }
+
+            btnAudioSpeaker.setOnClickListener {
+                toggleSpeaker()
+                // Update specific button visual if needed (toggleSpeaker updates old button alpha, we might need to sync or just rely on toast)
+                btnAudioSpeaker.alpha = if (isSpeakerOn) 1.0f else 0.5f
+            }
+
+            btnAudioMic.setOnClickListener {
+                isMuted = !isMuted
+                localAudioTrack?.setEnabled(!isMuted)
+                btnAudioMic.alpha = if (isMuted) 0.5f else 1.0f
+                Toast.makeText(this, if (isMuted) "Muted" else "Unmuted", Toast.LENGTH_SHORT).show()
+                // Sync old button state just in case
+                btnMic.alpha = if (isMuted) 0.5f else 1.0f
+            }
+
+            // Sync initial state
+            btnAudioSpeaker.alpha = if (isSpeakerOn) 1.0f else 0.5f
 
             btnVideo.setOnClickListener {
-                isSpeakerOn = !isSpeakerOn
-                setSpeakerphoneOn(isSpeakerOn)
-                btnVideo.alpha = if (isSpeakerOn) 1.0f else 0.5f
-                Toast.makeText(this, if (isSpeakerOn) "Speaker ON" else "Speaker OFF", Toast.LENGTH_SHORT).show()
+                toggleSpeaker()
             }
         } else {
             // Video Call: Use for Camera Toggle
-            setSpeakerphoneOn(true)
+            configureAudioSettings()
 
             btnVideo.setOnClickListener {
                 val enabled = localVideoTrack?.enabled() ?: true
@@ -210,11 +239,37 @@ class CallActivity : AppCompatActivity() {
         startService(serviceIntent)
     }
 
-    private fun setSpeakerphoneOn(on: Boolean) {
-        val audioManager = getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
+    private fun toggleSpeaker() {
+        val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
+        val btn = findViewById<ImageButton>(R.id.btnVideo)
+        if (isSpeakerOn) {
+            // Turn off speaker
+            audioManager.isSpeakerphoneOn = false
+            audioManager.mode = android.media.AudioManager.MODE_IN_COMMUNICATION
+            btn.alpha = 0.5f // Visual Feedback
+            Toast.makeText(this, "Speaker Off", Toast.LENGTH_SHORT).show()
+        } else {
+            // Turn on speaker
+            audioManager.isSpeakerphoneOn = true
+            audioManager.mode = android.media.AudioManager.MODE_IN_COMMUNICATION
+            btn.alpha = 1.0f // Visual Feedback
+            Toast.makeText(this, "Speaker On", Toast.LENGTH_SHORT).show()
+        }
+        isSpeakerOn = !isSpeakerOn
+    }
+
+    private fun configureAudioSettings() {
+        val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
         audioManager.mode = android.media.AudioManager.MODE_IN_COMMUNICATION
-        audioManager.isSpeakerphoneOn = on
-        isSpeakerOn = on
+
+        // Default behavior: Video -> Speaker, Audio -> Earpiece
+        if (callType == "video") {
+            audioManager.isSpeakerphoneOn = true
+            isSpeakerOn = true
+        } else {
+            audioManager.isSpeakerphoneOn = false
+            isSpeakerOn = false
+        }
     }
 
     private fun checkPermissions(): Boolean {
@@ -423,8 +478,11 @@ class CallActivity : AppCompatActivity() {
 
         SocketManager.onSessionEnded {
             runOnUiThread {
+                Log.d(TAG, "onSessionEnded: Received session-ended event")
                 Toast.makeText(this, "Call Ended", Toast.LENGTH_SHORT).show()
-                finish()
+                if (!isFinishing) {
+                    finish()
+                }
             }
         }
     }
@@ -494,6 +552,13 @@ class CallActivity : AppCompatActivity() {
                     }
                 }
             }
+            "bye" -> {
+                Log.d(TAG, "Received BYE signal. Ending call.")
+                Toast.makeText(this, "Partner ended the call", Toast.LENGTH_SHORT).show()
+                if (!isFinishing) {
+                    finish()
+                }
+            }
         }
     }
 
@@ -539,8 +604,27 @@ class CallActivity : AppCompatActivity() {
     }
 
     private fun endCall() {
+        Log.d(TAG, "endCall: Initiating manual disconnect")
         stopBackgroundService()
+
+        // 1. Send Explicit "bye" signal to peer (Redundancy)
+        try {
+            val signalData = JSONObject().apply {
+                put("type", "bye")
+            }
+            val payload = JSONObject().apply {
+                put("toUserId", partnerId)
+                put("signal", signalData)
+            }
+            sendSignal(payload)
+            Log.d(TAG, "Sent BYE signal to $partnerId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to send BYE signal", e)
+        }
+
+        // 2. Notify Server to End Session (Billing)
         SocketManager.endSession(sessionId)
+
         finish()
     }
 

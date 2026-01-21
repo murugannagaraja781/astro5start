@@ -1,85 +1,88 @@
-<?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000"
     android:keepScreenOn="true">
 
-    <!-- Remote Video (Full Screen) -->
-    <org.webrtc.SurfaceViewRenderer
-        android:id="@+id/remote_view"
+    <!-- Split Screen Video Container (Visible for Video Calls) -->
+    <LinearLayout
+        android:id="@+id/videoSplitLayout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:weightSum="2"
+        android:background="#000000">
 
-    <!-- Top Gradient Overlay (for text visibility) -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="120dp"
-        android:background="#40000000"/>
-
-    <!-- Top Info Bar (Back, Name, Call/Video Icons) -->
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:layout_marginTop="32dp">
-
-        <ImageButton
-            android:id="@+id/btnBack"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/circle_bg"
-            android:backgroundTint="#80FFFFFF"
-            android:src="@android:drawable/ic_menu_revert"
-            android:padding="8dp"
-            android:tint="#000000"/>
-
-        <TextView
-            android:id="@+id/tvRemoteName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_toEndOf="@id/btnBack"
-            android:layout_centerVertical="true"
-            android:layout_marginStart="16dp"
-            android:text="Dr. Mahmud Nik"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <TextView
-             android:id="@+id/tvCallDuration"
-             android:layout_width="wrap_content"
-             android:layout_height="wrap_content"
-             android:layout_below="@id/tvRemoteName"
-             android:layout_toEndOf="@id/btnBack"
-             android:layout_marginStart="16dp"
-             android:text="12:08"
-             android:textColor="#E0E0E0"
-             android:textSize="14sp" />
-
-    </RelativeLayout>
-
-    <!-- Local Video (PIP) - WhatsApp Style with Rounded Corners -->
-    <!-- Positioned above control panel -->
-    <androidx.cardview.widget.CardView
-        android:id="@+id/localVideoCard"
-        android:layout_width="120dp"
-        android:layout_height="160dp"
-        android:layout_alignParentEnd="true"
-        android:layout_above="@+id/controlPanel"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="24dp"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="8dp"
-        app:cardBackgroundColor="#222222"
-        xmlns:app="http://schemas.android.com/apk/res-auto">
-
-        <org.webrtc.SurfaceViewRenderer
-            android:id="@+id/local_view"
+        <!-- Top Half: Remote Video -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/remoteVideoCard"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_margin="12dp"
+            app:cardCornerRadius="24dp"
+            app:cardBackgroundColor="#222222"
+            app:cardElevation="0dp">
 
-    </androidx.cardview.widget.CardView>
+            <org.webrtc.SurfaceViewRenderer
+                android:id="@+id/remote_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <!-- Remote Name & Timer Overlay (Top Left/Right) -->
+             <RelativeLayout
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:padding="16dp">
+
+                 <TextView
+                     android:id="@+id/tvRemoteName"
+                     android:layout_width="wrap_content"
+                     android:layout_height="wrap_content"
+                     android:text="Partner Name"
+                     android:textColor="#FFFFFF"
+                     android:textStyle="bold"
+                     android:shadowColor="#000000"
+                     android:shadowRadius="4"/>
+
+                  <!-- Timer Pill -->
+                 <TextView
+                     android:id="@+id/tvCallDuration"
+                     android:layout_width="wrap_content"
+                     android:layout_height="wrap_content"
+                     android:layout_alignParentEnd="true"
+                     android:background="@drawable/bg_pill_semi_transparent"
+                     android:backgroundTint="#80000000"
+                     android:paddingHorizontal="12dp"
+                     android:paddingVertical="4dp"
+                     android:text="00:00"
+                     android:textColor="#FFFFFF"
+                     android:textSize="12sp"
+                     android:gravity="center"
+                     />
+             </RelativeLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Bottom Half: Local Video -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/localVideoCard"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_margin="12dp"
+            app:cardCornerRadius="24dp"
+            app:cardBackgroundColor="#222222"
+            app:cardElevation="0dp">
+
+            <org.webrtc.SurfaceViewRenderer
+                android:id="@+id/local_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
 
     <!-- Bottom Control Panel -->
     <LinearLayout
@@ -152,5 +155,113 @@
         android:textColor="#FFFFFF"
         android:textSize="18sp"
         android:textStyle="bold" />
+
+    <!-- Audio Call Specific UI (Hidden by default, shown for Audio Calls) -->
+    <RelativeLayout
+        android:id="@+id/audioLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#111827"
+        android:visibility="gone">
+
+        <!-- Avatar -->
+        <ImageView
+            android:id="@+id/ivAudioAvatar"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="100dp"
+            android:src="@drawable/ic_person_placeholder"
+            android:background="@drawable/bg_circle_white"
+            android:backgroundTint="#374151"
+            android:padding="2dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="Avatar" />
+
+        <!-- Name & Status -->
+        <TextView
+            android:id="@+id/tvAudioName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/ivAudioAvatar"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="24dp"
+            android:text="Partner Name"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvAudioStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tvAudioName"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="8dp"
+            android:text="Connected"
+            android:textColor="#10B981"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tvAudioTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tvAudioStatus"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="8dp"
+            android:text="00:00"
+            android:textColor="#E5E7EB"
+            android:textSize="14sp" />
+
+        <!-- Controls: Mic & Speaker (Side by Side) -->
+        <LinearLayout
+            android:id="@+id/audioControlsRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@id/btnAudioEndCall"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="40dp"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btnAudioMic"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/bg_circle_white"
+                android:src="@android:drawable/ic_btn_speak_now"
+                android:padding="16dp"
+                android:contentDescription="Mic"
+                android:onClick="onMicClick" />
+
+            <Space android:layout_width="48dp" android:layout_height="wrap_content" />
+
+            <ImageButton
+                android:id="@+id/btnAudioSpeaker"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/bg_circle_white"
+                android:backgroundTint="#E5E7EB"
+                android:src="@android:drawable/ic_lock_silent_mode_off"
+                android:padding="16dp"
+                android:contentDescription="Speaker"
+                android:onClick="onSpeakerClick" />
+
+        </LinearLayout>
+
+        <!-- End Call (Bottom Pill) -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnAudioEndCall"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_alignParentBottom="true"
+            android:layout_margin="32dp"
+            android:background="@drawable/btn_pill_red"
+            android:text="End Call"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textAllCaps="false"
+            android:textStyle="bold" />
+
+    </RelativeLayout>
 
 </RelativeLayout>

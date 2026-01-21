@@ -106,6 +106,25 @@ class IntakeActivity : ComponentActivity() {
                          submitConsultation(birthData)
                      }
                  )
+
+                 // Waiting Overlay
+                 if (isWaiting.value) {
+                     Box(
+                         modifier = Modifier
+                             .fillMaxSize()
+                             .background(Color.Black.copy(alpha = 0.7f))
+                             .clickable(enabled = true) {}, // Block clicks
+                         contentAlignment = Alignment.Center
+                     ) {
+                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                             CircularProgressIndicator(color = GoldAccent)
+                             Spacer(modifier = Modifier.height(16.dp))
+                             Text("Waiting for Astrologer...", color = TextWhite, fontWeight = FontWeight.Bold)
+                             Spacer(modifier = Modifier.height(8.dp))
+                             Text("${timeRemaining.value}s", color = GoldAccent, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                         }
+                     }
+                 }
              }
         }
     }
@@ -124,6 +143,31 @@ class IntakeActivity : ComponentActivity() {
         }
     }
 
+    // State for Waiting Dialog
+    private val isWaiting = mutableStateOf(false)
+    private val timeRemaining = mutableStateOf(30)
+    private var waitingTimer: android.os.CountDownTimer? = null
+
+    override fun onDestroy() {
+        super.onDestroy()
+        waitingTimer?.cancel()
+    }
+
+    private fun startWaitingTimer() {
+        waitingTimer?.cancel()
+        timeRemaining.value = 30
+        waitingTimer = object : android.os.CountDownTimer(30000, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                timeRemaining.value = (millisUntilFinished / 1000).toInt()
+            }
+            override fun onFinish() {
+                isWaiting.value = false
+                Toast.makeText(this@IntakeActivity, "Astrologer is busy, please try again later.", Toast.LENGTH_LONG).show()
+                SocketManager.endSession(null) // Cancel request on server if needed
+            }
+        }.start()
+    }
+
     private fun submitConsultation(birthData: JSONObject) {
         if (isEditMode) {
              val resultIntent = Intent()
@@ -131,20 +175,25 @@ class IntakeActivity : ComponentActivity() {
              setResult(RESULT_OK, resultIntent)
              finish()
         } else {
-             // Auto-fill: Save to SharedPreferences
              val prefs = getSharedPreferences("IntakePrefs", MODE_PRIVATE)
              prefs.edit().putString("last_intake_data", birthData.toString()).apply()
 
-             // Start Socket and Request
              if (partnerId == null || type == null) return
+
+             // Show Loading Immediately (Connection phase)
+             isWaiting.value = true
+             timeRemaining.value = 30
 
              SocketManager.init()
              SocketManager.requestSession(partnerId!!, type!!, birthData) { response ->
                  runOnUiThread {
                      if (response?.optBoolean("ok") == true) {
                          val sessionId = response.optString("sessionId")
-                         showWaitingDialog(sessionId)
+                         // Request Sent, Start Countdown
+                         startWaitingTimer()
+                         waitForAnswer(sessionId)
                      } else {
+                         isWaiting.value = false // Hide if request failed
                          val error = response?.optString("error") ?: "Connection Failed"
                          Toast.makeText(this, error, Toast.LENGTH_SHORT).show()
                      }
@@ -153,39 +202,33 @@ class IntakeActivity : ComponentActivity() {
         }
     }
 
-    private fun showWaitingDialog(sessionId: String) {
-        // Simple waiting UI or Dialog - For Compose refactor, we usually navigate to a 'Waiting' Screen state
-        // But to keep it simple with existing flow, we can show a Dialog Fragment or simple Alert
-        // Let's implement a quick blocking Dialog here or reused logic.
-        // For Premium look, using a Dialog with Compose content is best.
+    private fun waitForAnswer(sessionId: String) {
+        // Remove previous listener to avoid stacking
+        SocketManager.off("session-answered")
 
-        // Re-using the logic from previous activity via a helper or just implemented here?
-        // Let's launch a simple WaitingDialog Activity or overlay.
-        // Actually, to keep it seamless, we'll handle the waiting state INSIDE the Compose screen if possible,
-        // but since we are replacing the whole Activity content, let's keep it simple:
-
-        Toast.makeText(this, "Request Sent. Waiting for Astrologer...", Toast.LENGTH_LONG).show()
-
-        // Listen for Answer
         SocketManager.onSessionAnswered { data ->
              runOnUiThread {
                  val accepted = data.optBoolean("accept", false)
+                 waitingTimer?.cancel()
+                 isWaiting.value = false
+
                  if (accepted) {
+                     val intent: Intent
                      if (type == "chat") {
-                         val intent = Intent(this, ChatActivity::class.java).apply {
+                         intent = Intent(this, ChatActivity::class.java).apply {
                              putExtra("sessionId", sessionId)
                              putExtra("toUserId", partnerId)
                              putExtra("toUserName", partnerName)
                          }
-                         startActivity(intent)
                      } else {
-                         val intent = Intent(this, CallActivity::class.java).apply {
+                         intent = Intent(this, CallActivity::class.java).apply {
                              putExtra("sessionId", sessionId)
                              putExtra("partnerId", partnerId)
                              putExtra("isInitiator", true)
+                             putExtra("type", type)
                          }
-                         startActivity(intent)
                      }
+                     startActivity(intent)
                      finish()
                  } else {
                      Toast.makeText(this, "Request Rejected", Toast.LENGTH_LONG).show()
@@ -496,4 +539,3 @@ fun transparentTextFieldColorsBottomLine() = OutlinedTextFieldDefaults.colors(
      focusedContainerColor = Color.Transparent,
     unfocusedContainerColor = Color.Transparent
 )
-

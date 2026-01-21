@@ -271,24 +271,30 @@ class ChatActivity : ComponentActivity() {
     }
 
     private fun connectSocket() {
-        SocketManager.init()
+        // SocketManager.init() should be called cautiously to avoid re-connection loop if already connected
+        if (SocketManager.getSocket() == null || SocketManager.getSocket()?.connected() != true) {
+             SocketManager.init()
+        }
         val socket = SocketManager.getSocket()
         val myUserId = TokenManager(this).getUserSession()?.userId
 
         if (myUserId != null) {
-             // Chain: Register -> Then Fetch History (Auto-load first time)
+             // Register to ensure we can receive messages
              SocketManager.registerUser(myUserId) { success ->
                  if (success && toUserId != null) {
                      runOnUiThread {
                          Log.d("ChatActivity", "User registered, fetching history for: $toUserId")
                      }
+                     // Only fetch history once registered
                      fetchHistory(toUserId!!)
                  }
              }
         }
 
+        // Remove listener using the exact event name to prevent duplicates
         socket?.off("chat-message")
         socket?.on("chat-message") { args ->
+            Log.d("ChatActivity", "Received chat-message event: ${args.size} args")
             try {
                 val data = args[0] as JSONObject
                 val messageId = data.optString("messageId", UUID.randomUUID().toString())
@@ -301,6 +307,7 @@ class ChatActivity : ComponentActivity() {
                 } ?: ""
 
                 val ts = data.optLong("timestamp", System.currentTimeMillis())
+                Log.d("ChatActivity", "Parsed message: $text, id: $messageId")
 
                 // Check duplicate before adding
                 val exists = messages.any { it.id == messageId }
@@ -308,11 +315,18 @@ class ChatActivity : ComponentActivity() {
                     SoundManager.playReceiveSound()
                     runOnUiThread {
                         messages.add(ComposeChatMessage(id=messageId, text = text, isSent = false, timestamp = ts))
+                        Log.d("ChatActivity", "Message added to UI list")
                     }
+                } else {
+                     Log.d("ChatActivity", "Duplicate message ignored: $messageId")
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) {
+                Log.e("ChatActivity", "Error processing chat-message", e)
+                e.printStackTrace()
+            }
         }
 
+        socket?.off("session-ended")
         socket?.on("session-ended") { args ->
             runOnUiThread {
                 try {
