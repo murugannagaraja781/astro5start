@@ -2,7 +2,7 @@ name: Deploy to DigitalOcean Base
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main", "feat/intake-auto-fill" ]
 
 jobs:
   deploy:
@@ -16,15 +16,15 @@ jobs:
           key: ${{ secrets.DO_SSH_KEY }}
           script: |
             # Go to the project directory
-            cd /var/www/astrofivestar
+            cd /var/www/astro5start
 
-            # Pull the latest code (Using GITHUB_TOKEN for permission)
-            git fetch https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main
-            git reset --hard FETCH_HEAD
+            # Pull the latest code
+            git fetch origin feat/intake-auto-fill
+            git checkout feat/intake-auto-fill
+            git pull origin feat/intake-auto-fill
 
             # Install dependencies
-            npm install
+            npm install --production
 
             # Restart the application
-            # We assume the app is already added to PM2 as 'astro-app' (from autodeploy.sh)
-            pm2 restart astro-app
+            pm2 restart all
