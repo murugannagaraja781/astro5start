@@ -1895,6 +1895,50 @@ io.on('connection', (socket) => {
     }
   });
 
+  // --- Fetch Chat History ---
+  socket.on('get-chat-messages', async (data, callback) => {
+    try {
+      const { toUserId } = data || {};
+      const fromUserId = socketToUser.get(socket.id);
+
+      if (!fromUserId || !toUserId) {
+        if (typeof callback === 'function') callback([]);
+        return;
+      }
+
+      console.log(`Fetching history between ${fromUserId} and ${toUserId}`);
+
+      const messages = await ChatMessage.find({
+        $or: [
+          { fromUserId: fromUserId, toUserId: toUserId },
+          { fromUserId: toUserId, toUserId: fromUserId }
+        ]
+      })
+        .sort({ timestamp: 1 })
+        .limit(100);
+
+      // Map to consistent format
+      const formattedMessages = messages.map(msg => ({
+        messageId: msg._id.toString(), // Use DB ID as fallback
+        fromUserId: msg.fromUserId,
+        toUserId: msg.toUserId,
+        text: msg.text, // Old format support
+        content: msg.text ? { text: msg.text } : msg.content, // Ensure content structure
+        timestamp: msg.timestamp,
+        sessionId: msg.sessionId
+      }));
+
+      console.log(`Found ${formattedMessages.length} messages`);
+
+      if (typeof callback === 'function') {
+        callback(formattedMessages);
+      }
+    } catch (err) {
+      console.error('get-chat-messages error', err);
+      if (typeof callback === 'function') callback([]);
+    }
+  });
+
   // --- Helper: Send Chat Push ---
   async function sendChatPush(toUserId, fromUserId, messageText, sessionId) {
     try {
