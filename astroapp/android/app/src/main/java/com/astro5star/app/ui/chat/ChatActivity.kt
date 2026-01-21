@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Refresh // Added Refresh Icon
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -147,7 +148,12 @@ class ChatActivity : ComponentActivity() {
                              intakeLauncher.launch(intent)
                          }
                      },
-                     isAstrologer = isAstrologer
+                     isAstrologer = isAstrologer,
+                     onLoadHistory = {
+                         if (toUserId != null) {
+                             fetchHistory(toUserId!!)
+                         }
+                     }
                  )
              }
         }
@@ -212,62 +218,71 @@ class ChatActivity : ComponentActivity() {
         finish()
     }
 
+    private fun fetchHistory(targetUserId: String) {
+        runOnUiThread {
+             Toast.makeText(this, "Loading History...", Toast.LENGTH_SHORT).show()
+        }
+        SocketManager.fetchChatHistory(targetUserId) { historyJson ->
+            Log.d("ChatActivity", "History received size: ${historyJson.size}")
+
+            val historyMessages = historyJson.mapNotNull { json ->
+                val isSentByMe = json.optString("fromUserId") == TokenManager(this).getUserSession()?.userId
+
+                // Robust Text Parsing
+                var text: String? = null
+                if (json.has("content")) {
+                    val contentObj = json.optJSONObject("content")
+                    text = contentObj?.optString("text")
+                }
+
+                if (text.isNullOrEmpty()) {
+                    text = json.optString("text")
+                }
+
+                // Fallback for null strings
+                if (text.isNullOrEmpty() || text.equals("null", ignoreCase = true)) {
+                    text = "Message"
+                }
+
+                ComposeChatMessage(
+                    id = json.optString("messageId", UUID.randomUUID().toString()),
+                    text = text!!,
+                    isSent = isSentByMe,
+                    timestamp = json.optLong("timestamp", System.currentTimeMillis())
+                )
+            }
+
+            runOnUiThread {
+                // Check duplicates using ID
+                val existingIds = messages.map { it.id }.toSet()
+                val newMessages = historyMessages.filter { !existingIds.contains(it.id) }
+
+                Log.d("ChatActivity", "New messages to add: ${newMessages.size}")
+                if (newMessages.isNotEmpty()) {
+                    messages.addAll(0, newMessages)
+                    messages.sortBy { it.timestamp }
+                    Toast.makeText(this, "History Updated", Toast.LENGTH_SHORT).show()
+                } else {
+                    Log.d("ChatActivity", "No new unique messages found in history")
+                    // Toast.makeText(this, "No new history found", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     private fun connectSocket() {
         SocketManager.init()
         val socket = SocketManager.getSocket()
         val myUserId = TokenManager(this).getUserSession()?.userId
 
         if (myUserId != null) {
-             // Chain: Register -> Then Fetch History
+             // Chain: Register -> Then Fetch History (Auto-load first time)
              SocketManager.registerUser(myUserId) { success ->
                  if (success && toUserId != null) {
                      runOnUiThread {
                          Log.d("ChatActivity", "User registered, fetching history for: $toUserId")
                      }
-                     SocketManager.fetchChatHistory(toUserId!!) { historyJson ->
-                        Log.d("ChatActivity", "History received size: ${historyJson.size}")
-
-                        val historyMessages = historyJson.mapNotNull { json ->
-                            val isSentByMe = json.optString("fromUserId") == myUserId
-
-                            // Robust Text Parsing
-                            var text: String? = null
-                            if (json.has("content")) {
-                                val contentObj = json.optJSONObject("content")
-                                text = contentObj?.optString("text")
-                            }
-
-                            if (text.isNullOrEmpty()) {
-                                text = json.optString("text")
-                            }
-
-                            // Fallback for null strings
-                            if (text.isNullOrEmpty() || text.equals("null", ignoreCase = true)) {
-                                text = "Message"
-                            }
-
-                            ComposeChatMessage(
-                                id = json.optString("messageId", UUID.randomUUID().toString()),
-                                text = text!!,
-                                isSent = isSentByMe,
-                                timestamp = json.optLong("timestamp", System.currentTimeMillis())
-                            )
-                        }
-
-                        runOnUiThread {
-                            // Check duplicates using ID
-                            val existingIds = messages.map { it.id }.toSet()
-                            val newMessages = historyMessages.filter { !existingIds.contains(it.id) }
-
-                            Log.d("ChatActivity", "New messages to add: ${newMessages.size}")
-                            if (newMessages.isNotEmpty()) {
-                                messages.addAll(0, newMessages)
-                                messages.sortBy { it.timestamp }
-                            } else {
-                                Log.d("ChatActivity", "No new unique messages found in history")
-                            }
-                        }
-                     }
+                     fetchHistory(toUserId!!)
                  }
              }
         }
@@ -317,7 +332,8 @@ fun ChatScreen(
     onEndSession: () -> Unit,
     onEditForm: () -> Unit,
     onGenerateChart: () -> Unit,
-    isAstrologer: Boolean
+    isAstrologer: Boolean,
+    onLoadHistory: () -> Unit // NEW Callback
 ) {
     val listState = rememberLazyListState()
 
@@ -331,7 +347,8 @@ fun ChatScreen(
     }
     val timeStr = String.format("%02d:%02d", seconds / 60, seconds % 60)
 
-    // Auto Scroll
+    // Auto Scroll - Only if user is near bottom or just sent a message (simple logic: scroll on new message if list wasn't empty)
+    // For now, keep simple behavior: scroll to bottom on new message
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.size - 1)
@@ -398,6 +415,17 @@ fun ChatScreen(
             contentPadding = PaddingValues(vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // NEW: Load History Button as First Item
+            item {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    TextButton(onClick = onLoadHistory) {
+                        Icon(Icons.Default.Refresh, contentDescription = null, tint = GoldAccent, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Load Previous Messages", color = GoldAccent, fontSize = 12.sp)
+                    }
+                }
+            }
+
             items(messages) { msg ->
                 ChatBubble(message = msg)
             }
