@@ -1807,27 +1807,37 @@ io.on('connection', (socket) => {
 
       const session = activeSessions.get(sessionId);
       if (session) {
-        // Find partner
-        const partnerId = session.users.find(u => u !== fromUserId);
-        const partnerSocketId = userSockets.get(partnerId);
+        // Calculate Summary details (similar to forceEndSession)
+        const summary = {
+          deducted: session.totalDeducted || 0,
+          earned: session.totalEarned || 0,
+          duration: session.elapsedBillableSeconds || 0
+        };
 
-        if (partnerSocketId) {
-          io.to(partnerSocketId).emit('session-ended', {
-            sessionId,
-            reason: 'partner_ended'
-          });
-        }
+        const payload = {
+          sessionId,
+          reason: 'user_ended',
+          summary
+        };
+
+        // Notify BOTH parties
+        session.users.forEach(uid => {
+          const sId = userSockets.get(uid);
+          if (sId) io.to(sId).emit('session-ended', payload);
+        });
       }
 
       endSessionRecord(sessionId);
 
-      const sessionData = activeSessions.get(sessionId);
-      if (sessionData) {
-        sessionData.users.forEach(uid => userActiveSession.delete(uid));
+      // Cleanup Busy Status
+      // endSessionRecord removes it from activeSessions, but we track busy state in userActiveSession
+      const sessionData = activeSessions.get(sessionId); // might be gone if endSessionRecord deletes it?
+      // Actually endSessionRecord removes it from map? Let's check endSessionRecord implementation if needed.
+      // But assuming userActiveSession needs clearing:
+      if (session) {
+        session.users.forEach(uid => userActiveSession.delete(uid));
       } else {
-        userActiveSession.delete(fromUserId); // Fallback
-        // Try to clean partner from DB session?
-        // Ideally activeSessions has it. If not, memory might be stale but grace period handles it.
+        userActiveSession.delete(fromUserId);
       }
 
       console.log(`[Session] Ended by ${fromUserId}: ${sessionId}`);

@@ -313,9 +313,26 @@ class ChatActivity : ComponentActivity() {
             } catch (e: Exception) { e.printStackTrace() }
         }
 
-        socket?.on("session-ended") {
+        socket?.on("session-ended") { args ->
             runOnUiThread {
-                Toast.makeText(this, "Session Ended", Toast.LENGTH_SHORT).show()
+                try {
+                    if (args != null && args.isNotEmpty()) {
+                        val data = args[0] as? JSONObject
+                        val summary = data?.optJSONObject("summary")
+                        if (summary != null) {
+                            val duration = summary.optLong("duration", 0)
+                            val deducted = summary.optDouble("deducted", 0.0)
+                            val sec = duration % 60
+                            val min = duration / 60
+                            val timeStr = String.format("%02d:%02d", min, sec)
+                            Toast.makeText(this, "Chat Ended. Duration: $timeStr, Cost: ₹$deducted", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(this, "Session Ended", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Session Ended", Toast.LENGTH_SHORT).show()
+                }
                 finish()
             }
         }
