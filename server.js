@@ -1270,7 +1270,7 @@ io.on('connection', (socket) => {
   async function broadcastAstroUpdate() {
     try {
       const astros = await User.find({ role: 'astrologer' });
-      io.emit('astrologer-update', astros);
+      io.emit('astrologers-list-update', astros);
     } catch (e) { }
   }
 

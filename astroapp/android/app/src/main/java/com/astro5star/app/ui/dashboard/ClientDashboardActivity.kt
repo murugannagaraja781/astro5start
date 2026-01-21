@@ -442,6 +442,32 @@ fun CallScreenContent(isGuest: Boolean) {
         }
     }
 
+    // Real-time Status Update Listener (Call Tab)
+    DisposableEffect(Unit) {
+        val listener: (JSONObject) -> Unit = { data ->
+            val userId = data.optString("userId")
+            if (userId.isNotEmpty()) {
+                val updatedList = astrologers.map { astro ->
+                    if (astro.userId == userId) {
+                        astro.copy(
+                            isChatOnline = if(data.has("isChatOnline")) data.getBoolean("isChatOnline") else astro.isChatOnline,
+                            isAudioOnline = if(data.has("isAudioOnline")) data.getBoolean("isAudioOnline") else astro.isAudioOnline,
+                            isVideoOnline = if(data.has("isVideoOnline")) data.getBoolean("isVideoOnline") else astro.isVideoOnline,
+                            isOnline = if(data.has("isOnline")) data.getBoolean("isOnline") else astro.isOnline
+                        )
+                    } else {
+                        astro
+                    }
+                }
+                astrologers = updatedList
+            }
+        }
+        com.astro5star.app.data.remote.SocketManager.onAstrologerUpdate(listener)
+        onDispose {
+            com.astro5star.app.data.remote.SocketManager.off("astrologer-update")
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         CallTopBar()
         // Reusing FilterTabs maybe? Or simple spacer
@@ -525,6 +551,35 @@ fun ChatScreenContent(isGuest: Boolean) {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+    }
+
+
+    // Real-time Status Update Listener
+    DisposableEffect(Unit) {
+        val listener: (JSONObject) -> Unit = { data ->
+            val userId = data.optString("userId")
+            if (userId.isNotEmpty()) {
+                // Update the list
+                val updatedList = astrologers.map { astro ->
+                    if (astro.userId == userId) {
+                        astro.copy(
+                            isChatOnline = if(data.has("isChatOnline")) data.getBoolean("isChatOnline") else astro.isChatOnline,
+                            isAudioOnline = if(data.has("isAudioOnline")) data.getBoolean("isAudioOnline") else astro.isAudioOnline,
+                            isVideoOnline = if(data.has("isVideoOnline")) data.getBoolean("isVideoOnline") else astro.isVideoOnline,
+                            isOnline = if(data.has("isOnline")) data.getBoolean("isOnline") else astro.isOnline
+                        )
+                    } else {
+                        astro
+                    }
+                }.sortedByDescending { it.isChatOnline } // Re-sort if needed
+
+                astrologers = updatedList
+            }
+        }
+        com.astro5star.app.data.remote.SocketManager.onAstrologerUpdate(listener)
+        onDispose {
+            com.astro5star.app.data.remote.SocketManager.off("astrologer-update")
         }
     }
 
