@@ -32,6 +32,17 @@ object SocketManager {
                 Log.d(TAG, "Socket disconnected")
             }
 
+            // FIX: Add error handlers for debugging connection issues
+            socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
+                val error = args.getOrNull(0)
+                Log.e(TAG, "Socket connect error: $error")
+            }
+
+            socket?.on("error") { args ->
+                val error = args.getOrNull(0)
+                Log.e(TAG, "Socket error: $error")
+            }
+
             socket?.connect()
         } catch (e: Exception) {
             Log.e(TAG, "Socket init error", e)
