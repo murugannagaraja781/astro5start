@@ -46,11 +46,13 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.animation.core.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,6 +70,10 @@ import io.socket.client.Ack
 import com.astro5star.app.ui.chat.ChatActivity
 import com.astro5star.app.ui.call.CallActivity
 import com.astro5star.app.data.remote.SocketManager
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 
 // SPACE & PURPLE THEME PALETTE (Design System)
 val Space900 = Color(0xFFBCE09D) // New Green Background
@@ -427,7 +433,7 @@ fun CallScreenContent(isGuest: Boolean) {
                             ))
                         }
                     }
-                    astrologers = result
+                    astrologers = result.sortedByDescending { it.isAudioOnline || it.isVideoOnline }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -452,7 +458,7 @@ fun CallScreenContent(isGuest: Boolean) {
                         astro
                     }
                 }
-                astrologers = updatedList
+                astrologers = updatedList.sortedByDescending { it.isAudioOnline || it.isVideoOnline }
             }
         }
         com.astro5star.app.data.remote.SocketManager.onAstrologerUpdate(listener)
@@ -712,11 +718,7 @@ fun TrendingSection() {
 // -------------------------------------------------------------------------
 @Composable
 fun HomeScreenContent(isGuest: Boolean, userName: String, isTamil: Boolean, onMenuClick: () -> Unit, onLanguageToggle: () -> Unit) {
-    var showRasiDialog by remember { mutableStateOf(false) }
-    var selectedRasi by remember { mutableStateOf<ComposeRasiItem?>(null) }
-    var rasiPrediction by remember { mutableStateOf("") }
-    var isFetching by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Column {
         // Top App Bar for Home
@@ -729,176 +731,31 @@ fun HomeScreenContent(isGuest: Boolean, userName: String, isTamil: Boolean, onMe
         ) {
             item { FeatureIconGrid() }
             item {
+
                 RasiGridSection(onClick = { item ->
-                    selectedRasi = item
-                    showRasiDialog = true
-                    isFetching = true
-
-                    scope.launch(Dispatchers.IO) {
-                        try {
-                             val client = OkHttpClient()
-                             // Use local file.json from uploads folder as requested
-                             val request = Request.Builder()
-                                 .url("${com.astro5star.app.utils.Constants.SERVER_URL}/uploads/file.json")
-                                 .get()
-                                 .build()
-                             val response = client.newCall(request).execute()
-                             if (response.isSuccessful) {
-                                  val jsonStr = response.body?.string() ?: "[]"
-                                  var dataArray: org.json.JSONArray? = null
-
-                                  try {
-                                      // Try parsing as direct array first
-                                      val rootArray = org.json.JSONArray(jsonStr)
-                                      if (rootArray.length() > 0) {
-                                          val firstObj = rootArray.optJSONObject(0)
-                                          if (firstObj != null && firstObj.has("content")) {
-                                               // Handle nested Gemini Response format
-                                               val innerText = firstObj.getJSONObject("content")
-                                                   .getJSONArray("parts")
-                                                   .getJSONObject(0)
-                                                   .getString("text")
-
-                                               // Clean Markdown
-                                               val cleanJson = innerText.replace("```json", "").replace("```", "").trim()
-                                               dataArray = org.json.JSONArray(cleanJson)
-                                          } else {
-                                               // Standard Array
-                                               dataArray = rootArray
-                                          }
-                                      }
-                                  } catch (e: Exception) {
-                                      // Fallback or specific error handling
-                                      e.printStackTrace()
-                                  }
-
-                                  var foundPrediction = "பலன் கிடைக்கவில்லை (No Data)"
-
-                                  if (dataArray != null) {
-                                      for (i in 0 until dataArray.length()) {
-                                          val obj = dataArray.getJSONObject(i)
-                                          val signEn = obj.optString("sign_en")
-                                          // Match by English Name (mapped from Tamil Item name or ID)
-                                          // Item.name might be Tamil or English depending on context.
-                                          // selectedRasi item passes English name in RasiGridSection! (e.g. "Aries")
-
-                                          if (signEn.equals(item.name, ignoreCase = true)) {
-                                               // Choose Tamil or English based on user pref?
-                                               // User pref not passed here easily, default to Tamil as per UI "பலன்"
-                                               foundPrediction = obj.optString("forecast_ta")
-                                               break
-                                          }
-                                      }
-                                  }
-                                  withContext(Dispatchers.Main) {
-                                      rasiPrediction = foundPrediction
-                                      isFetching = false
-                                  }
-                             } else {
-                                  withContext(Dispatchers.Main) {
-                                      rasiPrediction = "Server Error: ${response.code}"
-                                      isFetching = false
-                                  }
-                             }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                             withContext(Dispatchers.Main) {
-                                  rasiPrediction = "Network Error"
-                                  isFetching = false
-                             }
-                        }
-                    }
+                     // Navigate to Rasi Detail Activity
+                     val intent = Intent(context, RasiDetailActivity::class.java).apply {
+                         putExtra("rasiName", item.name)
+                         putExtra("rasiId", item.id)
+                         putExtra("rasiIcon", item.imageRes)
+                         putExtra("rasiColor", item.color.toArgb())
+                     }
+                     context.startActivity(intent)
                 })
             }
             item { MainBanner() }
+            item { TrendingSection() }
             item { TopAstrologersSection(isGuest) }
-            item { CustomerStoriesSection() }
+            // item { CustomerStoriesSection() }
+            item { FooterSection() }
         }
     }
     // Floating CTA for Home
     Box(modifier = Modifier.fillMaxSize()) {
          BottomFloatingCTA(modifier = Modifier.align(Alignment.BottomCenter), isGuest)
     }
-
-    // Rasi Palan Dialog
-    if (showRasiDialog && selectedRasi != null) {
-        androidx.compose.ui.window.Dialog(onDismissRequest = { showRasiDialog = false }) {
-            Card(
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground), // Dark Cocoa
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .border(2.dp, GoldAccent, RoundedCornerShape(24.dp)),
-                elevation = CardDefaults.cardElevation(8.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Title with Icon
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(50.dp)
-                                .background(Color(0x80F5FCF4), CircleShape) // Milk Green Transparent
-                                .border(1.dp, GoldAccent, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                             Image(
-                                painter = androidx.compose.ui.res.painterResource(id = selectedRasi!!.imageRes),
-                                contentDescription = selectedRasi!!.name,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = "${selectedRasi!!.name} பலன்",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = GoldAccent,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    if (isFetching) {
-                        CircularProgressIndicator(color = GoldAccent)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("கணித்து கொண்டிருக்கிறது...", color = TextGrey, fontSize = 12.sp)
-                    } else {
-                        // Prediction Text
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFF251C12), RoundedCornerShape(12.dp))
-                                .padding(16.dp)
-                        ) {
-                             Text(
-                                text = rasiPrediction,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = TextWhite,
-                                lineHeight = 24.sp,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Button(
-                        onClick = { showRasiDialog = false },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryOrange),
-                        shape = RoundedCornerShape(24.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Close", color = TextWhite, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-    }
 }
+
 
 
 @Composable
@@ -1000,39 +857,60 @@ fun FeatureIconGrid() {
 data class ComposeRasiItem(
     val id: Int,
     val name: String,
-    val imageRes: Int
+    val imageRes: Int,
+    val color: Color
 )
 
 @Composable
 fun RasiGridSection(onClick: (ComposeRasiItem) -> Unit) {
     val rasiItems = listOf(
-        ComposeRasiItem(1, "Aries", R.drawable.ic_rasi_aries_premium),       // Aries
-        ComposeRasiItem(2, "Taurus", R.drawable.ic_rasi_taurus_premium),     // Taurus
-        ComposeRasiItem(3, "Gemini", R.drawable.ic_rasi_gemini_premium),    // Gemini
-        ComposeRasiItem(4, "Cancer", R.drawable.ic_rasi_cancer_premium),      // Cancer
-        ComposeRasiItem(5, "Leo", R.drawable.ic_rasi_leo_premium),           // Leo
-        ComposeRasiItem(6, "Virgo", R.drawable.ic_rasi_virgo_premium),           // Virgo
-        ComposeRasiItem(7, "Libra", R.drawable.ic_rasi_libra_premium),           // Libra
-        ComposeRasiItem(8, "Scorpio", R.drawable.ic_rasi_scorpio_premium),      // Scorpio
-        ComposeRasiItem(9, "Sagittarius", R.drawable.ic_rasi_sagittarius_premium),     // Sagittarius
-        ComposeRasiItem(10, "Capricorn", R.drawable.ic_rasi_capricorn_premium),     // Capricorn
-        ComposeRasiItem(11, "Aquarius", R.drawable.ic_rasi_aquarius_premium),     // Aquarius
-        ComposeRasiItem(12, "Pisces", R.drawable.ic_rasi_pisces_premium)        // Pisces
+        ComposeRasiItem(1, "Aries", R.drawable.ic_rasi_aries_premium, Color(0xFFC44A3D)),       // Aries - Burnt Red
+        ComposeRasiItem(2, "Taurus", R.drawable.ic_rasi_taurus_premium, Color(0xFF5E7C5A)),     // Taurus - Deep Olive Green
+        ComposeRasiItem(3, "Gemini", R.drawable.ic_rasi_gemini_premium, Color(0xFFC89B3C)),    // Gemini - Warm Amber
+        ComposeRasiItem(4, "Cancer", R.drawable.ic_rasi_cancer_premium, Color(0xFF9FA8B2)),      // Cancer - Moon Silver
+        ComposeRasiItem(5, "Leo", R.drawable.ic_rasi_leo_premium, Color(0xFFD4AF37)),           // Leo - Royal Gold
+        ComposeRasiItem(6, "Virgo", R.drawable.ic_rasi_virgo_premium, Color(0xFF8FAF8F)),           // Virgo - Sage Green
+        ComposeRasiItem(7, "Libra", R.drawable.ic_rasi_libra_premium, Color(0xFFC48A9A)),           // Libra - Soft Rose
+        ComposeRasiItem(8, "Scorpio", R.drawable.ic_rasi_scorpio_premium, Color(0xFF7A2E3A)),      // Scorpio - Wine Maroon
+        ComposeRasiItem(9, "Sagittarius", R.drawable.ic_rasi_sagittarius_premium, Color(0xFFC26A2E)),     // Sagittarius - Burnt Orange
+        ComposeRasiItem(10, "Capricorn", R.drawable.ic_rasi_capricorn_premium, Color(0xFF6B7280)),     // Capricorn - Slate Grey
+        ComposeRasiItem(11, "Aquarius", R.drawable.ic_rasi_aquarius_premium, Color(0xFF3B8C8C)),     // Aquarius - Teal Blue
+        ComposeRasiItem(12, "Pisces", R.drawable.ic_rasi_pisces_premium, Color(0xFF5B5FA8))        // Pisces - Indigo Violet
     )
 
-    Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp)) {
-        Text("Rasi Palan", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextGold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp))
+    // Premium Grid (4x3 or 3x4) - Using 3x4 for better premium card size
+    val rows = rasiItems.chunked(3)
 
-        val rows = rasiItems.chunked(4)
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 24.dp)
+            .fillMaxWidth()
+    ) {
+        Text(
+            text = "Rasi Palan",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFD4AF37), // Metallic Gold
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
         for (rowItems in rows) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 for (item in rowItems) {
-                    RasiItemView(item, onClick)
+                    Box(modifier = Modifier.weight(1f)) {
+                        RasiItemView(item, onClick)
+                    }
+                }
+                // Fill empty slots if last row is incomplete
+                if (rowItems.size < 3) {
+                    repeat(3 - rowItems.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -1058,37 +936,72 @@ val RasiColors = mapOf(
 
 @Composable
 fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
-    val bgColor = RasiColors[item.name] ?: Color(0xFFF5FCF4) // Default to Mint if not found
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    // Scale Animation
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 1.08f else 1.0f,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
+        label = "scale"
+    )
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(80.dp)
-            .clickable { onClick(item) }
+            .scale(scale)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null // Disable ripple as requested
+            ) { onClick(item) }
     ) {
-        Box(
+        Card(
+            shape = RoundedCornerShape(22.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF1E2749) // Deep Indigo/Blue
+            ),
             modifier = Modifier
-                .size(60.dp)
-                .clip(RoundedCornerShape(16.dp)) // Rounded Square 16dp
-                .background(bgColor) // Rasi Specific Light Saturated Color
-                .border(1.dp, GoldAccent, RoundedCornerShape(16.dp)),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .aspectRatio(1f) // Square card
         ) {
-             Image(
-                painter = androidx.compose.ui.res.painterResource(id = item.imageRes),
-                contentDescription = item.name,
-                contentScale = ContentScale.Fit, // Ensure it fits well
-                modifier = Modifier.fillMaxSize().padding(1.dp) // Fill the box, leave 1dp for the thin border
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize().padding(4.dp)
+            ) {
+                // Icon Container
+                // Icon Container
+                // Icon Container
+                Box(
+                    modifier = Modifier
+                        .size(66.dp) // Box size increased to 66dp
+                        .background(Color.Transparent, RoundedCornerShape(50.dp)), // Transparent background, Rounded corners 50dp
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = item.imageRes),
+                        contentDescription = item.name,
+                        modifier = Modifier.size(56.dp), // Icon size increased to 56dp
+                        colorFilter = ColorFilter.tint(item.color) // Tint icon with the specific Rasi color
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = item.name,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFFE0E0E0), // Soft White
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = item.name,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextWhite,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
+
+
     }
 }
 
@@ -1189,7 +1102,7 @@ fun TopAstrologersSection(isGuest: Boolean) {
                             ))
                         }
                     }
-                    astrologers = result
+                    astrologers = result.sortedByDescending { it.isOnline }
                     if (result.isEmpty()) errorMessage = "No astrologers available"
                 } else {
                     errorMessage = "Failed to load astrologers"
@@ -1296,13 +1209,18 @@ fun HomeAstrologerCard(astrologer: com.astro5star.app.data.model.Astrologer, isG
                 // Compact Buttons for vertical card
                 Button(
                     onClick = {
-                        val intent = Intent(context, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
-                            putExtra("partnerId", astrologer.userId)
-                            putExtra("partnerName", astrologer.name)
-                            putExtra("type", "chat")
-                            putExtra("partnerImage", astrologer.image)
+                        if (isGuest) {
+                             val intent = Intent(context, LoginActivity::class.java)
+                             context.startActivity(intent)
+                        } else {
+                            val intent = Intent(context, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
+                                putExtra("partnerId", astrologer.userId)
+                                putExtra("partnerName", astrologer.name)
+                                putExtra("type", "chat")
+                                putExtra("partnerImage", astrologer.image)
+                            }
+                            context.startActivity(intent)
                         }
-                        context.startActivity(intent)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                     border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent),
@@ -1313,13 +1231,18 @@ fun HomeAstrologerCard(astrologer: com.astro5star.app.data.model.Astrologer, isG
                 }
                  Button(
                     onClick = {
-                        val intent = Intent(context, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
-                            putExtra("partnerId", astrologer.userId)
-                            putExtra("partnerName", astrologer.name)
-                            putExtra("type", "audio")
-                            putExtra("partnerImage", astrologer.image)
+                        if (isGuest) {
+                             val intent = Intent(context, LoginActivity::class.java)
+                             context.startActivity(intent)
+                        } else {
+                            val intent = Intent(context, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
+                                putExtra("partnerId", astrologer.userId)
+                                putExtra("partnerName", astrologer.name)
+                                putExtra("type", "audio")
+                                putExtra("partnerImage", astrologer.image)
+                            }
+                            context.startActivity(intent)
                         }
-                        context.startActivity(intent)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryOrange),
                     contentPadding = PaddingValues(0.dp),
@@ -1698,6 +1621,30 @@ fun ChatAstrologerCard(astrologer: com.astro5star.app.data.model.Astrologer, isG
                 }
             }
         }
+    }
+}
+
+@Composable
+fun FooterSection() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Made with ❤️ for Astrology",
+            fontSize = 12.sp,
+            color = Color.Gray,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "v1.0.0",
+            fontSize = 10.sp,
+            color = Color.Gray.copy(alpha = 0.5f)
+        )
+        Spacer(modifier = Modifier.height(100.dp)) // Clearance for FAB
     }
 }
 

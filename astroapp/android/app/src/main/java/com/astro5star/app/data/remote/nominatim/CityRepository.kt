@@ -78,15 +78,17 @@ object CityRepository {
 
         return try {
             val result = api.searchCity(key)
+            // Filter to only show cities with a postcode available
+            val filteredResult = result.filter { !it.address?.postcode.isNullOrEmpty() }
 
             evictIfNeeded()
 
             cache[key] = CacheEntry(
-                data = result,
+                data = filteredResult,
                 timestamp = now
             )
 
-            Result.success(result)
+            Result.success(filteredResult)
         } catch (e: Exception) {
             Result.failure(e)
         }

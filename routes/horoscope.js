@@ -1,4 +1,5 @@
 const express = require('express');
+const https = require('https'); // Added for fetching external data
 const router = express.Router();
 const {
     generatePlanetaryPositions,
@@ -66,6 +67,97 @@ router.post('/daily', (req, res) => {
 
     } catch (error) {
         console.error('Error calculating daily horoscope:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * Helper to fetch JSON from URL using native https
+ */
+function fetchJson(url) {
+    return new Promise((resolve, reject) => {
+        https.get(url, (res) => {
+            if (res.statusCode < 200 || res.statusCode >= 300) {
+                return reject(new Error('statusCode=' + res.statusCode));
+            }
+            let data = '';
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+            res.on('end', () => {
+                try {
+                    resolve(JSON.parse(data));
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        }).on('error', (e) => {
+            reject(e);
+        });
+    });
+}
+
+/**
+ * GET /api/horoscope/rasi-palan
+ * Fetches the daily Rasi Palan JSON from GitHub.
+ * Implements 5:05 AM IST cutoff logic.
+ * Fallback to yesterday if today's file is not found (404).
+ */
+router.get('/rasi-palan', async (req, res) => {
+    try {
+        // 1. Get current time in IST
+        const now = new Date();
+        // Convert to IST (UTC + 5:30)
+        // Note: 'now' is server time (likely UTC or local).
+        // Best approach: Get UTC, add 5.5 hours to get IST Date object
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istTime = new Date(utc + istOffset);
+
+        // 2. 5:05 AM Cutoff Logic
+        const cutoff = new Date(istTime);
+        cutoff.setHours(5, 5, 0, 0);
+
+        let targetDate = new Date(istTime);
+        if (istTime < cutoff) {
+            // Before 5:05 AM, show yesterday's data
+            targetDate.setDate(targetDate.getDate() - 1);
+        }
+
+        // Helper to format YYYY-MM-DD
+        const formatDate = (date) => {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        };
+
+        let dateStr = formatDate(targetDate);
+        let url = `https://raw.githubusercontent.com/abinash818/daily-horoscope-data/main/data/horoscope_${dateStr}.json`;
+
+        try {
+            console.log(`Fetching Rasi Palan for date: ${dateStr}`);
+            const data = await fetchJson(url);
+            return res.json(data);
+        } catch (e) {
+            // If 404 or error, fallback to previous day
+            console.warn(`Failed to fetch for ${dateStr}, trying fallback to previous day. Error: ${e.message}`);
+
+            targetDate.setDate(targetDate.getDate() - 1);
+            dateStr = formatDate(targetDate);
+            url = `https://raw.githubusercontent.com/abinash818/daily-horoscope-data/main/data/horoscope_${dateStr}.json`;
+
+            try {
+                const data = await fetchJson(url);
+                return res.json(data);
+            } catch (fallbackError) {
+                console.error(`Fallback also failed for ${dateStr}:`, fallbackError);
+                return res.status(500).json({ error: "Unable to fetch horoscope data" });
+            }
+        }
+
+    } catch (error) {
+        console.error('Error in /rasi-palan:', error);
         res.status(500).json({ error: error.message });
     }
 });

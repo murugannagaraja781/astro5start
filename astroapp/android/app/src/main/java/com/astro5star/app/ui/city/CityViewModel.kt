@@ -36,10 +36,10 @@ class CityViewModel : ViewModel() {
         searchJob = viewModelScope.launch {
             delay(400) // Debounce
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            try {
-                val cities = CityRepository.searchCities(newQuery)
+            val result = CityRepository.searchCities(newQuery)
+            result.onSuccess { cities ->
                 _uiState.value = _uiState.value.copy(results = cities, isLoading = false)
-            } catch (e: Exception) {
+            }.onFailure {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = "Failed to fetch cities"

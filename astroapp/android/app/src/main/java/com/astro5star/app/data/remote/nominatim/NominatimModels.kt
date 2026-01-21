@@ -15,7 +15,8 @@ data class NominatimAddress(
     val town: String?,
     val village: String?,
     val state: String?,
-    val country: String?
+    val country: String?,
+    val postcode: String?
 ) {
     fun getCityName(): String {
         return city ?: town ?: village ?: ""
