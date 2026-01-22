@@ -7072,21 +7072,22 @@
       });
     }
 
-    let horoscopeCache = {}; // Simple cache
-    // Tamil Fallback Data
+    let rasiPalanCache = null; // Cache for new API data
+
+    // Tamil Fallback Data (Restored for error handling)
     const fallbackHoroscopeData = {
-      'aries': { date: 'இன்று', horoscope_data: 'இன்று உங்களுக்கு நற்பலன்கள் கிடைக்கும்.\nஉங்கள் முயற்சிகளில் வெற்றி கிட்டும்.\nஅதிர்ஷ்ட நிறம்: சிவப்பு (Red)' },
-      'taurus': { date: 'இன்று', horoscope_data: 'பொருளாதார வரவு சிறப்பாக இருக்கும்.\nகுடும்பத்தில் மகிழ்ச்சி நிலவும்.\nஅதிர்ஷ்ட நிறம்: வெள்ளை (White)' },
-      'gemini': { date: 'இன்று', horoscope_data: 'நண்பர்களின் உதவி கிடைக்கும்.\nபுதிய முயற்சிகள் கைக்கூடும்.\nஅதிர்ஷ்ட நிறம்: பச்சை (Green)' },
-      'cancer': { date: 'இன்று', horoscope_data: 'மனதில் நிம்மதி பிறக்கும்.\nதொழிலில் முன்னேற்றம் உண்டு.\nஅதிர்ஷ்ட நிறம்: பால் வெள்ளை (Cream)' },
-      'leo': { date: 'இன்று', horoscope_data: 'உத்தியோகத்தில் மதிப்பு கூடும்.\nஅரசு வழியில் ஆதாயம் உண்டு.\nஅதிர்ஷ்ட நிறம்: ஆரஞ்சு (Orange)' },
-      'virgo': { date: 'இன்று', horoscope_data: 'வியாபாரத்தில் லாவம் பெருகும்.\nஉறவினர்கள் வருகை இருக்கும்.\nஅதிர்ஷ்ட நிறம்: பச்சை (Green)' },
-      'libra': { date: 'இன்று', horoscope_data: 'கணவன் மனைவி ஒற்றுமை பலப்படும்.\nபயணங்களால் நன்மை உண்டாகும்.\nஅதிர்ஷ்ட நிறம்: நீலம் (Blue)' },
-      'scorpio': { date: 'இன்று', horoscope_data: 'சந்திராஷ்டமம் என்பதால் கவனம் தேவை.\nவீண் விவாதங்களை தவிர்க்கவும்.\nஅதிர்ஷ்ட நிறம்: சிவப்பு (Red)' },
-      'sagittarius': { date: 'இன்று', horoscope_data: 'குரு அருள் பரிபூரணமாக உள்ளது.\nஆன்மீக சிந்தனை மேலோங்கும்.\nஅதிர்ஷ்ட நிறம்: மஞ்சள் (Yellow)' },
-      'capricorn': { date: 'இன்று', horoscope_data: 'உழைப்புக்கேற்ற ஊதியம் கிடைக்கும்.\nநிலுவையில் உள்ள பணிகள் முடியும்.\nஅதிர்ஷ்ட நிறம்: நீலம் (Blue)' },
-      'aquarius': { date: 'இன்று', horoscope_data: 'எதிர்பாராத தனவரவு உண்டாகும்.\nநண்பர்களால் ஆதாயம் உண்டு.\nஅதிர்ஷ்ட நிறம்: நீலம் (Blue)' },
-      'pisces': { date: 'இன்று', horoscope_data: 'சுப விரயங்கள் ஏற்படும்.\nகுடும்பத்துடன் இறைவழிபாடு செய்வீர்கள்.\nஅதிர்ஷ்ட நிறம்: மஞ்சள் (Yellow)' }
+      'aries': { date: 'இன்று', horoscope_data: 'இன்று உங்களுக்கு நற்பலன்கள் கிடைக்கும்.\nமுயற்சிகளில் வெற்றி கிட்டும்.' },
+      'taurus': { date: 'இன்று', horoscope_data: 'பொருளாதார வரவு சிறப்பாக இருக்கும்.' },
+      'gemini': { date: 'இன்று', horoscope_data: 'நண்பர்களின் உதவி கிடைக்கும்.' },
+      'cancer': { date: 'இன்று', horoscope_data: 'மனதில் நிம்மதி பிறக்கும்.' },
+      'leo': { date: 'இன்று', horoscope_data: 'உத்தியோகத்தில் மதிப்பு கூடும்.' },
+      'virgo': { date: 'இன்று', horoscope_data: 'வியாபாரத்தில் லாபம் பெருகும்.' },
+      'libra': { date: 'இன்று', horoscope_data: 'குடும்பத்தில் ஒற்றுமை பலப்படும்.' },
+      'scorpio': { date: 'இன்று', horoscope_data: 'சந்திராஷ்டமம்: கவனம் தேவை.' },
+      'sagittarius': { date: 'இன்று', horoscope_data: 'குரு அருள் பரிபூரணமாக உள்ளது.' },
+      'capricorn': { date: 'இன்று', horoscope_data: 'உழைப்புக்கேற்ற ஊதியம் கிடைக்கும்.' },
+      'aquarius': { date: 'இன்று', horoscope_data: 'எதிர்பாராத தனவரவு உண்டாகும்.' },
+      'pisces': { date: 'இன்று', horoscope_data: 'சுப விரயங்கள் ஏற்படும்.' }
     };
 
     async function fetchHoroscope(signObj) {
@@ -7101,30 +7102,45 @@
       document.getElementById('activeSignIcon').innerText = signObj.icon;
       document.getElementById('activeSignName').innerText = signObj.name;
 
-      // Check cache
-      const today = new Date().toDateString();
-      const cacheKey = `${signObj.api}-${today}`;
-
-      if (horoscopeCache[cacheKey]) {
-        displayHoroscope(horoscopeCache[cacheKey]);
-        return;
-      }
-
       try {
-        const res = await fetch(`https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=${signObj.api}&day=today`)
-          .then(r => r.json());
-
-        if (res.data) {
-          horoscopeCache[cacheKey] = res.data;
-          displayHoroscope(res.data);
-        } else {
-          throw new Error("No data");
+        // Fetch All 12 Rasis once if not cached
+        if (!rasiPalanCache) {
+          const res = await fetch('/api/horoscope/rasi-palan');
+          const json = await res.json();
+          if (json.ok !== false && (Array.isArray(json) || Array.isArray(json.data))) {
+            rasiPalanCache = Array.isArray(json) ? json : json.data;
+          } else {
+            throw new Error("Invalid API response");
+          }
         }
+
+        // Find the specific sign (Case Insensitive Match)
+        // API returns PascalCase "Aries", config uses lowercase "aries"
+        const data = rasiPalanCache.find(item =>
+          (item.sign_en && item.sign_en.toLowerCase() === signObj.api.toLowerCase()) ||
+          (item.sign && item.sign.toLowerCase() === signObj.api.toLowerCase())
+        );
+
+        if (data) {
+          displayHoroscope(data);
+        } else {
+          // Fallback if specific sign not found in list (should not happen)
+          throw new Error("Sign not found in data");
+        }
+
       } catch (e) {
-        console.warn('API Failed, using fallback', e);
-        // Use Fallback
+        console.warn('Rasi Palan API Failed/Missing, using fallback', e);
+        // Use Fallback - Map old structure if needed or just show error text
+        // For now, simpler fallback
         const fallback = fallbackHoroscopeData[signObj.api] || fallbackHoroscopeData['aries'];
-        displayHoroscope(fallback);
+        // Adapter for fallback to match new structure
+        const adaptedFallback = {
+          date: fallback.date,
+          forecast_ta: fallback.horoscope_data,
+          lucky_number: "-",
+          lucky_color_ta: "-"
+        };
+        displayHoroscope(adaptedFallback);
       }
     }
 
@@ -7135,8 +7151,25 @@
       if (loading) loading.style.display = 'none';
       if (content) content.classList.remove('hidden');
 
-      document.getElementById('horoscopeDate').innerText = data.date;
-      document.getElementById('horoscopeText').innerText = data.horoscope_data;
+      const dateText = data.date || new Date().toISOString().split('T')[0];
+      document.getElementById('horoscopeDate').innerText = dateText;
+
+      // Use Tamil text if available, else English
+      const prediction = data.forecast_ta || data.prediction_ta || data.forecast_en || "கணிப்பு கிடைக்கவில்லை";
+
+      // Formatting Lucky details if available
+      let detailsHtml = "";
+      if (data.lucky_number || data.lucky_color_ta) {
+        detailsHtml = `
+            <div style="margin-top:15px; padding-top:10px; border-top:1px dashed #e5e7eb; font-size:0.85rem; color:#059669;">
+               ${data.lucky_number ? `<strong>அதிர்ஷ்ட எண்:</strong> ${data.lucky_number}` : ''}
+               ${data.lucky_number && data.lucky_color_ta ? '&nbsp;|&nbsp;' : ''}
+               ${data.lucky_color_ta ? `<strong>அதிர்ஷ்ட நிறம்:</strong> ${data.lucky_color_ta}` : ''}
+            </div>
+          `;
+      }
+
+      document.getElementById('horoscopeText').innerHTML = prediction + detailsHtml;
     }
 
     // Initialize Horoscope

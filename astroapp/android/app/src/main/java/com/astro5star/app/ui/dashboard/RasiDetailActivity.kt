@@ -61,10 +61,14 @@ val DeepBlueBg = Color(0xFF1E2749)
 val CardDark = Color(0xFF2C3E50)
 val GoldText = Color(0xFFD4AF37)
 val SoftWhite = Color(0xFFE0E0E0)
+val LuckyGreen = Color(0xFF059669) // Matching web color
 
 @Composable
 fun RasiDetailScreen(rasiName: String, rasiId: Int, rasiIcon: Int, rasiColor: Color, onBack: () -> Unit) {
     var prediction by remember { mutableStateOf("Loading horoscope for today...") }
+    var luckyNumber by remember { mutableStateOf<String?>(null) }
+    var luckyColorText by remember { mutableStateOf<String?>(null) }
+
     var isLoading by remember { mutableStateOf(true) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -142,8 +146,15 @@ fun RasiDetailScreen(rasiName: String, rasiId: Int, rasiIcon: Int, rasiColor: Co
                              // Clean up Markdown
                              text = text.replace("###", "").trim()
 
+                             // Extract Lucky Details
+                             val lNum = if (foundData.has("lucky_number")) foundData.getString("lucky_number") else null
+                             val lCol = if (foundData.has("lucky_color_ta")) foundData.getString("lucky_color_ta")
+                                        else if (foundData.has("lucky_color")) foundData.getString("lucky_color") else null
+
                              withContext(Dispatchers.Main) {
                                  prediction = text
+                                 luckyNumber = lNum
+                                 luckyColorText = lCol
                                  isLoading = false
                              }
                          } else {
@@ -255,6 +266,51 @@ fun RasiDetailScreen(rasiName: String, rasiId: Int, rasiIcon: Int, rasiColor: Co
                             color = SoftWhite,
                             lineHeight = 24.sp
                         )
+
+                        // Lucky Details Section
+                        if (luckyNumber != null || luckyColorText != null) {
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Divider(color = Color.Gray.copy(alpha = 0.3f))
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (luckyNumber != null) {
+                                    Text(
+                                        text = "Lucky Number: ",
+                                        fontSize = 14.sp,
+                                        color = LuckyGreen,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = luckyNumber!!,
+                                        fontSize = 14.sp,
+                                        color = SoftWhite
+                                    )
+                                }
+
+                                if (luckyNumber != null && luckyColorText != null) {
+                                     Text(
+                                        text = "  |  ",
+                                        fontSize = 14.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+
+                                if (luckyColorText != null) {
+                                    Text(
+                                        text = "Lucky Color: ",
+                                        fontSize = 14.sp,
+                                        color = LuckyGreen,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = luckyColorText!!,
+                                        fontSize = 14.sp,
+                                        color = SoftWhite
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

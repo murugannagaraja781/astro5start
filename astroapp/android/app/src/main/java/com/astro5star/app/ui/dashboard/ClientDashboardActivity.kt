@@ -973,17 +973,18 @@ fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
                 // Icon Container
                 // Icon Container
                 // Icon Container
+                // Icon Container
                 Box(
                     modifier = Modifier
-                        .size(66.dp) // Box size increased to 66dp
-                        .background(Color.Transparent, RoundedCornerShape(50.dp)), // Transparent background, Rounded corners 50dp
+                        .size(86.dp) // Box size increased to 86dp (inferred)
+                        .background(Color(0xFF1E2749), RoundedCornerShape(77.dp)), // Deep Blue background ("that blu"), Rounded corners 77dp
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
                         painter = painterResource(id = item.imageRes),
                         contentDescription = item.name,
-                        modifier = Modifier.size(56.dp), // Icon size increased to 56dp
-                        colorFilter = ColorFilter.tint(item.color) // Tint icon with the specific Rasi color
+                        modifier = Modifier.size(76.dp), // Icon size 76dp
+                        colorFilter = ColorFilter.tint(Color.White) // White tint for contrast
                     )
                 }
 
