@@ -919,19 +919,20 @@ fun RasiGridSection(onClick: (ComposeRasiItem) -> Unit) {
 
 // Rasi Colors Map (Milk/Pastel Shades)
 // Rasi Colors Map (Very Light / Material 50 Shades)
+// Rasi Colors Map (Premium Dark Shades)
 val RasiColors = mapOf(
-    "Aries" to Color(0xFFFFEBEE),      // Very Light Red
-    "Taurus" to Color(0xFFE8F5E9),     // Very Light Green
-    "Gemini" to Color(0xFFFFFDE7),     // Very Light Yellow
-    "Cancer" to Color(0xFFFAFAFA),     // Very Light Silver/White
-    "Leo" to Color(0xFFFFF3E0),        // Very Light Orange
-    "Virgo" to Color(0xFFE0F2F1),      // Very Light Teal
-    "Libra" to Color(0xFFE3F2FD),      // Very Light Blue
-    "Scorpio" to Color(0xFFFCE4EC),    // Very Light Pink
-    "Sagittarius" to Color(0xFFF3E5F5),// Very Light Purple
-    "Capricorn" to Color(0xFFE8EAF6),  // Very Light Indigo
-    "Aquarius" to Color(0xFFE0F7FA),   // Very Light Cyan
-    "Pisces" to Color(0xFFE1F5FE)      // Very Light Light Blue
+    "Aries" to Color(0xFFC44A3D),
+    "Taurus" to Color(0xFF5E7C5A),
+    "Gemini" to Color(0xFFC89B3C),
+    "Cancer" to Color(0xFF9FA8B2),
+    "Leo" to Color(0xFFD4AF37),
+    "Virgo" to Color(0xFF8FAF8F),
+    "Libra" to Color(0xFFC48A9A),
+    "Scorpio" to Color(0xFF7A2E3A),
+    "Sagittarius" to Color(0xFFC26A2E),
+    "Capricorn" to Color(0xFF6B7280),
+    "Aquarius" to Color(0xFF3B8C8C),
+    "Pisces" to Color(0xFF5B5FA8)
 )
 
 @Composable
@@ -977,7 +978,7 @@ fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
                 Box(
                     modifier = Modifier
                         .size(86.dp) // Box size increased to 86dp (inferred)
-                        .background(Color(0xFF1E2749), RoundedCornerShape(77.dp)), // Deep Blue background ("that blu"), Rounded corners 77dp
+                        .background(item.color, RoundedCornerShape(77.dp)), // Use item specific color
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
