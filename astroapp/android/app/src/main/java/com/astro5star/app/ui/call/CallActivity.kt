@@ -269,18 +269,24 @@ class CallActivity : AppCompatActivity() {
             // Video Call: Use for Camera Toggle
             configureAudioSettings()
 
-            // FIX: User wants "Incoming Call Style" UI while dialing/connecting
-            // Set Background to Milk Red (Matches Astrologer UI)
-            findViewById<View>(android.R.id.content).setBackgroundColor(android.graphics.Color.parseColor("#FFF5F6"))
+            // FIX: Ensure Video Split Layout is visible for video calls
+            findViewById<View>(R.id.videoSplitLayout)?.visibility = View.VISIBLE
+            findViewById<View>(R.id.remoteVideoCard)?.visibility = View.VISIBLE
+            findViewById<View>(R.id.localVideoCard)?.visibility = View.VISIBLE
+            remoteView.visibility = View.VISIBLE
+            localView.visibility = View.VISIBLE
 
-            // Show Profile Info (reusing audioLayout) while connecting
+            // Set black background for video call
+            findViewById<View>(android.R.id.content).setBackgroundColor(android.graphics.Color.BLACK)
+
+            // Show Profile Info (reusing audioLayout) while connecting ONLY
             val audioLayout = findViewById<View>(R.id.audioLayout)
-            audioLayout.visibility = View.VISIBLE // Show overlay initially
+            audioLayout.visibility = View.VISIBLE // Show overlay initially while connecting
 
             findViewById<TextView>(R.id.tvAudioName).text = partnerName ?: "Unknown"
-            findViewById<TextView>(R.id.tvAudioName).setTextColor(android.graphics.Color.BLACK)
+            findViewById<TextView>(R.id.tvAudioName).setTextColor(android.graphics.Color.WHITE) // White text on black bg
             findViewById<TextView>(R.id.tvAudioStatus)?.text = if (isInitiator) "Calling..." else "Connecting..."
-            findViewById<TextView>(R.id.tvAudioStatus)?.setTextColor(android.graphics.Color.parseColor("#B8860B")) // Dark Gold
+            findViewById<TextView>(R.id.tvAudioStatus)?.setTextColor(android.graphics.Color.parseColor("#10B981")) // Green
 
             // Load Avatar
              val partnerImage = intent.getStringExtra("partnerImage")
@@ -294,14 +300,14 @@ class CallActivity : AppCompatActivity() {
                     .into(ivAvatar)
             }
 
-            // Ensure Local Video (Selfie) is still visible on top
-            localView.visibility = View.VISIBLE
+            // Ensure Local Video (Selfie) is still visible on top of audioLayout
             localView.setZOrderMediaOverlay(true)
 
             // Hide specific audio-only controls from the overlay to avoid confusion
             findViewById<View>(R.id.btnAudioMic)?.visibility = View.GONE
             findViewById<View>(R.id.btnAudioSpeaker)?.visibility = View.GONE
             findViewById<View>(R.id.btnAudioEndCall)?.visibility = View.GONE
+            findViewById<View>(R.id.audioControlsRow)?.visibility = View.GONE
 
             // Ensure Helper Controls (Video, Mic, End) are visible
             findViewById<View>(R.id.controlPanel).visibility = View.VISIBLE
