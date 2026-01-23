@@ -239,7 +239,7 @@
             android:textColor="#E5E7EB"
             android:textSize="14sp" />
 
-        <!-- Controls: Mic & Speaker (Side by Side) -->
+        <!-- Controls: Mic, Speaker & Chart (Side by Side) -->
         <LinearLayout
             android:id="@+id/audioControlsRow"
             android:layout_width="wrap_content"
@@ -256,10 +256,9 @@
                 android:background="@drawable/bg_circle_white"
                 android:src="@android:drawable/ic_btn_speak_now"
                 android:padding="16dp"
-                android:contentDescription="Mic"
-                android:onClick="onMicClick" />
+                android:contentDescription="Mic" />
 
-            <Space android:layout_width="48dp" android:layout_height="wrap_content" />
+            <Space android:layout_width="32dp" android:layout_height="wrap_content" />
 
             <ImageButton
                 android:id="@+id/btnAudioSpeaker"
@@ -269,8 +268,21 @@
                 android:backgroundTint="#E5E7EB"
                 android:src="@android:drawable/ic_lock_silent_mode_off"
                 android:padding="16dp"
-                android:contentDescription="Speaker"
-                android:onClick="onSpeakerClick" />
+                android:contentDescription="Speaker" />
+
+            <Space android:layout_width="32dp" android:layout_height="wrap_content" />
+
+            <!-- Chart Button (Astrologer Only) -->
+            <ImageButton
+                android:id="@+id/btnAudioChart"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/bg_circle_white"
+                android:backgroundTint="#B8860B"
+                android:src="@android:drawable/ic_menu_sort_by_size"
+                android:padding="16dp"
+                android:contentDescription="Rasi Chart"
+                android:visibility="gone" />
 
         </LinearLayout>
 

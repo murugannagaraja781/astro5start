@@ -265,6 +265,22 @@ class CallActivity : AppCompatActivity() {
             btnVideo.setOnClickListener {
                 toggleSpeaker()
             }
+
+            // Chart Button for Astrologer in Audio Call
+            val btnAudioChart = findViewById<ImageButton>(R.id.btnAudioChart)
+            if (isAstrologer || isReceiver) {
+                btnAudioChart.visibility = View.VISIBLE
+                btnAudioChart.setOnClickListener {
+                    if (birthDataStr != null) {
+                        val intent = android.content.Intent(this, com.astro5star.app.ui.chart.ChartDisplayActivity::class.java).apply {
+                            putExtra("birthData", birthDataStr)
+                        }
+                        startActivity(intent)
+                    } else {
+                        Toast.makeText(this, "Client Birth Data Not Available", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         } else {
             // Video Call: Use for Camera Toggle
             configureAudioSettings()
