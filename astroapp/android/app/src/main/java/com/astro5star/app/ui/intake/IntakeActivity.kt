@@ -205,22 +205,10 @@ class IntakeActivity : ComponentActivity() {
                                  if (response?.optBoolean("ok") == true) {
                                      val sessionId = response.optString("sessionId")
 
-                                     // Logic Split based on Request Type
-                                     if (type == "chat") {
-                                         // Chat: Immediate Navigation (User enters waiting room/chat)
-                                         // User requested: "consolation form submit time close consolation form then open chat box"
-                                         val intent = Intent(this@IntakeActivity, ChatActivity::class.java).apply {
-                                             putExtra("sessionId", sessionId)
-                                             putExtra("toUserId", partnerId)
-                                             putExtra("toUserName", partnerName)
-                                         }
-                                         startActivity(intent)
-                                         finish()
-                                     } else {
-                                         // Call/Video: Wait for Astrologer to Accept (Safer Flow for WebRTC)
+                                         // Chat/Call/Video: Wait for Astrologer to Accept (Unified Flow)
+                                         // User Request: "astloger accept the chat reqest then only chat box enble chat otherwise show 30sec spiner show"
                                          startWaitingTimer()
                                          waitForAnswer(sessionId)
-                                     }
                                  } else {
                                      isWaiting.value = false
                                      val error = response?.optString("error") ?: "Connection Failed"

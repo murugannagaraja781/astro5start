@@ -146,6 +146,19 @@
 
         <Space android:layout_width="24dp" android:layout_height="wrap_content" />
 
+        <!-- Edit Form Button (Client Only) -->
+        <ImageButton
+            android:id="@+id/btnEditForm"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/btn_rounded_action"
+            android:src="@android:drawable/ic_menu_edit"
+            android:tint="#FFFFFF"
+            android:contentDescription="Edit Details"
+            android:visibility="gone"/>
+
+        <Space android:layout_width="24dp" android:layout_height="wrap_content" />
+
         <!-- End Call -->
         <ImageButton
             android:id="@+id/btnEndCall"

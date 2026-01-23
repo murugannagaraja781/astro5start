@@ -10,6 +10,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.AccessTime // Added AccessTime
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
@@ -39,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -453,13 +456,7 @@ fun ChatScreen(
         bottomBar = {
              Column {
                  if (isPartnerTyping) {
-                     Text(
-                         text = "Partner is typing...",
-                         fontSize = 12.sp,
-                         color = Color(0xFF666666),
-                         fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                         modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)
-                     )
+                     TypingIndicator()
                  }
                  ChatInputArea(
                      onSend = onSend,
@@ -631,22 +628,7 @@ fun ChatBubble(message: ComposeChatMessage) {
 
                 // Message Status Ticks (Only for Sent messages)
                 if (isSent) {
-                    val (icon, tint) = when (message.status) {
-                        MessageStatus.SENDING -> Pair(Icons.Default.Done, Color.Gray) // Clock/One Tick? Use One Tick for now
-                        MessageStatus.SENT -> Pair(Icons.Default.Done, Color.Gray)
-                        MessageStatus.DELIVERED -> Pair(Icons.Default.DoneAll, Color.Gray)
-                        MessageStatus.READ -> Pair(Icons.Default.DoneAll, Color(0xFF2196F3)) // Blue
-                    }
-
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = "Status",
-                        tint = tint,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .align(Alignment.End)
-                            .padding(start = 4.dp)
-                    )
+                    AnimatedDoubleTick(status = message.status)
                 }
             }
         }
@@ -669,14 +651,17 @@ fun ChatInputArea(
     var text by remember { mutableStateOf("") }
     var isRecording by remember { mutableStateOf(false) } // Visual state
 
-    // Typing Handler
+    // Typing Handler - Fixed Debounce Logic to prevent spam
     LaunchedEffect(text) {
-        if (text.isNotEmpty() && toUserId != null) {
-             onTyping(true)
-             delay(3000)
-             onTyping(false)
-        } else if (text.isEmpty() && toUserId != null) {
-             onTyping(false)
+        if (toUserId != null) {
+            if (text.isNotEmpty()) {
+                onTyping(true)
+                delay(3000)
+                // Only stop if text didn't change (effect wasn't cancelled) - auto handled by Compose cancel
+                onTyping(false)
+            } else {
+                 onTyping(false)
+            }
         }
     }
 
@@ -772,6 +757,122 @@ fun ChatInputArea(
             ) {
                 Icon(Icons.Default.Mic, null, tint = if(isRecording) Color.White else GoldAccent)
             }
+        }
+    }
+}
+
+// ========== ANIMATED TYPING INDICATOR (WhatsApp Style Bouncing Dots) ==========
+@Composable
+fun TypingIndicator() {
+    val infiniteTransition = rememberInfiniteTransition(label = "typing")
+
+    // Three dots with staggered animations
+    val dot1Offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(400, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot1"
+    )
+
+    val dot2Offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(400, delayMillis = 100, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot2"
+    )
+
+    val dot3Offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(400, delayMillis = 200, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot3"
+    )
+
+    Row(
+        modifier = Modifier
+            .padding(start = 16.dp, bottom = 8.dp)
+            .background(Color(0xFFE0E0E0), RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Dot 1
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .offset(y = dot1Offset.dp)
+                .background(Color(0xFF9E9E9E), CircleShape)
+        )
+        // Dot 2
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .offset(y = dot2Offset.dp)
+                .background(Color(0xFF9E9E9E), CircleShape)
+        )
+        // Dot 3
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .offset(y = dot3Offset.dp)
+                .background(Color(0xFF9E9E9E), CircleShape)
+        )
+    }
+}
+
+// ========== ANIMATED DOUBLE TICK (Blue animation on Read) ==========
+@Composable
+fun AnimatedDoubleTick(status: MessageStatus) {
+    val color by animateColorAsState(
+        targetValue = when (status) {
+            MessageStatus.READ -> Color(0xFF2196F3) // Blue
+            else -> Color.Gray
+        },
+        animationSpec = tween(durationMillis = 300),
+        label = "tickColor"
+    )
+
+    val scale by animateFloatAsState(
+        targetValue = if (status == MessageStatus.READ) 1.2f else 1f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = 300f),
+        label = "tickScale"
+    )
+
+    when (status) {
+        MessageStatus.SENDING -> {
+            Icon(
+                imageVector = Icons.Default.AccessTime,
+                contentDescription = "Sending",
+                tint = Color.Gray,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+        MessageStatus.SENT -> {
+            Icon(
+                imageVector = Icons.Default.Done,
+                contentDescription = "Sent",
+                tint = Color.Gray,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+        MessageStatus.DELIVERED, MessageStatus.READ -> {
+            Icon(
+                imageVector = Icons.Default.DoneAll,
+                contentDescription = if (status == MessageStatus.READ) "Read" else "Delivered",
+                tint = color,
+                modifier = Modifier
+                    .size(16.dp)
+                    .graphicsLayer(scaleX = scale, scaleY = scale)
+            )
         }
     }
 }

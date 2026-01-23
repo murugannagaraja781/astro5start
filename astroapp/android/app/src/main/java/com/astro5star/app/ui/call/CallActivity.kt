@@ -107,8 +107,28 @@ class CallActivity : AppCompatActivity() {
         val btnMic = findViewById<ImageButton>(R.id.btnMic)
         val btnVideo = findViewById<ImageButton>(R.id.btnVideo)
         val btnChat = findViewById<ImageButton>(R.id.btnChat)
-        val btnChart = findViewById<ImageButton>(R.id.btnChart) // Added Chart Button
+        val btnChart = findViewById<ImageButton>(R.id.btnChart)
+        val btnEditForm = findViewById<ImageButton>(R.id.btnEditForm) // Added Edit Button
         // btnBack removed from XML for simplified Split Screen UI
+
+        // Intake Edit Launcher
+        val intakeLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                val updatedData = result.data?.getStringExtra("birthData")
+                if (updatedData != null) {
+                    // Update Local State (if needed, though mostly for Astrologer)
+                    intent.putExtra("birthData", updatedData)
+
+                    // Emit Update to Partner
+                    val payload = JSONObject().apply {
+                         put("sessionId", sessionId)
+                         put("birthData", JSONObject(updatedData))
+                    }
+                    SocketManager.getSocket()?.emit("update-intake", payload)
+                    Toast.makeText(this, "Consultation Details Updated", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
 
         // Extract BirthData if available (needed for Chart)
         val birthDataStr = intent.getStringExtra("birthData")
@@ -131,6 +151,18 @@ class CallActivity : AppCompatActivity() {
                 } else {
                     Toast.makeText(this, "Client Birth Data Not Available", Toast.LENGTH_SHORT).show()
                 }
+            }
+        } else {
+            // Client Side: Show Edit Form Button
+            btnEditForm.visibility = View.VISIBLE
+            btnEditForm.setOnClickListener {
+                 val intent = android.content.Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
+                     putExtra("isEditMode", true)
+                     putExtra("partnerName", partnerName)
+                     // Pass existing data if we have it locally, otherwise IntakeActivity can fetch from prefs or empty
+                     if (birthDataStr != null) putExtra("existingData", birthDataStr)
+                 }
+                 intakeLauncher.launch(intent)
             }
         }
 
@@ -634,6 +666,22 @@ class CallActivity : AppCompatActivity() {
                     finish()
                 }
             }
+        }
+
+        // Listen for Intake Updates (Astrologer Side)
+        SocketManager.getSocket()?.on("intake-updated") { args ->
+             if (args.isNotEmpty()) {
+                 val data = args[0] as JSONObject
+                 val newBirthData = data.optJSONObject("birthData")
+                 if (newBirthData != null) {
+                     runOnUiThread {
+                         // Update Local Intent Extra so "Chart" button uses new data
+                         intent.putExtra("birthData", newBirthData.toString())
+                         Toast.makeText(this, "Client updated consultation details!", Toast.LENGTH_LONG).show()
+                         // Optionally vibrate or play sound
+                     }
+                 }
+             }
         }
     }
 

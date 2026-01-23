@@ -182,7 +182,7 @@ object SocketManager {
         }
         //"message-delivered" or "message-status" depending on server. Using 'message-read' style for now or new event
         // Design doc said: emit 'mark_delivered'
-        socket?.emit("mark_delivered", payload)
+        socket?.emit("message-delivered", payload)
     }
 
     fun markRead(messageId: String, senderId: String) {
@@ -191,7 +191,7 @@ object SocketManager {
             put("toUserId", senderId)
             put("status", "READ")
         }
-        socket?.emit("mark_read", payload)
+        socket?.emit("message-read", payload)
     }
 
     // --- Typing ---

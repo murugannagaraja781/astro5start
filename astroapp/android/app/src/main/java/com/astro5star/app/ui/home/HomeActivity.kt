@@ -100,11 +100,11 @@ class HomeActivity : AppCompatActivity() {
                     },
                     onCallClick = { astro, type ->
                         val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
-                            putExtra("astrologer_id", astro.userId)
-                            putExtra("astrologer_name", astro.name)
-                            putExtra("call_type", type)
+                            putExtra("partnerId", astro.userId)
+                            putExtra("partnerName", astro.name)
+                            putExtra("type", type)
                             putExtra("price_per_min", astro.price.toString())
-                            putExtra("astrologer_image", astro.image)
+                            putExtra("partnerImage", astro.image)
                         }
                         startActivity(intent)
                     },

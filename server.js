@@ -2103,6 +2103,51 @@ io.on('connection', (socket) => {
     } catch (err) { console.error('typing error', err); }
   });
 
+  // --- Stop Typing Indicator ---
+  socket.on('stop-typing', (data) => {
+    try {
+      const { toUserId } = data || {};
+      const fromUserId = socketToUser.get(socket.id);
+      if (!fromUserId || !toUserId) return;
+
+      const targetSocketId = userSockets.get(toUserId);
+      if (!targetSocketId) return;
+
+      io.to(targetSocketId).emit('stop-typing', {
+        fromUserId
+      });
+    } catch (err) { console.error('stop-typing error', err); }
+  });
+
+  // --- Update Intake (Live Consultation Form Update) ---
+  socket.on('update-intake', (data) => {
+    try {
+      const { sessionId, birthData } = data || {};
+      const fromUserId = socketToUser.get(socket.id);
+
+      if (!fromUserId || !sessionId) return;
+
+      // Find the other user in session
+      const session = activeSessions.get(sessionId);
+      if (!session) return;
+
+      const partnerId = session.users.find(u => u !== fromUserId);
+      if (!partnerId) return;
+
+      const targetSocketId = userSockets.get(partnerId);
+      if (!targetSocketId) return;
+
+      // Relay the updated data to partner
+      io.to(targetSocketId).emit('intake-updated', {
+        sessionId,
+        fromUserId,
+        birthData
+      });
+
+      console.log(`[Intake] Client ${fromUserId} updated intake -> sent to ${partnerId}`);
+    } catch (err) { console.error('update-intake error', err); }
+  });
+
   // --- Phase 1: Connection & Billing Start ---
   socket.on('session-connect', async (data) => {
     try {
