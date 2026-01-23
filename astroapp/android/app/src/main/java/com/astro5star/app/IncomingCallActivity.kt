@@ -118,12 +118,19 @@ class IncomingCallActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
+        val rootLayout = findViewById<android.view.ViewGroup>(android.R.id.content)
+        rootLayout.setBackgroundColor(android.graphics.Color.parseColor("#FFF5F6")) // Milk Red Theme
+
         val callerNameText = findViewById<TextView>(R.id.callerNameText)
         val callerIdText = findViewById<TextView>(R.id.callerIdText)
         val titleText = findViewById<TextView>(R.id.tvIncomingLabel)
         val acceptButton = findViewById<android.widget.ImageButton>(R.id.acceptButton)
         val rejectButton = findViewById<android.widget.ImageButton>(R.id.rejectButton)
 
+        // Theme Updates
+        callerNameText.setTextColor(android.graphics.Color.BLACK)
+        callerIdText.setTextColor(android.graphics.Color.DKGRAY)
+        titleText.setTextColor(android.graphics.Color.parseColor("#B8860B")) // Dark Gold
 
         callerNameText.text = callerName
 

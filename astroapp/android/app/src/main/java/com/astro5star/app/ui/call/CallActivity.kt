@@ -83,7 +83,8 @@ class CallActivity : AppCompatActivity() {
         partnerName = intent.getStringExtra("partnerName") ?: partnerId
         sessionId = intent.getStringExtra("sessionId")
         isInitiator = intent.getBooleanExtra("isInitiator", false)
-        callType = intent.getStringExtra("type") ?: intent.getStringExtra("callType") ?: "video"
+        // Set Default callType to "audio" as per user request "adio call default off the camera"
+        callType = intent.getStringExtra("type") ?: intent.getStringExtra("callType") ?: "audio"
 
         // DEBUG: Log all intent extras to trace callType issue
         Log.d(TAG, "=== CallActivity Intent Extras ===")
@@ -106,7 +107,32 @@ class CallActivity : AppCompatActivity() {
         val btnMic = findViewById<ImageButton>(R.id.btnMic)
         val btnVideo = findViewById<ImageButton>(R.id.btnVideo)
         val btnChat = findViewById<ImageButton>(R.id.btnChat)
+        val btnChart = findViewById<ImageButton>(R.id.btnChart) // Added Chart Button
         // btnBack removed from XML for simplified Split Screen UI
+
+        // Extract BirthData if available (needed for Chart)
+        val birthDataStr = intent.getStringExtra("birthData")
+        val isReceiver = !isInitiator // Usually Astrologer is Receiver
+
+        // Show Chart Button ONLY for Receiver (Astrologer) or if explicitly an Astrologer role
+        val userRole = com.astro5star.app.data.local.TokenManager(this).getUserSession()?.role
+        val isAstrologer = userRole?.equals("astrologer", ignoreCase = true) == true
+
+        // User said "astloger call activity ui adding one rasi chart ion"
+        // So we show it if user is Astrologer OR Receiver (assumed Astrologer side)
+        if (isAstrologer || isReceiver) {
+            btnChart.visibility = View.VISIBLE
+            btnChart.setOnClickListener {
+                if (birthDataStr != null) {
+                    val intent = android.content.Intent(this, com.astro5star.app.ui.chart.ChartDisplayActivity::class.java).apply {
+                        putExtra("birthData", birthDataStr)
+                    }
+                    startActivity(intent)
+                } else {
+                    Toast.makeText(this, "Client Birth Data Not Available", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
 
         btnEndCall.setOnClickListener { endCall() }
 
@@ -142,7 +168,7 @@ class CallActivity : AppCompatActivity() {
 
             localView.visibility = View.GONE
             remoteView.visibility = View.GONE
-            findViewById<View>(android.R.id.content).setBackgroundColor(android.graphics.Color.BLACK)
+            findViewById<View>(android.R.id.content).setBackgroundColor(android.graphics.Color.parseColor("#FFF5F6")) // Milk Red
 
             // Switch to Audio UI Layout
             findViewById<View>(R.id.controlPanel).visibility = View.GONE
@@ -154,6 +180,9 @@ class CallActivity : AppCompatActivity() {
 
             val partnerImage = intent.getStringExtra("partnerImage")
             findViewById<TextView>(R.id.tvAudioName).text = partnerName ?: "Unknown"
+            findViewById<TextView>(R.id.tvAudioName).setTextColor(android.graphics.Color.BLACK) // Ensure Text Black
+            findViewById<TextView>(R.id.tvAudioStatus)?.setTextColor(android.graphics.Color.parseColor("#333333")) // Dark Gray
+            findViewById<TextView>(R.id.tvAudioTime)?.setTextColor(android.graphics.Color.parseColor("#B8860B")) // Dark Gold
 
             if (!partnerImage.isNullOrEmpty()) {
                 val ivAvatar = findViewById<android.widget.ImageView>(R.id.ivAudioAvatar)
@@ -167,7 +196,11 @@ class CallActivity : AppCompatActivity() {
 
             // Set Status Bar Color to match Audio UI Background
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                window.statusBarColor = android.graphics.Color.parseColor("#111827")
+                window.statusBarColor = android.graphics.Color.parseColor("#FFF5F6")
+                // Make status bar icons dark
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                }
             }
 
             configureAudioSettings()
@@ -204,6 +237,44 @@ class CallActivity : AppCompatActivity() {
             // Video Call: Use for Camera Toggle
             configureAudioSettings()
 
+            // FIX: User wants "Incoming Call Style" UI while dialing/connecting
+            // Set Background to Milk Red (Matches Astrologer UI)
+            findViewById<View>(android.R.id.content).setBackgroundColor(android.graphics.Color.parseColor("#FFF5F6"))
+
+            // Show Profile Info (reusing audioLayout) while connecting
+            val audioLayout = findViewById<View>(R.id.audioLayout)
+            audioLayout.visibility = View.VISIBLE // Show overlay initially
+
+            findViewById<TextView>(R.id.tvAudioName).text = partnerName ?: "Unknown"
+            findViewById<TextView>(R.id.tvAudioName).setTextColor(android.graphics.Color.BLACK)
+            findViewById<TextView>(R.id.tvAudioStatus)?.text = if (isInitiator) "Calling..." else "Connecting..."
+            findViewById<TextView>(R.id.tvAudioStatus)?.setTextColor(android.graphics.Color.parseColor("#B8860B")) // Dark Gold
+
+            // Load Avatar
+             val partnerImage = intent.getStringExtra("partnerImage")
+             if (!partnerImage.isNullOrEmpty()) {
+                val ivAvatar = findViewById<android.widget.ImageView>(R.id.ivAudioAvatar)
+                Glide.with(this)
+                    .load(partnerImage)
+                    .circleCrop()
+                    .placeholder(R.drawable.bg_circle_white)
+                    .error(R.drawable.bg_circle_white)
+                    .into(ivAvatar)
+            }
+
+            // Ensure Local Video (Selfie) is still visible on top
+            localView.visibility = View.VISIBLE
+            localView.setZOrderMediaOverlay(true)
+
+            // Hide specific audio-only controls from the overlay to avoid confusion
+            findViewById<View>(R.id.btnAudioMic)?.visibility = View.GONE
+            findViewById<View>(R.id.btnAudioSpeaker)?.visibility = View.GONE
+            findViewById<View>(R.id.btnAudioEndCall)?.visibility = View.GONE
+
+            // Ensure Helper Controls (Video, Mic, End) are visible
+            findViewById<View>(R.id.controlPanel).visibility = View.VISIBLE
+
+
             btnVideo.setOnClickListener {
                 val enabled = localVideoTrack?.enabled() ?: true
                 localVideoTrack?.setEnabled(!enabled)
@@ -235,14 +306,24 @@ class CallActivity : AppCompatActivity() {
         if (checkPermissions()) {
             startCallLimit()
         } else {
+            val permissions = if (callType == "audio") {
+                 arrayOf(Manifest.permission.RECORD_AUDIO)
+            } else {
+                 arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+            }
             ActivityCompat.requestPermissions(
                 this,
-                arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO),
+                permissions,
                 PERMISSION_REQ_CODE
             )
         }
 
         startBackgroundService()
+
+        // Clear notifications
+        val notificationManager = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        notificationManager.cancelAll()
+
     }
 
     private fun startBackgroundService() {
@@ -327,14 +408,32 @@ class CallActivity : AppCompatActivity() {
             tvStatus.text = "Calling..."
             findViewById<TextView>(R.id.tvAudioStatus)?.text = "Calling..."
 
-            // FIX: Initiator MUST also send session-connect to start billing
-            val connectPayload = JSONObject().apply {
-                 put("sessionId", sessionId)
-            }
-            SocketManager.getSocket()?.emit("session-connect", connectPayload)
-            Log.d(TAG, "Sent session-connect (Initiator) for $sessionId")
+            val tokenManager = com.astro5star.app.data.local.TokenManager(this)
+            val myUserId = tokenManager.getUserSession()?.userId
 
-            createOffer()
+            // Helper to start call
+            fun startInitiator() {
+                // FIX: Initiator MUST also send session-connect to start billing
+                val connectPayload = JSONObject().apply {
+                     put("sessionId", sessionId)
+                }
+                SocketManager.getSocket()?.emit("session-connect", connectPayload)
+                Log.d(TAG, "Sent session-connect (Initiator) for $sessionId")
+
+                createOffer()
+            }
+
+            // Ensure connected before starting
+            if (SocketManager.getSocket()?.connected() == true) {
+                 if (myUserId != null) SocketManager.registerUser(myUserId)
+                 startInitiator()
+            } else {
+                 SocketManager.onConnect {
+                      if (myUserId != null) SocketManager.registerUser(myUserId)
+                      runOnUiThread { startInitiator() }
+                 }
+                 SocketManager.getSocket()?.connect()
+            }
         } else {
             tvStatus.text = "Connecting..."
             findViewById<TextView>(R.id.tvAudioStatus)?.text = "Connecting..."
@@ -377,15 +476,19 @@ class CallActivity : AppCompatActivity() {
     }
 
     private fun initWebRTC() {
-        eglBase = EglBase.create()
+        val builder = PeerConnectionFactory.builder()
+
+        // Only init Video components if Video Call
+        if (callType == "video") {
+            eglBase = EglBase.create()
+            builder.setVideoEncoderFactory(DefaultVideoEncoderFactory(eglBase.eglBaseContext, true, true))
+            builder.setVideoDecoderFactory(DefaultVideoDecoderFactory(eglBase.eglBaseContext))
+        }
 
         val options = PeerConnectionFactory.InitializationOptions.builder(this).createInitializationOptions()
         PeerConnectionFactory.initialize(options)
 
-        peerConnectionFactory = PeerConnectionFactory.builder()
-            .setVideoEncoderFactory(DefaultVideoEncoderFactory(eglBase.eglBaseContext, true, true))
-            .setVideoDecoderFactory(DefaultVideoDecoderFactory(eglBase.eglBaseContext))
-            .createPeerConnectionFactory()
+        peerConnectionFactory = builder.createPeerConnectionFactory()
 
         // Only init Video if Video Call
         if (callType == "video") {
@@ -441,6 +544,13 @@ class CallActivity : AppCompatActivity() {
                     val statusText = when (newState) {
                         PeerConnection.IceConnectionState.CONNECTED -> {
                             tvStatus.visibility = View.GONE
+
+                            // FIX: Hide the "Calling..." overlay for video calls once connected
+                            if (callType == "video") {
+                                findViewById<View>(R.id.audioLayout)?.visibility = View.GONE
+                                findViewById<View>(android.R.id.content).setBackgroundColor(android.graphics.Color.BLACK) // Restore black for video
+                            }
+
                             "Connected"
                         }
                         PeerConnection.IceConnectionState.DISCONNECTED -> "Reconnecting..."
@@ -713,12 +823,14 @@ class CallActivity : AppCompatActivity() {
             peerConnection.close()
 
             // 5. Release views
-            localView.release()
-            remoteView.release()
+            if (callType == "video") {
+                localView.release()
+                remoteView.release()
+                eglBase.release()
+            }
 
-            // 6. Dispose factory and EGL
+            // 6. Dispose factory
             peerConnectionFactory.dispose()
-            eglBase.release()
 
             Log.d(TAG, "WebRTC resources fully released")
         } catch (e: Exception) {

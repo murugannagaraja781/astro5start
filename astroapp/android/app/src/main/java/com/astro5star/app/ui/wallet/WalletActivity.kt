@@ -41,6 +41,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import java.util.ArrayList
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.Image
 import com.astro5star.app.ui.auth.AppBackground
 import com.astro5star.app.ui.auth.CardBackground
@@ -284,7 +285,10 @@ fun WalletScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text("ASTRO 5 STAR", color = GoldAccent, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-                                    Text("**** 8888", color = TextGrey)
+                                    // Dynamic ID
+                                    val userId = com.astro5star.app.data.local.TokenManager(LocalContext.current).getUserSession()?.userId ?: "Unknown"
+                                    val displayId = if (userId.length > 6) "ID: ...${userId.takeLast(6)}" else "ID: $userId"
+                                    Text(displayId, color = TextGrey)
                                 }
                             }
                         }

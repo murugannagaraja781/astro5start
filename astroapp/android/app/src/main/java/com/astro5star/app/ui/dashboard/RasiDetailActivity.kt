@@ -1,319 +1,132 @@
-package com.astro5star.app.ui.dashboard
+ package com.astro5star.app.ui.dashboard
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.astro5star.app.R
-import com.astro5star.app.utils.Constants
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONArray
 import org.json.JSONObject
 
 class RasiDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val rasiName = intent.getStringExtra("rasiName") ?: "Unknown"
+        val rasiName = intent.getStringExtra("rasiName") ?: ""
         val rasiId = intent.getIntExtra("rasiId", 1)
-        val rasiIcon = intent.getIntExtra("rasiIcon", R.drawable.ic_rasi_aries_premium)
-        val rasiColorInt = intent.getIntExtra("rasiColor", android.graphics.Color.YELLOW)
-        val rasiColor = Color(rasiColorInt)
+        val rasiIcon = intent.getIntExtra("rasiIcon", 0)
 
         setContent {
-            RasiDetailScreen(
-                rasiName = rasiName,
-                rasiId = rasiId,
-                rasiIcon = rasiIcon,
-                rasiColor = rasiColor,
-                onBack = { finish() }
-            )
+             RasiDetailDialog(
+                 rasiName = rasiName,
+                 rasiId = rasiId,
+                 iconRes = if (rasiIcon != 0) rasiIcon else null,
+                 onDismiss = { finish() }
+             )
         }
     }
 }
 
-// Colors from Design System
-val DeepBlueBg = Color(0xFF1E2749)
-val CardDark = Color(0xFF2C3E50)
-val GoldText = Color(0xFFD4AF37)
-val SoftWhite = Color(0xFFE0E0E0)
-val LuckyGreen = Color(0xFF059669) // Matching web color
+class RasiDetailViewModel : ViewModel() {
 
-@Composable
-fun RasiDetailScreen(rasiName: String, rasiId: Int, rasiIcon: Int, rasiColor: Color, onBack: () -> Unit) {
-    var prediction by remember { mutableStateOf("Loading horoscope for today...") }
-    var luckyNumber by remember { mutableStateOf<String?>(null) }
-    var luckyColorText by remember { mutableStateOf<String?>(null) }
+    private val _uiState = MutableStateFlow<RasiDetailState>(RasiDetailState.Loading)
+    val uiState: StateFlow<RasiDetailState> = _uiState
 
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMsg by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-
-    // Fetch Logic
-    LaunchedEffect(Unit) {
-        scope.launch(Dispatchers.IO) {
+    fun loadRasi(rasiName: String, rasiId: Int, iconRes: Int?) {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
-                val client = OkHttpClient()
-
-                // Use backend API which handles 5:05 AM logic and daily updates
                 val request = Request.Builder()
-                    .url("${Constants.SERVER_URL}/api/horoscope/rasi-palan")
+                    .url("https://astro5star.com/api/horoscope/rasi-palan")
                     .get()
                     .build()
 
-                val response = client.newCall(request).execute()
+                val response = OkHttpClient().newCall(request).execute()
+                if (!response.isSuccessful) throw Exception("API Error ${response.code}")
 
-                if (response.isSuccessful) {
-                    val jsonStr = response.body?.string() ?: "[]"
-                    var dataArray: org.json.JSONArray? = null
+                val body = response.body?.string() ?: "[]"
+                val array = parseArray(body)
+                val obj = findRasi(array, rasiName, rasiId)
+                    ?: throw Exception("Rasi not found")
 
-                    try {
-                         dataArray = org.json.JSONArray(jsonStr)
-                    } catch (e: Exception) {
-                        try {
-                             // Try object
-                             val obj = org.json.JSONObject(jsonStr)
-                             if (obj.has("data")) dataArray = obj.getJSONArray("data")
-                        } catch (e2: Exception) {
-                            // ignore
-                        }
-                    }
-
-                    if (dataArray != null && dataArray.length() > 0) {
-                         // Find by rasi name filtering
-                         // Map standard names to what might be in JSON (usually case-insensitive check)
-                         var foundData: JSONObject? = null
-
-                         for (i in 0 until dataArray.length()) {
-                             val obj = dataArray.getJSONObject(i)
-                             // Check common keys for name
-                             val nameInJson = if (obj.has("sign_name")) obj.getString("sign_name")
-                                              else if (obj.has("sign")) obj.getString("sign")
-                                              else if (obj.has("rasi")) obj.getString("rasi")
-                                              else ""
-
-                             // Check ID as fallback
-                             val idInJson = if (obj.has("sign_id")) obj.optInt("sign_id", -1) else -1
-
-                             if (nameInJson.equals(rasiName, ignoreCase = true) || idInJson == rasiId) {
-                                 foundData = obj
-                                 break
-                             }
-                         }
-
-                         // Fallback to index if name search failed
-                         if (foundData == null) {
-                             val index = rasiId - 1
-                             if (index >= 0 && index < dataArray.length()) {
-                                 foundData = dataArray.getJSONObject(index)
-                             }
-                         }
-
-                         if (foundData != null) {
-                             var text = ""
-                             // Try getting Tamil prediction specific keys first
-                             if (foundData.has("prediction_ta")) text = foundData.getString("prediction_ta")
-                             else if (foundData.has("forecast_ta")) text = foundData.getString("forecast_ta")
-                             else if (foundData.has("prediction")) text = foundData.getString("prediction")
-                             else if (foundData.has("content")) text = foundData.getString("content")
-                             else if (foundData.has("description")) text = foundData.getString("description")
-                             else text = foundData.toString()
-
-                             // Clean up Markdown
-                             text = text.replace("###", "").trim()
-
-                             // Extract Lucky Details
-                             val lNum = if (foundData.has("lucky_number")) foundData.getString("lucky_number") else null
-                             val lCol = if (foundData.has("lucky_color_ta")) foundData.getString("lucky_color_ta")
-                                        else if (foundData.has("lucky_color")) foundData.getString("lucky_color") else null
-
-                             withContext(Dispatchers.Main) {
-                                 prediction = text
-                                 luckyNumber = lNum
-                                 luckyColorText = lCol
-                                 isLoading = false
-                             }
-                         } else {
-                             withContext(Dispatchers.Main) {
-                                  errorMsg = "Rasi data not found for $rasiName"
-                                  isLoading = false
-                             }
-                         }
-                    } else {
-                         withContext(Dispatchers.Main) {
-                              errorMsg = "Empty data received"
-                              isLoading = false
-                         }
-                    }
-                } else {
-                     withContext(Dispatchers.Main) {
-                         errorMsg = "Failed to fetch data from API: ${response.code}"
-                         isLoading = false
-                     }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    errorMsg = "Error: ${e.message}"
-                    isLoading = false
-                }
-            }
-        }
-    }
-
-    // UI
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Brush.verticalGradient(
-                colors = listOf(Color(0xFF2C3E50), Color(0xFF000000))
-            ))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 24.dp)
-        ) {
-            // Header
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp)
-            ) {
-                 // Background Pattern - Using simple Box with alpha as placeholder
-                 Box(modifier = Modifier.fillMaxSize().background(Color.Black).alpha(0.2f))
-
-                 // Back Button
-                 IconButton(
-                     onClick = onBack,
-                     modifier = Modifier.padding(16.dp).align(Alignment.TopStart)
-                 ) {
-                     Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                 }
-
-                 // Rasi Icon & Name
-                 Column(
-                     modifier = Modifier.align(Alignment.Center),
-                     horizontalAlignment = Alignment.CenterHorizontally
-                 ) {
-                     Image(
-                         painter = painterResource(id = rasiIcon),
-                         contentDescription = null,
-                         modifier = Modifier.size(100.dp),
-                         colorFilter = ColorFilter.tint(rasiColor)
-                     )
-                     Spacer(modifier = Modifier.height(16.dp))
-                     Text(
-                         text = rasiName,
-                         fontSize = 28.sp,
-                         fontWeight = FontWeight.Bold,
-                         color = SoftWhite
-                     )
-                 }
-            }
-
-            // Content Card
-            Card(
-                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                 colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2749)),
-                 modifier = Modifier.fillMaxWidth().offset(y = (-20).dp)
-            ) {
-                Column(modifier = Modifier.padding(24.dp)) {
-                    Text(
-                        text = "Today's Prediction",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = GoldText
+                val ui = RasiDetailUi(
+                    name = rasiName,
+                    iconRes = iconRes,
+                    prediction = extractPrediction(obj),
+                    info = listOf(
+                        RasiInfo("அதிர்ஷ்ட எண்", obj.optString("lucky_number", "-")),
+                        RasiInfo("அதிர்ஷ்ட நிறம்", obj.optString("lucky_color_ta", "-")),
+                        RasiInfo("தேதி", obj.optString("date", "-"))
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                )
 
-                    if (isLoading) {
-                        CircularProgressIndicator(color = GoldText, modifier = Modifier.align(Alignment.CenterHorizontally))
-                    } else if (errorMsg != null) {
-                         Text(
-                            text = errorMsg!!,
-                            fontSize = 16.sp,
-                            color = Color.Red
-                        )
-                    } else {
-                        Text(
-                            text = prediction,
-                            fontSize = 16.sp,
-                            color = SoftWhite,
-                            lineHeight = 24.sp
-                        )
+                _uiState.value = RasiDetailState.Success(ui)
 
-                        // Lucky Details Section
-                        if (luckyNumber != null || luckyColorText != null) {
-                            Spacer(modifier = Modifier.height(24.dp))
-                            Divider(color = Color.Gray.copy(alpha = 0.3f))
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (luckyNumber != null) {
-                                    Text(
-                                        text = "Lucky Number: ",
-                                        fontSize = 14.sp,
-                                        color = LuckyGreen,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = luckyNumber!!,
-                                        fontSize = 14.sp,
-                                        color = SoftWhite
-                                    )
-                                }
-
-                                if (luckyNumber != null && luckyColorText != null) {
-                                     Text(
-                                        text = "  |  ",
-                                        fontSize = 14.sp,
-                                        color = Color.Gray
-                                    )
-                                }
-
-                                if (luckyColorText != null) {
-                                    Text(
-                                        text = "Lucky Color: ",
-                                        fontSize = 14.sp,
-                                        color = LuckyGreen,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = luckyColorText!!,
-                                        fontSize = 14.sp,
-                                        color = SoftWhite
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+            } catch (e: Exception) {
+                _uiState.value = RasiDetailState.Error(e.message ?: "Unknown error")
             }
         }
     }
+
+    private fun parseArray(json: String): JSONArray =
+        try {
+            JSONArray(json)
+        } catch (e: Exception) {
+            JSONObject(json).optJSONArray("data") ?: JSONArray()
+        }
+
+    private fun findRasi(arr: JSONArray, name: String, id: Int): JSONObject? {
+        for (i in 0 until arr.length()) {
+            val o = arr.getJSONObject(i)
+            val n = o.optString("sign_name",
+                o.optString("sign",
+                    o.optString("rasi",
+                        o.optString("sign_en", "") // Added sign_en
+                    )
+                )
+            )
+            val nTa = o.optString("sign_ta", "") // Check Tamil name too
+            if (n.equals(name, true) || nTa.equals(name, true) || o.optInt("sign_id") == id) return o
+        }
+        return null
+    }
+
+    private fun extractPrediction(o: JSONObject): String =
+        o.optString(
+            "prediction_ta",
+            o.optString(
+                "forecast_ta",
+                o.optString("prediction",
+                    o.optString("forecast_en", // Added fallback to English forecast
+                         o.optString("content", "பலம் கிடைக்கவில்லை")
+                    )
+                )
+            )
+        ).replace("###", "").trim()
 }
+
+/* ---------- STATE ---------- */
+
+sealed class RasiDetailState {
+    object Loading : RasiDetailState()
+    data class Success(val ui: RasiDetailUi) : RasiDetailState()
+    data class Error(val message: String) : RasiDetailState()
+}
+
+/* ---------- UI MODELS ---------- */
+
+data class RasiDetailUi(
+    val name: String,
+    val iconRes: Int?,
+    val prediction: String,
+    val info: List<RasiInfo>
+)
+
+data class RasiInfo(
+    val label: String,
+    val value: String
+)

@@ -137,8 +137,9 @@ router.get('/rasi-palan', async (req, res) => {
 
         try {
             console.log(`Fetching Rasi Palan for date: ${dateStr}`);
-            const data = await fetchJson(url);
-            return res.json(data);
+            const rawData = await fetchJson(url);
+            const transformedData = transformToNewFormat(rawData);
+            return res.json(transformedData);
         } catch (e) {
             // If 404 or error, fallback to previous day
             console.warn(`Failed to fetch for ${dateStr}, trying fallback to previous day. Error: ${e.message}`);
@@ -148,8 +149,9 @@ router.get('/rasi-palan', async (req, res) => {
             url = `https://raw.githubusercontent.com/abinash818/daily-horoscope-data/main/data/horoscope_${dateStr}.json`;
 
             try {
-                const data = await fetchJson(url);
-                return res.json(data);
+                const rawData = await fetchJson(url);
+                const transformedData = transformToNewFormat(rawData);
+                return res.json(transformedData);
             } catch (fallbackError) {
                 console.error(`Fallback also failed for ${dateStr}:`, fallbackError);
                 return res.status(500).json({ error: "Unable to fetch horoscope data" });
@@ -161,5 +163,50 @@ router.get('/rasi-palan', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+/**
+ * Transforms legacy/variable external API format to strict internal schema
+ */
+function transformToNewFormat(data) {
+    if (!Array.isArray(data)) return [];
+
+    return data.map((item, index) => {
+        // Map ID (1-12) based on order or existing ID
+        const signId = item.sign_id || (index + 1);
+
+        // Map Names
+        const signNameEn = item.sign_en || item.sign_name || item.sign || "";
+        const signNameTa = item.sign_ta || item.rasi || "";
+
+        // Map Prediction
+        // Priority: prediction_ta -> forecast_ta -> content
+        const predictionTa = (item.prediction_ta || item.forecast_ta || item.content || "").replace(/###/g, "").trim();
+        // Priority: forecast_en -> prediction -> profession_en (fallback)
+        const predictionEn = (item.forecast_en || item.prediction || item.profession_en || "Prediction available in Tamil").replace(/###/g, "").trim();
+
+        // Map Lucky Details
+        const luckyNumber = String(item.lucky_number || "");
+        const luckyColorTa = item.lucky_color_ta || item.lucky_color || "";
+        const luckyColorEn = item.lucky_color_en || "";
+
+        return {
+            signId,
+            signNameEn,
+            signNameTa,
+            date: item.date || new Date().toISOString().split('T')[0],
+            prediction: {
+                ta: predictionTa,
+                en: predictionEn
+            },
+            lucky: {
+                number: luckyNumber,
+                color: {
+                    ta: luckyColorTa,
+                    en: luckyColorEn
+                }
+            }
+        };
+    });
+}
 
 module.exports = router;

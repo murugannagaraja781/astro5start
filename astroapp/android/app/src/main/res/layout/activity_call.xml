@@ -121,6 +121,19 @@
 
         <Space android:layout_width="24dp" android:layout_height="wrap_content" />
 
+        <!-- Chart Button (Astrologer Only) -->
+        <ImageButton
+            android:id="@+id/btnChart"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/btn_rounded_action"
+            android:src="@android:drawable/ic_menu_sort_by_size"
+            android:tint="#FFFFFF"
+            android:contentDescription="Rasi Chart"
+            android:visibility="gone"/>
+
+        <Space android:layout_width="24dp" android:layout_height="wrap_content" />
+
         <!-- Video Toggle -->
         <ImageButton
             android:id="@+id/btnVideo"

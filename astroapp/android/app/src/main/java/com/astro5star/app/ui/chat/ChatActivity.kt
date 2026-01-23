@@ -4,7 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
-import android.util.Log // Added Log
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,7 +28,11 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Refresh // Added Refresh Icon
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,6 +45,12 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.asImageBitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts.GetContent
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -56,11 +66,31 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.ViewModelProvider
+import android.media.MediaRecorder
+import android.media.MediaPlayer
+import java.io.File
+import android.view.MotionEvent
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+
+enum class MessageStatus {
+    SENDING, SENT, DELIVERED, READ
+}
+
+
+enum class AttachmentType {
+    NONE, IMAGE, PDF, AUDIO
+}
 
 data class ComposeChatMessage(
     val id: String = UUID.randomUUID().toString(),
     val text: String,
     val isSent: Boolean,
+    var status: MessageStatus = MessageStatus.SENT,
+    val attachmentType: AttachmentType = AttachmentType.NONE,
+    val attachmentData: String? = null, // Base64 or URL
     val timestamp: Long = System.currentTimeMillis()
 ) {
     override fun equals(other: Any?): Boolean {
@@ -82,13 +112,52 @@ class ChatActivity : ComponentActivity() {
     private var birthData: String? = null
     private var isAstrologer: Boolean = false
 
-    // Using mutableStateList for Compose reactivity
-    private val messages = mutableStateListOf<ComposeChatMessage>()
-    private var isTyping = false
+    // ViewModel
+    private lateinit var viewModel: ChatViewModel
+
+    // Audio Recorder
+    private var mediaRecorder: MediaRecorder? = null
+    private var audioFile: File? = null
+
+    private fun startRecording() {
+        try {
+            audioFile = File(externalCacheDir, "voice_msg_${System.currentTimeMillis()}.3gp")
+            mediaRecorder = MediaRecorder().apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+                setOutputFile(audioFile?.absolutePath)
+                prepare()
+                start()
+            }
+            Toast.makeText(this, "Recording...", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Recording Failed", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun stopRecording(): String? {
+        try {
+            mediaRecorder?.stop()
+            mediaRecorder?.release()
+            mediaRecorder = null
+
+            if (audioFile != null && audioFile!!.exists()) {
+                val bytes = audioFile!!.readBytes()
+                return Base64.encodeToString(bytes, Base64.NO_WRAP)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleIntent(intent)
+
+        viewModel = ViewModelProvider(this)[ChatViewModel::class.java]
 
         // flexible role check
         val userSession = TokenManager(this).getUserSession()
@@ -96,11 +165,8 @@ class ChatActivity : ComponentActivity() {
 
         setContent {
              // Theme Colors
-             val deepForestGreen = Color(0xFF012E1A)
+             val milkRedBackground = Color(0xFFFFF5F6) // Milk Red
              val trueBlack = Color.Black
-             val premiumGradient = Brush.verticalGradient(
-                 colors = listOf(deepForestGreen, trueBlack)
-             )
 
              // Intake Form Launcher
              val intakeLauncher = rememberLauncherForActivityResult(
@@ -110,16 +176,71 @@ class ChatActivity : ComponentActivity() {
                      val dataStr = result.data?.getStringExtra("birthData")
                      if (dataStr != null) {
                          this@ChatActivity.birthData = dataStr // Update local state for Chart generation
+                         // ViewModel handle form?
+                         // For now, keep direct send
                          sendFormMessage(dataStr)
                      }
                  }
              }
 
-             Box(modifier = Modifier.fillMaxSize().background(premiumGradient)) {
+             // File Picker Launcher
+             val filePickerLauncher = rememberLauncherForActivityResult(
+                 contract = ActivityResultContracts.GetContent()
+             ) { uri: Uri? ->
+                 if (uri != null) {
+                     handleFileSelection(uri)
+                 }
+             }
+
+             // Permission Launcher for Audio
+             val recordAudioLauncher = rememberLauncherForActivityResult(
+                 contract = ActivityResultContracts.RequestPermission()
+             ) { isGranted ->
+                 if (isGranted) {
+                     Toast.makeText(this, "Audio Permission Granted", Toast.LENGTH_SHORT).show()
+                 } else {
+                     Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show()
+                 }
+             }
+
+             // Collect Flow State
+             val isPartnerTyping by viewModel.isPartnerTyping.collectAsState()
+             val connectionStatus by viewModel.connectionStatus.collectAsState()
+
+             // Initial Connect
+             LaunchedEffect(toUserId) {
+                 if (toUserId != null) {
+                     viewModel.connect(toUserId!!)
+                 }
+             }
+
+             Box(modifier = Modifier.fillMaxSize().background(milkRedBackground)) {
                  ChatScreen(
                      partnerName = partnerName ?: "Astrologer",
-                     messages = messages,
-                     onSend = { text -> sendMessage(text) },
+                     messages = viewModel.messages,
+                     onSend = { text ->
+                        if (sessionId != null && toUserId != null) {
+                            viewModel.sendMessage(text, toUserId!!, sessionId!!)
+                        }
+                     },
+                     onAttach = {
+                          filePickerLauncher.launch("image/*")
+                     },
+                     onVoiceRecorded = { base64 ->
+                          if (sessionId != null && toUserId != null) {
+                              viewModel.sendAttachment(base64, AttachmentType.AUDIO, toUserId!!, sessionId!!)
+                          }
+                     },
+                     onCheckPermission = {
+                          recordAudioLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                     },
+                     onStartRecord = { startRecording() },
+                     onStopRecord = {
+                         val base64 = stopRecording()
+                         if (base64 != null && sessionId != null && toUserId != null) {
+                             viewModel.sendAttachment(base64, AttachmentType.AUDIO, toUserId!!, sessionId!!)
+                         }
+                     },
                      onBack = { finish() },
                      onEndSession = {
                          endSession()
@@ -150,15 +271,25 @@ class ChatActivity : ComponentActivity() {
                      },
                      isAstrologer = isAstrologer,
                      onLoadHistory = {
-                         if (toUserId != null) {
-                             fetchHistory(toUserId!!)
-                         }
+                         // Disabled/Auto-handled by VM, but we can re-trigger
+                         if (toUserId != null) viewModel.connect(toUserId!!)
+                     },
+                     isPartnerTyping = isPartnerTyping,
+                     toUserId = toUserId,
+                     connectionStatus = connectionStatus,
+                     onTyping = { isTyping ->
+                        if (toUserId != null) {
+                             viewModel.onTyping(toUserId!!, isTyping)
+                        }
                      }
                  )
              }
         }
 
-        connectSocket()
+        // Clear any pending notifications
+        val notificationManager = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        notificationManager.cancelAll() // Clear all to be safe, or use specific IDs if preferred
+
     }
 
     private fun handleIntent(intent: Intent?) {
@@ -173,28 +304,33 @@ class ChatActivity : ComponentActivity() {
         }
     }
 
-    private fun sendMessage(text: String) {
-        if (text.isBlank() || sessionId == null || toUserId == null) return
+    private fun handleFileSelection(uri: Uri) {
+         try {
+             val contentResolver = contentResolver
+             val inputStream = contentResolver.openInputStream(uri)
+             val bytes = inputStream?.readBytes()
+             inputStream?.close()
 
-        try {
-            val messageId = UUID.randomUUID().toString()
-            val payload = JSONObject().apply {
-                put("toUserId", toUserId)
-                put("sessionId", sessionId)
-                put("messageId", messageId)
-                put("timestamp", System.currentTimeMillis())
-                put("content", JSONObject().put("text", text))
-            }
+             if (bytes != null) {
+                 // Check size limit (e.g., 2MB)
+                 if (bytes.size > 2 * 1024 * 1024) {
+                     Toast.makeText(this, "File too large (Max 2MB)", Toast.LENGTH_SHORT).show()
+                     return
+                 }
 
-            SocketManager.getSocket()?.emit("chat-message", payload)
-            SoundManager.playSentSound()
-            messages.add(ComposeChatMessage(messageId, text, true))
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+                 val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                 // Determine type (assume image for now based on launcher)
+                 if (sessionId != null && toUserId != null) {
+                     viewModel.sendAttachment(base64, AttachmentType.IMAGE, toUserId!!, sessionId!!)
+                 }
+             }
+         } catch (e: Exception) {
+             e.printStackTrace()
+             Toast.makeText(this, "Failed to select file", Toast.LENGTH_SHORT).show()
+         }
     }
 
+    // Kept internal for now, but could be moved to VM if we want form logic there
     private fun sendFormMessage(formData: String) {
         if (sessionId == null || toUserId == null) return
         try {
@@ -208,8 +344,6 @@ class ChatActivity : ComponentActivity() {
                 put("content", JSONObject().put("text", text).put("formData", formData))
              }
              SocketManager.getSocket()?.emit("chat-message", payload)
-             // Silent update: Do not add to local messages
-             // messages.add(ComposeChatMessage(messageId, text, true))
         } catch (e: Exception) { e.printStackTrace() }
     }
 
@@ -218,164 +352,11 @@ class ChatActivity : ComponentActivity() {
         finish()
     }
 
-    private fun fetchHistory(targetUserId: String) {
-        runOnUiThread {
-             Toast.makeText(this, "Loading History...", Toast.LENGTH_SHORT).show()
-        }
-        SocketManager.fetchChatHistory(targetUserId) { historyJson ->
-            Log.d("ChatActivity", "History received size: ${historyJson.size}")
+    // Removed direct socket listeners and fetchHistory as they are in VM
 
-            val historyMessages = historyJson.mapNotNull { json ->
-                val isSentByMe = json.optString("fromUserId") == TokenManager(this).getUserSession()?.userId
-
-                // Robust Text Parsing
-                var text: String? = null
-                if (json.has("content")) {
-                    val contentObj = json.optJSONObject("content")
-                    text = contentObj?.optString("text")
-                }
-
-                if (text.isNullOrEmpty()) {
-                    text = json.optString("text")
-                }
-
-                // FIX: Better empty message handling with logging
-                if (text.isNullOrEmpty() || text.equals("null", ignoreCase = true)) {
-                    Log.w("ChatActivity", "Empty message received, raw: ${json.toString().take(100)}")
-                    text = "[Empty Message]" // More descriptive placeholder
-                }
-
-                ComposeChatMessage(
-                    id = json.optString("messageId", UUID.randomUUID().toString()),
-                    text = text!!,
-                    isSent = isSentByMe,
-                    timestamp = json.optLong("timestamp", System.currentTimeMillis())
-                )
-            }
-
-            runOnUiThread {
-                // Check duplicates using ID
-                val existingIds = messages.map { it.id }.toSet()
-                val newMessages = historyMessages.filter { !existingIds.contains(it.id) }
-
-                Log.d("ChatActivity", "New messages to add: ${newMessages.size}")
-                if (newMessages.isNotEmpty()) {
-                    messages.addAll(0, newMessages)
-                    messages.sortBy { it.timestamp }
-                    Toast.makeText(this, "History Updated", Toast.LENGTH_SHORT).show()
-                } else {
-                    Log.d("ChatActivity", "No new unique messages found in history")
-                    // Toast.makeText(this, "No new history found", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
-    private fun connectSocket() {
-        // SocketManager.init() should be called cautiously to avoid re-connection loop if already connected
-        if (SocketManager.getSocket() == null || SocketManager.getSocket()?.connected() != true) {
-             SocketManager.init()
-        }
-        val socket = SocketManager.getSocket()
-        val myUserId = TokenManager(this).getUserSession()?.userId
-
-        if (myUserId != null) {
-             // Register to ensure we can receive messages
-             SocketManager.registerUser(myUserId) { success ->
-                 if (success && toUserId != null) {
-                     runOnUiThread {
-                         Log.d("ChatActivity", "User registered, fetching history for: $toUserId")
-                     }
-                     // Only fetch history once registered
-                     fetchHistory(toUserId!!)
-                 }
-             }
-        }
-
-        // Remove listener using the exact event name to prevent duplicates
-        socket?.off("chat-message")
-        socket?.on("chat-message") { args ->
-            Log.d("ChatActivity", "Received chat-message event: ${args.size} args")
-            try {
-                val data = args[0] as JSONObject
-                val messageId = data.optString("messageId", UUID.randomUUID().toString())
-                val fromUserId = data.optString("fromUserId", "") // FIX: Get sender ID
-
-                // FIX: Skip if this is my own message (already added locally in sendMessage)
-                val myUserId = TokenManager(this).getUserSession()?.userId
-                if (fromUserId == myUserId) {
-                    Log.d("ChatActivity", "Skipping own message echo: $messageId")
-                    return@on
-                }
-
-                // Parse 'text' correctly for real-time messages
-                val text = if (data.has("content")) {
-                    data.getJSONObject("content").optString("text")
-                } else {
-                    data.optString("text")
-                } ?: ""
-
-                val ts = data.optLong("timestamp", System.currentTimeMillis())
-                Log.d("ChatActivity", "Parsed message: $text, id: $messageId")
-
-                // Check duplicate before adding
-                val exists = messages.any { it.id == messageId }
-                if (!exists) {
-                    SoundManager.playReceiveSound()
-                    runOnUiThread {
-                        messages.add(ComposeChatMessage(id=messageId, text = text, isSent = false, timestamp = ts))
-                        Log.d("ChatActivity", "Message added to UI list")
-                    }
-                } else {
-                     Log.d("ChatActivity", "Duplicate message ignored: $messageId")
-                }
-            } catch (e: Exception) {
-                Log.e("ChatActivity", "Error processing chat-message", e)
-                e.printStackTrace()
-            }
-        }
-
-        socket?.off("session-ended")
-        socket?.on("session-ended") { args ->
-            runOnUiThread {
-                try {
-                    if (args != null && args.isNotEmpty()) {
-                        val data = args[0] as? JSONObject
-                        val summary = data?.optJSONObject("summary")
-                        if (summary != null) {
-                            val duration = summary.optLong("duration", 0)
-                            val deducted = summary.optDouble("deducted", 0.0)
-                            val sec = duration % 60
-                            val min = duration / 60
-                            val timeStr = String.format("%02d:%02d", min, sec)
-                            Toast.makeText(this, "Chat Ended. Duration: $timeStr, Cost: ₹$deducted", Toast.LENGTH_LONG).show()
-                        } else {
-                            Toast.makeText(this, "Session Ended", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                } catch (e: Exception) {
-                    Toast.makeText(this, "Session Ended", Toast.LENGTH_SHORT).show()
-                }
-                finish()
-            }
-        }
-    }
-
-    // FIX: Add proper cleanup to prevent ghost chats and memory leaks
     override fun onDestroy() {
         super.onDestroy()
-        Log.d("ChatActivity", "onDestroy: Cleaning up socket listeners")
-
-        // Remove all socket listeners
-        SocketManager.off("chat-message")
-        SocketManager.off("session-ended")
-
-        // End session if not already ended (e.g., user pressed back button)
-        // Only if session was still active
-        if (sessionId != null && !isFinishing) {
-            Log.d("ChatActivity", "Ending session on destroy: $sessionId")
-            SocketManager.endSession(sessionId)
-        }
+        // ViewModel handles socket cleanup or persistence
     }
 }
 
@@ -385,12 +366,21 @@ fun ChatScreen(
     partnerName: String,
     messages: List<ComposeChatMessage>,
     onSend: (String) -> Unit,
+    onAttach: () -> Unit,
+    onVoiceRecorded: (String) -> Unit,
+    onCheckPermission: () -> Unit,
+    onStartRecord: () -> Unit,
+    onStopRecord: () -> Unit,
     onBack: () -> Unit,
     onEndSession: () -> Unit,
     onEditForm: () -> Unit,
     onGenerateChart: () -> Unit,
     isAstrologer: Boolean,
-    onLoadHistory: () -> Unit // NEW Callback
+    onLoadHistory: () -> Unit,
+    isPartnerTyping: Boolean,
+    toUserId: String?,
+    connectionStatus: String,
+    onTyping: (Boolean) -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -419,14 +409,15 @@ fun ChatScreen(
              Box(
                  modifier = Modifier
                      .fillMaxWidth()
-                     .background(Color.Black.copy(alpha = 0.4f)) // Semi-transparent
+                     .background(Color.White.copy(alpha = 0.8f)) // Light Header
                      .statusBarsPadding()
+                     .shadow(elevation = 4.dp, spotColor = Color.Red, ambientColor = Color.Red)
              ) {
                  TopAppBar(
                      title = {
                           Row(verticalAlignment = Alignment.CenterVertically) {
                               Column {
-                                  Text(partnerName, color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                  Text(partnerName, color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                   // Timer Display
                                   Text(timeStr, color = GoldAccent, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                               }
@@ -434,13 +425,13 @@ fun ChatScreen(
                      },
                      navigationIcon = {
                          IconButton(onClick = onBack) {
-                             Icon(Icons.Default.ArrowBack, "Back", tint = TextWhite)
+                             Icon(Icons.Default.ArrowBack, "Back", tint = Color.Black)
                          }
                      },
                      actions = {
                          // Edit Form Button
                          IconButton(onClick = onEditForm) {
-                             Icon(Icons.Default.Edit, "Intake Form", tint = TextWhite)
+                             Icon(Icons.Default.Edit, "Intake Form", tint = Color.Black)
                          }
 
                          // End Session Button
@@ -460,7 +451,29 @@ fun ChatScreen(
              }
         },
         bottomBar = {
-             ChatInputArea(onSend = onSend, onChartClick = onGenerateChart, isAstrologer = isAstrologer)
+             Column {
+                 if (isPartnerTyping) {
+                     Text(
+                         text = "Partner is typing...",
+                         fontSize = 12.sp,
+                         color = Color(0xFF666666),
+                         fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                         modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)
+                     )
+                 }
+                 ChatInputArea(
+                     onSend = onSend,
+                     onAttach = onAttach,
+                     onVoiceRecorded = onVoiceRecorded,
+                     onCheckPermission = onCheckPermission,
+                     onStartRecord = onStartRecord,
+                     onStopRecord = onStopRecord,
+                     onChartClick = onGenerateChart,
+                     isAstrologer = isAstrologer,
+                     toUserId = toUserId,
+                     onTyping = onTyping
+                 )
+             }
         }
     ) { padding ->
         LazyColumn(
@@ -472,6 +485,19 @@ fun ChatScreen(
             contentPadding = PaddingValues(vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Header showing Status
+            if (connectionStatus != "Connected") {
+                 item {
+                     Text(
+                        text = "Status: $connectionStatus",
+                        color = Color.Red,
+                        fontSize = 12.sp,
+                        modifier = Modifier.fillMaxWidth().padding(4.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                     )
+                 }
+            }
+
             // NEW: Load History Button as First Item
             item {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -499,7 +525,7 @@ fun ChatBubble(message: ComposeChatMessage) {
         colors = listOf(Color(0xFFFFD700), Color(0xFFFFA000)) // Gold Gradient
     )
 
-    val astroBgColor = Color(0xFF6A1B9A) // Purple for Astrologer
+    val astroBgColor = Color(0xFF9C27B0) // Lighter Purple
     val astroBorder = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFD700).copy(alpha=0.5f))
 
     Box(
@@ -522,36 +548,149 @@ fun ChatBubble(message: ComposeChatMessage) {
                 .padding(12.dp)
         ) {
             Column {
+                // Image Attachment Display
+                if (message.attachmentType == AttachmentType.IMAGE && message.attachmentData != null) {
+                    val bitmap = remember(message.attachmentData) {
+                        try {
+                             val bytes = Base64.decode(message.attachmentData, Base64.DEFAULT)
+                             BitmapFactory.decodeByteArray(bytes, 0, bytes.size).asImageBitmap()
+                        } catch (e: Exception) { null }
+                    }
+
+                    if (bitmap != null) {
+                         Image(
+                             bitmap = bitmap,
+                             contentDescription = "Attachment",
+                             modifier = Modifier
+                                 .fillMaxWidth()
+                                 .heightIn(max = 200.dp)
+                                 .clip(RoundedCornerShape(8.dp))
+                                 .padding(bottom = 4.dp),
+                             contentScale = ContentScale.Crop
+                         )
+                    }
+                }
+
+                // Audio Attachment Display
+                if (message.attachmentType == AttachmentType.AUDIO && message.attachmentData != null) {
+                    val context = LocalContext.current
+                    var isPlaying by remember { mutableStateOf(false) }
+
+                    Row(
+                        modifier = Modifier
+                            .padding(bottom = 4.dp)
+                            .background(Color.White.copy(alpha=0.2f), RoundedCornerShape(8.dp))
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = {
+                                if (!isPlaying) {
+                                    try {
+                                        val audioBytes = Base64.decode(message.attachmentData, Base64.DEFAULT)
+                                        val tempFile = File.createTempFile("voice", ".3gp", context.cacheDir)
+                                        tempFile.writeBytes(audioBytes)
+
+                                        val mPlayer = MediaPlayer()
+                                        mPlayer.setDataSource(tempFile.absolutePath)
+                                        mPlayer.prepare()
+                                        mPlayer.start()
+                                        isPlaying = true
+                                        mPlayer.setOnCompletionListener {
+                                            isPlaying = false
+                                            mPlayer.release()
+                                        }
+                                    } catch (e: Exception) { e.printStackTrace() }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if(isPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
+                                contentDescription = "Play Audio",
+                                tint = if (isSent) Color.Black else Color.White
+                            )
+                        }
+                        Text("Voice Message", color = if (isSent) Color.Black else Color.White, fontSize = 12.sp)
+                    }
+                }
+
+
+
                 Text(
                     text = message.text,
                     color = if (isSent) Color.Black else Color.White,
                     fontSize = 15.sp
                 )
+// ... (inside ChatBubble)
                 Text(
                     text = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(message.timestamp)),
-                    color = if (isSent) Color.Black.copy(alpha=0.6f) else Color.Gray,
+                    color = if (isSent) Color.Black.copy(alpha=0.6f) else Color.White.copy(alpha=0.7f),
                     fontSize = 10.sp,
-                    modifier = Modifier.align(Alignment.End).padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp)
                 )
+
+                // Message Status Ticks (Only for Sent messages)
+                if (isSent) {
+                    val (icon, tint) = when (message.status) {
+                        MessageStatus.SENDING -> Pair(Icons.Default.Done, Color.Gray) // Clock/One Tick? Use One Tick for now
+                        MessageStatus.SENT -> Pair(Icons.Default.Done, Color.Gray)
+                        MessageStatus.DELIVERED -> Pair(Icons.Default.DoneAll, Color.Gray)
+                        MessageStatus.READ -> Pair(Icons.Default.DoneAll, Color(0xFF2196F3)) // Blue
+                    }
+
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = "Status",
+                        tint = tint,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .align(Alignment.End)
+                            .padding(start = 4.dp)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun ChatInputArea(onSend: (String) -> Unit, onChartClick: () -> Unit, isAstrologer: Boolean) {
+fun ChatInputArea(
+    onSend: (String) -> Unit,
+    onAttach: () -> Unit,
+    onVoiceRecorded: (String) -> Unit,
+    onCheckPermission: () -> Unit,
+    onStartRecord: () -> Unit,
+    onStopRecord: () -> Unit,
+    onChartClick: () -> Unit,
+    isAstrologer: Boolean,
+    toUserId: String?,
+    onTyping: (Boolean) -> Unit
+) {
     var text by remember { mutableStateOf("") }
+    var isRecording by remember { mutableStateOf(false) } // Visual state
 
-    // Sleek Input Area
+    // Typing Handler
+    LaunchedEffect(text) {
+        if (text.isNotEmpty() && toUserId != null) {
+             onTyping(true)
+             delay(3000)
+             onTyping(false)
+        } else if (text.isEmpty() && toUserId != null) {
+             onTyping(false)
+        }
+    }
+
+    // Sleek Input Area - Light Theme
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.Black.copy(alpha = 0.8f))
-            .padding(12.dp),
+            .background(Color.White)
+            .padding(12.dp)
+            .shadow(elevation = 8.dp, spotColor = Color.Red, ambientColor = Color.Red), // Red Shadow
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Attachment
-        IconButton(onClick = {}) {
+        IconButton(onClick = onAttach) {
             Icon(Icons.Default.AttachFile, null, tint = GoldAccent)
         }
 
@@ -568,19 +707,28 @@ fun ChatInputArea(onSend: (String) -> Unit, onChartClick: () -> Unit, isAstrolog
                 .weight(1f)
                 .height(45.dp)
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color(0xFF1E1E1E))
+                .background(Color(0xFFF5F5F5)) // Light Grey
                 .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart
         ) {
-            BasicTextField(
-                value = text,
-                onValueChange = { text = it },
-                textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
-                cursorBrush = SolidColor(GoldAccent),
-                modifier = Modifier.fillMaxWidth()
-            )
-            if (text.isEmpty()) {
-                Text("Type a message...", color = Color.Gray)
+            if (isRecording) {
+                // Visual Indicator for Recording
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Mic, null, tint = Color.Red, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Recording...", color = Color.Red)
+                }
+            } else {
+                BasicTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    textStyle = TextStyle(color = Color.Black, fontSize = 16.sp),
+                    cursorBrush = SolidColor(GoldAccent),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (text.isEmpty()) {
+                    Text("Type a message...", color = Color.Gray)
+                }
             }
         }
 
@@ -598,9 +746,31 @@ fun ChatInputArea(onSend: (String) -> Unit, onChartClick: () -> Unit, isAstrolog
                 Icon(Icons.Default.Send, null, tint = Color.Black)
             }
         } else {
-            // Mic Button
-            IconButton(onClick = {}) {
-                Icon(Icons.Default.Mic, null, tint = GoldAccent)
+            // Mic Button (Push to Record)
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(if (isRecording) Color.Red else Color.Transparent)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onPress = {
+                                // Request permission first/check
+                                onCheckPermission() // Simple check trigger
+                                try {
+                                    isRecording = true
+                                    onStartRecord()
+                                    awaitRelease()
+                                } finally {
+                                    isRecording = false
+                                    onStopRecord()
+                                }
+                            }
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Mic, null, tint = if(isRecording) Color.White else GoldAccent)
             }
         }
     }

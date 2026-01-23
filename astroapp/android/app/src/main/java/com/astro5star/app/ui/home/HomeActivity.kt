@@ -80,7 +80,8 @@ class HomeActivity : AppCompatActivity() {
 
                 if (selectedRasiItem != null) {
                     com.astro5star.app.ui.dashboard.RasiDetailDialog(
-                        name = selectedRasiItem!!.name,
+                        rasiName = selectedRasiItem!!.name,
+                        rasiId = selectedRasiItem!!.id,
                         iconRes = selectedRasiItem!!.iconRes,
                         onDismiss = { selectedRasiItem = null }
                     )

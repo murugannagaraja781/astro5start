@@ -26,6 +26,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -83,15 +84,11 @@ class IntakeActivity : ComponentActivity() {
         }
 
         setContent {
-             // User Requested Blue Gradient Background
-             val blueGradient = Brush.verticalGradient(
-                 colors = listOf(
-                     Color(0xFF4348f8), // User Blue 1
-                     Color(0xFF5f60f3)  // User Blue 2
-                 )
-             )
+             // User Requested Milk Red / Light Theme
+             val milkRedBackground = Color(0xFFFFF5F6) // Very light red/cream
+             val textBlack = Color.Black
 
-             Box(modifier = Modifier.fillMaxSize().background(blueGradient)) {
+             Box(modifier = Modifier.fillMaxSize().background(milkRedBackground)) {
                  IntakeScreen(
                      partnerName = partnerName ?: "Astrologer",
                      isEditMode = isEditMode,
@@ -112,14 +109,14 @@ class IntakeActivity : ComponentActivity() {
                      Box(
                          modifier = Modifier
                              .fillMaxSize()
-                             .background(Color.Black.copy(alpha = 0.7f))
+                             .background(Color.White.copy(alpha = 0.9f)) // Light overlay
                              .clickable(enabled = true) {}, // Block clicks
                          contentAlignment = Alignment.Center
                      ) {
                          Column(horizontalAlignment = Alignment.CenterHorizontally) {
                              CircularProgressIndicator(color = GoldAccent)
                              Spacer(modifier = Modifier.height(16.dp))
-                             Text("Waiting for Astrologer...", color = TextWhite, fontWeight = FontWeight.Bold)
+                             Text("Waiting for Astrologer...", color = textBlack, fontWeight = FontWeight.Bold)
                              Spacer(modifier = Modifier.height(8.dp))
                              Text("${timeRemaining.value}s", color = GoldAccent, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                          }
@@ -184,10 +181,7 @@ class IntakeActivity : ComponentActivity() {
              isWaiting.value = true
              timeRemaining.value = 30
 
-             // FIX: Initialize socket and REGISTER user before requesting session
-             // This ensures server has socket mapping to send back session-answered
-             SocketManager.init()
-
+             // Create TokenManager instance
              val tokenManager = com.astro5star.app.data.local.TokenManager(this)
              val userId = tokenManager.getUserSession()?.userId
 
@@ -197,7 +191,10 @@ class IntakeActivity : ComponentActivity() {
                  return
              }
 
-             // FIX: Register user on socket BEFORE requesting session
+             // Initialize Socket
+             SocketManager.init()
+
+             // Register user on socket BEFORE requesting session
              SocketManager.registerUser(userId) { registered ->
                  runOnUiThread {
                      if (registered) {
@@ -207,8 +204,23 @@ class IntakeActivity : ComponentActivity() {
                              runOnUiThread {
                                  if (response?.optBoolean("ok") == true) {
                                      val sessionId = response.optString("sessionId")
-                                     startWaitingTimer()
-                                     waitForAnswer(sessionId)
+
+                                     // Logic Split based on Request Type
+                                     if (type == "chat") {
+                                         // Chat: Immediate Navigation (User enters waiting room/chat)
+                                         // User requested: "consolation form submit time close consolation form then open chat box"
+                                         val intent = Intent(this@IntakeActivity, ChatActivity::class.java).apply {
+                                             putExtra("sessionId", sessionId)
+                                             putExtra("toUserId", partnerId)
+                                             putExtra("toUserName", partnerName)
+                                         }
+                                         startActivity(intent)
+                                         finish()
+                                     } else {
+                                         // Call/Video: Wait for Astrologer to Accept (Safer Flow for WebRTC)
+                                         startWaitingTimer()
+                                         waitForAnswer(sessionId)
+                                     }
                                  } else {
                                      isWaiting.value = false
                                      val error = response?.optString("error") ?: "Connection Failed"
@@ -310,10 +322,10 @@ fun IntakeScreen(
         containerColor = Color.Transparent,
         topBar = {
              CenterAlignedTopAppBar(
-                 title = { Text("Consultation Form", color = TextWhite, fontWeight = FontWeight.Bold) },
+                 title = { Text("Consultation Form", color = Color.Black, fontWeight = FontWeight.Bold) },
                  navigationIcon = {
                      IconButton(onClick = onBack) {
-                         Icon(Icons.Default.ArrowBack, "Back", tint = TextWhite)
+                         Icon(Icons.Default.ArrowBack, "Back", tint = Color.Black)
                      }
                  },
                  colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
@@ -332,16 +344,18 @@ fun IntakeScreen(
             // Partner Header Info
             Text(
                 text = "Consulting with $partnerName",
-                color = TextWhite.copy(alpha=0.8f),
+                color = Color.Black.copy(alpha=0.7f),
                 fontSize = 14.sp,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
-            // Transparent Card Form
+            // Form Card
             Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.3f)), // User Requested Transparency
-                border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha=0.3f))
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp), // Increased Elevation
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.Black.copy(alpha=0.1f)),
+                modifier = Modifier.shadow(elevation = 8.dp, spotColor = Color.Red, ambientColor = Color.Red, shape = RoundedCornerShape(16.dp))
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
@@ -358,16 +372,16 @@ fun IntakeScreen(
 
                     // Gender
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Gender: ", color = TextWhite)
+                        Text("Gender: ", color = Color.Black)
                         Spacer(modifier = Modifier.width(8.dp))
                         listOf("Male", "Female").forEach { g ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(
                                     selected = (gender == g),
                                     onClick = { gender = g },
-                                    colors = RadioButtonDefaults.colors(selectedColor = GoldAccent, unselectedColor = TextWhite)
+                                    colors = RadioButtonDefaults.colors(selectedColor = GoldAccent, unselectedColor = Color.Gray)
                                 )
-                                Text(g, color = TextWhite)
+                                Text(g, color = Color.Black)
                                 Spacer(modifier = Modifier.width(16.dp))
                             }
                         }
@@ -451,11 +465,11 @@ fun IntakeScreen(
                         DropdownMenu(
                             expanded = maritalExpanded,
                             onDismissRequest = { maritalExpanded = false },
-                            modifier = Modifier.background(Color(0xFF1E293B))
+                            modifier = Modifier.background(Color.White)
                         ) {
                             maritalOptions.forEach { option ->
                                 DropdownMenuItem(
-                                    text = { Text(option, color = TextWhite) },
+                                    text = { Text(option, color = Color.Black) },
                                     onClick = { maritalStatus = option; maritalExpanded = false }
                                 )
                             }
@@ -486,11 +500,11 @@ fun IntakeScreen(
                         DropdownMenu(
                             expanded = topicExpanded,
                             onDismissRequest = { topicExpanded = false },
-                            modifier = Modifier.background(Color(0xFF1E293B))
+                            modifier = Modifier.background(Color.White)
                         ) {
                             topicOptions.forEach { option ->
                                 DropdownMenuItem(
-                                    text = { Text(option, color = TextWhite) },
+                                    text = { Text(option, color = Color.Black) },
                                     onClick = { topic = option; topicExpanded = false }
                                 )
                             }
@@ -546,13 +560,13 @@ fun IntakeScreen(
 fun transparentTextFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = GoldAccent,
     unfocusedBorderColor = GoldAccent.copy(alpha=0.5f),
-    focusedTextColor = TextWhite,
-    unfocusedTextColor = TextWhite,
+    focusedTextColor = Color.Black,
+    unfocusedTextColor = Color.Black,
     cursorColor = GoldAccent,
     focusedContainerColor = Color.Transparent,
     unfocusedContainerColor = Color.Transparent,
     focusedLabelColor = GoldAccent,
-    unfocusedLabelColor = TextWhite.copy(alpha=0.7f)
+    unfocusedLabelColor = Color.Black.copy(alpha=0.7f)
 )
 
 @Composable
@@ -560,8 +574,8 @@ fun transparentTextFieldColorsBottomLine() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = Color.Transparent,
     unfocusedBorderColor = Color.Transparent,
     // Add logic if we want underlines, but using box outline for consistency is safer
-    focusedTextColor = TextWhite,
-    unfocusedTextColor = TextWhite,
+    focusedTextColor = Color.Black,
+    unfocusedTextColor = Color.Black,
      focusedContainerColor = Color.Transparent,
     unfocusedContainerColor = Color.Transparent
 )

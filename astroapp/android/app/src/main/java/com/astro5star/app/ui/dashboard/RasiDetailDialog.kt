@@ -1,141 +1,68 @@
-package com.astro5star.app.ui.dashboard
+ package com.astro5star.app.ui.dashboard
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.astro5star.app.ui.theme.MetallicGold
-import com.astro5star.app.ui.theme.NebulaPurple
-import com.astro5star.app.ui.theme.DeepSpaceNavy
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.astro5star.app.ui.theme.*
 
 @Composable
 fun RasiDetailDialog(
-    name: String,
-    iconRes: Int? = null,
+    rasiName: String,
+    rasiId: Int,
+    iconRes: Int?,
     onDismiss: () -> Unit
 ) {
+    val vm: RasiDetailViewModel = viewModel()
+    val state by vm.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        vm.loadRasi(rasiName, rasiId, iconRes)
+    }
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            colors = CardDefaults.cardColors(Color.Transparent),
             modifier = Modifier.fillMaxWidth()
         ) {
             Box(
                 modifier = Modifier
                     .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                DeepSpaceNavy, // Dark Background
-                                NebulaPurple   // Deep Emerald in Green Theme
-                            )
-                        )
+                        Brush.linearGradient(listOf(DeepSpaceNavy, NebulaPurple))
                     )
-                    .border(1.dp, MetallicGold.copy(alpha = 0.6f), RoundedCornerShape(24.dp))
+                    .border(1.dp, MetallicGold, RoundedCornerShape(24.dp))
                     .padding(24.dp)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Header
-                    Text(
-                        text = "ராசி பலன்",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MetallicGold,
-                        letterSpacing = 2.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Big Symbol
-                    Box(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
-                                shape = CircleShape
-                            )
-                            .border(2.dp, MetallicGold, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (iconRes != null) {
-                            Image(
-                                painter = painterResource(id = iconRes),
-                                contentDescription = name,
-                                modifier = Modifier.size(60.dp)
-                            )
-                        } else {
-                            Text(
-                                text = "♎", // Fallback for Dashboard usage if needed
-                                fontSize = 48.sp,
-                                color = MetallicGold
-                            )
-                        }
+                when (state) {
+                    is RasiDetailState.Loading -> {
+                        CircularProgressIndicator(
+                            color = MetallicGold,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = name,
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Info Grid (Mock Data for Demo)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        RasiInfoItem("பூதம்", "காற்று")
-                        RasiInfoItem("அதிபதி", "சுக்கிரன்")
-                        RasiInfoItem("தன்மை", "சர ராசி")
+                    is RasiDetailState.Error -> {
+                        Text(
+                            text = (state as RasiDetailState.Error).message,
+                            color = Color.Red,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Text(
-                        text = "இன்றைய பலன்",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.align(Alignment.Start)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "இன்று உங்களுக்கு புதிய வாய்ப்புகள் காத்திருக்கின்றன. உங்கள் இலக்குகளில் கவனம் செலுத்துங்கள். நல்ல அதிர்ஷ்டம் காத்திருக்கிறது.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                        textAlign = TextAlign.Start,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    Button(
-                        onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MetallicGold,
-                            contentColor = DeepSpaceNavy
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("மூடுக", fontWeight = FontWeight.Bold)
+                    is RasiDetailState.Success -> {
+                        Content((state as RasiDetailState.Success).ui, onDismiss)
                     }
                 }
             }
@@ -144,20 +71,56 @@ fun RasiDetailDialog(
 }
 
 @Composable
-fun RasiInfoItem(label: String, value: String) {
+private fun Content(ui: RasiDetailUi, onDismiss: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+        Text("ராசி பலன்", color = MetallicGold, letterSpacing = 2.sp)
+
+        Spacer(Modifier.height(20.dp))
+
+        Box(
+            modifier = Modifier
+                .size(96.dp)
+                .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                .border(2.dp, MetallicGold, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            ui.iconRes?.let {
+                Image(painterResource(it), null, Modifier.size(56.dp))
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        Text(ui.name, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+
+        Spacer(Modifier.height(20.dp))
+
+        Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
+            ui.info.forEach {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(it.label, fontSize = 10.sp, color = Color.Gray)
+                    Text(it.value, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+
         Text(
-            text = label.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.tertiary.copy(alpha=0.7f),
-            fontSize = 10.sp
+            ui.prediction,
+            textAlign = TextAlign.Start,
+            modifier = Modifier.fillMaxWidth(),
+            color = Color.White.copy(alpha = 0.9f)
         )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Medium
-        )
+
+        Spacer(Modifier.height(28.dp))
+
+        Button(
+            onClick = onDismiss,
+            colors = ButtonDefaults.buttonColors(MetallicGold)
+        ) {
+            Text("மூடுக", color = DeepSpaceNavy)
+        }
     }
 }
