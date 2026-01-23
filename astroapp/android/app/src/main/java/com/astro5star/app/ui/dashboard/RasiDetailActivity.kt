@@ -58,8 +58,8 @@ class RasiDetailViewModel : ViewModel() {
                     iconRes = iconRes,
                     prediction = extractPrediction(obj),
                     info = listOf(
-                        RasiInfo("அதிர்ஷ்ட எண்", obj.optString("lucky_number", "-")),
-                        RasiInfo("அதிர்ஷ்ட நிறம்", obj.optString("lucky_color_ta", "-")),
+                        RasiInfo("அதிர்ஷ்ட எண்", extractLuckyNumber(obj)),
+                        RasiInfo("அதிர்ஷ்ட நிறம்", extractLuckyColor(obj)),
                         RasiInfo("தேதி", obj.optString("date", "-"))
                     )
                 )
@@ -82,31 +82,81 @@ class RasiDetailViewModel : ViewModel() {
     private fun findRasi(arr: JSONArray, name: String, id: Int): JSONObject? {
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
-            val n = o.optString("sign_name",
+            // New API format keys
+            val signNameEn = o.optString("signNameEn", "")
+            val signNameTa = o.optString("signNameTa", "")
+            val signId = o.optInt("signId", -1)
+
+            // Legacy format keys (fallback)
+            val legacyName = o.optString("sign_name",
                 o.optString("sign",
                     o.optString("rasi",
-                        o.optString("sign_en", "") // Added sign_en
+                        o.optString("sign_en", "")
                     )
                 )
             )
-            val nTa = o.optString("sign_ta", "") // Check Tamil name too
-            if (n.equals(name, true) || nTa.equals(name, true) || o.optInt("sign_id") == id) return o
+            val legacyTa = o.optString("sign_ta", "")
+            val legacyId = o.optInt("sign_id", -1)
+
+            // Match by new format, legacy format, or ID
+            if (signNameEn.equals(name, true) || signNameTa.equals(name, true) || signId == id ||
+                legacyName.equals(name, true) || legacyTa.equals(name, true) || legacyId == id) {
+                return o
+            }
         }
         return null
     }
 
-    private fun extractPrediction(o: JSONObject): String =
-        o.optString(
+    private fun extractPrediction(o: JSONObject): String {
+        // New API format: prediction.ta / prediction.en
+        val predictionObj = o.optJSONObject("prediction")
+        if (predictionObj != null) {
+            val tamilPred = predictionObj.optString("ta", "")
+            if (tamilPred.isNotEmpty()) return tamilPred.replace("###", "").trim()
+            val englishPred = predictionObj.optString("en", "")
+            if (englishPred.isNotEmpty()) return englishPred.replace("###", "").trim()
+        }
+
+        // Legacy format fallback
+        return o.optString(
             "prediction_ta",
             o.optString(
                 "forecast_ta",
                 o.optString("prediction",
-                    o.optString("forecast_en", // Added fallback to English forecast
+                    o.optString("forecast_en",
                          o.optString("content", "பலம் கிடைக்கவில்லை")
                     )
                 )
             )
         ).replace("###", "").trim()
+    }
+
+    private fun extractLuckyNumber(o: JSONObject): String {
+        // New API format: lucky.number
+        val luckyObj = o.optJSONObject("lucky")
+        if (luckyObj != null) {
+            val num = luckyObj.optString("number", "")
+            if (num.isNotEmpty()) return num
+        }
+        // Legacy format
+        return o.optString("lucky_number", "-")
+    }
+
+    private fun extractLuckyColor(o: JSONObject): String {
+        // New API format: lucky.color.ta / lucky.color.en
+        val luckyObj = o.optJSONObject("lucky")
+        if (luckyObj != null) {
+            val colorObj = luckyObj.optJSONObject("color")
+            if (colorObj != null) {
+                val tamilColor = colorObj.optString("ta", "")
+                if (tamilColor.isNotEmpty()) return tamilColor
+                val englishColor = colorObj.optString("en", "")
+                if (englishColor.isNotEmpty()) return englishColor
+            }
+        }
+        // Legacy format
+        return o.optString("lucky_color_ta", o.optString("lucky_color", "-"))
+    }
 }
 
 /* ---------- STATE ---------- */
