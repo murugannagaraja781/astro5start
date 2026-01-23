@@ -92,7 +92,7 @@ object SocketManager {
         }
 
         // 2. Status Updates (Delivered/Read)
-        socket?.on("message-status-update") { args ->
+        socket?.on("message-status") { args ->
             if (args.isNotEmpty()) {
                 val data = args[0] as JSONObject
                 CoroutineScope(Dispatchers.IO).launch {
