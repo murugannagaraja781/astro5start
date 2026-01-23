@@ -165,9 +165,28 @@ router.get('/rasi-palan', async (req, res) => {
 });
 
 /**
- * Transforms legacy/variable external API format to strict internal schema
+ * Transforms legacy/variable external API format to strict internal schema.
+ * Handles both:
+ * 1. Clean array format (direct JSON)
+ * 2. Gemini AI nested format: [{content: {parts: [{text: "```json...```"}]}}]
  */
-function transformToNewFormat(data) {
+function transformToNewFormat(rawData) {
+    let data = rawData;
+
+    // Handle Gemini AI nested format
+    if (Array.isArray(rawData) && rawData.length > 0 && rawData[0].content && rawData[0].content.parts) {
+        try {
+            const text = rawData[0].content.parts[0].text;
+            // Remove markdown code blocks if present
+            const cleanJsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            data = JSON.parse(cleanJsonStr);
+            console.log('[Rasi Palan] Extracted data from Gemini format');
+        } catch (parseErr) {
+            console.error('[Rasi Palan] Error parsing Gemini nested JSON:', parseErr);
+            return [];
+        }
+    }
+
     if (!Array.isArray(data)) return [];
 
     return data.map((item, index) => {
@@ -178,13 +197,16 @@ function transformToNewFormat(data) {
         const signNameEn = item.sign_en || item.sign_name || item.sign || "";
         const signNameTa = item.sign_ta || item.rasi || "";
 
-        // Map Prediction
-        // Priority: prediction_ta -> forecast_ta -> content
-        const predictionTa = (item.prediction_ta || item.forecast_ta || item.content || "").replace(/###/g, "").trim();
-        // Priority: forecast_en -> prediction -> profession_en (fallback)
-        const predictionEn = (item.forecast_en || item.prediction || item.profession_en || "Prediction available in Tamil").replace(/###/g, "").trim();
+        // Map Predictions (from new detailed format)
+        const forecastTa = item.forecast_ta || item.prediction_ta || item.content || "";
+        const forecastEn = item.forecast_en || item.prediction || "";
 
-        // Map Lucky Details
+        // Detailed predictions (Career, Finance, Health)
+        const careerEn = item.career_en || "";
+        const financeEn = item.finance_en || "";
+        const healthEn = item.health_en || "";
+
+        // Lucky Details
         const luckyNumber = String(item.lucky_number || "");
         const luckyColorTa = item.lucky_color_ta || item.lucky_color || "";
         const luckyColorEn = item.lucky_color_en || "";
@@ -195,8 +217,13 @@ function transformToNewFormat(data) {
             signNameTa,
             date: item.date || new Date().toISOString().split('T')[0],
             prediction: {
-                ta: predictionTa,
-                en: predictionEn
+                ta: forecastTa.replace(/###/g, "").trim(),
+                en: forecastEn.replace(/###/g, "").trim()
+            },
+            details: {
+                career: careerEn,
+                finance: financeEn,
+                health: healthEn
             },
             lucky: {
                 number: luckyNumber,
