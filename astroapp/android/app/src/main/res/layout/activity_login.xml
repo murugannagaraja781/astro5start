@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/brand_bg_soft"
+    android:background="@color/white"
     android:gravity="center"
     android:padding="24dp">
 
@@ -11,7 +11,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_card_premium"
+        android:background="@color/white"
         android:orientation="vertical"
         android:padding="32dp"
         android:elevation="8dp">

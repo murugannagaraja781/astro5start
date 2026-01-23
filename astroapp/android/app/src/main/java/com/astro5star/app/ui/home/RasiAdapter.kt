@@ -7,6 +7,8 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.astro5star.app.R
+import com.astro5star.app.utils.ViewAnimationUtils
+import com.astro5star.app.utils.ViewAnimationUtils.applyTapAnimation
 
 data class RasiItem(val id: Int, val name: String, val iconRes: Int)
 
@@ -28,8 +30,14 @@ class RasiAdapter(
     override fun onBindViewHolder(holder: RasiViewHolder, position: Int) {
         val item = items[position]
         holder.tvName.text = item.name
-        // holder.imgRasi.setImageResource(item.iconRes) // Removed as per request
-        holder.itemView.setOnClickListener { onClick(item) }
+
+        // Performance-safe Entry Animation (Runs once)
+        ViewAnimationUtils.applyEntryAnimation(holder.itemView, delay = (position * 50).toLong())
+
+        // Premium Tap Animation (Scale + Elevation feel)
+        holder.itemView.applyTapAnimation {
+            onClick(item)
+        }
     }
 
     override fun getItemCount() = items.size

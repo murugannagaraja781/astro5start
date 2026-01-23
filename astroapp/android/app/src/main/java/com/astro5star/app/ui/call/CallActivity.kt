@@ -59,6 +59,22 @@ class CallActivity : AppCompatActivity() {
     private var isSpeakerOn = false
     private var callType: String = "video" // Default to video
 
+    private val audioFocusRequest = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+        android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN)
+            .setAudioAttributes(android.media.AudioAttributes.Builder()
+                .setUsage(android.media.AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build())
+            .setOnAudioFocusChangeListener { focusChange ->
+                Log.d(TAG, "Audio focus change: $focusChange")
+            }
+            .build()
+    } else null
+
+    private val audioFocusChangeListener = android.media.AudioManager.OnAudioFocusChangeListener { focusChange ->
+        Log.d(TAG, "Audio focus change: $focusChange")
+    }
+
     private var partnerName: String? = null
     private var callDurationSeconds = 0
     private val timerHandler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -295,9 +311,9 @@ class CallActivity : AppCompatActivity() {
             // Set black background for video call
             findViewById<View>(android.R.id.content).setBackgroundColor(android.graphics.Color.BLACK)
 
-            // Show Profile Info (reusing audioLayout) while connecting ONLY
+            // Show Profile Info (reusing audioLayout)
             val audioLayout = findViewById<View>(R.id.audioLayout)
-            audioLayout.visibility = View.VISIBLE // Show overlay initially while connecting
+            audioLayout.visibility = View.GONE // Hide overlay immediately for Video so Camera is visible
 
             findViewById<TextView>(R.id.tvAudioName).text = partnerName ?: "Unknown"
             findViewById<TextView>(R.id.tvAudioName).setTextColor(android.graphics.Color.WHITE) // White text on black bg
@@ -420,6 +436,17 @@ class CallActivity : AppCompatActivity() {
 
     private fun configureAudioSettings() {
         val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
+
+        // Request Audio Focus
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && audioFocusRequest != null) {
+            audioManager.requestAudioFocus(audioFocusRequest)
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.requestAudioFocus(audioFocusChangeListener,
+                android.media.AudioManager.STREAM_VOICE_CALL,
+                android.media.AudioManager.AUDIOFOCUS_GAIN)
+        }
+
         audioManager.mode = android.media.AudioManager.MODE_IN_COMMUNICATION
 
         // Default behavior: Video -> Speaker, Audio -> Earpiece
@@ -467,24 +494,50 @@ class CallActivity : AppCompatActivity() {
 
             // Helper to start call
             fun startInitiator() {
-                // FIX: Initiator MUST also send session-connect to start billing
+                // Fix 2: Strict Signaling Order
+                // Initiator MUST send session-connect BEFORE offer
                 val connectPayload = JSONObject().apply {
                      put("sessionId", sessionId)
                 }
-                SocketManager.getSocket()?.emit("session-connect", connectPayload)
-                Log.d(TAG, "Sent session-connect (Initiator) for $sessionId")
 
-                createOffer()
+                Log.d(TAG, "Fix 2: Emitting session-connect (Initiator) before offer")
+                SocketManager.getSocket()?.emit("session-connect", connectPayload)
+
+                // Small delay (100ms) to ensure server processes session-connect before media signals
+                timerHandler.postDelayed({
+                    runOnUiThread { createOffer() }
+                }, 100)
             }
 
             // Ensure connected before starting
             if (SocketManager.getSocket()?.connected() == true) {
-                 if (myUserId != null) SocketManager.registerUser(myUserId)
-                 startInitiator()
+                 if (myUserId != null) {
+                     SocketManager.registerUser(myUserId) { success ->
+                         if (success) {
+                             runOnUiThread { startInitiator() }
+                         } else {
+                             Log.e(TAG, "Failed to register user (initiator). Retrying in 2s.")
+                             timerHandler.postDelayed({ startCallLimit() }, 2000)
+                         }
+                     }
+                 } else {
+                     startInitiator()
+                 }
             } else {
+                 Log.d(TAG, "Socket not connected. Waiting...")
                  SocketManager.onConnect {
-                      if (myUserId != null) SocketManager.registerUser(myUserId)
-                      runOnUiThread { startInitiator() }
+                      Log.d(TAG, "Socket connected. Starting initiator registration.")
+                      if (myUserId != null) {
+                          SocketManager.registerUser(myUserId) { success ->
+                              if (success) {
+                                  runOnUiThread { startInitiator() }
+                              } else {
+                                  Log.e(TAG, "Failed to register user (initiator) after connect.")
+                              }
+                          }
+                      } else {
+                          runOnUiThread { startInitiator() }
+                      }
                  }
                  SocketManager.getSocket()?.connect()
             }
@@ -498,6 +551,13 @@ class CallActivity : AppCompatActivity() {
 
             if (myUserId != null) {
                 fun sendAnswer() {
+                    // Fix 2: Receiver MUST send session-connect BEFORE answer-session
+                    val connectPayload = JSONObject().apply {
+                         put("sessionId", sessionId)
+                    }
+                    Log.d(TAG, "Fix 2: Emitting session-connect (Receiver) before answer")
+                    SocketManager.getSocket()?.emit("session-connect", connectPayload)
+
                      val payload = JSONObject().apply {
                          put("sessionId", sessionId)
                          put("toUserId", partnerId)
@@ -505,19 +565,15 @@ class CallActivity : AppCompatActivity() {
                      }
                     SocketManager.getSocket()?.emit("answer-session", payload)
                     Log.d(TAG, "Sent answer-session for $sessionId")
-
-                    val connectPayload = JSONObject().apply {
-                         put("sessionId", sessionId)
-                    }
-                    SocketManager.getSocket()?.emit("session-connect", connectPayload)
-                    Log.d(TAG, "Sent session-connect for $sessionId")
                 }
 
+                // Fix 3: Strict Socket Readiness
                 if (SocketManager.getSocket()?.connected() == true) {
                      SocketManager.registerUser(myUserId) { success ->
                          runOnUiThread { sendAnswer() }
                      }
                 } else {
+                    Log.d(TAG, "Socket not connected. Waiting...")
                     SocketManager.onConnect {
                          SocketManager.registerUser(myUserId) { success ->
                              runOnUiThread { sendAnswer() }
@@ -573,9 +629,9 @@ class CallActivity : AppCompatActivity() {
                 val videoSource = peerConnectionFactory.createVideoSource(videoCapturer!!.isScreencast)
                 videoCapturer!!.initialize(surfaceTextureHelper, this, videoSource.capturerObserver)
 
-                // Start camera capture with higher resolution for better quality
-                videoCapturer!!.startCapture(1280, 720, 30)
-                Log.d(TAG, "Camera capturer started: 1280x720 @30fps")
+                // Fix 5: Use safe defaults (VGA) for stability on mobile networks
+                videoCapturer!!.startCapture(640, 480, 30)
+                Log.d(TAG, "Camera capturer started: 640x480 @30fps")
 
                 localVideoTrack = peerConnectionFactory.createVideoTrack("100", videoSource)
                 localVideoTrack?.setEnabled(true)  // Ensure video track is enabled
@@ -607,10 +663,23 @@ class CallActivity : AppCompatActivity() {
 
                             "Connected"
                         }
-                        PeerConnection.IceConnectionState.DISCONNECTED -> "Reconnecting..."
+                        PeerConnection.IceConnectionState.DISCONNECTED -> {
+                            // Fix 4: Attempt ICE Restart on Disconnect (Production Stable)
+                            Log.w(TAG, "Fix 4: ICE Disconnected. Attempting restart.")
+                            peerConnection.restartIce()
+                            runOnUiThread { Toast.makeText(this@CallActivity, "Auto-reconnecting...", Toast.LENGTH_SHORT).show() }
+                            "Reconnecting..."
+                        }
                         PeerConnection.IceConnectionState.FAILED -> {
+                            // Fix 4: End call on failure
+                            Log.e(TAG, "Fix 4: ICE Connection Failed. Terminating.")
+                            runOnUiThread { Toast.makeText(this@CallActivity, "Connection Failed", Toast.LENGTH_SHORT).show() }
                             endCall()
                             "Failed"
+                        }
+                        PeerConnection.IceConnectionState.CLOSED -> {
+                            Log.d(TAG, "ICE Connection Closed.")
+                            "Closed"
                         }
                         else -> "Connecting..."
                     }
@@ -619,8 +688,6 @@ class CallActivity : AppCompatActivity() {
 
                     if (newState == PeerConnection.IceConnectionState.DISCONNECTED) {
                          Toast.makeText(this@CallActivity, "Connection Unstable", Toast.LENGTH_SHORT).show()
-                    } else if (newState == PeerConnection.IceConnectionState.FAILED) {
-                         Toast.makeText(this@CallActivity, "Connection Failed", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -663,8 +730,14 @@ class CallActivity : AppCompatActivity() {
             override fun onRemoveStream(p0: MediaStream?) {}
             override fun onDataChannel(p0: DataChannel?) {}
             override fun onRenegotiationNeeded() {
-                Log.d(TAG, "onRenegotiationNeeded")
-                // Implement renegotiation if supported
+                Log.d(TAG, "Fix 1: onRenegotiationNeeded triggered")
+                // Fix 1: Robust Renegotiation
+                // Simple polite-peer logic: initiator always restarts.
+                // In production, you might want to handle 'glare' with a tie-breaker,
+                // but for 1-to-1 app, letting initiator own renegotiation is stable.
+                if (isInitiator) {
+                    createOffer()
+                }
             }
         })!!
 
@@ -826,6 +899,15 @@ class CallActivity : AppCompatActivity() {
     private fun endCall() {
         Log.d(TAG, "endCall: Initiating manual disconnect")
 
+        // Release Audio Focus
+        val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && audioFocusRequest != null) {
+            audioManager.abandonAudioFocusRequest(audioFocusRequest)
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.abandonAudioFocus(audioFocusChangeListener)
+        }
+
         // FIX: Stop timer immediately on call end
         timerHandler.removeCallbacks(timerRunnable)
 
@@ -868,9 +950,12 @@ class CallActivity : AppCompatActivity() {
 
         timerHandler.removeCallbacks(timerRunnable) // Stop Timer
 
-        // Remove socket listeners FIRST
-        SocketManager.off("signal")
-        SocketManager.off("session-ended")
+        // FIX: NEVER use SocketManager.off in activity onDestroy.
+        // This clears the listener for the ENTIRE app, breaking the next call.
+        // Instead, just clear the specific activity callback hook.
+        SocketManager.onSignal { }
+        SocketManager.onSessionEnded { }
+        SocketManager.offIncomingSession() // Use this if we were listening here, but usually dashboard does this.
 
         // Full WebRTC cleanup to prevent ghost calls
         try {
@@ -905,6 +990,33 @@ class CallActivity : AppCompatActivity() {
             Log.d(TAG, "WebRTC resources fully released")
         } catch (e: Exception) {
             Log.e(TAG, "Error destroying WebRTC resources", e)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Fix 6: Lifecycle Safety
+        try {
+            if (callType == "video") {
+                videoCapturer?.stopCapture()
+                Log.d(TAG, "onPause: Video capture paused")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Lifecycle Error (onPause)", e)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Fix 6: Lifecycle Safety
+        try {
+            if (callType == "video") {
+                // Resume VGA high-stability stream
+                videoCapturer?.startCapture(640, 480, 30)
+                Log.d(TAG, "onResume: Video capture resumed")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Lifecycle Error (onResume)", e)
         }
     }
 

@@ -226,9 +226,6 @@ class IntakeActivity : ComponentActivity() {
     }
 
     private fun waitForAnswer(sessionId: String) {
-        // Remove previous listener to avoid stacking
-        SocketManager.off("session-answered")
-
         SocketManager.onSessionAnswered { data ->
              runOnUiThread {
                  val accepted = data.optBoolean("accept", false)
@@ -505,10 +502,16 @@ fun IntakeScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Connect Button
+            var isSubmitting by remember { mutableStateOf(false) }
+
             Button(
                 onClick = {
+                   if (isSubmitting) return@Button
+                   isSubmitting = true
+
                     if (name.isBlank() || place.isBlank()) {
                         Toast.makeText(context, "Please fill Name and Place", Toast.LENGTH_SHORT).show()
+                        isSubmitting = false
                     } else {
                         val json = JSONObject().apply {
                             put("name", name)
@@ -527,6 +530,16 @@ fun IntakeScreen(
                             put("topic", topic)
                         }
                         onSubmit(json)
+                        // Note: isSubmitting is NOT reset here because we proceed to waiting/activity switch
+                        // In case of error in onSubmit (async), you might want to callback to reset it,
+                        // but since the UI transitions to "isWaiting" overlay, effectively blocking it, this is fine.
+                        // However, let's wrap onSubmit to handle immediate validation failures if any.
+                        // For now relying on waiting overlay to block subsequent interactions.
+
+                        // Safety timeout to re-enable button if nothing happens after 5 seconds (just in case)
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                           isSubmitting = false
+                        }, 5000)
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),

@@ -1,33 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme (Space & Purple) -->
+    <!-- Base application theme (Professional White) -->
     <style name="Theme.FCMCallApp" parent="Theme.MaterialComponents.Light.NoActionBar">
-        <item name="colorPrimary">@color/purple_600</item>
-        <item name="colorPrimaryVariant">@color/space_900</item>
+        <item name="colorPrimary">@color/brand_purple</item>
         <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/brand_purple</item>
+        <item name="colorOnSecondary">@color/white</item>
 
-        <item name="colorSecondary">@color/gold_500</item>
-        <item name="colorSecondaryVariant">@color/gold_400</item>
-        <item name="colorOnSecondary">@color/space_900</item>
+        <item name="android:statusBarColor">@color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/white</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
 
-        <item name="android:statusBarColor">@color/space_900</item>
-        <item name="android:windowLightStatusBar">false</item> <!-- Dark status bar, light icons -->
-        <item name="android:navigationBarColor">@color/surface_white</item>
-        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item> <!-- Dark nav icons on white bg -->
-
-        <item name="android:windowBackground">@color/background_light</item>
+        <item name="android:windowBackground">@color/white</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
     </style>
 
     <!-- Full screen theme for incoming call -->
     <style name="Theme.FCMCallApp.FullScreen" parent="Theme.MaterialComponents.Light.NoActionBar">
-        <item name="colorPrimary">@color/purple_600</item>
-        <item name="android:windowFullscreen">true</item>
+        <item name="colorPrimary">@color/brand_purple</item>
+        <item name="android:windowFullscreen">false</item>
         <item name="android:windowNoTitle">true</item>
-        <item name="android:statusBarColor">@color/space_900</item>
-        <item name="android:navigationBarColor">@color/space_900</item>
-        <item name="android:windowBackground">@color/space_900</item>
+        <item name="android:statusBarColor">@color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/white</item>
+        <item name="android:windowBackground">@color/white</item>
     </style>
 
     <!-- DYNAMIC THEMES - Unified to Space & Purple System as per request -->

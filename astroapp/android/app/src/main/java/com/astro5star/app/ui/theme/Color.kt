@@ -2,14 +2,50 @@ package com.astro5star.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// 1. Luxury (Default - Updated to Warm White)
-val LuxuryPrimary = Color(0xFF004D40) // Dark Teal (Contrast on White)
-val LuxuryBackground = Color(0xFFFFF8EE) // Divine Cream
-val LuxurySurface = Color(0xFFFFFFFF) // Silver/White (Cards)
-val LuxuryOnSurface = Color(0xFF333333) // Charcoal Dark for Body Text
-val PremiumGold = Color(0xFFFFD700) // Gold for Titles
+// ===========================================================================
+// PROFESSIONAL DESIGN SYSTEM (Purple + White + Gray)
+// ===========================================================================
 
-// 2. Vedic (Traditional)
+// 1. Core Brand Palette
+val BrandPurple = Color(0xFF7C3AED)        // Primary Vibrant Purple
+val BrandPurpleDark = Color(0xFF5B21B6)    // Darker Purple (pressed states)
+val BrandPurpleLight = Color(0xFFA78BFA)   // Light Purple (highlights)
+val PureWhite = Color(0xFFFFFFFF)          // Pure White
+val MilkPurple = Color(0xFFF5F3FF)         // Soft Lavender Background
+val AppBackgroundWhite = MilkPurple        // App Background (Milk Purple)
+
+// 2. Professional Grays
+val Gray900 = Color(0xFF111827)   // Near Black (primary text)
+val Gray700 = Color(0xFF374151)   // Dark Professional Gray
+val Gray600 = Color(0xFF4B5563)   // Secondary text
+val Gray500 = Color(0xFF6B7280)   // Muted Gray
+val Gray400 = Color(0xFF9CA3AF)   // Placeholder text
+val Gray200 = Color(0xFFE5E7EB)   // Borders/Dividers
+val Gray100 = Color(0xFFF3F4F6)   // Surface Balance/Cards
+
+// 3. Typography Colors
+val TextPrimaryDark = Color(0xFF111827)    // Primary text on light bg
+val TextSecondaryDark = Color(0xFF4B5563)  // Secondary text on light bg
+val TextPlaceholder = Color(0xFF9CA3AF)    // Placeholder text
+val TextOnPurple = Color(0xFFFFFFFF)       // Text on purple backgrounds
+
+// 4. Status Colors
+val StatusGreen = Color(0xFF10B981)  // Success, Online
+val StatusRed = Color(0xFFEF4444)    // Error (internal use only)
+val StatusYellow = Color(0xFFF59E0B) // Warning
+
+// ===========================================================================
+// LEGACY THEME COLORS (Mapped to new system for backward compatibility)
+// ===========================================================================
+
+// 1. Luxury (Default - Now mapped to Purple + White)
+val LuxuryPrimary = BrandPurple
+val LuxuryBackground = PureWhite
+val LuxurySurface = PureWhite
+val LuxuryOnSurface = Gray900
+val PremiumGold = BrandPurple  // Gold replaced with Purple
+
+// 2. Vedic (Traditional) - keeping for theme switching
 val VedicSaffron = Color(0xFFFF9933)
 val VedicMaroon = Color(0xFF800000)
 val VedicCream = Color(0xFFFFFDD0)
@@ -17,7 +53,7 @@ val VedicCream = Color(0xFFFFFDD0)
 // 3. Cosmic (Sci-Fi)
 val CosmicNeon = Color(0xFF00E5FF)
 val CosmicDark = Color(0xFF050510)
-val CosmicPurple = Color(0xFF6200EA)
+val CosmicPurple = BrandPurple
 
 // 4. Solar (Energy)
 val SolarRed = Color(0xFFFF3D00)
@@ -25,71 +61,62 @@ val SolarOrange = Color(0xFFFF9100)
 val SolarYellow = Color(0xFFFFEA00)
 
 // 5. Lunar (Calm)
-val LunarSilver = Color(0xFFC0C0C0)
-val LunarNight = Color(0xFF263238)
-val LunarWhite = Color(0xFFECEFF1)
+val LunarSilver = Gray400
+val LunarNight = Gray900
+val LunarWhite = Gray100
 
-// 6. Forest (Green Luxury)
-val ForestGreen = Color(0xFF004D40)   // Deep Emerald
-val ForestDark = Color(0xFF00251A)    // Darkest Green
-val ForestGold = Color(0xFFFFD700)    // Bright Gold
-val ForestSurface = Color(0xFF00695C) // Lighter Emerald
+// 6. Forest (Green Luxury) - mapped to Purple
+val ForestGreen = BrandPurpleDark
+val ForestDark = BrandPurpleDark
+val ForestGold = BrandPurple
+val ForestSurface = BrandPurpleLight
 
 // 7. Ocean (Water)
 val OceanBlue = Color(0xFF0288D1)
 val OceanDeep = Color(0xFF01579B)
 val OceanFoam = Color(0xFFE1F5FE)
 
-// 8. Royal (Majestic)
-val RoyalPurple = Color(0xFF4A148C)
-val RoyalGoldAccent = Color(0xFFFFD700)
-val RoyalCream = Color(0xFFF3E5F5)
+// 8. Royal (Majestic) - mapped to Purple
+val RoyalPurple = BrandPurpleDark
+val RoyalGoldAccent = BrandPurple
+val RoyalCream = Gray100
 
 // 9. Mystic (Magic)
 val MysticMagenta = Color(0xFFC2185B)
-val MysticDark = Color(0xFF311B92)
-val MysticPink = Color(0xFFF48FB1)
+val MysticDark = BrandPurpleDark
+val MysticPink = BrandPurpleLight
 
 // 10. Midnight (Minimal)
-val MidnightBlack = Color(0xFF000000)
-val MidnightStar = Color(0xFFFFFFFF)
-val MidnightGray = Color(0xFF212121)
+val MidnightBlack = Gray900
+val MidnightStar = PureWhite
+val MidnightGray = Gray700
 
-// Current Active Colors (Mapped to Green Luxury)
-// 12. Mix Theme (Warm White BG + Luxury Green Cards - Selected Option)
- val DivineCream = Color(0xFFFFF8EE) // Warm White (Main BG)
- val LuxuryCardGreen = Color(0xFFFFFFFF) // White (Cards/Popups)
- val CharcoalDark = Color(0xFF333333) // Dark Text (for Main BG)
- val CardText = Color(0xFF333333) // Dark Text (for Silver Cards)
+// Current Active Colors (Mapped to Professional Theme)
+val DivineCream = PureWhite
+val LuxuryCardGreen = PureWhite
+val CharcoalDark = Gray900
+val CardText = Gray900
 
-// Current Active Colors
- val DeepSpaceNavy = DivineCream      // Base Background -> Warm White
- val CosmicBlue = LuxuryCardGreen    // Secondary Background -> Luxury Green
- val NebulaPurple = LuxuryCardGreen  // Popup Surface -> Luxury Green
- val GalaxyViolet = Color(0xFF00BFA5) // Teal/Cyan Accents
- val ConstellationCyan = Color(0xFF69F0AE)
- val StarWhite = CharcoalDark         // Default Text -> Dark (for BG)
-val MetallicGold = ForestGold         // Primary Accent -> Gold
-val AntiqueGold = Color(0xFFFFAB00)   // Secondary Accent
-val SunOrange = Color(0xFFFF6D00)     // Contrast
+// Current Active Colors for Compose Theme
+val DeepSpaceNavy = PureWhite         // Base Background -> White
+val CosmicBlue = PureWhite            // Secondary Background -> White
+val NebulaPurple = Gray100            // Popup Surface -> Light Gray
+val GalaxyViolet = BrandPurple        // Accents -> Purple
+val ConstellationCyan = BrandPurpleLight
+val StarWhite = Gray900               // Default Text -> Dark
+val MetallicGold = BrandPurple        // Primary Accent -> Purple
+val AntiqueGold = BrandPurpleLight    // Secondary Accent
+val SunOrange = BrandPurple           // Contrast
 
 // Aliases for Backward Compatibility
-val RoyalMidnightBlue = DeepSpaceNavy
-val PeacockTeal = CosmicBlue // Mapped to Emerald
-val PeacockGreen = ConstellationCyan // Bright Green
-val RoyalGold = MetallicGold
-val FeatherEye = GalaxyViolet
-val SoftIvory = StarWhite
-val MoonDarkGreen = DeepSpaceNavy
+val RoyalMidnightBlue = PureWhite
+val PeacockTeal = BrandPurple
+val PeacockGreen = BrandPurpleLight
+val RoyalGold = BrandPurple
+val FeatherEye = BrandPurple
+val SoftIvory = Gray900
+val MoonDarkGreen = PureWhite
 
-// Functional
+// Functional Colors
 val VoidBlack = Color(0xFF000000)
-// ErrorRed removed as per request "remove red colror", or keep purely for internal error states if absolutely needed, but for UI usage it is forbidden.
-// I will keep ErrorRed comment out or remove if not used by new theme, but existing code might use it.
-// I will leave existing functional colors but add the new ones. Ideally I should replace the file content to be clean if I can.
-// The user said "COLOR PALETTE (EXACT – DO NOT MODIFY)".
-// But I should be careful about breaking other files that import RoyalMidnightBlue etc.
-// The previous task used slightly different names.
-// To be safe and compliant, I will ADD the new colors and update the Theme to use them.
-
-val ErrorRed = Color(0xFFCF6679) // Keeping for compilation safety of other files, but will not use in new UI.
+val ErrorRed = StatusRed  // For compilation safety only

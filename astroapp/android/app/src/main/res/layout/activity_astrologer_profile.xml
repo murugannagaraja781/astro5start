@@ -8,7 +8,7 @@
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFC107"
+        android:background="#FFFFFF"
         app:elevation="0dp">
 
         <androidx.appcompat.widget.Toolbar
@@ -57,7 +57,7 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
-                android:background="#FFC107"
+                android:background="#FFFFFF"
                 android:layout_marginBottom="-40dp"/>
 
             <!-- Avatar -->
@@ -103,7 +103,7 @@
 
                 <TextView
                     android:text="★★★★★"
-                    android:textColor="#FFC107"
+                    android:textColor="#FFFFFF"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"/>
                  <TextView

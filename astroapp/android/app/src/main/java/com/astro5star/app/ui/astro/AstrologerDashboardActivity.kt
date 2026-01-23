@@ -45,17 +45,18 @@ import com.astro5star.app.ui.auth.LoginActivity
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
-// Reuse Colors from Client Dashboard or Define new ones - DEFINED LOCALLY TO FIX BUILD
-val DashboardRed = Color(0xFFD32F2F)
-val DashboardDark = Color(0xFF212121)
-val DashboardWhite = Color(0xFFFFFFFF)
-val DashboardSilver = Color(0xFFF5F5F5)
+// PROFESSIONAL THEME PALETTE (Purple + White + Gray)
+val DashboardPurple = Color(0xFF7C3AED) // Primary Purple (replaces Red)
+val DashboardDark = Color(0xFF111827)   // Near Black text
+val DashboardWhite = Color(0xFFFFFFFF)  // Pure White
+val DashboardSilver = Color(0xFFF5F3FF) // Milk Purple background
 
-// Local definitions for compatibility or cleaner usage
-val TextSecondary = Color(0xFF757575)
+// Local definitions for compatibility
+val TextSecondary = Color(0xFF4B5563)   // Secondary Gray text
 val BgWhite = DashboardWhite
-val PrimaryRed = DashboardRed
+val PrimaryRed = DashboardPurple        // Red replaced with Purple
 val TextPrimary = DashboardDark
+val DashboardRed = DashboardPurple      // Alias for backward compatibility
 
 class AstrologerDashboardActivity : ComponentActivity() {
 

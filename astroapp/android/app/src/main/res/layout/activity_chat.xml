@@ -3,14 +3,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#ECE5DD">
+    android:background="#FFFFFF">
 
     <!-- WhatsApp Style Gold Header -->
     <RelativeLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
         android:layout_height="60dp"
-        android:background="#C9A227"
+        android:background="@color/white"
         android:elevation="4dp"
         android:paddingStart="8dp"
         android:paddingEnd="12dp">
@@ -23,7 +23,7 @@
             android:layout_centerVertical="true"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_revert"
-            android:tint="#FFFFFF"
+            android:tint="@color/text_primary"
             android:contentDescription="Back"/>
 
         <!-- Profile Photo -->
@@ -36,9 +36,9 @@
             android:layout_marginStart="4dp"
             android:src="@drawable/ic_person"
             android:background="@drawable/circle_bg"
-            android:backgroundTint="#FFFFFF"
+            android:backgroundTint="@color/white"
             android:padding="8dp"
-            android:tint="#C9A227"/>
+            android:tint="@color/text_primary"/>
 
         <!-- Name & Status -->
         <LinearLayout
@@ -55,7 +55,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Astrologer Name"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/text_primary"
                 android:textSize="17sp"
                 android:textStyle="bold"
                 android:ellipsize="end"
@@ -66,7 +66,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Online"
-                android:textColor="#F5F5F5"
+                android:textColor="@color/text_secondary"
                 android:textSize="13sp"/>
         </LinearLayout>
 
@@ -96,7 +96,7 @@
                 android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@android:drawable/ic_menu_call"
-                android:tint="#FFFFFF"
+                android:tint="@color/text_primary"
                 android:contentDescription="Voice Call"/>
 
             <!-- End Chat Button -->
@@ -140,7 +140,7 @@
         android:layout_above="@id/layoutInput"
         android:padding="8dp"
         android:clipToPadding="false"
-        android:background="#ECE5DD"/>
+        android:background="#FFFFFF"/>
 
     <!-- WhatsApp Style Input Area -->
     <LinearLayout
@@ -149,7 +149,7 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:padding="6dp"
-        android:background="#ECE5DD"
+        android:background="#FFFFFF"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 

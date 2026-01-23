@@ -20,6 +20,8 @@ object SocketManager {
     private const val TAG = "SocketManager"
     private var socket: Socket? = null
     private var currentUserId: String? = null
+    private var isRegistered = false
+    private val registrationCallbacks = mutableListOf<(Boolean) -> Unit>()
 
     // Flows for Reactive UI Updates
     private val _messageEvents = MutableSharedFlow<JSONObject>()
@@ -44,13 +46,24 @@ object SocketManager {
     private val _sessionEndedEvents = MutableSharedFlow<Unit>()
     val sessionEndedEvents = _sessionEndedEvents.asSharedFlow()
 
+    // External Callback Hooks (to avoid clobbering Flows with socket.off)
+    private var onIncomingSessionCallback: ((JSONObject) -> Unit)? = null
+    private var onSignalCallback: ((JSONObject) -> Unit)? = null
+    private var onSessionAnsweredCallback: ((JSONObject) -> Unit)? = null
+    private var onSessionEndedCallback: (() -> Unit)? = null
+    private var onWalletUpdateCallback: ((Double) -> Unit)? = null
+
     fun init() {
         if (socket != null && socket?.connected() == true) return
 
         try {
             val opts = IO.Options()
-            opts.transports = arrayOf("websocket", "polling")
+            // Fix: Browser parity - start with polling then upgrade to websocket
+            opts.transports = arrayOf("polling", "websocket")
             opts.reconnection = true
+            opts.reconnectionAttempts = 50
+            opts.reconnectionDelay = 2000
+            opts.timeout = 15000 // 15s timeout
             socket = IO.socket(Constants.SERVER_URL, opts)
 
             setupListeners()
@@ -64,12 +77,18 @@ object SocketManager {
         socket?.on(Socket.EVENT_CONNECT) {
             Log.d(TAG, "Socket connected: ${socket?.id()}")
             if (currentUserId != null) {
+                Log.d(TAG, "Automatically re-registering user: $currentUserId")
                 registerUser(currentUserId!!)
             }
         }
 
-        socket?.on(Socket.EVENT_DISCONNECT) {
-            Log.d(TAG, "Socket disconnected")
+        socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
+            Log.e(TAG, "Socket connect error: ${args.getOrNull(0)}")
+        }
+
+        socket?.on(Socket.EVENT_DISCONNECT) { reason ->
+            Log.d(TAG, "Socket disconnected: $reason")
+            isRegistered = false // Force re-registration on reconnect
         }
 
         // 1. Receive Message Flow
@@ -126,37 +145,73 @@ object SocketManager {
         // 4. Incoming Session (Call)
         socket?.on("incoming-session") { args ->
             if (args.isNotEmpty()) {
+                val data = args[0] as JSONObject
                 CoroutineScope(Dispatchers.IO).launch {
-                    _incomingSessionEvents.emit(args[0] as JSONObject)
+                    _incomingSessionEvents.emit(data)
                 }
+                // Invoke external callback if set
+                onIncomingSessionCallback?.invoke(data)
             }
         }
 
         // 5. Signaling
         socket?.on("signal") { args ->
              if (args.isNotEmpty()) {
-                 CoroutineScope(Dispatchers.IO).launch { _signalEvents.emit(args[0] as JSONObject) }
+                 val data = args[0] as JSONObject
+                 CoroutineScope(Dispatchers.IO).launch { _signalEvents.emit(data) }
+                 onSignalCallback?.invoke(data)
              }
         }
         socket?.on("session-answered") { args ->
              if (args.isNotEmpty()) {
-                 CoroutineScope(Dispatchers.IO).launch { _sessionAnsweredEvents.emit(args[0] as JSONObject) }
+                 val data = args[0] as JSONObject
+                 CoroutineScope(Dispatchers.IO).launch { _sessionAnsweredEvents.emit(data) }
+                 onSessionAnsweredCallback?.invoke(data)
              }
         }
-        socket?.on("session-ended") {
+        socket?.on("session-ended") { args ->
+             Log.d(TAG, "Received session-ended: ${args.getOrNull(0)}")
              CoroutineScope(Dispatchers.IO).launch { _sessionEndedEvents.emit(Unit) }
+             onSessionEndedCallback?.invoke()
+        }
+
+        socket?.on("wallet-update") { args ->
+            if (args != null && args.isNotEmpty()) {
+                val data = args[0] as? JSONObject
+                val balance = data?.optDouble("balance", 0.0) ?: 0.0
+                onWalletUpdateCallback?.invoke(balance)
+            }
         }
     }
 
     fun registerUser(userId: String, callback: ((Boolean) -> Unit)? = null) {
         currentUserId = userId
+
+        // If already registered for this user, invoke immediately
+        if (isRegistered && currentUserId == userId) {
+            callback?.invoke(true)
+            return
+        }
+
+        if (callback != null) registrationCallbacks.add(callback)
+
+        // If already in progress, just add callback
+        if (registrationCallbacks.size > 1 && currentUserId == userId) return
+
         val data = JSONObject().put("userId", userId)
         socket?.emit("register", data, Ack { args ->
             val success = args.isNotEmpty() && (args[0] as? JSONObject)?.optBoolean("ok") == true
-            Log.d(TAG, "User registered: $userId, success=$success")
-            callback?.invoke(success)
+            Log.d(TAG, "User registered ACK: $userId, success=$success")
+
+            isRegistered = success
+            val currentCallbacks = registrationCallbacks.toList()
+            registrationCallbacks.clear()
+
+            currentCallbacks.forEach { it.invoke(success) }
         })
     }
+
+    fun isRegistered() = isRegistered && socket?.connected() == true
 
     // --- Message Logic ---
 
@@ -235,7 +290,6 @@ object SocketManager {
     fun off(event: String) = socket?.off(event)
     fun on(event: String, listener: io.socket.emitter.Emitter.Listener) = socket?.on(event, listener)
     fun onAstrologerUpdate(listener: (JSONObject) -> Unit) {
-        socket?.off("astrologer-update")
         socket?.on("astrologer-update") { args ->
             if (args != null && args.isNotEmpty()) {
                 val data = args[0] as JSONObject
@@ -290,55 +344,26 @@ object SocketManager {
     }
 
     fun onIncomingSession(listener: (JSONObject) -> Unit) {
-        socket?.off("incoming-session")
-        socket?.on("incoming-session") { args ->
-            if (args != null && args.isNotEmpty()) {
-                val data = args[0] as JSONObject
-                Log.d(TAG, "Incoming session received: $data")
-                listener(data)
-            }
-        }
+        onIncomingSessionCallback = listener
     }
 
     fun offIncomingSession() {
-        socket?.off("incoming-session")
+        onIncomingSessionCallback = null
     }
 
     fun onSignal(listener: (JSONObject) -> Unit) {
-        socket?.off("signal")
-        socket?.on("signal") { args ->
-            if (args != null && args.isNotEmpty()) {
-                val data = args[0] as JSONObject
-                listener(data)
-            }
-        }
+        onSignalCallback = listener
     }
 
     fun onSessionEnded(listener: () -> Unit) {
-        socket?.off("session-ended")
-        socket?.on("session-ended") {
-            listener()
-        }
+        onSessionEndedCallback = listener
     }
 
     fun onSessionAnswered(listener: (JSONObject) -> Unit) {
-        socket?.off("session-answered")
-        socket?.on("session-answered") { args ->
-            if (args != null && args.isNotEmpty()) {
-                val data = args[0] as JSONObject
-                listener(data)
-            }
-        }
+        onSessionAnsweredCallback = listener
     }
 
     fun onWalletUpdate(listener: (Double) -> Unit) {
-        socket?.off("wallet-update")
-        socket?.on("wallet-update") { args ->
-            if (args != null && args.isNotEmpty()) {
-                val data = args[0] as? JSONObject
-                val balance = data?.optDouble("balance", 0.0) ?: 0.0
-                listener(balance)
-            }
-        }
+        onWalletUpdateCallback = listener
     }
 }

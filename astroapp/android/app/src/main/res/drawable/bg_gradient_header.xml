@@ -3,10 +3,5 @@
     android:shape="rectangle">
     <!-- Purple 600 -> Pink 600 (#db2777) -> Blue 600 (#2563eb) -->
     <!-- Gradient only supports 3 colors max usually in XML standard, Design System asked for Horizontal -->
-    <gradient
-        android:angle="0"
-        android:startColor="@color/purple_600"
-        android:centerColor="#db2777"
-        android:endColor="#2563eb"
-        android:type="linear"/>
+    <solid android:color="@color/white"/>
 </shape>

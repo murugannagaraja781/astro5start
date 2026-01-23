@@ -92,6 +92,13 @@ class IncomingCallActivity : AppCompatActivity() {
     }
 
     override fun onNewIntent(intent: Intent?) {
+        // Deduplicate calls: If this is the same call ID we are already showing, ignore
+        val newCallId = intent?.getStringExtra("callId")
+        if (newCallId != null && newCallId == this.callId) {
+            Log.d(TAG, "onNewIntent: Duplicate call ID $newCallId, ignoring")
+            return
+        }
+
         super.onNewIntent(intent)
         setIntent(intent)
         processIntent(intent)
@@ -260,45 +267,69 @@ class IncomingCallActivity : AppCompatActivity() {
             val tokenManager = com.astro5star.app.data.local.TokenManager(this)
             val session = tokenManager.getUserSession()
             if (session?.userId != null) {
-                com.astro5star.app.data.remote.SocketManager.registerUser(session.userId)
+                com.astro5star.app.data.remote.SocketManager.registerUser(session.userId) { success ->
+                    if (success) {
+                        // Fix 2: Strict Signaling Order (Production Requirement)
+                        // session-connect MUST be emitted BEFORE answer-session
+                        val connectPayload = org.json.JSONObject().apply {
+                            put("sessionId", callId)
+                        }
+                        com.astro5star.app.data.remote.SocketManager.getSocket()?.emit("session-connect", connectPayload)
+                        Log.d(TAG, "Fix 2: Emitted session-connect before accept-answer")
+
+                        val payload = org.json.JSONObject().apply {
+                            put("sessionId", callId)
+                            put("callType", callType)
+                            put("accept", true)
+                        }
+                        // SIGNALING PARITY: Use answer-session-native with callback to match Web client
+                        com.astro5star.app.data.remote.SocketManager.getSocket()?.emit("answer-session-native", payload, { args: Array<Any?>? ->
+                            val result = if (args != null && args.isNotEmpty()) args[0] as? org.json.JSONObject else null
+                            if (result != null && result.optBoolean("ok")) {
+                                Log.d(TAG, "Accept signal (native) acknowledged for session: $callId")
+
+                                runOnUiThread {
+                                    val intent: Intent
+                                    if (callType == "chat") {
+                                        intent = Intent(this@IncomingCallActivity, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
+                                            putExtra("sessionId", callId)
+                                            putExtra("toUserId", callerId)
+                                            putExtra("toUserName", callerName)
+                                            putExtra("isNewRequest", true)
+                                            putExtra("birthData", birthData)
+                                        }
+                                    } else {
+                                        intent = Intent(this@IncomingCallActivity, com.astro5star.app.ui.call.CallActivity::class.java).apply {
+                                            putExtra("sessionId", callId)
+                                            putExtra("partnerId", callerId)
+                                            putExtra("partnerName", callerName)
+                                            putExtra("isInitiator", false)
+                                            putExtra("callType", callType)
+                                            putExtra("birthData", birthData)
+                                        }
+                                    }
+                                    startActivity(intent)
+                                    stopService(Intent(this@IncomingCallActivity, CallForegroundService::class.java))
+                                    finish()
+                                }
+                            } else {
+                                Log.e(TAG, "Server rejected native acceptance: ${result?.optString("error")}")
+                                runOnUiThread {
+                                    android.widget.Toast.makeText(this@IncomingCallActivity, "Call failed: ${result?.optString("error")}", android.widget.Toast.LENGTH_SHORT).show()
+                                    finish()
+                                }
+                            }
+                        })
+                    } else {
+                        Log.e(TAG, "Failed to register user on socket. Accept signal NOT sent.")
+                        runOnUiThread { finish() }
+                    }
+                }
             }
-            val payload = org.json.JSONObject().apply {
-                put("sessionId", callId)
-                put("toUserId", callerId)
-                put("type", callType)
-                put("accept", true)
-            }
-            com.astro5star.app.data.remote.SocketManager.getSocket()?.emit("answer-session", payload)
-            Log.d(TAG, "Accept signal sent for session: $callId to client: $callerId")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send accept signal", e)
+            finish()
         }
-
-        val intent: Intent
-        if (callType == "chat") {
-            intent = Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
-                putExtra("sessionId", callId)
-                putExtra("toUserId", callerId)
-                putExtra("toUserName", callerName)
-                putExtra("isNewRequest", true) // Now safe to auto-accept since user clicked Accept
-                putExtra("birthData", birthData)
-            }
-        } else {
-            intent = Intent(this, com.astro5star.app.ui.call.CallActivity::class.java).apply {
-                putExtra("sessionId", callId)
-                putExtra("partnerId", callerId)
-                putExtra("partnerName", callerName) // Pass name for UI
-                putExtra("isInitiator", false)
-                putExtra("callType", callType) // Pass audio/video type
-                putExtra("birthData", birthData)
-            }
-        }
-        startActivity(intent)
-
-        // Stop foreground service
-        stopService(Intent(this, CallForegroundService::class.java))
-
-        finish()
     }
 
     private fun onCallRejected() {
@@ -312,23 +343,36 @@ class IncomingCallActivity : AppCompatActivity() {
             val tokenManager = com.astro5star.app.data.local.TokenManager(this)
             val session = tokenManager.getUserSession()
             if (session?.userId != null) {
-                com.astro5star.app.data.remote.SocketManager.registerUser(session.userId)
+                com.astro5star.app.data.remote.SocketManager.registerUser(session.userId) { success ->
+                    if (success) {
+                        // Even for rejection, send session-connect if required by server to "join" the context,
+                        // though usually rejection implies not joining. However, following strict order principle:
+                        val connectPayload = org.json.JSONObject().apply {
+                            put("sessionId", callId)
+                        }
+                        com.astro5star.app.data.remote.SocketManager.getSocket()?.emit("session-connect", connectPayload)
+
+                        val payload = org.json.JSONObject().apply {
+                            put("sessionId", callId)
+                            put("accept", false)
+                        }
+                        // SIGNALING PARITY: Use answer-session-native for rejection as well
+                        com.astro5star.app.data.remote.SocketManager.getSocket()?.emit("answer-session-native", payload)
+                        Log.d(TAG, "Reject signal (native) sent for session: $callId")
+
+                        runOnUiThread {
+                            stopService(Intent(this@IncomingCallActivity, CallForegroundService::class.java))
+                            finish()
+                        }
+                    } else {
+                        runOnUiThread { finish() }
+                    }
+                }
             }
-            val payload = org.json.JSONObject().apply {
-                put("sessionId", callId)
-                put("toUserId", callerId)
-                put("accept", false)
-            }
-            com.astro5star.app.data.remote.SocketManager.getSocket()?.emit("answer-session", payload)
-            Log.d(TAG, "Reject signal sent for session: $callId")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send reject signal", e)
+            finish()
         }
-
-        // Stop foreground service
-        stopService(Intent(this, CallForegroundService::class.java))
-
-        finish()
     }
 
     override fun onDestroy() {

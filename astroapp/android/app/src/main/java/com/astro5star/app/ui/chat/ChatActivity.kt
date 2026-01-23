@@ -211,9 +211,9 @@ class ChatActivity : ComponentActivity() {
              val connectionStatus by viewModel.connectionStatus.collectAsState()
 
              // Initial Connect
-             LaunchedEffect(toUserId) {
+             LaunchedEffect(toUserId, sessionId) {
                  if (toUserId != null) {
-                     viewModel.connect(toUserId!!)
+                     viewModel.connect(toUserId!!, sessionId)
                  }
              }
 

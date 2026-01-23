@@ -2,7 +2,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000"
+    android:background="@color/white"
     android:keepScreenOn="true">
 
     <!-- Split Screen Video Container (Visible for Video Calls) -->
@@ -12,7 +12,7 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:weightSum="2"
-        android:background="#000000">
+        android:background="@color/white">
 
         <!-- Top Half: Remote Video -->
         <androidx.cardview.widget.CardView
@@ -22,7 +22,7 @@
             android:layout_weight="1"
             android:layout_margin="12dp"
             app:cardCornerRadius="24dp"
-            app:cardBackgroundColor="#222222"
+            app:cardBackgroundColor="@color/purple_100"
             app:cardElevation="0dp">
 
             <org.webrtc.SurfaceViewRenderer
@@ -72,7 +72,7 @@
             android:layout_weight="1"
             android:layout_margin="12dp"
             app:cardCornerRadius="24dp"
-            app:cardBackgroundColor="#222222"
+            app:cardBackgroundColor="@color/purple_100"
             app:cardElevation="0dp">
 
             <org.webrtc.SurfaceViewRenderer
@@ -90,8 +90,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:background="@drawable/bg_rounded_sheet_top"
-        android:backgroundTint="#10A37F"
+        android:background="@color/white"
         android:gravity="center"
         android:orientation="horizontal"
         android:paddingTop="24dp"
@@ -178,7 +177,7 @@
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:text="Connecting..."
-        android:textColor="#FFFFFF"
+        android:textColor="@color/text_primary"
         android:textSize="18sp"
         android:textStyle="bold" />
 
@@ -187,7 +186,7 @@
         android:id="@+id/audioLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#111827"
+        android:background="@color/white"
         android:visibility="gone">
 
         <!-- Avatar -->
@@ -213,7 +212,7 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="24dp"
             android:text="Partner Name"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/text_primary"
             android:textSize="24sp"
             android:textStyle="bold" />
 

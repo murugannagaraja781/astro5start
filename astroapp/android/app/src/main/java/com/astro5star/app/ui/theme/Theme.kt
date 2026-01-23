@@ -2,7 +2,7 @@ package com.astro5star.app.ui.theme
 
 import android.app.Activity
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
@@ -12,35 +12,36 @@ import androidx.compose.runtime.collectAsState
 import androidx.core.view.WindowCompat
 import com.astro5star.app.utils.ThemeManager
 
-private val LuxuryAstrologyScheme = darkColorScheme(
-    primary = MetallicGold,
-    onPrimary = DeepSpaceNavy,
-    primaryContainer = CosmicBlue,
-    onPrimaryContainer = StarWhite,
+// Professional Purple + White + Gray Color Scheme
+private val ProfessionalLightScheme = lightColorScheme(
+    primary = BrandPurple,
+    onPrimary = PureWhite,
+    primaryContainer = BrandPurpleLight,
+    onPrimaryContainer = PureWhite,
 
-    secondary = AntiqueGold,
-    onSecondary = DeepSpaceNavy,
-    secondaryContainer = NebulaPurple,
-    onSecondaryContainer = StarWhite,
+    secondary = BrandPurpleDark,
+    onSecondary = PureWhite,
+    secondaryContainer = Gray100,
+    onSecondaryContainer = Gray900,
 
-    tertiary = ConstellationCyan,
-    onTertiary = DeepSpaceNavy,
+    tertiary = BrandPurpleLight,
+    onTertiary = Gray900,
 
-    background = DeepSpaceNavy,
-    onBackground = StarWhite,
+    background = MilkPurple,
+    onBackground = Gray900,
 
-    surface = CosmicBlue,
-    onSurface = StarWhite,
-    surfaceVariant = NebulaPurple,
-    onSurfaceVariant = StarWhite,
+    surface = PureWhite,
+    onSurface = Gray900,
+    surfaceVariant = Gray100,
+    onSurfaceVariant = Gray700,
 
-    outline = AntiqueGold,
-    error = GalaxyViolet // using a theme color instead of Red
+    outline = Gray200,
+    error = StatusRed
 )
 
 @Composable
 fun AstrologyPremiumTheme(
-    darkTheme: Boolean = true,
+    darkTheme: Boolean = false, // Default to light theme
     dynamicColor: Boolean = false,
     customBg: androidx.compose.ui.graphics.Color? = null,
     customCard: androidx.compose.ui.graphics.Color? = null,
@@ -57,21 +58,23 @@ fun AstrologyPremiumTheme(
         ThemeManager.init(context)
     }
 
-    var colorScheme = ThemeManager.getColorScheme(themeId)
+    // Use the professional light color scheme
+    var colorScheme = ProfessionalLightScheme
 
     // Apply Overrides if present
     if (customBg != null) colorScheme = colorScheme.copy(background = customBg, surface = customBg)
-    if (customCard != null) colorScheme = colorScheme.copy(surfaceVariant = customCard, surface = customCard) // Assuming Card uses surface
-    if (customPrimary != null) colorScheme = colorScheme.copy(primary = customPrimary, onBackground = customPrimary)
+    if (customCard != null) colorScheme = colorScheme.copy(surfaceVariant = customCard, surface = customCard)
+    if (customPrimary != null) colorScheme = colorScheme.copy(primary = customPrimary)
     if (customSecondary != null) colorScheme = colorScheme.copy(secondary = customSecondary)
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.background.toArgb()
-            window.navigationBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+            // White status bar with dark icons for professional look
+            window.statusBarColor = PureWhite.toArgb()
+            window.navigationBarColor = PureWhite.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
         }
     }
 

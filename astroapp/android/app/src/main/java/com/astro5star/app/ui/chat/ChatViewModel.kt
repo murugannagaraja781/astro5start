@@ -63,13 +63,24 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun connect(toUserId: String) {
+    fun connect(toUserId: String, sessionId: String? = null) {
         if (myUserId == null) return
 
         SocketManager.init()
         SocketManager.registerUser(myUserId!!) { success ->
             if (success) {
                 _connectionStatus.value = "Connected"
+
+                // Fix 2: Strict Signaling Order (Production Requirement)
+                // Chat also needs session-connect for billing/session binding
+                if (sessionId != null) {
+                    val connectPayload = JSONObject().apply {
+                        put("sessionId", sessionId)
+                    }
+                    Log.d(TAG, "Fix 2: Emitting session-connect for Chat: $sessionId")
+                    SocketManager.getSocket()?.emit("session-connect", connectPayload)
+                }
+
                 fetchHistory(toUserId)
             } else {
                 _connectionStatus.value = "Connection Failed"
