@@ -253,8 +253,26 @@ class IncomingCallActivity : AppCompatActivity() {
         stopRingtoneAndVibration()
         handler.removeCallbacks(timeoutRunnable)
 
-        // Notify Server via Socket (if connected) or just launch Activity which connects
-        // Ideally we emit 'answer-session-native' here if possible
+        // FIX: Send accept signal to server BEFORE launching activity
+        // This notifies the client that the session was accepted
+        try {
+            com.astro5star.app.data.remote.SocketManager.init()
+            val tokenManager = com.astro5star.app.data.local.TokenManager(this)
+            val session = tokenManager.getUserSession()
+            if (session?.userId != null) {
+                com.astro5star.app.data.remote.SocketManager.registerUser(session.userId)
+            }
+            val payload = org.json.JSONObject().apply {
+                put("sessionId", callId)
+                put("toUserId", callerId)
+                put("type", callType)
+                put("accept", true)
+            }
+            com.astro5star.app.data.remote.SocketManager.getSocket()?.emit("answer-session", payload)
+            Log.d(TAG, "Accept signal sent for session: $callId to client: $callerId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to send accept signal", e)
+        }
 
         val intent: Intent
         if (callType == "chat") {
