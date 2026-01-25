@@ -95,15 +95,20 @@ class HomeActivity : AppCompatActivity() {
                         startActivity(Intent(this, com.astro5star.app.ui.wallet.WalletActivity::class.java))
                     },
                     onChatClick = { astro ->
-                        // TODO
+                        val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
+                            putExtra("partnerId", astro.userId)
+                            putExtra("partnerName", astro.name)
+                            putExtra("partnerImage", astro.image)
+                            putExtra("type", "chat")
+                        }
+                        startActivity(intent)
                     },
                     onCallClick = { astro, type ->
                         val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
-                            putExtra("astrologer_id", astro.userId)
-                            putExtra("astrologer_name", astro.name)
-                            putExtra("call_type", type)
-                            putExtra("price_per_min", astro.price.toString())
-                            putExtra("astrologer_image", astro.image)
+                            putExtra("partnerId", astro.userId)
+                            putExtra("partnerName", astro.name)
+                            putExtra("partnerImage", astro.image)
+                            putExtra("type", type)
                         }
                         startActivity(intent)
                     },

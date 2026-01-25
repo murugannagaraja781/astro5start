@@ -1241,6 +1241,10 @@ io.on('connection', (socket) => {
         if (user.role === 'superadmin') {
           socket.join('superadmin');
         }
+
+        // NEW: All users join a room with their userId for reliable messaging
+        socket.join(userId);
+        console.log(`[Socket] ${user.name} joined room: ${userId}`);
       });
     } catch (err) {
       console.error('register error', err);
@@ -1604,16 +1608,17 @@ io.on('connection', (socket) => {
     try {
       const { sessionId, toUserId, type, accept } = data || {};
       const fromUserId = socketToUser.get(socket.id);
-      if (!fromUserId || !sessionId || !toUserId) return;
-
-      const targetSocketId = userSockets.get(toUserId);
-      if (!targetSocketId) return;
+      if (!fromUserId || !sessionId || !toUserId) {
+        console.warn(`[Session] answer-session missing data: from=${fromUserId}, session=${sessionId}, to=${toUserId}`);
+        return;
+      }
 
       if (!accept) {
         endSessionRecord(sessionId);
       }
 
-      io.to(targetSocketId).emit('session-answered', {
+      // Emit to Room (userId) - works even after reconnect!
+      io.to(toUserId).emit('session-answered', {
         sessionId,
         fromUserId,
         type,
