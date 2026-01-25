@@ -445,7 +445,9 @@ class IntakeActivity : AppCompatActivity() {
             val intent = Intent(this, com.astro5star.app.ui.call.CallActivity::class.java).apply {
                 putExtra("sessionId", sessionId)
                 putExtra("partnerId", partnerId)
+                putExtra("partnerName", partnerName)
                 putExtra("isInitiator", true)
+                putExtra("callType", type) // CRITICAL: Pass audio/video type
             }
             startActivity(intent)
         }

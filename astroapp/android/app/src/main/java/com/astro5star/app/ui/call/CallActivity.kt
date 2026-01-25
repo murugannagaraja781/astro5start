@@ -45,15 +45,10 @@ class CallActivity : AppCompatActivity() {
 
     private val iceServers = listOf(
         PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
-        // Custom TURN Server
-        PeerConnection.IceServer.builder("turn:68.183.244.27:3478")
-            .setUsername("turnuser")
-            .setPassword("VeryStrongPasswordHere2025!")
-            .createIceServer(),
-        PeerConnection.IceServer.builder("turn:68.183.244.27:3478?transport=tcp")
-            .setUsername("turnuser")
-            .setPassword("VeryStrongPasswordHere2025!")
-            .createIceServer()
+        PeerConnection.IceServer.builder("turn:turn.astro5star.com:3478?transport=udp")
+            .setUsername("webrtcuser").setPassword("strongpassword123").createIceServer(),
+        PeerConnection.IceServer.builder("turns:turn.astro5star.com:5349")
+            .setUsername("webrtcuser").setPassword("strongpassword123").createIceServer()
     )
 
     private var isMuted = false

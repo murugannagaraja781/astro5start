@@ -1725,12 +1725,13 @@ io.on('connection', (socket) => {
     try {
       const { sessionId, toUserId, signal } = data || {};
       const fromUserId = socketToUser.get(socket.id);
-      if (!fromUserId || !sessionId || !toUserId || !signal) return;
+      if (!fromUserId || !sessionId || !toUserId || !signal) {
+        console.warn(`[Signal] Missing data: from=${fromUserId}, session=${sessionId}, to=${toUserId}`);
+        return;
+      }
 
-      const targetSocketId = userSockets.get(toUserId);
-      if (!targetSocketId) return;
-
-      io.to(targetSocketId).emit('signal', {
+      // Emit to Room (userId) - works even after reconnect!
+      io.to(toUserId).emit('signal', {
         sessionId,
         fromUserId,
         signal,
@@ -1752,14 +1753,11 @@ io.on('connection', (socket) => {
       if (session) {
         // Find partner
         const partnerId = session.users.find(u => u !== fromUserId);
-        const partnerSocketId = userSockets.get(partnerId);
-
-        if (partnerSocketId) {
-          io.to(partnerSocketId).emit('session-ended', {
-            sessionId,
-            reason: 'partner_ended'
-          });
-        }
+        // Emit to Room (userId) - works even after reconnect
+        io.to(partnerId).emit('session-ended', {
+          sessionId,
+          reason: 'partner_ended'
+        });
       }
 
       endSessionRecord(sessionId);
@@ -1775,33 +1773,6 @@ io.on('connection', (socket) => {
       const fromUserId = socketToUser.get(socket.id);
       if (!fromUserId || !toUserId || !content || !messageId) return;
 
-      const targetSocketId = userSockets.get(toUserId);
-
-      if (!targetSocketId) {
-        const list = pendingMessages.get(toUserId) || [];
-        list.push({
-          fromUserId,
-          content,
-          sessionId,
-          timestamp: timestamp || Date.now(),
-          messageId,
-        });
-        pendingMessages.set(toUserId, list);
-
-        socket.emit('message-status', {
-          messageId,
-          status: 'queued',
-        });
-
-        // Trigger Push for Offline Message
-        sendChatPush(toUserId, fromUserId, content.text || 'Sent a file', sessionId);
-
-        console.log(
-          `Queued message ${messageId} from ${fromUserId} to offline user ${toUserId}`
-        );
-        return;
-      }
-
       socket.emit('message-status', {
         messageId,
         status: 'sent',
@@ -1816,7 +1787,8 @@ io.on('connection', (socket) => {
         timestamp: timestamp || Date.now()
       }).catch(e => console.error('ChatSave Error', e));
 
-      io.to(targetSocketId).emit('chat-message', {
+      // Emit to Room (userId) - works even after reconnect
+      io.to(toUserId).emit('chat-message', {
         fromUserId,
         content,
         sessionId: sessionId || null,
