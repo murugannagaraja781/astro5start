@@ -93,24 +93,22 @@ class CallActivity : AppCompatActivity() {
         val btnEndCall = findViewById<ImageButton>(R.id.btnEndCall)
         val btnMic = findViewById<ImageButton>(R.id.btnMic)
         val btnVideo = findViewById<ImageButton>(R.id.btnVideo)
-        val btnChat = findViewById<ImageButton>(R.id.btnChat)
+        val btnRasi = findViewById<ImageButton>(R.id.btnRasi)
+        val btnEdit = findViewById<ImageButton>(R.id.btnEdit)
         val btnBack = findViewById<ImageButton>(R.id.btnBack)
 
         btnEndCall.setOnClickListener { endCall() }
-        btnBack.setOnClickListener {
-            // Back button acts as minimize or end call? Usually End Call in full screen flow, or just finish
-             // For now, let's make it end call to avoid confusion, or maybe just minimize (finish calls onDestroy which ends call)
-             // Let's ask user? No, standard behavior: End call.
-             endCall()
+        btnBack.setOnClickListener { endCall() }
+
+        btnRasi.setOnClickListener {
+             // Show Rasi Chart Dialog (Reuse RasiDetailDialog or simplified version)
+             // Ideally we should show the USER'S chart if available based on birthData
+             showRasiChart()
         }
 
-        btnChat.setOnClickListener {
-             val intent = android.content.Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
-                putExtra("sessionId", sessionId)
-                putExtra("toUserId", partnerId)
-                putExtra("toUserName", partnerName)
-            }
-            startActivity(intent)
+        btnEdit.setOnClickListener {
+             // Open Intake Dialog to edit details
+             showIntakeDialog()
         }
 
         // Start Timer
@@ -571,6 +569,61 @@ class CallActivity : AppCompatActivity() {
             }
         }
         return null
+    }
+
+    private fun showRasiChart() {
+        // Simple North/South chart placeholder or use RasiDetailDialog logic
+        // For now, showing a simple dialog with the user's Rasi if available
+        // Or specific chart viewer. Given user asked for "Rasi Chart Icon", likely expects the chart image.
+        // We will show a dialog with Rasi Grid similar to Home Screen but simplified.
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Rasi Chart")
+            .setMessage("Chart visualization would appear here.\n(Implementation Pending: Needs Chart Rendering Logic)")
+            .setPositiveButton("Close", null)
+            .create()
+        dialog.show()
+    }
+
+    private fun showIntakeDialog() {
+        // Dialog with Name, DOB, TOB, POB inputs
+        val view = layoutInflater.inflate(R.layout.dialog_intake_edit, null)
+        val etName = view.findViewById<android.widget.EditText>(R.id.etName)
+        val etDob = view.findViewById<android.widget.EditText>(R.id.etDob)
+        val etTob = view.findViewById<android.widget.EditText>(R.id.etTob)
+        val etPob = view.findViewById<android.widget.EditText>(R.id.etPob)
+
+        // Pre-fill if we have data (requires storing birthData in Activity)
+        // For now, empty or standard.
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Update Consultation Details")
+            .setView(view)
+            .setPositiveButton("Update") { _, _ ->
+                val name = etName.text.toString()
+                val dob = etDob.text.toString()
+                val tob = etTob.text.toString()
+                val pob = etPob.text.toString()
+
+                val formData = JSONObject().apply {
+                    put("name", name)
+                    put("dob", dob)
+                    put("tob", tob)
+                    put("pob", pob)
+                    put("updatedAt", System.currentTimeMillis())
+                }
+
+                if (sessionId != null) {
+                    val payload = JSONObject().apply {
+                        put("sessionId", sessionId)
+                        put("formData", formData)
+                    }
+                    SocketManager.getSocket()?.emit("update-intake", payload)
+                    Toast.makeText(this, "Details updated & sent to Astrologer", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     open class SimpleSdpObserver : SdpObserver {

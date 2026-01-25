@@ -2568,6 +2568,10 @@ app.post('/api/call/initiate', async (req, res) => {
       return res.json({ ok: false, error: 'Astrologer is Offline', code: 'OFFLINE' });
     }
 
+    // Fetch Caller Name for Notification
+    const caller = await User.findOne({ userId: callerId });
+    const callerName = caller ? caller.name : 'Guest';
+
     // B. Create Call Request
     const callId = "CALL_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
     await CallRequest.create({
@@ -2584,12 +2588,12 @@ app.post('/api/call/initiate', async (req, res) => {
         type: 'incoming_call',
         callId: callId,
         callerId: callerId,
-        callerName: 'Client'
+        callerName: callerName // Fixed: Use actual name
       };
 
       const fcmNotification = {
         title: 'Incoming Call',
-        body: 'Tap to answer video call'
+        body: `${callerName} is calling...`
       };
 
       const fcmResult = await sendFcmV1Push(astro.fcmToken, fcmData, fcmNotification);
@@ -2605,6 +2609,24 @@ app.post('/api/call/initiate', async (req, res) => {
     res.json({ ok: false, error: 'Server Error' });
   }
 });
+
+// Update Intake Form (Socket) - Broadcast to partner
+io.on('connection', (socket) => {
+  socket.on('update-intake', (data) => {
+    const { sessionId, formData } = data;
+    const fromUserId = socketToUser.get(socket.id);
+    if (!sessionId || !fromUserId) return;
+
+    const session = activeSessions.get(sessionId);
+    if (session) {
+      const partnerId = session.users.find(u => u !== fromUserId);
+      if (partnerId) {
+        io.to(partnerId).emit('intake-updated', { formData });
+      }
+    }
+  });
+});
+
 
 // 3. Accept Call (Astrologer -> Server)
 app.post('/api/call/accept', async (req, res) => {

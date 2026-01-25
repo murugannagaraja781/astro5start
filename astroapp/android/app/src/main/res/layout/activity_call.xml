@@ -46,6 +46,7 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
+
         <TextView
              android:id="@+id/tvCallDuration"
              android:layout_width="wrap_content"
@@ -56,6 +57,20 @@
              android:text="12:08"
              android:textColor="#E0E0E0"
              android:textSize="14sp" />
+
+        <!-- Mic Toggle (Moved to Top) -->
+        <ImageButton
+            android:id="@+id/btnMic"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/circle_bg"
+            android:backgroundTint="#80FFFFFF"
+            android:src="@android:drawable/ic_btn_speak_now"
+            android:padding="8dp"
+            android:tint="#FFFFFF"
+            android:contentDescription="Toggle Mic" />
 
     </RelativeLayout>
 
@@ -82,39 +97,16 @@
     </androidx.cardview.widget.CardView>
 
     <!-- Bottom Control Panel -->
-    <LinearLayout
-        android:id="@+id/controlPanel"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:background="@drawable/bg_rounded_sheet_top"
-        android:backgroundTint="#10A37F"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:paddingTop="24dp"
-        android:paddingBottom="48dp">
 
-        <!-- Mic Toggle -->
+        <!-- Rasi Chart -->
         <ImageButton
-            android:id="@+id/btnMic"
+            android:id="@+id/btnRasi"
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:background="@drawable/btn_rounded_action"
-            android:src="@android:drawable/ic_btn_speak_now"
+            android:src="@android:drawable/ic_menu_gallery"
             android:tint="#FFFFFF"
-            android:contentDescription="Toggle Mic" />
-
-        <Space android:layout_width="24dp" android:layout_height="wrap_content" />
-
-        <!-- Chat Toggle (Optional) -->
-         <ImageButton
-            android:id="@+id/btnChat"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:background="@drawable/btn_rounded_action"
-            android:src="@android:drawable/ic_menu_send"
-            android:tint="#FFFFFF"
-            android:contentDescription="Chat" />
+            android:contentDescription="Rasi Chart" />
 
         <Space android:layout_width="24dp" android:layout_height="wrap_content" />
 
@@ -139,6 +131,18 @@
             android:src="@android:drawable/ic_menu_close_clear_cancel"
             android:tint="#FFFFFF"
             android:contentDescription="End Call" />
+
+        <Space android:layout_width="24dp" android:layout_height="wrap_content" />
+
+        <!-- Edit Form -->
+        <ImageButton
+            android:id="@+id/btnEdit"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/btn_rounded_action"
+            android:src="@android:drawable/ic_menu_edit"
+            android:tint="#FFFFFF"
+            android:contentDescription="Edit Form" />
 
     </LinearLayout>
 
