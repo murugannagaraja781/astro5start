@@ -135,17 +135,7 @@ initFcmAuth();
 
 const app = express();
 const server = http.createServer(app);
-// FIX: Add CORS config to Socket.IO - required for mobile client connections
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-    credentials: true
-  },
-  transports: ["websocket", "polling"],
-  pingTimeout: 60000,
-  pingInterval: 25000
-});
+const io = new Server(server);
 const cors = require("cors");
 const compression = require('compression');
 
@@ -554,7 +544,8 @@ app.get('/api/user/:userId', async (req, res) => {
       walletBalance: user.walletBalance,
       isOnline: user.isOnline,
       totalEarnings: user.totalEarnings || 0,
-      image: user.image
+      image: user.image,
+      intakeDetails: user.intakeDetails || null
     });
   } catch (err) {
     res.status(500).json({ ok: false, error: 'Internal Error' });
@@ -1219,6 +1210,9 @@ io.on('connection', (socket) => {
         userSockets.set(userId, socket.id);
         socketToUser.set(socket.id, userId);
 
+        // Join a room with the User ID for robust targeting (handles reconnects better)
+        socket.join(userId);
+
         if (typeof cb === 'function') cb({
           ok: true,
           userId: user.userId,
@@ -1280,15 +1274,8 @@ io.on('connection', (socket) => {
   async function broadcastAstroUpdate() {
     try {
       const astros = await User.find({ role: 'astrologer' });
-      // Map to plain objects and inject strict 'isBusy' status
-      const mappedAstros = astros.map(a => {
-        const doc = a.toObject();
-        // Check if user is in an active session (map stores userId -> sessionId)
-        doc.isBusy = userActiveSession.has(doc.userId);
-        return doc;
-      });
-      io.emit('astrologers-list-update', mappedAstros);
-    } catch (e) { console.error('broadcastAstroUpdate error', e); }
+      io.emit('astrologer-update', astros);
+    } catch (e) { }
   }
 
   // --- Get Astrologers List ---
@@ -1332,41 +1319,24 @@ io.on('connection', (socket) => {
     if (!userId) return;
 
     try {
+      const update = {};
       const isEnabled = !!data.isEnabled;
 
-      // Update in-memory status for background/foreground restore
-      const statusMap = savedAstroStatus.get(userId) || { chat: false, audio: false, video: false };
-      if (data.service === 'chat') statusMap.chat = isEnabled;
-      if (data.service === 'call' || data.service === 'audio') statusMap.audio = isEnabled;
-      if (data.service === 'video') statusMap.video = isEnabled;
-      statusMap.timestamp = Date.now();
-      savedAstroStatus.set(userId, statusMap);
-
-      const update = {};
       if (data.service === 'chat') update.isChatOnline = isEnabled;
-      if (data.service === 'call' || data.service === 'audio') update.isAudioOnline = isEnabled;
+      if (data.service === 'call' || data.service === 'audio') update.isAudioOnline = isEnabled; // 'call' or 'audio' maps to 'audio'
       if (data.service === 'video') update.isVideoOnline = isEnabled;
 
       let user = await User.findOne({ userId });
       if (user) {
         Object.assign(user, update);
-        // Recalculate global online status based on current map state
-        const isAnyOnline = statusMap.chat || statusMap.audio || statusMap.video;
-
-        user.isOnline = isAnyOnline;
+        // Recalculate global online status
+        user.isOnline = user.isChatOnline || user.isAudioOnline || user.isVideoOnline;
         user.isAvailable = user.isOnline;
         user.lastSeen = new Date();
         await user.save();
 
-        // Broadcast to all clients explicitly
-        io.emit('astrologer-update', {
-          userId,
-          ...update,
-          isOnline: isAnyOnline
-        });
-
-        // broadcastAstroUpdate(); // Redundant if we emit above, but harmless
-        console.log(`[Service Status] ${user.name} updated ${data.service}: ${isEnabled} => Online: ${isAnyOnline}`);
+        broadcastAstroUpdate();
+        console.log(`[Service Status] ${user.name} updated ${data.service}: ${isEnabled}`);
       }
     } catch (e) { console.error('update-service-status error:', e); }
   });
@@ -1494,25 +1464,6 @@ io.on('connection', (socket) => {
       // if (!isAvailable) {
       //   return cb({ ok: false, error: 'Astrologer is offline' });
       // }
-
-      // --- BUSY CHECK ---
-      if (userActiveSession.has(toUserId)) {
-        const existingSessionId = userActiveSession.get(toUserId);
-        const existingSession = activeSessions.get(existingSessionId);
-
-        if (!existingSession) {
-          // Ghost session cleanup
-          console.log(`[Session] Ghost session ${existingSessionId} detected for ${toUserId}. Auto-cleaning.`);
-          userActiveSession.delete(toUserId);
-        }
-        else if (existingSession.users.includes(fromUserId)) {
-          // Same caller retrying - allow (maybe a reconnect attempt)
-          console.log(`[Session] Re-connect attempt to ${existingSessionId} from ${fromUserId}`);
-        } else {
-          // Genuine Busy
-          return cb({ ok: false, error: 'User is busy' });
-        }
-      }
 
       if (userActiveSession.has(toUserId)) {
         const existingSessionId = userActiveSession.get(toUserId);
@@ -1677,38 +1628,24 @@ io.on('connection', (socket) => {
       const { sessionId, toUserId, type, accept } = data || {};
       const fromUserId = socketToUser.get(socket.id);
       if (!fromUserId || !sessionId || !toUserId) {
-        console.log(`[answer-session] Invalid data: fromUserId=${fromUserId}, sessionId=${sessionId}, toUserId=${toUserId}`);
+        console.warn(`[Session] answer-session missing data: from=${fromUserId}, session=${sessionId}, to=${toUserId}`);
         return;
-      }
-
-      const targetSocketId = userSockets.get(toUserId);
-
-      // FIX: Log when client socket not found - helps debug connection issues
-      if (!targetSocketId) {
-        console.warn(`[answer-session] Client socket NOT FOUND for ${toUserId}. Client may have disconnected.`);
-        // Still process the session answer even if can't notify client
       }
 
       if (!accept) {
         endSessionRecord(sessionId);
-      } else {
-        userActiveSession.set(fromUserId, sessionId);
-        userActiveSession.set(toUserId, sessionId);
       }
 
-      // Only emit if target socket exists
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('session-answered', {
-          sessionId,
-          fromUserId,
-          type,
-          accept: !!accept,
-        });
-        console.log(`[answer-session] ✅ Emitted session-answered to client ${toUserId}`);
-      }
+      // Emit to the User ID room (more reliable than single socket ID)
+      io.to(toUserId).emit('session-answered', {
+        sessionId,
+        fromUserId,
+        type,
+        accept: !!accept,
+      });
 
       console.log(
-        `Session answer: sessionId=${sessionId}, type=${type}, from=${fromUserId}, to=${toUserId}, accept=${!!accept}, clientConnected=${!!targetSocketId}`
+        `[Session] Answered: sessionId=${sessionId}, type=${type}, from=${fromUserId}, to=${toUserId}, accept=${!!accept}`
       );
     } catch (err) {
       console.error('answer-session error', err);
@@ -1740,9 +1677,7 @@ io.on('connection', (socket) => {
         const targetSocketId = userSockets.get(fromUserId);
 
         if (accept) {
-          userActiveSession.set(astrologerId, sessionId);
-          userActiveSession.set(fromUserId, sessionId);
-
+          // Notify caller that call was accepted
           if (targetSocketId) {
             io.to(targetSocketId).emit('session-answered', {
               sessionId,
@@ -1755,6 +1690,7 @@ io.on('connection', (socket) => {
           console.log(`[Native] Call accepted - Session: ${sessionId}, From: ${fromUserId}, To: ${astrologerId}`);
           if (typeof cb === 'function') cb({ ok: true, fromUserId });
         } else {
+          // Call rejected
           if (targetSocketId) {
             io.to(targetSocketId).emit('session-answered', {
               sessionId,
@@ -1771,30 +1707,24 @@ io.on('connection', (socket) => {
 
       // Session found in memory
       const fromUserId = session.users.find(u => u !== astrologerId);
-      const targetSocketId = userSockets.get(fromUserId);
 
       if (accept) {
-        userActiveSession.set(astrologerId, sessionId);
-        userActiveSession.set(fromUserId, sessionId);
+        // Emit to Room (Fixes reconnection issues)
+        io.to(fromUserId).emit('session-answered', {
+          sessionId,
+          fromUserId: astrologerId,
+          type: callType || session.type, // Use session type if not provided
+          accept: true
+        });
 
-        if (targetSocketId) {
-          io.to(targetSocketId).emit('session-answered', {
-            sessionId,
-            fromUserId: astrologerId,
-            type: callType || session.type,
-            accept: true
-          });
-        }
         console.log(`[Native] Call accepted - Session: ${sessionId}, Caller: ${fromUserId}, Astro: ${astrologerId}`);
         if (typeof cb === 'function') cb({ ok: true, fromUserId });
       } else {
-        if (targetSocketId) {
-          io.to(targetSocketId).emit('session-answered', {
-            sessionId,
-            fromUserId: astrologerId,
-            accept: false
-          });
-        }
+        io.to(fromUserId).emit('session-answered', {
+          sessionId,
+          fromUserId: astrologerId,
+          accept: false
+        });
         endSessionRecord(sessionId);
         console.log(`[Native] Call rejected - Session: ${sessionId}`);
         if (typeof cb === 'function') cb({ ok: true });
@@ -1836,43 +1766,20 @@ io.on('connection', (socket) => {
 
       const session = activeSessions.get(sessionId);
       if (session) {
-        // Calculate Summary details (similar to forceEndSession)
-        const summary = {
-          deducted: session.totalDeducted || 0,
-          earned: session.totalEarned || 0,
-          duration: session.elapsedBillableSeconds || 0
-        };
+        // Find partner
+        const partnerId = session.users.find(u => u !== fromUserId);
+        const partnerSocketId = userSockets.get(partnerId);
 
-        const payload = {
-          sessionId,
-          reason: 'user_ended',
-          summary
-        };
-
-        // Notify BOTH parties
-        session.users.forEach(uid => {
-          const sId = userSockets.get(uid);
-          if (sId) io.to(sId).emit('session-ended', payload);
-        });
+        if (partnerSocketId) {
+          io.to(partnerSocketId).emit('session-ended', {
+            sessionId,
+            reason: 'partner_ended'
+          });
+        }
       }
 
       endSessionRecord(sessionId);
-
-      // Cleanup Busy Status
-      // endSessionRecord removes it from activeSessions, but we track busy state in userActiveSession
-      const sessionData = activeSessions.get(sessionId); // might be gone if endSessionRecord deletes it?
-      // Actually endSessionRecord removes it from map? Let's check endSessionRecord implementation if needed.
-      // But assuming userActiveSession needs clearing:
-      if (session) {
-        session.users.forEach(uid => userActiveSession.delete(uid));
-      } else {
-        userActiveSession.delete(fromUserId);
-      }
-
       console.log(`[Session] Ended by ${fromUserId}: ${sessionId}`);
-
-      // Broadcast 'Free' status
-      broadcastAstroUpdate();
 
     } catch (e) { console.error('end-session error', e); }
   });
@@ -1937,51 +1844,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // --- Fetch Chat History ---
-  socket.on('get-chat-messages', async (data, callback) => {
-    try {
-      const { toUserId, partnerId } = data || {};
-      const targetUserId = toUserId || partnerId;
-      const fromUserId = socketToUser.get(socket.id);
-
-      if (!fromUserId || !targetUserId) {
-        if (typeof callback === 'function') callback({ ok: false, messages: [] });
-        return;
-      }
-
-      console.log(`Fetching history between ${fromUserId} and ${targetUserId}`);
-
-      const messages = await ChatMessage.find({
-        $or: [
-          { fromUserId: fromUserId, toUserId: targetUserId },
-          { fromUserId: targetUserId, toUserId: fromUserId }
-        ]
-      })
-        .sort({ timestamp: 1 })
-        .limit(100);
-
-      // Map to consistent format
-      const formattedMessages = messages.map(msg => ({
-        messageId: msg._id.toString(), // Use DB ID as fallback
-        fromUserId: msg.fromUserId,
-        toUserId: msg.toUserId,
-        text: msg.text, // Old format support
-        content: msg.text ? { text: msg.text } : msg.content, // Ensure content structure
-        timestamp: msg.timestamp,
-        sessionId: msg.sessionId
-      }));
-
-      console.log(`Found ${formattedMessages.length} messages`);
-
-      if (typeof callback === 'function') {
-        callback({ ok: true, messages: formattedMessages });
-      }
-    } catch (err) {
-      console.error('get-chat-messages error', err);
-      if (typeof callback === 'function') callback({ ok: false, messages: [] });
-    }
-  });
-
   // --- Helper: Send Chat Push ---
   async function sendChatPush(toUserId, fromUserId, messageText, sessionId) {
     try {
@@ -2009,7 +1871,31 @@ io.on('connection', (socket) => {
     } catch (e) { console.error('Chat Push Error:', e); }
   }
 
-  // --- Get History ---
+  // --- Get Message History (Specific Partner) ---
+  socket.on('get-chat-messages', async (data, cb) => {
+    try {
+      const { partnerId } = data || {};
+      const userId = socketToUser.get(socket.id);
+      if (!userId || !partnerId) return cb({ ok: false, error: 'Missing Data' });
+
+      // Fetch messages between these two users
+      const messages = await ChatMessage.find({
+        $or: [
+          { fromUserId: userId, toUserId: partnerId },
+          { fromUserId: partnerId, toUserId: userId }
+        ]
+      })
+        .sort({ timestamp: 1 }) // Oldest first
+        .limit(100); // Last 100 messages
+
+      cb({ ok: true, messages });
+    } catch (e) {
+      console.error('get-chat-messages error', e);
+      cb({ ok: false, error: 'Internal Error' });
+    }
+  });
+
+  // --- Get History (Sessions) ---
   socket.on('get-history', async (cb) => {
     try {
       const userId = socketToUser.get(socket.id);
@@ -2025,31 +1911,6 @@ io.on('connection', (socket) => {
 
       cb({ ok: true, sessions });
     } catch (e) { console.error(e); cb({ ok: false }); }
-  });
-
-  // --- Get Chat Messages (History between two users) ---
-  socket.on('get-chat-messages', async (data, cb) => {
-    try {
-      const { partnerId } = data || {};
-      const userId = socketToUser.get(socket.id);
-
-      if (!userId || !partnerId) {
-        return cb && cb({ ok: false, error: 'Missing params' });
-      }
-
-      const messages = await ChatMessage.find({
-        $or: [
-          { fromUserId: userId, toUserId: partnerId },
-          { fromUserId: partnerId, toUserId: userId }
-        ]
-      }).sort({ timestamp: 1 }).limit(100); // Limit 100 for performance
-
-      cb && cb({ ok: true, messages });
-
-    } catch (e) {
-      console.error('get-chat-messages error', e);
-      cb && cb({ ok: false, error: e.message });
-    }
   });
 
   // --- Receiver: delivered ack ---
@@ -2101,51 +1962,6 @@ io.on('connection', (socket) => {
         isTyping: !!isTyping,
       });
     } catch (err) { console.error('typing error', err); }
-  });
-
-  // --- Stop Typing Indicator ---
-  socket.on('stop-typing', (data) => {
-    try {
-      const { toUserId } = data || {};
-      const fromUserId = socketToUser.get(socket.id);
-      if (!fromUserId || !toUserId) return;
-
-      const targetSocketId = userSockets.get(toUserId);
-      if (!targetSocketId) return;
-
-      io.to(targetSocketId).emit('stop-typing', {
-        fromUserId
-      });
-    } catch (err) { console.error('stop-typing error', err); }
-  });
-
-  // --- Update Intake (Live Consultation Form Update) ---
-  socket.on('update-intake', (data) => {
-    try {
-      const { sessionId, birthData } = data || {};
-      const fromUserId = socketToUser.get(socket.id);
-
-      if (!fromUserId || !sessionId) return;
-
-      // Find the other user in session
-      const session = activeSessions.get(sessionId);
-      if (!session) return;
-
-      const partnerId = session.users.find(u => u !== fromUserId);
-      if (!partnerId) return;
-
-      const targetSocketId = userSockets.get(partnerId);
-      if (!targetSocketId) return;
-
-      // Relay the updated data to partner
-      io.to(targetSocketId).emit('intake-updated', {
-        sessionId,
-        fromUserId,
-        birthData
-      });
-
-      console.log(`[Intake] Client ${fromUserId} updated intake -> sent to ${partnerId}`);
-    } catch (err) { console.error('update-intake error', err); }
   });
 
   // --- Phase 1: Connection & Billing Start ---
