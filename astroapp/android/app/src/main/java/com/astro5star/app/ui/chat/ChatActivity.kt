@@ -162,8 +162,52 @@ class ChatActivity : AppCompatActivity() {
             }
         }
 
+        // Billing Started - Show indicator when billing begins
+        viewModel.billingStarted.observe(this) { started ->
+            if (started) {
+                tvSessionTimer.setTextColor(android.graphics.Color.parseColor("#EF4444"))
+                Toast.makeText(this, "🔴 Billing Active", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Session Summary - Show deducted/earned amounts on chat end
+        viewModel.sessionSummary.observe(this) { summary ->
+            // Stop timer
+            timerHandler.removeCallbacks(timerRunnable)
+
+            // Format duration
+            val minutes = summary.duration / 60
+            val seconds = summary.duration % 60
+            val durationStr = String.format("%02d:%02d", minutes, seconds)
+
+            val role = TokenManager(this).getUserSession()?.role
+
+            // Show summary dialog
+            val message = when {
+                role == "astrologer" -> {
+                    "Duration: $durationStr\n\nYou earned: ₹${String.format("%.2f", summary.earned)}"
+                }
+                summary.reason == "insufficient_funds" -> {
+                    "Chat ended due to insufficient balance.\n\nDuration: $durationStr\nDeducted: ₹${String.format("%.2f", summary.deducted)}"
+                }
+                else -> {
+                    "Duration: $durationStr\nDeducted: ₹${String.format("%.2f", summary.deducted)}"
+                }
+            }
+
+            SoundManager.playEndChatSound()
+
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(if (summary.reason == "insufficient_funds") "⚠️ Low Balance" else "💬 Chat Summary")
+                .setMessage(message)
+                .setPositiveButton("OK") { _, _ -> finish() }
+                .setCancelable(false)
+                .show()
+        }
+
         viewModel.sessionEnded.observe(this) { ended ->
-            if (ended) {
+            // Only show Toast if sessionSummary wasn't already handled
+            if (ended && viewModel.sessionSummary.value == null) {
                 SoundManager.playEndChatSound()
                 Toast.makeText(this, "Chat Ended by Partner", Toast.LENGTH_SHORT).show()
                 finish()

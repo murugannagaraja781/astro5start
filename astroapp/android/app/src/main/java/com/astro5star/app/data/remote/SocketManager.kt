@@ -138,6 +138,47 @@ object SocketManager {
         }
     }
 
+    /**
+     * Listen for session-ended with summary data (deducted, earned, duration)
+     * This provides better billing feedback to the user
+     */
+    fun onSessionEndedWithSummary(listener: (reason: String, deducted: Double, earned: Double, duration: Int) -> Unit) {
+        socket?.off("session-ended") // Remove existing listener
+        socket?.on("session-ended") { args ->
+            var reason = "ended"
+            var deducted = 0.0
+            var earned = 0.0
+            var duration = 0
+
+            if (args != null && args.isNotEmpty()) {
+                val data = args[0] as? JSONObject
+                reason = data?.optString("reason", "ended") ?: "ended"
+                val summary = data?.optJSONObject("summary")
+                if (summary != null) {
+                    deducted = summary.optDouble("deducted", 0.0)
+                    earned = summary.optDouble("earned", 0.0)
+                    duration = summary.optInt("duration", 0)
+                }
+            }
+            listener(reason, deducted, earned, duration)
+        }
+    }
+
+    /**
+     * Listen for billing-started event when both parties connect
+     * This indicates when the billable session actually begins
+     */
+    fun onBillingStarted(listener: (startTime: Long) -> Unit) {
+        socket?.on("billing-started") { args ->
+            if (args != null && args.isNotEmpty()) {
+                val data = args[0] as? JSONObject
+                val startTime = data?.optLong("startTime", System.currentTimeMillis()) ?: System.currentTimeMillis()
+                Log.d(TAG, "Billing started at: $startTime")
+                listener(startTime)
+            }
+        }
+    }
+
     fun onWalletUpdate(listener: (Double) -> Unit) {
         socket?.on("wallet-update") { args ->
             if (args != null && args.isNotEmpty()) {

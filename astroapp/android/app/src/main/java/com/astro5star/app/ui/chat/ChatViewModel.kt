@@ -5,9 +5,18 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.astro5star.app.data.repository.ChatRepository
+import com.astro5star.app.data.remote.SocketManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+
+// Data class for session summary
+data class SessionSummary(
+    val reason: String,
+    val deducted: Double,
+    val earned: Double,
+    val duration: Int
+)
 
 class ChatViewModel : ViewModel() {
 
@@ -24,6 +33,13 @@ class ChatViewModel : ViewModel() {
 
     private val _sessionEnded = MutableLiveData<Boolean>()
     val sessionEnded: LiveData<Boolean> = _sessionEnded
+
+    // Billing Events
+    private val _billingStarted = MutableLiveData<Boolean>()
+    val billingStarted: LiveData<Boolean> = _billingStarted
+
+    private val _sessionSummary = MutableLiveData<SessionSummary>()
+    val sessionSummary: LiveData<SessionSummary> = _sessionSummary
 
     fun sendMessage(data: JSONObject) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -64,13 +80,13 @@ class ChatViewModel : ViewModel() {
     fun joinSession(sessionId: String) {
         viewModelScope.launch(Dispatchers.IO) {
              val payload = JSONObject().apply { put("sessionId", sessionId) }
-             com.astro5star.app.data.remote.SocketManager.getSocket()?.emit("session-connect", payload)
+             SocketManager.getSocket()?.emit("session-connect", payload)
         }
     }
 
     fun endSession(sessionId: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            com.astro5star.app.data.remote.SocketManager.endSession(sessionId)
+            SocketManager.endSession(sessionId)
         }
     }
 
@@ -95,12 +111,22 @@ class ChatViewModel : ViewModel() {
             _typingStatus.postValue(false)
         }
 
-        repository.listenSessionEnded {
+        // Billing Started Listener
+        SocketManager.onBillingStarted { startTime ->
+            _billingStarted.postValue(true)
+        }
+
+        // Session Ended with Summary
+        SocketManager.onSessionEndedWithSummary { reason, deducted, earned, duration ->
+            _sessionSummary.postValue(SessionSummary(reason, deducted, earned, duration))
             _sessionEnded.postValue(true)
         }
     }
 
     fun stopListeners() {
         repository.removeListeners()
+        SocketManager.off("billing-started")
+        // session-ended is handled by onSessionEndedWithSummary which removes the old listener
     }
 }
+

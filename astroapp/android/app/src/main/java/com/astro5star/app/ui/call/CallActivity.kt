@@ -278,9 +278,26 @@ class CallActivity : AppCompatActivity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        // Simply retry startCallLimit if mostly granted. detailed check omitted for brevity.
+
         if (requestCode == PERMISSION_REQ_CODE) {
-             startCallLimit()
+             var allGranted = true
+             if (grantResults.isNotEmpty()) {
+                 for (result in grantResults) {
+                     if (result != PackageManager.PERMISSION_GRANTED) {
+                         allGranted = false
+                         break
+                     }
+                 }
+             } else {
+                 allGranted = false
+             }
+
+             if (allGranted) {
+                 startCallLimit()
+             } else {
+                 Toast.makeText(this, "Permissions required for call", Toast.LENGTH_LONG).show()
+                 finish() // End call if permissions denied
+             }
         }
     }
 
@@ -371,20 +388,38 @@ class CallActivity : AppCompatActivity() {
         localAudioTrack = peerConnectionFactory.createAudioTrack("101", audioSource)
 
         if (callType == "video") {
-            videoCapturer = createCameraCapturer(Camera2Enumerator(this))
+            // Try Camera2 first, then Camera1
+            videoCapturer = try {
+                createCameraCapturer(Camera2Enumerator(this))
+            } catch (e: Exception) {
+                Log.e(TAG, "Camera2Enumerator failed, trying Camera1Enumerator", e)
+                try {
+                    createCameraCapturer(Camera1Enumerator(true))
+                } catch (e1: Exception) {
+                    Log.e(TAG, "Camera1Enumerator failed too", e1)
+                    null
+                }
+            }
+
             if (videoCapturer != null) {
-                val surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", eglBase.eglBaseContext)
-                val videoSource = peerConnectionFactory.createVideoSource(videoCapturer!!.isScreencast)
-                videoCapturer!!.initialize(surfaceTextureHelper, this, videoSource.capturerObserver)
+                try {
+                    val surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", eglBase.eglBaseContext)
+                    val videoSource = peerConnectionFactory.createVideoSource(videoCapturer!!.isScreencast)
+                    videoCapturer!!.initialize(surfaceTextureHelper, this, videoSource.capturerObserver)
 
-                // Start camera capture with higher resolution for better quality
-                videoCapturer!!.startCapture(1280, 720, 30)
-                Log.d(TAG, "Camera capturer started: 1280x720 @30fps")
+                    // Use 640x480 (VGA) which is guaranteed to be supported.
+                    // 720p (1280x720) causes failures on many front cameras.
+                    videoCapturer!!.startCapture(640, 480, 30)
+                    Log.d(TAG, "Camera capturer started: 640x480 @30fps")
 
-                localVideoTrack = peerConnectionFactory.createVideoTrack("100", videoSource)
-                localVideoTrack?.setEnabled(true)  // Ensure video track is enabled
-                localVideoTrack?.addSink(localView)
-                Log.d(TAG, "Local video track created and added to local view")
+                    localVideoTrack = peerConnectionFactory.createVideoTrack("100", videoSource)
+                    localVideoTrack?.setEnabled(true)  // Ensure video track is enabled
+                    localVideoTrack?.addSink(localView)
+                    Log.d(TAG, "Local video track created and added to local view")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to start camera capture", e)
+                    Toast.makeText(this, "Failed to start camera: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             } else {
                 Log.e(TAG, "ERROR: Could not create camera capturer!")
                 Toast.makeText(this, "Camera not available", Toast.LENGTH_SHORT).show()
@@ -483,10 +518,53 @@ class CallActivity : AppCompatActivity() {
             } catch (e: Exception) { e.printStackTrace() }
         }
 
-        SocketManager.onSessionEnded {
+        // Billing Started - Show indicator when billing begins
+        SocketManager.onBillingStarted { startTime ->
             runOnUiThread {
-                Toast.makeText(this, "Call Ended", Toast.LENGTH_SHORT).show()
-                finish()
+                val billingIndicator = findViewById<TextView>(R.id.tvCallStatus)
+                billingIndicator?.text = "🔴 Billing Active"
+                billingIndicator?.visibility = View.VISIBLE
+                billingIndicator?.setTextColor(android.graphics.Color.parseColor("#EF4444"))
+
+                // Auto-hide after 3 seconds
+                billingIndicator?.postDelayed({
+                    billingIndicator.visibility = View.GONE
+                }, 3000)
+
+                Log.d(TAG, "Billing started - Session is now billable")
+            }
+        }
+
+        // Session Ended with Summary - Show deducted/earned amounts
+        SocketManager.onSessionEndedWithSummary { reason, deducted, earned, duration ->
+            runOnUiThread {
+                // Stop timer
+                timerHandler.removeCallbacks(timerRunnable)
+
+                // Format duration
+                val minutes = duration / 60
+                val seconds = duration % 60
+                val durationStr = String.format("%02d:%02d", minutes, seconds)
+
+                // Show summary dialog
+                val message = when {
+                    session?.role == "astrologer" -> {
+                        "Duration: $durationStr\n\nYou earned: ₹${String.format("%.2f", earned)}"
+                    }
+                    reason == "insufficient_funds" -> {
+                        "Call ended due to insufficient balance.\n\nDuration: $durationStr\nDeducted: ₹${String.format("%.2f", deducted)}"
+                    }
+                    else -> {
+                        "Duration: $durationStr\nDeducted: ₹${String.format("%.2f", deducted)}"
+                    }
+                }
+
+                androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle(if (reason == "insufficient_funds") "⚠️ Low Balance" else "📞 Call Summary")
+                    .setMessage(message)
+                    .setPositiveButton("OK") { _, _ -> finish() }
+                    .setCancelable(false)
+                    .show()
             }
         }
 
@@ -619,6 +697,7 @@ class CallActivity : AppCompatActivity() {
         timerHandler.removeCallbacks(timerRunnable) // Stop Timer
         SocketManager.off("signal")
         SocketManager.off("session-ended")
+        SocketManager.off("billing-started")
         SocketManager.off("client-birth-chart")
         SocketManager.getSocket()?.off(io.socket.client.Socket.EVENT_DISCONNECT)
         try {
@@ -633,18 +712,27 @@ class CallActivity : AppCompatActivity() {
 
     private fun createCameraCapturer(enumerator: CameraEnumerator): VideoCapturer? {
         val deviceNames = enumerator.deviceNames
+        Log.d(TAG, "Looking for front facing camera from ${deviceNames.size} devices")
+
+        // 1. Try to find front facing camera
         for (deviceName in deviceNames) {
             if (enumerator.isFrontFacing(deviceName)) {
+                Log.d(TAG, "Creating capturer for front facing device: $deviceName")
                 val capturer = enumerator.createCapturer(deviceName, null)
                 if (capturer != null) return capturer
             }
         }
+
+        // 2. Fallback to back facing camera if front not found (rare but possible on some devices)
         for (deviceName in deviceNames) {
             if (!enumerator.isFrontFacing(deviceName)) {
+                Log.d(TAG, "Creating capturer for back facing device: $deviceName")
                 val capturer = enumerator.createCapturer(deviceName, null)
                 if (capturer != null) return capturer
             }
         }
+
+        Log.e(TAG, "No camera found!")
         return null
     }
 
