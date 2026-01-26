@@ -39,7 +39,7 @@ class ChatActivity : AppCompatActivity() {
     private var typingHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var isTyping = false;
     private lateinit var tvChatTitle: TextView
-    private lateinit var tvTypingStatus: TextView
+    private lateinit var cvTypingBubble: View // Changed from TextView to View (CardView)
     private lateinit var tvSessionTimer: TextView
 
     // Timer
@@ -113,6 +113,13 @@ class ChatActivity : AppCompatActivity() {
         }
 
         setupContent()
+
+        // Auto-accept if new request
+        val isNewRequest = intent?.getBooleanExtra("isNewRequest", false) == true
+        if (isNewRequest && sessionId != null && toUserId != null) {
+            SoundManager.playAcceptSound()
+            viewModel.acceptSession(sessionId!!, toUserId!!)
+        }
     }
 
     private fun setupObservers() {
@@ -140,7 +147,19 @@ class ChatActivity : AppCompatActivity() {
         }
 
         viewModel.typingStatus.observe(this) { isTyping ->
-            tvTypingStatus.visibility = if (isTyping) View.VISIBLE else View.GONE
+            if (isTyping) {
+                if (cvTypingBubble.visibility != View.VISIBLE) {
+                     cvTypingBubble.alpha = 0f
+                     cvTypingBubble.visibility = View.VISIBLE
+                     cvTypingBubble.animate().alpha(1f).setDuration(300).start()
+                }
+            } else {
+                if (cvTypingBubble.visibility == View.VISIBLE) {
+                    cvTypingBubble.animate().alpha(0f).setDuration(300).withEndAction {
+                        cvTypingBubble.visibility = View.GONE
+                    }.start()
+                }
+            }
         }
     }
 
@@ -153,7 +172,7 @@ class ChatActivity : AppCompatActivity() {
             val btnChart = findViewById<android.widget.ImageButton>(R.id.btnChart)
             val btnEditIntake = findViewById<android.widget.ImageButton>(R.id.btnEditIntake)
             tvChatTitle = findViewById(R.id.tvChatTitle)
-            tvTypingStatus = findViewById(R.id.tvTypingStatus)
+            cvTypingBubble = findViewById(R.id.cvTypingBubble) // Updated ID
             tvSessionTimer = findViewById(R.id.tvSessionTimer)
 
             timerHandler.post(timerRunnable)

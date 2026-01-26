@@ -71,10 +71,19 @@ class ChatRepository {
         }
     }
 
+    fun acceptSession(sessionId: String, toUserId: String) {
+        val payload = JSONObject().apply {
+            put("sessionId", sessionId)
+            put("toUserId", toUserId)
+            put("accept", true)
+        }
+        socket?.emit("answer-session", payload)
+
+        val connectPayload = JSONObject().apply { put("sessionId", sessionId) }
+        socket?.emit("session-connect", connectPayload)
+    }
+
     fun removeListeners() {
-        socket?.off("chat-message")
-        socket?.off("message-status")
-        socket?.off("typing")
-        socket?.off("stop-typing")
+        SocketManager.removeChatListeners()
     }
 }

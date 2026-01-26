@@ -34,15 +34,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"/>
 
-            <TextView
-                android:id="@+id/tvTypingStatus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Typing..."
-                android:textColor="#E0E0E0"
-                android:textSize="12sp"
-                android:fontFamily="sans-serif"
-                android:visibility="gone"/>
+             <!-- Typing status removed from here -->
         </LinearLayout>
 
         <Button
@@ -87,6 +79,48 @@
             android:scaleType="centerInside"/>
 
     </RelativeLayout>
+
+    <!-- Typing Indicator Bubble - Floating above Input -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cvTypingBubble"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/layoutInput"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone"
+        app:cardCornerRadius="16dp"
+        app:cardBackgroundColor="#2C3E50"
+        app:cardElevation="2dp"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+
+            <ProgressBar
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:indeterminate="true"
+                android:indeterminateTint="@color/brand_gold"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Typing..."
+                android:textColor="#B0B0B0"
+                android:textSize="12sp"
+                android:layout_marginStart="8dp"
+                android:textStyle="italic"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerChat"

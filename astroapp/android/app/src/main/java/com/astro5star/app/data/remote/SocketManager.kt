@@ -208,4 +208,11 @@ object SocketManager {
         socket?.disconnect()
         socket = null
     }
+
+    fun removeChatListeners() {
+        socket?.off("chat-message")
+        socket?.off("message-status")
+        socket?.off("typing")
+        socket?.off("stop-typing")
+    }
 }

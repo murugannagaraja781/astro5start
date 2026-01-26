@@ -52,6 +52,12 @@ class ChatViewModel : ViewModel() {
         }
     }
 
+    fun acceptSession(sessionId: String, toUserId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.acceptSession(sessionId, toUserId)
+        }
+    }
+
     fun startListeners() {
         repository.listenIncoming { data ->
             val content = data.getJSONObject("content")

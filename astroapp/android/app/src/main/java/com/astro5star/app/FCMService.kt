@@ -109,15 +109,52 @@ class FCMService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
         Log.d(TAG, "FCM message received from: ${message.from}")
-        Log.d(TAG, "Message data: ${message.data}")
 
-        val data = message.data
-        val messageType = data["type"]
+        // Check if message contains a data payload.
+        if (message.data.isNotEmpty()) {
+            val data = message.data
+            val messageType = data["type"] ?: "UNKNOWN"
 
-        when (messageType) {
-            "INCOMING_CALL" -> handleIncomingCall(data)
-            else -> Log.w(TAG, "Unknown message type: $messageType")
+            Log.d(TAG, "Data Payload: $data, Type: $messageType")
+
+            when (messageType) {
+                "INCOMING_CALL" -> handleIncomingCall(data)
+                "INCOMING_CHAT" -> {
+                    val callerName = data["callerName"] ?: data["title"] ?: "New Client"
+                    val callerId = data["callerId"] ?: data["userId"] ?: "unknown_user"
+                    val sessionId = data["sessionId"] ?: ""
+                    handleIncomingChat(callerName, callerId, sessionId)
+                }
+                else -> {
+                    // Handle generic data messages or unknown types by showing a simple notification
+                    val title = data["title"] ?: message.notification?.title ?: "Astro5Star"
+                    val body = data["body"] ?: message.notification?.body ?: "New Message"
+                    showGenericNotification(title, body)
+                }
+            }
         }
+
+        // Check if message contains a notification payload.
+        message.notification?.let {
+            Log.d(TAG, "Message Notification Body: ${it.body}")
+            // If we haven't processed it as data already (data payload usually takes precedence for functionality)
+            if (message.data.isEmpty()) {
+                 showGenericNotification(it.title ?: "Astro5Star", it.body ?: "New Notification")
+            }
+        }
+    }
+
+    private fun showGenericNotification(title: String, body: String) {
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .build()
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
     }
 
     /**

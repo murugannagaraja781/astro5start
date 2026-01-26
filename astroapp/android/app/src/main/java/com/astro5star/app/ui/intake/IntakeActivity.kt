@@ -221,12 +221,17 @@ class IntakeActivity : AppCompatActivity() {
     }
 
     private fun loadIntakeDetails() {
-        // Reduced for brevity - existing logic can stay, just add new fields if needed
-        // Assuming user fills form each time or we persist complex data later
-        // Let's reimplement standard load
         val prefs = getSharedPreferences("AstroIntakeDefaults", MODE_PRIVATE)
-        findViewById<EditText>(R.id.etName).setText(prefs.getString("name", ""))
+        val name = prefs.getString("name", "")
+
+        if (name.isNullOrEmpty()) {
+            fillDummyData()
+            return
+        }
+
+        findViewById<EditText>(R.id.etName).setText(name)
         etPlace.setText(prefs.getString("place", ""))
+        findViewById<EditText>(R.id.etOccupation).setText(prefs.getString("occupation", ""))
 
         selectedLatitude = prefs.getFloat("latitude", 0f).toDouble().takeIf { it != 0.0 }
         selectedLongitude = prefs.getFloat("longitude", 0f).toDouble().takeIf { it != 0.0 }
@@ -243,17 +248,54 @@ class IntakeActivity : AppCompatActivity() {
         val minute = prefs.getInt("minute", -1)
          if (minute >= 0) findViewById<EditText>(R.id.etMinute).setText(minute.toString())
 
-        // Simple gender
          val gender = prefs.getString("gender", "Male")
         if (gender == "Female") findViewById<RadioButton>(R.id.rbFemale).isChecked = true
         else findViewById<RadioButton>(R.id.rbMale).isChecked = true
+
+        // Spinners (Simple string selection)
+        val marital = prefs.getString("maritalStatus", "Single")
+        setSpinnerSelection(findViewById(R.id.spMaritalStatus), marital)
+
+        val topic = prefs.getString("topic", "General")
+        setSpinnerSelection(findViewById(R.id.spTopic), topic)
+    }
+
+    private fun fillDummyData() {
+        findViewById<EditText>(R.id.etName).setText("Test User")
+        etPlace.setText("New Delhi, India")
+        findViewById<EditText>(R.id.etOccupation).setText("Software Engineer")
+
+        findViewById<EditText>(R.id.etDay).setText("15")
+        findViewById<EditText>(R.id.etMonth).setText("08")
+        findViewById<EditText>(R.id.etYear).setText("1995")
+        findViewById<EditText>(R.id.etHour).setText("10")
+        findViewById<EditText>(R.id.etMinute).setText("30")
+
+        selectedLatitude = 28.6139
+        selectedLongitude = 77.2090
+        selectedTimezone = 5.5
+
+        findViewById<RadioButton>(R.id.rbMale).isChecked = true
+        setSpinnerSelection(findViewById(R.id.spMaritalStatus), "Single")
+        setSpinnerSelection(findViewById(R.id.spTopic), "Career / Job")
+    }
+
+    private fun setSpinnerSelection(spinner: android.widget.Spinner, value: String?) {
+        if (value == null) return
+        val adapter = spinner.adapter
+        for (i in 0 until adapter.count) {
+            if (adapter.getItem(i).toString() == value) {
+                spinner.setSelection(i)
+                break
+            }
+        }
     }
 
     // Stub for existing loadIntakeDetails if I messed up replacement
     // Actually I am replacing the submitForm block mostly and onCreate
     // So let's continue with submitForm
 
-    private fun saveIntakeDetails(name: String, place: String, day: Int, month: Int, year: Int, hour: Int, minute: Int, gender: String) {
+    private fun saveIntakeDetails(name: String, place: String, day: Int, month: Int, year: Int, hour: Int, minute: Int, gender: String, occupation: String, marital: String, topic: String) {
         val prefs = getSharedPreferences("AstroIntakeDefaults", MODE_PRIVATE)
         prefs.edit().apply {
             putString("name", name)
@@ -264,6 +306,9 @@ class IntakeActivity : AppCompatActivity() {
             putInt("hour", hour)
             putInt("minute", minute)
             putString("gender", gender)
+            putString("occupation", occupation)
+            putString("maritalStatus", marital)
+            putString("topic", topic)
             if (selectedLatitude != null) putFloat("latitude", selectedLatitude!!.toFloat())
             if (selectedLongitude != null) putFloat("longitude", selectedLongitude!!.toFloat())
              if (selectedTimezone != null) putFloat("timezone", selectedTimezone!!.toFloat())
@@ -366,7 +411,7 @@ class IntakeActivity : AppCompatActivity() {
              }
         } else {
             // Fallback Local
-            saveIntakeDetails(name, place, day, month, year, hour, minute, gender)
+            saveIntakeDetails(name, place, day, month, year, hour, minute, gender, occupation, marital, topic)
         }
 
         // Send intake details (optional redundancy, but good for saving history before session)
