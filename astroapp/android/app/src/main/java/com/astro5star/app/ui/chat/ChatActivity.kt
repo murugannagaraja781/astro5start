@@ -17,10 +17,13 @@ import com.astro5star.app.R
 import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.data.remote.SocketManager
 import com.astro5star.app.utils.SoundManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.util.UUID
 
-// Status: "sent", "delivered", "read"
 // Status: "sent", "delivered", "read"
 data class ChatMessage(val id: String, val text: String, val isSent: Boolean, var status: String = "sent")
 
@@ -249,14 +252,37 @@ class ChatActivity : AppCompatActivity() {
                 }
             }
 
-            connectSocket()
+            // Removed connectSocket call from here, moving to onResume
+            // if (sessionId != null) fetchChatHistory(sessionId!!)
+            // Fetch history should still happen once or on resume? Let's keep history fetch here for now, or move to onResume if we want fresh data.
+            // For now, let's keep history fetch here as "initial load"
+            if (sessionId != null) fetchChatHistory(sessionId!!)
         } catch (e: Exception) {
              android.util.Log.e("ChatActivity", "setupContent Failed", e)
              Toast.makeText(this, "Chat UI Error", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun connectSocket() {
+    override fun onResume() {
+        super.onResume()
+        registerSocketListeners()
+        // If we are resuming, we should verify connection and perhaps re-join room if needed,
+        // but SocketManager logic handles connection. We definitely need to re-attach listeners.
+
+        // Also mark as read since we are looking at it
+        if (sessionId != null && toUserId != null) {
+             // We can't know the exact messageId to mark read without data,
+             // but we can emit a general "I am reading this session" if backend supports it.
+             // For now, relies on receiving new messages while open.
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        unregisterSocketListeners()
+    }
+
+    private fun registerSocketListeners() {
         SocketManager.init()
         val socket = SocketManager.getSocket()
         val myUserId = TokenManager(this).getUserSession()?.userId
@@ -288,13 +314,24 @@ class ChatActivity : AppCompatActivity() {
 
             // Send Delivered Status back
             if(sessionId != null && toUserId != null) {
-                val statusPayload = JSONObject().apply {
+                // Should potentially check if activity is resumed to send "read" vs "delivered", but for MVP send both or just delivered initially.
+                // Better flow: Send Delivered immediately. If user is viewing (which they are), send Read.
+                val deliveredPayload = JSONObject().apply {
                     put("type", "delivered")
                     put("messageId", msgId)
-                    put("toUserId", toUserId) // Using fromUserId of sender ideally, but here we assume toUserId is handled by server or we reply to sender
+                    put("toUserId", toUserId)
                     put("sessionId", sessionId)
                 }
-                SocketManager.getSocket()?.emit("message-status", statusPayload)
+                SocketManager.getSocket()?.emit("message-status", deliveredPayload)
+
+                // Since this activity IS open, we also mark as Read immediately
+                val readPayload = JSONObject().apply {
+                    put("type", "read")
+                    put("messageId", msgId)
+                    put("toUserId", toUserId)
+                    put("sessionId", sessionId)
+                }
+                SocketManager.getSocket()?.emit("message-status", readPayload)
             }
 
             runOnUiThread {
@@ -376,17 +413,68 @@ class ChatActivity : AppCompatActivity() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        timerHandler.removeCallbacks(timerRunnable)
+    private fun unregisterSocketListeners() {
         try {
             SocketManager.off("chat-message")
-            SocketManager.off("message-status") // Clear listener
+            SocketManager.off("message-status")
             SocketManager.off("session-ended")
             SocketManager.off("typing")
             SocketManager.off("stop-typing")
+            SocketManager.off("client-birth-chart")
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        timerHandler.removeCallbacks(timerRunnable)
+        unregisterSocketListeners() // Just in case
+    }
+
+    private fun fetchChatHistory(sessionId: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val apiInterface = com.astro5star.app.data.api.ApiClient.api
+                val response = apiInterface.getChatHistory(sessionId)
+                if (response.isSuccessful && response.body() != null) {
+                    val data = response.body()!! // This is Gson JsonObject
+                    if (data.has("messages")) {
+                        val history = data.getAsJsonArray("messages")
+                        if (history != null && history.size() > 0) {
+                            val historyList = mutableListOf<ChatMessage>()
+                            val myUserId = TokenManager(this@ChatActivity).getUserSession()?.userId
+
+                            for (i in 0 until history.size()) {
+                                val msgObj = history.get(i).asJsonObject
+                                val senderId = if (msgObj.has("fromUserId")) msgObj.get("fromUserId").asString else ""
+
+                                var text = ""
+                                if (msgObj.has("content")) {
+                                    val content = msgObj.getAsJsonObject("content")
+                                    if (content.has("text")) text = content.get("text").asString
+                                }
+
+                                val msgId = if (msgObj.has("messageId")) msgObj.get("messageId").asString else ""
+                                val status = if (msgObj.has("status")) msgObj.get("status").asString else "sent"
+
+                                val isSent = (senderId == myUserId)
+                                if (text.isNotEmpty()) {
+                                    historyList.add(ChatMessage(msgId, text, isSent, status))
+                                }
+                            }
+
+                            withContext(Dispatchers.Main) {
+                                messages.addAll(0, historyList)
+                                adapter.notifyDataSetChanged()
+                                recyclerChat?.scrollToPosition(messages.size - 1)
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 

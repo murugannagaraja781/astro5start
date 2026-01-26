@@ -50,4 +50,7 @@ interface ApiInterface {
 
     @POST("api/user/intake")
     suspend fun saveUserIntake(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("api/chat/history/{sessionId}")
+    suspend fun getChatHistory(@retrofit2.http.Path("sessionId") sessionId: String): Response<com.google.gson.JsonObject>
 }
