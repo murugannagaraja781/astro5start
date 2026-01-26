@@ -290,7 +290,13 @@ class HomeActivity : AppCompatActivity() {
             for (i in 0 until arr.length()) {
                 list.add(parseAstrologer(arr.getJSONObject(i)))
             }
-            _astrologers.value = list
+            // Sort: Online first (Any online status), then Experience
+            val sortedList = list.sortedWith(
+                compareByDescending<Astrologer> {
+                    it.isOnline || it.isChatOnline || it.isAudioOnline || it.isVideoOnline
+                }.thenByDescending { it.experience }
+            )
+            _astrologers.value = sortedList
             _isLoading.value = false
         }
 

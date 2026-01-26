@@ -214,9 +214,23 @@ fun ActionButton(text: String, icon: ImageVector, active: Boolean, onClick: () -
 }
 
 // Data class wrapper for Rasi to be used in Compose
-data class ComposeRasiItem(val id: Int, val name: String, val iconRes: Int)
+data class ComposeRasiItem(val id: Int, val name: String, val iconRes: Int, val color: Color)
 
 val PriceRed = Color(0xFFFF4D4F)
+
+// Professional Zodiac Colors
+val AriesRed = Color(0xFFE57373)      // Soft Red
+val TaurusGreen = Color(0xFF81C784)   // Soft Green
+val GeminiYellow = Color(0xFFFFF176)  // Soft Yellow
+val CancerSilver = Color(0xFFE0E0E0)  // Light Grey/Silver
+val LeoGold = Color(0xFFFFD54F)       // Amber/Gold
+val VirgoOlive = Color(0xFFAED581)    // Light Green
+val LibraPink = Color(0xFFF06292)     // Pink
+val ScorpioMaroon = Color(0xFFBA68C8) // Purple/Maroon shade
+val SagPurple = Color(0xFF9575CD)     // Deep Purple
+val CapTeal = Color(0xFF4DB6AC)       // Teal
+val AquaBlue = Color(0xFF4DD0E1)      // Cyan/Blue
+val PiscesIndigo = Color(0xFF7986CB)  // Indigo
 
 @Composable
 fun HomeScreen(
@@ -264,24 +278,28 @@ fun HomeScreen(
                 )
             }
         ) { padding ->
-            // Handle Tab Content here if we were switching screens,
-            // but for now verified request keeps Home content + Footer visually
             Box(modifier = Modifier.padding(padding)) {
-                if (selectedTab == 0) {
-                     LazyColumn(
-                        state = listState,
-                        contentPadding = PaddingValues(bottom = 16.dp),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(RoyalMidnightBlue)
-                    ) {
-                        // 1. Daily Horoscope Card
+                // Show content for Home(0), Chat(1), Video(2), Call(3)
+
+                LazyColumn(
+                    state = listState,
+                    contentPadding = PaddingValues(bottom = 16.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(RoyalMidnightBlue)
+                ) {
+                    // 1. Daily Horoscope Card (Only on Home)
+                    if (selectedTab == 0) {
                         item { DailyHoroscopeCard(horoscope) }
+                    }
 
-                        // 2. Banner (Simulated Carousel)
+                    // 2. Banner (Only on Home)
+                    if (selectedTab == 0) {
                         item { BannerSection() }
+                    }
 
-                        // 3. Rasi Grid Section
+                    // 3. Rasi Grid Section (Only on Home)
+                    if (selectedTab == 0) {
                         item {
                             Text(
                                 text = "ராசி பலன்",
@@ -291,34 +309,36 @@ fun HomeScreen(
                             )
                         }
                         item { RasiGridSection(onRasiClick) }
-
-                        // 4. Astrologers Title
-                        item {
-                            Text(
-                                text = "பிரீமியம் ஆலோசனை",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = RoyalGold,
-                                modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
-                            )
-                        }
-
-                        // 5. Loading Indicator or List
-                        if (isLoading) {
-                            item {
-                                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator(color = RoyalGold)
-                                }
-                            }
-                        } else {
-                            items(astrologers) { astro ->
-                                AstrologerCard(astro, onChatClick, onCallClick)
-                            }
-                        }
                     }
-                } else {
-                    // Placeholder for other tabs
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Coming Soon", color = SoftIvory)
+
+                    // 4. Astrologers Title
+                    item {
+                        val title = when(selectedTab) {
+                            1 -> "அரட்டை சேவைகள்" // Chat
+                            2 -> "வீடியோ அழைப்பு" // Video
+                            3 -> "ஆடியோ அழைப்பு" // Call
+                            else -> "பிரீமியம் ஆலோசனை" // Home
+                        }
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = RoyalGold,
+                            modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
+                        )
+                    }
+
+                    // 5. Loading Indicator or List
+                    if (isLoading) {
+                        item {
+                            Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = RoyalGold)
+                            }
+                        }
+                    } else {
+                        items(astrologers) { astro ->
+                            // Pass selectedTab to control button visibility
+                            AstrologerCard(astro, onChatClick, onCallClick, selectedTab)
+                        }
                     }
                 }
             }
@@ -568,23 +588,21 @@ fun DailyHoroscopeCard(content: String) {
     }
 }
 
-
-
 @Composable
 fun RasiGridSection(onClick: (ComposeRasiItem) -> Unit) {
     val rasiItems = listOf(
-        ComposeRasiItem(1, "மேஷம்", R.drawable.ic_rasi_aries_premium),       // Aries
-        ComposeRasiItem(2, "ரிஷபம்", R.drawable.ic_rasi_taurus_premium),     // Taurus
-        ComposeRasiItem(3, "மிதுனம்", R.drawable.ic_rasi_gemini_premium),    // Gemini
-        ComposeRasiItem(4, "கடகம்", R.drawable.ic_rasi_cancer_premium),      // Cancer
-        ComposeRasiItem(5, "சிம்மம்", R.drawable.ic_rasi_leo_premium),           // Leo
-        ComposeRasiItem(6, "கன்னி", R.drawable.ic_rasi_virgo_premium),           // Virgo
-        ComposeRasiItem(7, "துலாம்", R.drawable.ic_rasi_libra_premium),           // Libra
-        ComposeRasiItem(8, "விருச்சிகம்", R.drawable.ic_rasi_scorpio_premium),      // Scorpio
-        ComposeRasiItem(9, "தனுசு", R.drawable.ic_rasi_sagittarius_premium),     // Sagittarius
-        ComposeRasiItem(10, "மகரம்", R.drawable.ic_rasi_capricorn_premium),     // Capricorn
-        ComposeRasiItem(11, "கும்பம்", R.drawable.ic_rasi_aquarius_premium),     // Aquarius
-        ComposeRasiItem(12, "மீனம்", R.drawable.ic_rasi_pisces_premium)        // Pisces
+        ComposeRasiItem(1, "மேஷம்", R.drawable.ic_rasi_aries_premium, AriesRed),
+        ComposeRasiItem(2, "ரிஷபம்", R.drawable.ic_rasi_taurus_premium_copy, TaurusGreen),
+        ComposeRasiItem(3, "மிதுனம்", R.drawable.ic_rasi_gemini_premium_copy, GeminiYellow),
+        ComposeRasiItem(4, "கடகம்", R.drawable.ic_rasi_cancer_premium_copy, CancerSilver),
+        ComposeRasiItem(5, "சிம்மம்", R.drawable.ic_rasi_leo_premium, LeoGold),
+        ComposeRasiItem(6, "கன்னி", R.drawable.ic_rasi_virgo_premium, VirgoOlive),
+        ComposeRasiItem(7, "துலாம்", R.drawable.ic_rasi_libra_premium_copy, LibraPink),
+        ComposeRasiItem(8, "விருச்சிகம்", R.drawable.ic_rasi_scorpio_premium, ScorpioMaroon),
+        ComposeRasiItem(9, "தனுசு", R.drawable.ic_rasi_sagittarius_premium, SagPurple),
+        ComposeRasiItem(10, "மகரம்", R.drawable.ic_rasi_capricorn_premium_copy, CapTeal),
+        ComposeRasiItem(11, "கும்பம்", R.drawable.ic_rasi_aquarius_premium, AquaBlue),
+        ComposeRasiItem(12, "மீனம்", R.drawable.ic_rasi_pisces_premium_copy, PiscesIndigo)
     )
 
     Column(modifier = Modifier.padding(horizontal = 8.dp)) {
@@ -615,7 +633,7 @@ fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
         Box(
             modifier = Modifier
                 .size(64.dp)
-                .background(MoonDarkGreen, CircleShape)
+                .background(item.color.copy(alpha = 0.8f), CircleShape) // Use dynamic color with slight transparency
                 .border(2.dp, RoyalGold, CircleShape)
                 .clip(CircleShape), // Clip content to circle
             contentAlignment = Alignment.Center
@@ -642,7 +660,8 @@ fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
 fun AstrologerCard(
     astro: Astrologer,
     onChatClick: (Astrologer) -> Unit,
-    onCallClick: (Astrologer, String) -> Unit
+    onCallClick: (Astrologer, String) -> Unit,
+    selectedTab: Int
 ) {
     Card(
         modifier = Modifier
@@ -708,24 +727,35 @@ fun AstrologerCard(
                 .padding(10.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            ActionButton(
-                text = "அரட்டை",
-                icon = Icons.Rounded.Chat,
-                active = astro.isChatOnline,
-                onClick = { onChatClick(astro) }
-            )
-            ActionButton(
-                text = "அழைப்பு", // Shortened from "Audio" for better fit
-                icon = Icons.Rounded.Call,
-                active = astro.isAudioOnline,
-                onClick = { onCallClick(astro, "audio") }
-            )
-            ActionButton(
-                text = "வீடியோ",
-                icon = Icons.Rounded.VideoCall,
-                active = astro.isVideoOnline,
-                onClick = { onCallClick(astro, "video") }
-            )
+            val showAll = selectedTab == 0
+            val showChat = selectedTab == 1 || showAll
+            val showVideo = selectedTab == 2 || showAll
+            val showAudio = selectedTab == 3 || showAll
+
+            if (showChat) {
+                ActionButton(
+                    text = "அரட்டை",
+                    icon = Icons.Rounded.Chat,
+                    active = astro.isChatOnline,
+                    onClick = { onChatClick(astro) }
+                )
+            }
+            if (showAudio) {
+                ActionButton(
+                    text = "அழைப்பு", // Shortened from "Audio" for better fit
+                    icon = Icons.Rounded.Call,
+                    active = astro.isAudioOnline,
+                    onClick = { onCallClick(astro, "audio") }
+                )
+            }
+            if (showVideo) {
+                ActionButton(
+                    text = "வீடியோ",
+                    icon = Icons.Rounded.VideoCall,
+                    active = astro.isVideoOnline,
+                    onClick = { onCallClick(astro, "video") }
+                )
+            }
         }
     }
 }
