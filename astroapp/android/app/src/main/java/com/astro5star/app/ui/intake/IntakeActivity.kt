@@ -14,6 +14,8 @@ import com.astro5star.app.ui.chat.ChatActivity
 import com.astro5star.app.utils.showErrorAlert
 import org.json.JSONObject
 import kotlinx.coroutines.launch
+import com.astro5star.app.data.local.TokenManager
+import com.astro5star.app.data.model.AuthResponse
 
 class IntakeActivity : AppCompatActivity() {
 
@@ -40,12 +42,16 @@ class IntakeActivity : AppCompatActivity() {
     private var isEditMode = false
     private var existingData: JSONObject? = null
 
+    private lateinit var tokenManager: TokenManager
+
     private var isSearchingForClient = true
     private val CITY_SEARCH_REQUEST_CODE = 1001
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_intake)
+
+        tokenManager = TokenManager(this)
 
         partnerId = intent.getStringExtra("partnerId")
         type = intent.getStringExtra("type")
@@ -70,7 +76,10 @@ class IntakeActivity : AppCompatActivity() {
         if (isEditMode && existingData != null) {
             prefillForm(existingData!!)
         } else {
-            loadIntakeDetails()
+             // Try to load from API (Persistence)
+             val userId = tokenManager.getUserSession()?.userId
+             if (userId != null) fetchIntakeData(userId)
+             else loadIntakeDetails() // Fallback to local
         }
 
         val btnConnect = findViewById<Button>(R.id.btnConnect)
@@ -192,6 +201,25 @@ class IntakeActivity : AppCompatActivity() {
         }
     }
 
+    private fun fetchIntakeData(userId: String) {
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                val response = apiInterface.getUserIntake(userId)
+                if (response.isSuccessful && response.body() != null) {
+                    val data = response.body()!!
+                    runOnUiThread {
+                        prefillForm(JSONObject(com.google.gson.Gson().toJson(data)))
+                    }
+                } else {
+                     runOnUiThread { loadIntakeDetails() }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                runOnUiThread { loadIntakeDetails() }
+            }
+        }
+    }
+
     private fun loadIntakeDetails() {
         // Reduced for brevity - existing logic can stay, just add new fields if needed
         // Assuming user fills form each time or we persist complex data later
@@ -299,9 +327,7 @@ class IntakeActivity : AppCompatActivity() {
         }
 
 
-        // Save for next time
-        saveIntakeDetails(name, place, day, month, year, hour, minute, gender)
-
+        // Save for next time (API Persist)
         // Construct Birth Data JSON
         val birthData = JSONObject().apply {
             put("name", name)
@@ -325,8 +351,26 @@ class IntakeActivity : AppCompatActivity() {
             }
         }
 
+        val userId = tokenManager.getUserSession()?.userId
+        if (userId != null) {
+             val payload = JSONObject().apply {
+                 put("userId", userId)
+                 put("intakeData", birthData)
+             }
+             // Save via API
+             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                 try {
+                     val gsonReq = com.google.gson.JsonParser.parseString(payload.toString()).asJsonObject
+                     apiInterface.saveUserIntake(gsonReq)
+                 } catch (e: Exception) { e.printStackTrace() }
+             }
+        } else {
+            // Fallback Local
+            saveIntakeDetails(name, place, day, month, year, hour, minute, gender)
+        }
+
         // Send intake details (optional redundancy, but good for saving history before session)
-        SocketManager.getSocket()?.emit("save-intake-details", birthData)
+        // REMOVED SocketManager.emit("save-intake-details") to prevent disconnection if that's the trigger
 
         if (isEditMode) {
              val resultIntent = Intent()

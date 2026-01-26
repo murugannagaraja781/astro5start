@@ -13,6 +13,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.astro5star.app.R
 import com.astro5star.app.data.remote.SocketManager
+import com.astro5star.app.data.local.TokenManager
+import com.astro5star.app.data.model.AuthResponse
 import org.json.JSONObject
 import org.webrtc.*
 import java.util.LinkedList
@@ -39,6 +41,28 @@ class CallActivity : AppCompatActivity() {
     private var isInitiator = false
     private var partnerId: String? = null
     private var sessionId: String? = null
+    private var clientBirthData: JSONObject? = null
+
+    private lateinit var tokenManager: TokenManager
+    private var session: AuthResponse? = null
+
+    private val editIntakeLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+             val dataStr = result.data?.getStringExtra("birthData")
+             if (dataStr != null) {
+                 try {
+                     val newData = JSONObject(dataStr)
+                     clientBirthData = newData
+                     Toast.makeText(this, "Details Updated", Toast.LENGTH_SHORT).show()
+                     // Emit update to server/astrologer
+                     SocketManager.getSocket()?.emit("client-birth-chart", JSONObject().apply {
+                         put("sessionId", sessionId)
+                         put("birthData", newData)
+                     })
+                 } catch (e: Exception) { e.printStackTrace() }
+             }
+        }
+    }
 
     // Queue for ICE candidates received before remote description is set
     private val pendingIceCandidates = LinkedList<IceCandidate>()
@@ -80,6 +104,14 @@ class CallActivity : AppCompatActivity() {
         isInitiator = intent.getBooleanExtra("isInitiator", false)
         callType = intent.getStringExtra("type") ?: intent.getStringExtra("callType") ?: "video"
 
+        val birthDataStr = intent.getStringExtra("birthData")
+        if (!birthDataStr.isNullOrEmpty()) {
+             try {
+                val obj = JSONObject(birthDataStr)
+                if (obj.length() > 0) clientBirthData = obj
+             } catch (e: Exception) { e.printStackTrace() }
+        }
+
         // Init Views
         remoteView = findViewById(R.id.remote_view)
         localView = findViewById(R.id.local_view)
@@ -97,18 +129,44 @@ class CallActivity : AppCompatActivity() {
         val btnEdit = findViewById<ImageButton>(R.id.btnEdit)
         val btnBack = findViewById<ImageButton>(R.id.btnBack)
 
+        // Role-based UI Visibility
+        // Role-based UI Visibility
+        tokenManager = TokenManager(this)
+        session = tokenManager.getUserSession()
+        val role = session?.role
+
+        if (role == "astrologer") {
+            btnRasi.visibility = View.VISIBLE
+            // Astrologer can also see Edit button to view/edit client details if needed
+            btnEdit.visibility = View.VISIBLE
+        } else {
+            // Client: Can only see Edit button (to update their own intake)
+            btnRasi.visibility = View.GONE
+            btnEdit.visibility = View.VISIBLE
+        }
+
         btnEndCall.setOnClickListener { endCall() }
         btnBack.setOnClickListener { endCall() }
 
         btnRasi.setOnClickListener {
-             // Show Rasi Chart Dialog (Reuse RasiDetailDialog or simplified version)
-             // Ideally we should show the USER'S chart if available based on birthData
-             showRasiChart()
+             // Show Rasi Chart using ChartDisplayActivity
+             if (clientBirthData != null) {
+                 val intent = android.content.Intent(this, com.astro5star.app.ui.chart.ChartDisplayActivity::class.java)
+                 intent.putExtra("birthData", clientBirthData.toString())
+                 startActivity(intent)
+             } else {
+                 showRasiChart() // Fallback if no data, or show standard message
+                 // Ideally we should try to fetch it if missing, but for now fallback dialog or toast
+                 if (isInitiator) Toast.makeText(this, "Waiting for Client Data...", Toast.LENGTH_SHORT).show()
+             }
         }
 
         btnEdit.setOnClickListener {
-             // Open Intake Dialog to edit details
-             showIntakeDialog()
+             // Open Intake Activity for editing
+             val intent = android.content.Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java)
+             intent.putExtra("isEditMode", true)
+             intent.putExtra("existingData", clientBirthData?.toString())
+             editIntakeLauncher.launch(intent)
         }
 
         // Start Timer
@@ -154,17 +212,15 @@ class CallActivity : AppCompatActivity() {
         }
 
         // --- CRITICAL FIX: Ensure Socket is Connected (for Killed App state) ---
-        val tokenManager = com.astro5star.app.data.local.TokenManager(this)
-        val session = tokenManager.getUserSession()
+        // --- CRITICAL FIX: Ensure Socket is Connected (for Killed App state) ---
+        // tokenManager and session already initialized above
 
         try {
             SocketManager.init()
-            if (session != null) {
-                session.userId?.let { uid ->
-                    SocketManager.registerUser(uid)
-                    if (SocketManager.getSocket()?.connected() != true) {
-                        SocketManager.getSocket()?.connect()
-                    }
+            session?.userId?.let { uid ->
+                SocketManager.registerUser(uid)
+                if (SocketManager.getSocket()?.connected() != true) {
+                    SocketManager.getSocket()?.connect()
                 }
             }
         } catch (e: Exception) {
@@ -246,8 +302,6 @@ class CallActivity : AppCompatActivity() {
         } else {
             tvStatus.text = "Connecting..."
 
-            val tokenManager = com.astro5star.app.data.local.TokenManager(this)
-            val session = tokenManager.getUserSession()
             val myUserId = session?.userId
 
             if (myUserId != null) {
@@ -416,11 +470,32 @@ class CallActivity : AppCompatActivity() {
             }
         }
 
+        SocketManager.getSocket()?.on("client-birth-chart") { args ->
+            try {
+                 val data = args[0] as JSONObject
+                 val bData = data.optJSONObject("birthData")
+                 if (bData != null) {
+                     clientBirthData = bData
+                     runOnUiThread {
+                         Toast.makeText(this@CallActivity, "Client Data Updated", Toast.LENGTH_SHORT).show()
+                     }
+                 }
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+
         SocketManager.onSessionEnded {
             runOnUiThread {
                 Toast.makeText(this, "Call Ended", Toast.LENGTH_SHORT).show()
                 finish()
             }
+        }
+
+        // Safety: End call if socket disconnects (internet lost)
+        SocketManager.getSocket()?.on(io.socket.client.Socket.EVENT_DISCONNECT) {
+             runOnUiThread {
+                 Toast.makeText(this, "Connection Lost - Call Ended", Toast.LENGTH_SHORT).show()
+                 finish()
+             }
         }
     }
 
@@ -544,6 +619,8 @@ class CallActivity : AppCompatActivity() {
         timerHandler.removeCallbacks(timerRunnable) // Stop Timer
         SocketManager.off("signal")
         SocketManager.off("session-ended")
+        SocketManager.off("client-birth-chart")
+        SocketManager.getSocket()?.off(io.socket.client.Socket.EVENT_DISCONNECT)
         try {
             peerConnection.close()
             videoCapturer?.stopCapture()

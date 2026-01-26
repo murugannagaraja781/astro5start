@@ -21,7 +21,8 @@ import org.json.JSONObject
 import java.util.UUID
 
 // Status: "sent", "delivered", "read"
-data class ChatMessage(val text: String, val isSent: Boolean, var status: String = "sent")
+// Status: "sent", "delivered", "read"
+data class ChatMessage(val id: String, val text: String, val isSent: Boolean, var status: String = "sent")
 
 class ChatActivity : AppCompatActivity() {
 
@@ -237,7 +238,7 @@ class ChatActivity : AppCompatActivity() {
                     SoundManager.playSentSound()
 
                     runOnUiThread {
-                        messages.add(ChatMessage(text, true))
+                        messages.add(ChatMessage(messageId, text, true))
                         adapter.notifyItemInserted(messages.size - 1)
                         recyclerChat?.scrollToPosition(messages.size - 1)
                     }
@@ -281,13 +282,39 @@ class ChatActivity : AppCompatActivity() {
             val data = args[0] as JSONObject
             val content = data.getJSONObject("content")
             val text = content.getString("text")
+            val msgId = data.optString("messageId", UUID.randomUUID().toString())
 
             SoundManager.playReceiveSound()
 
+            // Send Delivered Status back
+            if(sessionId != null && toUserId != null) {
+                val statusPayload = JSONObject().apply {
+                    put("type", "delivered")
+                    put("messageId", msgId)
+                    put("toUserId", toUserId) // Using fromUserId of sender ideally, but here we assume toUserId is handled by server or we reply to sender
+                    put("sessionId", sessionId)
+                }
+                SocketManager.getSocket()?.emit("message-status", statusPayload)
+            }
+
             runOnUiThread {
-                messages.add(ChatMessage(text, false))
+                messages.add(ChatMessage(msgId, text, false))
                 adapter.notifyItemInserted(messages.size - 1)
                 recyclerChat?.scrollToPosition(messages.size - 1)
+            }
+        }
+
+        // Message Status Updates
+        SocketManager.onMessageStatus { data ->
+            val msgId = data.optString("messageId")
+            val status = data.optString("status") // "delivered" or "read"
+
+            runOnUiThread {
+                val index = messages.indexOfFirst { it.id == msgId }
+                if (index != -1) {
+                    messages[index].status = status
+                    adapter.notifyItemChanged(index)
+                }
             }
         }
 
@@ -354,6 +381,7 @@ class ChatActivity : AppCompatActivity() {
         timerHandler.removeCallbacks(timerRunnable)
         try {
             SocketManager.off("chat-message")
+            SocketManager.off("message-status") // Clear listener
             SocketManager.off("session-ended")
             SocketManager.off("typing")
             SocketManager.off("stop-typing")
@@ -383,9 +411,14 @@ class ChatActivity : AppCompatActivity() {
             if (holder is SentHolder) {
                 holder.text.text = msg.text
                 if (msg.status == "read") {
+                    holder.status.setImageResource(R.drawable.ic_double_check_blue) // Assuming resource exists or tint
+                    holder.status.setColorFilter(android.graphics.Color.parseColor("#34B7F1")) // WhatsApp Blue
+                } else if (msg.status == "delivered") {
                     holder.status.setImageResource(R.drawable.ic_double_check)
+                    holder.status.setColorFilter(android.graphics.Color.GRAY)
                 } else {
                     holder.status.setImageResource(R.drawable.ic_check)
+                    holder.status.setColorFilter(android.graphics.Color.GRAY)
                 }
             } else if (holder is ReceivedHolder) {
                 holder.text.text = msg.text

@@ -102,6 +102,15 @@ object SocketManager {
         socket?.emit("signal", data)
     }
 
+    fun onMessageStatus(listener: (JSONObject) -> Unit) {
+        socket?.on("message-status") { args ->
+            if (args != null && args.isNotEmpty()) {
+                val data = args[0] as JSONObject
+                listener(data)
+            }
+        }
+    }
+
     fun endSession(sessionId: String?) {
         val payload = JSONObject()
         if (sessionId != null) {
