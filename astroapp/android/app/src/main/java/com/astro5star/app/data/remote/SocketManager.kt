@@ -10,15 +10,24 @@ import org.json.JSONObject
 object SocketManager {
     private const val TAG = "SocketManager"
     private var socket: Socket? = null
+    private var initialized = false
     private var currentUserId: String? = null
 
     fun init() {
-        if (socket != null) return
+        if (initialized) return
 
         try {
-            val opts = IO.Options()
-            opts.transports = arrayOf("websocket", "polling")
-            socket = IO.socket(Constants.SERVER_URL, opts)
+            val opts = IO.Options().apply {
+                reconnection = true
+                reconnectionAttempts = Int.MAX_VALUE
+                reconnectionDelay = 1000
+                timeout = 20000
+                transports = arrayOf("websocket", "polling")
+            }
+            // Use the constant URL if available, or hardcode/inject
+            // Assuming Constants.SERVER_URL exists or providing a default
+            val url = Constants.SERVER_URL ?: "http://10.0.2.2:3000"
+            socket = IO.socket(url, opts)
 
             socket?.on(Socket.EVENT_CONNECT) {
                 Log.d(TAG, "Socket connected: ${socket?.id()}")
@@ -33,8 +42,9 @@ object SocketManager {
             }
 
             socket?.connect()
+            initialized = true
         } catch (e: Exception) {
-            Log.e(TAG, "Socket init error", e)
+            e.printStackTrace()
         }
     }
 
@@ -57,6 +67,9 @@ object SocketManager {
     }
 
     fun getSocket(): Socket? {
+        if (socket == null && !initialized) {
+            init()
+        }
         return socket
     }
 

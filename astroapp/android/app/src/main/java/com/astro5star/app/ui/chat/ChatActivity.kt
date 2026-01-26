@@ -2,17 +2,18 @@ package com.astro5star.app.ui.chat
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Button
-import android.widget.EditText
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.astro5star.app.R
 import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.data.remote.SocketManager
@@ -29,6 +30,7 @@ data class ChatMessage(val id: String, val text: String, val isSent: Boolean, va
 
 class ChatActivity : AppCompatActivity() {
 
+    private lateinit var viewModel: ChatViewModel
     private lateinit var adapter: ChatAdapter
     private val messages = mutableListOf<ChatMessage>()
     private var toUserId: String? = null
@@ -62,6 +64,7 @@ class ChatActivity : AppCompatActivity() {
                      clientBirthData = newData
                      Toast.makeText(this, "Details Updated", Toast.LENGTH_SHORT).show()
                      // Emit update to server/astrologer
+                     // Ideally via Repository/ViewModel too, but keeping minimal changes for now
                      SocketManager.getSocket()?.emit("client-birth-chart", JSONObject().apply {
                          put("sessionId", sessionId)
                          put("birthData", newData)
@@ -71,10 +74,16 @@ class ChatActivity : AppCompatActivity() {
         }
     }
 
+    private var clientBirthData: JSONObject? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
+
+        viewModel = ViewModelProvider(this).get(ChatViewModel::class.java)
+
         handleIntent(intent)
+        setupObservers()
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -82,8 +91,6 @@ class ChatActivity : AppCompatActivity() {
         setIntent(intent)
         handleIntent(intent)
     }
-
-    private var clientBirthData: JSONObject? = null
 
     private fun handleIntent(intent: Intent?) {
         toUserId = intent?.getStringExtra("toUserId")
@@ -108,11 +115,40 @@ class ChatActivity : AppCompatActivity() {
         setupContent()
     }
 
+    private fun setupObservers() {
+        viewModel.messages.observe(this) { msg ->
+            SoundManager.playReceiveSound()
+            messages.add(msg)
+            adapter.notifyItemInserted(messages.size - 1)
+            recyclerChat?.scrollToPosition(messages.size - 1)
+
+            // Auto-send Delivered/Read since Activity is open
+            if (sessionId != null && toUserId != null && !msg.isSent) {
+                viewModel.markDelivered(msg.id, toUserId!!, sessionId!!)
+                viewModel.markRead(msg.id, toUserId!!, sessionId!!)
+            }
+        }
+
+        viewModel.messageStatus.observe(this) { data ->
+            val msgId = data.optString("messageId")
+            val status = data.optString("status")
+            val index = messages.indexOfFirst { it.id == msgId }
+            if (index != -1) {
+                messages[index].status = status
+                adapter.notifyItemChanged(index)
+            }
+        }
+
+        viewModel.typingStatus.observe(this) { isTyping ->
+            tvTypingStatus.visibility = if (isTyping) View.VISIBLE else View.GONE
+        }
+    }
+
     private fun setupContent() {
         try {
             recyclerChat = findViewById(R.id.recyclerChat)
             val inputMessage = findViewById<EditText>(R.id.inputMessage)
-            val btnSend = findViewById<View>(R.id.btnSend) // Use View to be safe, or ImageButton
+            val btnSend = findViewById<View>(R.id.btnSend)
             val btnEndChat = findViewById<Button>(R.id.btnEndChat)
             val btnChart = findViewById<android.widget.ImageButton>(R.id.btnChart)
             val btnEditIntake = findViewById<android.widget.ImageButton>(R.id.btnEditIntake)
@@ -120,14 +156,11 @@ class ChatActivity : AppCompatActivity() {
             tvTypingStatus = findViewById(R.id.tvTypingStatus)
             tvSessionTimer = findViewById(R.id.tvSessionTimer)
 
-            // Start Timer
             timerHandler.post(timerRunnable)
 
-            // Set Title
             val partnerName = intent.getStringExtra("toUserName") ?: "Chat"
             tvChatTitle.text = partnerName
 
-            // Chart Button Logic
             val role = TokenManager(this).getUserSession()?.role
             if (role == "astrologer") {
                 btnChart.visibility = View.VISIBLE
@@ -143,9 +176,7 @@ class ChatActivity : AppCompatActivity() {
                     } catch (e: Exception) { e.printStackTrace() }
                 }
 
-                // Match Button Logic
                 val btnMatch = findViewById<android.widget.ImageButton>(R.id.btnMatch)
-                // Check visibility based on data availability
                 if (clientBirthData?.has("partner") == true) {
                     btnMatch.visibility = View.VISIBLE
                 }
@@ -163,99 +194,78 @@ class ChatActivity : AppCompatActivity() {
                 }
             }
 
-            // End Chat Logic
             btnEndChat.setOnClickListener {
-                try {
-                    if (sessionId != null) {
-                        SocketManager.endSession(sessionId)
-                        SoundManager.playEndChatSound()
-                        Toast.makeText(this, "Chat Ended", Toast.LENGTH_SHORT).show()
-                    }
-                    finish()
-                } catch (e: Exception) { e.printStackTrace() }
+                if (sessionId != null) {
+                    SocketManager.endSession(sessionId)
+                    SoundManager.playEndChatSound()
+                    Toast.makeText(this, "Chat Ended", Toast.LENGTH_SHORT).show()
+                }
+                finish()
             }
 
-            // Edit Intake Logic
             btnEditIntake.setOnClickListener {
-                try {
-                    val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java)
-                    intent.putExtra("isEditMode", true)
-                    intent.putExtra("existingData", clientBirthData?.toString())
-                    editIntakeLauncher.launch(intent)
-                } catch (e: Exception) { e.printStackTrace() }
+                val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java)
+                intent.putExtra("isEditMode", true)
+                intent.putExtra("existingData", clientBirthData?.toString())
+                editIntakeLauncher.launch(intent)
             }
 
             adapter = ChatAdapter(messages)
             recyclerChat?.layoutManager = LinearLayoutManager(this)
             recyclerChat?.adapter = adapter
 
-            // Typing Indicator Listeners
             inputMessage.addTextChangedListener(object : android.text.TextWatcher {
                 override fun afterTextChanged(s: android.text.Editable?) {}
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                    try {
-                        if (sessionId != null) {
-                           if (!isTyping) {
-                               isTyping = true
-                               SocketManager.getSocket()?.emit("typing", JSONObject().apply { put("sessionId", sessionId) })
-                           }
-                           typingHandler.removeCallbacksAndMessages(null)
-                           typingHandler.postDelayed({
-                               isTyping = false
-                               SocketManager.getSocket()?.emit("stop-typing", JSONObject().apply { put("sessionId", sessionId) })
-                           }, 2000)
-                        }
-                    } catch (e: Exception) { e.printStackTrace() }
+                    if (sessionId != null) {
+                       if (!isTyping) {
+                           isTyping = true
+                           viewModel.sendTyping(sessionId!!)
+                       }
+                       typingHandler.removeCallbacksAndMessages(null)
+                       typingHandler.postDelayed({
+                           isTyping = false
+                           viewModel.sendStopTyping(sessionId!!)
+                       }, 2000)
+                    }
                 }
             })
 
             btnSend.setOnClickListener {
-                try {
-                    val text = inputMessage.text.toString().trim()
-                    if (text.isEmpty()) return@setOnClickListener
+                val text = inputMessage.text.toString().trim()
+                if (text.isEmpty()) return@setOnClickListener
 
-                    if (toUserId == null) {
-                        Toast.makeText(this, "No recipient user specified", Toast.LENGTH_SHORT).show()
-                        return@setOnClickListener
-                    }
-
-                    // Stop typing explicitly
-                    isTyping = false
-                    typingHandler.removeCallbacksAndMessages(null)
-                    try { SocketManager.getSocket()?.emit("stop-typing", JSONObject().apply { put("sessionId", sessionId) }) } catch (e: Exception) {}
-
-                    val messageId = UUID.randomUUID().toString()
-                    val payload = JSONObject()
-                    payload.put("toUserId", toUserId)
-                    payload.put("sessionId", sessionId)
-                    payload.put("messageId", messageId)
-                    payload.put("timestamp", System.currentTimeMillis())
-
-                    val content = JSONObject()
-                    content.put("text", text)
-                    payload.put("content", content)
-
-                    SocketManager.getSocket()?.emit("chat-message", payload)
-
-                    SoundManager.playSentSound()
-
-                    runOnUiThread {
-                        messages.add(ChatMessage(messageId, text, true))
-                        adapter.notifyItemInserted(messages.size - 1)
-                        recyclerChat?.scrollToPosition(messages.size - 1)
-                    }
-                    inputMessage.setText("")
-                } catch (e: Exception) {
-                    android.util.Log.e("ChatActivity", "Send Failed", e)
-                    Toast.makeText(this, "Send Failed", Toast.LENGTH_SHORT).show()
+                if (toUserId == null) {
+                    Toast.makeText(this, "No recipient user specified", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
                 }
+
+                isTyping = false
+                typingHandler.removeCallbacksAndMessages(null)
+                if (sessionId != null) viewModel.sendStopTyping(sessionId!!)
+
+                val messageId = UUID.randomUUID().toString()
+                val payload = JSONObject()
+                payload.put("toUserId", toUserId)
+                payload.put("sessionId", sessionId)
+                payload.put("messageId", messageId)
+                payload.put("timestamp", System.currentTimeMillis())
+
+                val content = JSONObject()
+                content.put("text", text)
+                payload.put("content", content)
+
+                viewModel.sendMessage(payload)
+                SoundManager.playSentSound()
+
+                messages.add(ChatMessage(messageId, text, true))
+                adapter.notifyItemInserted(messages.size - 1)
+                recyclerChat?.scrollToPosition(messages.size - 1)
+
+                inputMessage.setText("")
             }
 
-            // Removed connectSocket call from here, moving to onResume
-            // if (sessionId != null) fetchChatHistory(sessionId!!)
-            // Fetch history should still happen once or on resume? Let's keep history fetch here for now, or move to onResume if we want fresh data.
-            // For now, let's keep history fetch here as "initial load"
             if (sessionId != null) fetchChatHistory(sessionId!!)
         } catch (e: Exception) {
              android.util.Log.e("ChatActivity", "setupContent Failed", e)
@@ -265,171 +275,23 @@ class ChatActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        registerSocketListeners()
-        // If we are resuming, we should verify connection and perhaps re-join room if needed,
-        // but SocketManager logic handles connection. We definitely need to re-attach listeners.
+        viewModel.startListeners()
 
-        // Also mark as read since we are looking at it
-        if (sessionId != null && toUserId != null) {
-             // We can't know the exact messageId to mark read without data,
-             // but we can emit a general "I am reading this session" if backend supports it.
-             // For now, relies on receiving new messages while open.
+        // Also ensure connection is registered for current user (this might be handled in Repository/Manager better, but OK for now)
+        val myUserId = TokenManager(this).getUserSession()?.userId
+        if (myUserId != null) {
+            SocketManager.registerUser(myUserId) {}
         }
     }
 
     override fun onPause() {
         super.onPause()
-        unregisterSocketListeners()
-    }
-
-    private fun registerSocketListeners() {
-        SocketManager.init()
-        val socket = SocketManager.getSocket()
-        val myUserId = TokenManager(this).getUserSession()?.userId
-
-        if (myUserId != null) {
-            if (SocketManager.getSocket()?.connected() == true) {
-                SocketManager.registerUser(myUserId) {
-                    runOnUiThread { checkAutoAccept() }
-                }
-            } else {
-                SocketManager.onConnect {
-                    SocketManager.registerUser(myUserId) {
-                        runOnUiThread { checkAutoAccept() }
-                    }
-                }
-                SocketManager.getSocket()?.connect()
-            }
-        }
-
-        // Listen for new messages
-        socket?.off("chat-message") // Avoid duplicates on re-init
-        socket?.on("chat-message") { args ->
-            val data = args[0] as JSONObject
-            val content = data.getJSONObject("content")
-            val text = content.getString("text")
-            val msgId = data.optString("messageId", UUID.randomUUID().toString())
-
-            SoundManager.playReceiveSound()
-
-            // Send Delivered Status back
-            if(sessionId != null && toUserId != null) {
-                // Should potentially check if activity is resumed to send "read" vs "delivered", but for MVP send both or just delivered initially.
-                // Better flow: Send Delivered immediately. If user is viewing (which they are), send Read.
-                val deliveredPayload = JSONObject().apply {
-                    put("type", "delivered")
-                    put("messageId", msgId)
-                    put("toUserId", toUserId)
-                    put("sessionId", sessionId)
-                }
-                SocketManager.getSocket()?.emit("message-status", deliveredPayload)
-
-                // Since this activity IS open, we also mark as Read immediately
-                val readPayload = JSONObject().apply {
-                    put("type", "read")
-                    put("messageId", msgId)
-                    put("toUserId", toUserId)
-                    put("sessionId", sessionId)
-                }
-                SocketManager.getSocket()?.emit("message-status", readPayload)
-            }
-
-            runOnUiThread {
-                messages.add(ChatMessage(msgId, text, false))
-                adapter.notifyItemInserted(messages.size - 1)
-                recyclerChat?.scrollToPosition(messages.size - 1)
-            }
-        }
-
-        // Message Status Updates
-        SocketManager.onMessageStatus { data ->
-            val msgId = data.optString("messageId")
-            val status = data.optString("status") // "delivered" or "read"
-
-            runOnUiThread {
-                val index = messages.indexOfFirst { it.id == msgId }
-                if (index != -1) {
-                    messages[index].status = status
-                    adapter.notifyItemChanged(index)
-                }
-            }
-        }
-
-        // Typing Events
-        socket?.on("typing") {
-            runOnUiThread {
-                tvTypingStatus.visibility = View.VISIBLE
-            }
-        }
-        socket?.on("stop-typing") {
-             runOnUiThread {
-                tvTypingStatus.visibility = View.GONE
-            }
-        }
-
-        // Listen for Birth Data Update
-        socket?.on("client-birth-chart") { args ->
-            try {
-                 val data = args[0] as JSONObject
-                 val bData = data.optJSONObject("birthData")
-                 if (bData != null) {
-                     clientBirthData = bData
-                     runOnUiThread {
-                         Toast.makeText(this@ChatActivity, "Client Data Updated", Toast.LENGTH_SHORT).show()
-                         // Refresh Match Button Visibility
-                         val role = TokenManager(this@ChatActivity).getUserSession()?.role
-                         if (role == "astrologer" && bData.has("partner")) {
-                             findViewById<View>(R.id.btnMatch).visibility = View.VISIBLE
-                         }
-                     }
-                 }
-            } catch (e: Exception) { e.printStackTrace() }
-        }
-
-        // Listen for Session End
-        socket?.off("session-ended")
-        socket?.on("session-ended") { args ->
-            SoundManager.playEndChatSound()
-            runOnUiThread {
-                Toast.makeText(this@ChatActivity, "Partner ended the chat", Toast.LENGTH_SHORT).show()
-                finish()
-            }
-        }
-    }
-
-    private fun checkAutoAccept() {
-        val isNewRequest = intent.getBooleanExtra("isNewRequest", false)
-        if (isNewRequest) {
-            SoundManager.playAcceptSound()
-            val payload = JSONObject().apply {
-                put("sessionId", sessionId)
-                put("toUserId", toUserId) // This matches server expectation if toUserId is Caller
-                put("accept", true)
-            }
-            SocketManager.getSocket()?.emit("answer-session", payload)
-
-            val connectPayload = JSONObject().apply { put("sessionId", sessionId) }
-            SocketManager.getSocket()?.emit("session-connect", connectPayload)
-        }
-    }
-
-    private fun unregisterSocketListeners() {
-        try {
-            SocketManager.off("chat-message")
-            SocketManager.off("message-status")
-            SocketManager.off("session-ended")
-            SocketManager.off("typing")
-            SocketManager.off("stop-typing")
-            SocketManager.off("client-birth-chart")
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        viewModel.stopListeners()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         timerHandler.removeCallbacks(timerRunnable)
-        unregisterSocketListeners() // Just in case
     }
 
     private fun fetchChatHistory(sessionId: String) {
@@ -465,9 +327,14 @@ class ChatActivity : AppCompatActivity() {
                             }
 
                             withContext(Dispatchers.Main) {
-                                messages.addAll(0, historyList)
-                                adapter.notifyDataSetChanged()
-                                recyclerChat?.scrollToPosition(messages.size - 1)
+                                // Clear existing to avoid dupes on resume?
+                                // Ideally DiffUtil, but simpler here:
+                                // Only add if empty, assuming history fetch is mostly initial.
+                                if (messages.isEmpty()) {
+                                    messages.addAll(historyList)
+                                    adapter.notifyDataSetChanged()
+                                    recyclerChat?.scrollToPosition(messages.size - 1)
+                                }
                             }
                         }
                     }
