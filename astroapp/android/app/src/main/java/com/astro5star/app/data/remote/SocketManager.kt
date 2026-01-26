@@ -207,6 +207,7 @@ object SocketManager {
     fun disconnect() {
         socket?.disconnect()
         socket = null
+        initialized = false
     }
 
     fun removeChatListeners() {
@@ -216,3 +217,4 @@ object SocketManager {
         socket?.off("stop-typing")
     }
 }
+

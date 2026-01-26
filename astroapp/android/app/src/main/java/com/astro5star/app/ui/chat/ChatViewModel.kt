@@ -22,21 +22,24 @@ class ChatViewModel : ViewModel() {
     private val _typingStatus = MutableLiveData<Boolean>()
     val typingStatus: LiveData<Boolean> = _typingStatus
 
+    private val _sessionEnded = MutableLiveData<Boolean>()
+    val sessionEnded: LiveData<Boolean> = _sessionEnded
+
     fun sendMessage(data: JSONObject) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.sendMessage(data)
         }
     }
 
-    fun sendTyping(sessionId: String) {
+    fun sendTyping(toUserId: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            repository.sendTyping(sessionId)
+            repository.sendTyping(toUserId)
         }
     }
 
-    fun sendStopTyping(sessionId: String) {
+    fun sendStopTyping(toUserId: String) {
          viewModelScope.launch(Dispatchers.IO) {
-            repository.sendStopTyping(sessionId)
+            repository.sendStopTyping(toUserId)
         }
     }
 
@@ -55,6 +58,19 @@ class ChatViewModel : ViewModel() {
     fun acceptSession(sessionId: String, toUserId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.acceptSession(sessionId, toUserId)
+        }
+    }
+
+    fun joinSession(sessionId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+             val payload = JSONObject().apply { put("sessionId", sessionId) }
+             com.astro5star.app.data.remote.SocketManager.getSocket()?.emit("session-connect", payload)
+        }
+    }
+
+    fun endSession(sessionId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            com.astro5star.app.data.remote.SocketManager.endSession(sessionId)
         }
     }
 
@@ -77,6 +93,10 @@ class ChatViewModel : ViewModel() {
 
         repository.listenStopTyping {
             _typingStatus.postValue(false)
+        }
+
+        repository.listenSessionEnded {
+            _sessionEnded.postValue(true)
         }
     }
 

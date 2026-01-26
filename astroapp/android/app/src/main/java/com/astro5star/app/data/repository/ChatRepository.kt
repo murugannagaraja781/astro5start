@@ -11,32 +11,28 @@ class ChatRepository {
         socket?.emit("chat-message", data)
     }
 
-    fun sendTyping(sessionId: String) {
-        socket?.emit("typing", JSONObject().apply { put("sessionId", sessionId) })
+    fun sendTyping(toUserId: String) {
+        socket?.emit("typing", JSONObject().apply { put("toUserId", toUserId) })
     }
 
-    fun sendStopTyping(sessionId: String) {
-        socket?.emit("stop-typing", JSONObject().apply { put("sessionId", sessionId) })
+    fun sendStopTyping(toUserId: String) {
+        socket?.emit("stop-typing", JSONObject().apply { put("toUserId", toUserId) })
     }
 
     fun markDelivered(messageId: String, toUserId: String, sessionId: String) {
         val payload = JSONObject().apply {
-            put("type", "delivered")
             put("messageId", messageId)
             put("toUserId", toUserId)
-            put("sessionId", sessionId)
         }
-        socket?.emit("message-status", payload)
+        socket?.emit("message-delivered", payload)
     }
 
     fun markRead(messageId: String, toUserId: String, sessionId: String) {
         val payload = JSONObject().apply {
-            put("type", "read")
             put("messageId", messageId)
             put("toUserId", toUserId)
-            put("sessionId", sessionId)
         }
-        socket?.emit("message-status", payload)
+        socket?.emit("message-read", payload)
     }
 
     fun listenIncoming(onMessage: (JSONObject) -> Unit) {
@@ -83,7 +79,15 @@ class ChatRepository {
         socket?.emit("session-connect", connectPayload)
     }
 
+    fun listenSessionEnded(onSessionEnded: () -> Unit) {
+        socket?.off("session-ended")
+        socket?.on("session-ended") {
+            onSessionEnded()
+        }
+    }
+
     fun removeListeners() {
         SocketManager.removeChatListeners()
+        socket?.off("session-ended")
     }
 }

@@ -161,6 +161,14 @@ class ChatActivity : AppCompatActivity() {
                 }
             }
         }
+
+        viewModel.sessionEnded.observe(this) { ended ->
+            if (ended) {
+                SoundManager.playEndChatSound()
+                Toast.makeText(this, "Chat Ended by Partner", Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        }
     }
 
     private fun setupContent() {
@@ -215,11 +223,15 @@ class ChatActivity : AppCompatActivity() {
 
             btnEndChat.setOnClickListener {
                 if (sessionId != null) {
-                    SocketManager.endSession(sessionId)
+                    viewModel.endSession(sessionId!!)
                     SoundManager.playEndChatSound()
-                    Toast.makeText(this, "Chat Ended", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Ending Chat...", Toast.LENGTH_SHORT).show()
+                    // Activity will finish when session-ended event is received from server
+                    // Self-initiated end: finish immediately since server won't echo back to us
+                    finish()
+                } else {
+                    finish()
                 }
-                finish()
             }
 
             btnEditIntake.setOnClickListener {
@@ -237,15 +249,15 @@ class ChatActivity : AppCompatActivity() {
                 override fun afterTextChanged(s: android.text.Editable?) {}
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                    if (sessionId != null) {
+                    if (toUserId != null) {
                        if (!isTyping) {
                            isTyping = true
-                           viewModel.sendTyping(sessionId!!)
+                           viewModel.sendTyping(toUserId!!)
                        }
                        typingHandler.removeCallbacksAndMessages(null)
                        typingHandler.postDelayed({
                            isTyping = false
-                           viewModel.sendStopTyping(sessionId!!)
+                           viewModel.sendStopTyping(toUserId!!)
                        }, 2000)
                     }
                 }
@@ -262,7 +274,7 @@ class ChatActivity : AppCompatActivity() {
 
                 isTyping = false
                 typingHandler.removeCallbacksAndMessages(null)
-                if (sessionId != null) viewModel.sendStopTyping(sessionId!!)
+                if (toUserId != null) viewModel.sendStopTyping(toUserId!!)
 
                 val messageId = UUID.randomUUID().toString()
                 val payload = JSONObject()
@@ -296,7 +308,11 @@ class ChatActivity : AppCompatActivity() {
         super.onResume()
         viewModel.startListeners()
 
-        // Also ensure connection is registered for current user (this might be handled in Repository/Manager better, but OK for now)
+        if (sessionId != null) {
+            viewModel.joinSession(sessionId!!)
+        }
+
+        // Also ensure connection is registered for current user
         val myUserId = TokenManager(this).getUserSession()?.userId
         if (myUserId != null) {
             SocketManager.registerUser(myUserId) {}
