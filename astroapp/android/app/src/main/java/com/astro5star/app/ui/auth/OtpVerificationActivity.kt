@@ -62,7 +62,7 @@ class OtpVerificationActivity : AppCompatActivity() {
                     error = null
                 )
                 tokenManager.saveUserSession(dummyUser)
-                val intent = Intent(this, com.astro5star.app.ui.dashboard.ClientDashboardActivity::class.java)
+                val intent = Intent(this, com.astro5star.app.ui.home.HomeActivity::class.java)
                 startActivity(intent)
                 finishAffinity()
                 return@setOnClickListener
@@ -94,7 +94,7 @@ class OtpVerificationActivity : AppCompatActivity() {
                     // Navigate based on Role
                     val intent = when (user.role) {
                         "astrologer" -> Intent(this@OtpVerificationActivity, com.astro5star.app.ui.astro.AstrologerDashboardActivity::class.java)
-                        else -> Intent(this@OtpVerificationActivity, com.astro5star.app.ui.dashboard.ClientDashboardActivity::class.java)
+                        else -> Intent(this@OtpVerificationActivity, com.astro5star.app.ui.home.HomeActivity::class.java)
                     }
                     startActivity(intent)
                     finishAffinity()

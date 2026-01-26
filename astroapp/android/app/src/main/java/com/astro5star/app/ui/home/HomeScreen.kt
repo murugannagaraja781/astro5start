@@ -17,6 +17,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Chat
 import androidx.compose.material.icons.rounded.VideoCall
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.core.*
+import kotlinx.coroutines.launch
 import com.astro5star.app.R
 import com.astro5star.app.data.model.Astrologer
 import com.astro5star.app.ui.theme.*
@@ -212,6 +216,8 @@ fun ActionButton(text: String, icon: ImageVector, active: Boolean, onClick: () -
 // Data class wrapper for Rasi to be used in Compose
 data class ComposeRasiItem(val id: Int, val name: String, val iconRes: Int)
 
+val PriceRed = Color(0xFFFF4D4F)
+
 @Composable
 fun HomeScreen(
     walletBalance: Double,
@@ -222,69 +228,98 @@ fun HomeScreen(
     onChatClick: (Astrologer) -> Unit,
     onCallClick: (Astrologer, String) -> Unit,
     onRasiClick: (ComposeRasiItem) -> Unit,
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
+    onDrawerItemClick: (String) -> Unit = {}
 ) {
     val listState = rememberLazyListState()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    var selectedTab by remember { mutableIntStateOf(0) }
 
-    Scaffold(
-        containerColor = RoyalMidnightBlue, // Base Background
-        topBar = {
-            HomeTopBar(walletBalance, onWalletClick, onLogoutClick)
-        }
-    ) { padding ->
-        LazyColumn(
-            state = listState,
-            contentPadding = PaddingValues(bottom = 80.dp),
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(RoyalMidnightBlue)
-        ) {
-            // 1. Daily Horoscope Card
-            item {
-                DailyHoroscopeCard(horoscope)
-            }
-
-            // 2. Banner (Simulated Carousel)
-            item {
-                BannerSection()
-            }
-
-            // 3. Rasi Grid Section
-            item {
-                Text(
-                    text = "ராசி பலன்",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = RoyalGold,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-            item {
-                RasiGridSection(onRasiClick)
-            }
-
-            // 4. Astrologers Title
-            item {
-                Text(
-                    text = "பிரீமியம் ஆலோசனை",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = RoyalGold,
-                    modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
-                )
-            }
-
-            // 5. Loading Indicator or List
-            if (isLoading) {
-                item {
-                    Box(modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = RoyalGold)
-                    }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            AppDrawer(
+                onItemClick = { item ->
+                    scope.launch { drawerState.close() }
+                    onDrawerItemClick(item)
+                    if (item == "Logout") onLogoutClick()
                 }
-            } else {
-                items(astrologers) { astro ->
-                    AstrologerCard(astro, onChatClick, onCallClick)
+            )
+        }
+    ) {
+        Scaffold(
+            containerColor = RoyalMidnightBlue,
+            topBar = {
+                HomeTopBar(
+                    balance = walletBalance,
+                    onWalletClick = onWalletClick,
+                    onMenuClick = { scope.launch { drawerState.open() } }
+                )
+            },
+            bottomBar = {
+                HomeBottomBar(
+                    selectedTab = selectedTab,
+                    onTabSelected = { selectedTab = it }
+                )
+            }
+        ) { padding ->
+            // Handle Tab Content here if we were switching screens,
+            // but for now verified request keeps Home content + Footer visually
+            Box(modifier = Modifier.padding(padding)) {
+                if (selectedTab == 0) {
+                     LazyColumn(
+                        state = listState,
+                        contentPadding = PaddingValues(bottom = 16.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(RoyalMidnightBlue)
+                    ) {
+                        // 1. Daily Horoscope Card
+                        item { DailyHoroscopeCard(horoscope) }
+
+                        // 2. Banner (Simulated Carousel)
+                        item { BannerSection() }
+
+                        // 3. Rasi Grid Section
+                        item {
+                            Text(
+                                text = "ராசி பலன்",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = RoyalGold,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
+                        item { RasiGridSection(onRasiClick) }
+
+                        // 4. Astrologers Title
+                        item {
+                            Text(
+                                text = "பிரீமியம் ஆலோசனை",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = RoyalGold,
+                                modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
+                            )
+                        }
+
+                        // 5. Loading Indicator or List
+                        if (isLoading) {
+                            item {
+                                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(color = RoyalGold)
+                                }
+                            }
+                        } else {
+                            items(astrologers) { astro ->
+                                AstrologerCard(astro, onChatClick, onCallClick)
+                            }
+                        }
+                    }
+                } else {
+                    // Placeholder for other tabs
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Coming Soon", color = SoftIvory)
+                    }
                 }
             }
         }
@@ -292,7 +327,61 @@ fun HomeScreen(
 }
 
 @Composable
-fun HomeTopBar(balance: Double, onWalletClick: () -> Unit, onLogoutClick: () -> Unit) {
+fun AppDrawer(onItemClick: (String) -> Unit) {
+    ModalDrawerSheet(
+        drawerContainerColor = RoyalMidnightBlue,
+        drawerContentColor = SoftIvory
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Brush.verticalGradient(listOf(PeacockTeal, RoyalMidnightBlue)))
+                .padding(24.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_person_placeholder),
+                contentDescription = "Profile",
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, RoyalGold, CircleShape)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text("User Profile", style = MaterialTheme.typography.titleMedium, color = RoyalGold)
+            Text("Edit Profile", style = MaterialTheme.typography.bodySmall, color = SoftIvory.copy(alpha=0.7f))
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        NavigationDrawerItem(
+            label = { Text("Home", color = SoftIvory) },
+            selected = false,
+            onClick = { onItemClick("Home") },
+            colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
+        )
+         NavigationDrawerItem(
+            label = { Text("Profile", color = SoftIvory) },
+            selected = false,
+            onClick = { onItemClick("Profile") },
+            colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
+        )
+        NavigationDrawerItem(
+            label = { Text("Settings", color = SoftIvory) },
+            selected = false,
+            onClick = { onItemClick("Settings") },
+             colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        NavigationDrawerItem(
+            label = { Text("Logout", color = PriceRed) },
+            selected = false,
+            onClick = { onItemClick("Logout") },
+             colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+fun HomeTopBar(balance: Double, onWalletClick: () -> Unit, onMenuClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -306,23 +395,22 @@ fun HomeTopBar(balance: Double, onWalletClick: () -> Unit, onLogoutClick: () -> 
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // Logout Button
-             IconButton(onClick = onLogoutClick) {
+             IconButton(onClick = onMenuClick) {
                 Icon(
-                    painter = painterResource(id = android.R.drawable.ic_lock_power_off),
-                    contentDescription = "Logout",
+                    imageVector = androidx.compose.material.icons.Icons.Default.Menu,
+                    contentDescription = "Menu",
                     tint = RoyalGold
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-             // New Mayil Logo
+             // Logo
             Image(
                 painter = painterResource(id = R.drawable.logo_mayil),
                 contentDescription = "App Logo",
                 modifier = Modifier
-                    .size(32.dp) // Reduced from 40dp
+                    .size(32.dp)
                     .clip(CircleShape)
                     .border(1.dp, RoyalGold, CircleShape)
             )
@@ -330,13 +418,8 @@ fun HomeTopBar(balance: Double, onWalletClick: () -> Unit, onLogoutClick: () -> 
             Column {
                 Text(
                     text = "Astro 5 Star",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), // Reduced from HeadlineMedium
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = SoftIvory
-                )
-                Text(
-                    text = "Divine Guidance",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PeacockGreen
                 )
             }
         }
@@ -353,7 +436,7 @@ fun HomeTopBar(balance: Double, onWalletClick: () -> Unit, onLogoutClick: () -> 
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Animated Gold Dot for "Eye" effect
+                // Animated Gold Dot
                 val infiniteTransition = rememberInfiniteTransition(label = "WalletGlow")
                 val alpha by infiniteTransition.animateFloat(
                     initialValue = 0.5f,
@@ -380,6 +463,38 @@ fun HomeTopBar(balance: Double, onWalletClick: () -> Unit, onLogoutClick: () -> 
                     color = RoyalGold
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun HomeBottomBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {
+    NavigationBar(
+        containerColor = RoyalMidnightBlue,
+        contentColor = RoyalGold
+    ) {
+        val items = listOf(
+            Triple("Home", androidx.compose.material.icons.Icons.Default.Home, 0),
+            Triple("Chat", androidx.compose.material.icons.Icons.Rounded.Chat, 1),
+            Triple("Video", androidx.compose.material.icons.Icons.Rounded.VideoCall, 2), // "Live" mapped to Video for now
+            Triple("Call", androidx.compose.material.icons.Icons.Rounded.Call, 3),
+            Triple("Profile", androidx.compose.material.icons.Icons.Default.Person, 4)
+        )
+
+        items.forEach { (label, icon, index) ->
+            NavigationBarItem(
+                icon = { Icon(icon, contentDescription = label) },
+                label = { Text(label) },
+                selected = selectedTab == index,
+                onClick = { onTabSelected(index) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = RoyalMidnightBlue,
+                    selectedTextColor = RoyalGold,
+                    indicatorColor = RoyalGold,
+                    unselectedIconColor = SoftIvory.copy(alpha = 0.6f),
+                    unselectedTextColor = SoftIvory.copy(alpha = 0.6f)
+                )
+            )
         }
     }
 }

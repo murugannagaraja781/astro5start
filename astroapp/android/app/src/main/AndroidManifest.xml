@@ -98,7 +98,6 @@
         </activity>
 
         <activity android:name=".ui.guest.GuestDashboardActivity" />
-        <activity android:name=".ui.dashboard.ClientDashboardActivity" />
         <activity android:name=".ui.astro.AstrologerDashboardActivity" />
         <activity android:name=".ui.admin.SuperPowerAdminDashboardActivity" android:exported="false" android:theme="@style/Theme.FCMCallApp"/>
         <activity android:name=".ui.payment.PaymentActivity" />
