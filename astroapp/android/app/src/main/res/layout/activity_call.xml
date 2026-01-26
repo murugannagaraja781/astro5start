@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000"
@@ -11,13 +12,13 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Top Gradient Overlay (for text visibility) -->
+    <!-- Top Gradient Overlay -->
     <View
         android:layout_width="match_parent"
         android:layout_height="120dp"
         android:background="#40000000"/>
 
-    <!-- Top Info Bar (Back, Name, Call/Video Icons) -->
+    <!-- Top Info Bar -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -46,19 +47,17 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
-
         <TextView
-             android:id="@+id/tvCallDuration"
-             android:layout_width="wrap_content"
-             android:layout_height="wrap_content"
-             android:layout_below="@id/tvRemoteName"
-             android:layout_toEndOf="@id/btnBack"
-             android:layout_marginStart="16dp"
-             android:text="12:08"
-             android:textColor="#E0E0E0"
-             android:textSize="14sp" />
+            android:id="@+id/tvCallDuration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tvRemoteName"
+            android:layout_toEndOf="@id/btnBack"
+            android:layout_marginStart="16dp"
+            android:text="12:08"
+            android:textColor="#E0E0E0"
+            android:textSize="14sp" />
 
-        <!-- Mic Toggle (Moved to Top) -->
         <ImageButton
             android:id="@+id/btnMic"
             android:layout_width="40dp"
@@ -69,13 +68,11 @@
             android:backgroundTint="#80FFFFFF"
             android:src="@android:drawable/ic_btn_speak_now"
             android:padding="8dp"
-            android:tint="#FFFFFF"
-            android:contentDescription="Toggle Mic" />
+            android:tint="#FFFFFF" />
 
     </RelativeLayout>
 
-    <!-- Local Video (PIP) - WhatsApp Style with Rounded Corners -->
-    <!-- Positioned above control panel -->
+    <!-- Local Video (PIP) -->
     <androidx.cardview.widget.CardView
         android:id="@+id/localVideoCard"
         android:layout_width="120dp"
@@ -86,8 +83,7 @@
         android:layout_marginBottom="24dp"
         app:cardCornerRadius="16dp"
         app:cardElevation="8dp"
-        app:cardBackgroundColor="#222222"
-        xmlns:app="http://schemas.android.com/apk/res-auto">
+        app:cardBackgroundColor="#222222">
 
         <org.webrtc.SurfaceViewRenderer
             android:id="@+id/local_view"
@@ -97,56 +93,57 @@
     </androidx.cardview.widget.CardView>
 
     <!-- Bottom Control Panel -->
+    <LinearLayout
+        android:id="@+id/controlPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:background="#66000000">
 
-        <!-- Rasi Chart -->
         <ImageButton
             android:id="@+id/btnRasi"
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:background="@drawable/btn_rounded_action"
             android:src="@android:drawable/ic_menu_gallery"
-            android:tint="#FFFFFF"
-            android:contentDescription="Rasi Chart" />
+            android:tint="#FFFFFF"/>
 
-        <Space android:layout_width="24dp" android:layout_height="wrap_content" />
+        <Space android:layout_width="24dp" android:layout_height="wrap_content"/>
 
-        <!-- Video Toggle -->
         <ImageButton
             android:id="@+id/btnVideo"
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:background="@drawable/btn_rounded_action"
             android:src="@android:drawable/ic_menu_camera"
-            android:tint="#FFFFFF"
-            android:contentDescription="Toggle Video" />
+            android:tint="#FFFFFF"/>
 
-        <Space android:layout_width="24dp" android:layout_height="wrap_content" />
+        <Space android:layout_width="24dp" android:layout_height="wrap_content"/>
 
-        <!-- End Call -->
         <ImageButton
             android:id="@+id/btnEndCall"
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:background="@drawable/btn_rounded_action_red"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
-            android:tint="#FFFFFF"
-            android:contentDescription="End Call" />
+            android:tint="#FFFFFF"/>
 
-        <Space android:layout_width="24dp" android:layout_height="wrap_content" />
+        <Space android:layout_width="24dp" android:layout_height="wrap_content"/>
 
-        <!-- Edit Form -->
         <ImageButton
             android:id="@+id/btnEdit"
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:background="@drawable/btn_rounded_action"
             android:src="@android:drawable/ic_menu_edit"
-            android:tint="#FFFFFF"
-            android:contentDescription="Edit Form" />
+            android:tint="#FFFFFF"/>
 
     </LinearLayout>
 
-    <!-- Status Text (Connecting...) -->
+    <!-- Status Text -->
     <TextView
         android:id="@+id/tvCallStatus"
         android:layout_width="wrap_content"
