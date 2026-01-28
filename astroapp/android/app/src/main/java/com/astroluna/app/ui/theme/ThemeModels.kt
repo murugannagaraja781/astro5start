@@ -35,13 +35,13 @@ object ThemePalette {
         bgStart = Color(0xFFFFFFFF), // Pure White Background
         bgCenter = Color(0xFFFFFFFF),
         bgEnd = Color(0xFFFFFFFF),
-        headerStart = Color(0xFF1B5E20), // Primary Green
-        headerEnd = Color(0xFF1B5E20),
+        headerStart = Color(0xFF010080), // Primary Deep Blue
+        headerEnd = Color(0xFF010080),
         cardBg = Color(0xFFFFFFFF),
-        cardStroke = Color(0xFF1B5E20), // Green Borders
+        cardStroke = Color(0xFF010080), // Deep Blue Borders
         textPrimary = Color(0xFF1C1F26),
         textSecondary = Color(0xFF6B7280),
-        accent = Color(0xFF1B5E20) // Accent Green
+        accent = Color(0xFF010080) // Accent Deep Blue
     )
 
     // All themes are now forced to Premium as requested

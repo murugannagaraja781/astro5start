@@ -98,11 +98,8 @@ npm install --production
 # Step 5: Setup PM2
 echo "[5/6] Configuration PM2..."
 # Check if app is already running
-if pm2 list | grep -q "$APP_NAME"; then
-    echo "App '$APP_NAME' is already running. Reloading..."
-    pm2 reload $APP_NAME
-else
-    echo "Starting '$APP_NAME'..."
+    echo "App '$APP_NAME' is already running. Stopping and restarting to ensure correct path..."
+    pm2 delete $APP_NAME
     pm2 start server.js --name $APP_NAME
 fi
 
