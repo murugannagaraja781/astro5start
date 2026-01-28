@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000"
@@ -11,132 +12,146 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Self Video (PIP) -->
-    <org.webrtc.SurfaceViewRenderer
-        android:id="@+id/local_view"
-        android:layout_width="120dp"
-        android:layout_height="160dp"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentTop="true"
-        android:layout_margin="16dp"
-        android:background="#333333" />
+    <!-- Top Gradient Overlay -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:background="#40000000"/>
 
-    <!-- Status / Name Overlay -->
-    <LinearLayout
+    <!-- Top Info Bar -->
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp"
-        android:background="#40000000"
-        android:orientation="vertical">
+        android:layout_marginTop="32dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <ImageButton
-                android:id="@+id/btnBack"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_close_clear_cancel"
-                android:tint="#FFFFFF" />
-
-            <TextView
-                android:id="@+id/tvRemoteName"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                 android:text="Name"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvCallDuration"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="00:00"
-                android:textColor="#FFFF00"
-                android:textStyle="bold" />
-        </LinearLayout>
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/circle_bg"
+            android:backgroundTint="#80FFFFFF"
+            android:src="@android:drawable/ic_menu_revert"
+            android:padding="8dp"
+            android:tint="#000000"/>
 
         <TextView
-            android:id="@+id/tvCallStatus"
-            android:layout_width="match_parent"
+            android:id="@+id/tvRemoteName"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:text="Connecting..."
-            android:textColor="#FFD700"
-            android:layout_marginTop="8dp" />
-    </LinearLayout>
+            android:layout_toEndOf="@id/btnBack"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="16dp"
+            android:text="Dr. Mahmud Nik"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
-    <!-- Controls (Bottom) -->
+        <TextView
+            android:id="@+id/tvCallDuration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tvRemoteName"
+            android:layout_toEndOf="@id/btnBack"
+            android:layout_marginStart="16dp"
+            android:text="12:08"
+            android:textColor="#E0E0E0"
+            android:textSize="14sp" />
+
+        <ImageButton
+            android:id="@+id/btnMic"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/circle_bg"
+            android:backgroundTint="#80FFFFFF"
+            android:src="@android:drawable/ic_btn_speak_now"
+            android:padding="8dp"
+            android:tint="#FFFFFF" />
+
+    </RelativeLayout>
+
+    <!-- Local Video (PIP) -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/localVideoCard"
+        android:layout_width="120dp"
+        android:layout_height="160dp"
+        android:layout_alignParentEnd="true"
+        android:layout_above="@+id/controlPanel"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="24dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="8dp"
+        app:cardBackgroundColor="#222222">
+
+        <org.webrtc.SurfaceViewRenderer
+            android:id="@+id/local_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </androidx.cardview.widget.CardView>
+
+    <!-- Bottom Control Panel -->
     <LinearLayout
+        android:id="@+id/controlPanel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:gravity="center"
-        android:padding="24dp"
-        android:background="#80000000">
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:background="#66000000">
 
         <ImageButton
-            android:id="@+id/btnMic"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:background="@drawable/rounded_button_bg"
-            android:src="@android:drawable/ic_btn_speak_now"
-            android:tint="#FFFFFF"
-            android:layout_marginEnd="16dp" />
+            android:id="@+id/btnRasi"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/btn_rounded_action"
+            android:src="@android:drawable/ic_menu_gallery"
+            android:tint="#FFFFFF"/>
 
-        <ImageButton
-            android:id="@+id/btnEndCall"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:background="@drawable/rounded_button_red"
-            android:src="@android:drawable/ic_menu_call"
-            android:rotation="135"
-            android:tint="#FFFFFF" />
+        <Space android:layout_width="24dp" android:layout_height="wrap_content"/>
 
         <ImageButton
             android:id="@+id/btnVideo"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:background="@drawable/rounded_button_bg"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/btn_rounded_action"
             android:src="@android:drawable/ic_menu_camera"
-            android:tint="#FFFFFF"
-            android:layout_marginStart="16dp" />
+            android:tint="#FFFFFF"/>
+
+        <Space android:layout_width="24dp" android:layout_height="wrap_content"/>
+
+        <ImageButton
+            android:id="@+id/btnEndCall"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/btn_rounded_action_red"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:tint="#FFFFFF"/>
+
+        <Space android:layout_width="24dp" android:layout_height="wrap_content"/>
+
+        <ImageButton
+            android:id="@+id/btnEdit"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/btn_rounded_action"
+            android:src="@android:drawable/ic_menu_edit"
+            android:tint="#FFFFFF"/>
+
     </LinearLayout>
 
-    <!-- Floating Actions (Above Controls) -->
-    <LinearLayout
+    <!-- Status Text -->
+    <TextView
+        android:id="@+id/tvCallStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/btnEndCall"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="100dp"
-        android:orientation="vertical"
-        android:gravity="end">
-
-        <ImageButton
-             android:id="@+id/btnRasi"
-             android:layout_width="48dp"
-             android:layout_height="48dp"
-             android:background="@drawable/rounded_button_bg"
-             android:src="@android:drawable/ic_menu_gallery"
-             android:tint="#FFD700"
-             android:layout_marginBottom="12dp"
-             android:visibility="gone" />
-
-        <ImageButton
-             android:id="@+id/btnEdit"
-             android:layout_width="48dp"
-             android:layout_height="48dp"
-             android:background="@drawable/rounded_button_bg"
-             android:src="@android:drawable/ic_menu_edit"
-             android:tint="#FFFFFF"
-             android:visibility="gone" />
-    </LinearLayout>
+        android:layout_centerInParent="true"
+        android:text="Connecting..."
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:textStyle="bold" />
 
 </RelativeLayout>

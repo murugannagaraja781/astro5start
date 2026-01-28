@@ -2582,49 +2582,16 @@ io.on('connection', (socket) => {
         // If Astrologer, use grace period before marking offline
         const user = await User.findOne({ userId });
         if (user && user.role === 'astrologer') {
-          // Save current status before potential offline
-          savedAstroStatus.set(userId, {
-            chat: user.isChatOnline,
-            audio: user.isAudioOnline,
-            video: user.isVideoOnline,
-            timestamp: Date.now()
-          });
-
-          console.log(`[Status] Astrologer ${user.name} disconnected - starting ${OFFLINE_GRACE_PERIOD / 1000}s grace period`);
-
+          console.log(`[Status] Astrologer ${user.name} disconnected - Keeping online status persistent.`);
           // Clear any existing timeout
           if (offlineTimeouts.has(userId)) {
             clearTimeout(offlineTimeouts.get(userId));
+            offlineTimeouts.delete(userId);
           }
-
-          // Set new timeout - only mark offline if still disconnected after grace period
-          const timeoutId = setTimeout(async () => {
-            try {
-              // Check if user reconnected
-              if (!userSockets.has(userId)) {
-                const astro = await User.findOne({ userId });
-                if (astro && astro.role === 'astrologer') {
-                  astro.isOnline = false;
-                  astro.isChatOnline = false;
-                  astro.isAudioOnline = false;
-                  astro.isVideoOnline = false;
-                  await astro.save();
-                  broadcastAstroUpdate();
-                  console.log(`[Status] Astrologer ${astro.name} marked offline after grace period`);
-                }
-                savedAstroStatus.delete(userId);
-              } else {
-                console.log(`[Status] Astrologer ${userId} reconnected before grace period ended`);
-              }
-              offlineTimeouts.delete(userId);
-            } catch (err) {
-              console.error('[Status] Grace period timeout error:', err);
-            }
-          }, OFFLINE_GRACE_PERIOD);
-
-          offlineTimeouts.set(userId, timeoutId);
         }
-      } catch (e) { console.error('Disconnect DB error', e); }
+      } catch (e) {
+        console.error('Disconnect DB error', e);
+      }
 
       const sid = userActiveSession.get(userId);
       if (sid) {

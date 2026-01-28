@@ -52,6 +52,7 @@ class FCMService : FirebaseMessagingService() {
         private const val CHAT_CHANNEL_ID = "chat_messages_v1"
         private const val CHAT_CHANNEL_NAME = "Chat Messages"
         private const val CALL_NOTIFICATION_ID = 9999
+        private const val GENERIC_NOTIFICATION_ID = 1002
     }
 
     // Coroutine scope for async operations within service lifecycle
@@ -187,7 +188,7 @@ class FCMService : FirebaseMessagingService() {
             .build()
 
         val notificationManager = getSystemService(NotificationManager::class.java)
-        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
+        notificationManager.notify(GENERIC_NOTIFICATION_ID, notification)
     }
 
     /**

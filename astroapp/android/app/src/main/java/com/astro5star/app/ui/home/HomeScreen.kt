@@ -773,8 +773,8 @@ fun RasiGridSection(onClick: (ComposeRasiItem) -> Unit) {
     val rasiItems = listOf(
         ComposeRasiItem(1, "Aries", R.drawable.ic_rasi_aries_premium, AriesRed),
         ComposeRasiItem(2, "Taurus", R.drawable.ic_rasi_taurus_premium_copy, TaurusGreen),
-        ComposeRasiItem(3, "Gemini", R.drawable.ic_rasi_gemini_premium_copy, GeminiYellow),
-        ComposeRasiItem(4, "Cancer", R.drawable.ic_rasi_cancer_premium_copy, CancerSilver),
+        ComposeRasiItem(3, "Gemini", R.drawable.ic_rasi_gemini_premium_copy, GeminiGreen),
+        ComposeRasiItem(4, "Cancer", R.drawable.ic_rasi_cancer_premium_copy, CancerBlue),
         ComposeRasiItem(5, "Leo", R.drawable.ic_rasi_leo_premium, LeoGold),
         ComposeRasiItem(6, "Virgo", R.drawable.ic_rasi_virgo_premium, VirgoOlive),
         ComposeRasiItem(7, "Libra", R.drawable.ic_rasi_libra_premium_copy, LibraPink),

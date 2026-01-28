@@ -101,8 +101,12 @@ class HomeActivity : AppCompatActivity() {
                         startActivity(intent)
                     },
                     onRasiClick = { item ->
-                        // Launch RasipalanActivity
-                        startActivity(Intent(this, com.astro5star.app.ui.rasipalan.RasipalanActivity::class.java))
+                        // Launch RasipalanActivity with filtering extras
+                        val intent = Intent(this, com.astro5star.app.ui.rasipalan.RasipalanActivity::class.java).apply {
+                            putExtra("signId", item.id)
+                            putExtra("signName", item.name)
+                        }
+                        startActivity(intent)
                     },
                     onLogoutClick = {
                         tokenManager.clearSession()

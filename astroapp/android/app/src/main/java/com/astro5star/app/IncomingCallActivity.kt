@@ -106,8 +106,14 @@ class IncomingCallActivity : AppCompatActivity() {
         Log.d(TAG, "Processing Call Intent: $callerName ($callId) Type: $callType")
 
         // Cancel notification on new call
+        clearAllCallNotifications()
+    }
+
+    private fun clearAllCallNotifications() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-        notificationManager.cancel(9999)
+        notificationManager.cancel(9999) // FCM Incoming
+        notificationManager.cancel(1001) // Foreground Service
+        notificationManager.cancel(1002) // Generic FCM
     }
 
     private fun setupUI() {
@@ -291,9 +297,7 @@ class IncomingCallActivity : AppCompatActivity() {
         if (shouldStopServiceOnDestroy) {
             Log.d(TAG, "onDestroy: Stopping service (Abrupt exit)")
             stopService(Intent(this, CallForegroundService::class.java))
-            // Ensure notification 9999 (FCM) is also gone
-             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-             notificationManager.cancel(9999)
+            clearAllCallNotifications()
         }
 
         Log.d(TAG, "IncomingCallActivity destroyed")

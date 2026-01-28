@@ -3,18 +3,18 @@ package com.astro5star.app.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // RASI COLORS (Used in HomeScreen Grid)
-val AriesRed = Color(0xFFFF5252)
-val TaurusGreen = Color(0xFF4CAF50)
-val GeminiYellow = Color(0xFFFFEB3B)
-val CancerSilver = Color(0xFFE0E0E0)
-val LeoGold = Color(0xFFFFC107)
-val VirgoOlive = Color(0xFF8BC34A)
-val LibraPink = Color(0xFFE91E63)
-val ScorpioMaroon = Color(0xFF800000)
-val SagPurple = Color(0xFF9C27B0)
-val CapTeal = Color(0xFF009688)
-val AquaBlue = Color(0xFF03A9F4)
-val PiscesIndigo = Color(0xFF3F51B5)
+val AriesRed = Color(0xFFB71C1C) // Deep Red
+val TaurusGreen = Color(0xFF1B5E20) // Deep Green
+val GeminiGreen = Color(0xFF2E7D32) // USER REQ: Methunam Green Dark
+val CancerBlue = Color(0xFF0D47A1) // USER REQ: Kadam Dark Blue
+val LeoGold = Color(0xFFF9A825) // Deeper Gold
+val VirgoOlive = Color(0xFF558B2F) // Deep Olive
+val LibraPink = Color(0xFFAD1457) // Dark Pink
+val ScorpioMaroon = Color(0xFF880E4F) // Deep Maroon
+val SagPurple = Color(0xFF6A1B9A) // Deep Purple
+val CapTeal = Color(0xFF00695C) // Deep Teal
+val AquaBlue = Color(0xFF0277BD) // Deep Blue
+val PiscesIndigo = Color(0xFF283593) // Deep Indigo
 
 // ADDITIONAL PREMIUM COLORS (Requested by User / Legacy References)
 val CosmicBlue = Color(0xFF0F1028)

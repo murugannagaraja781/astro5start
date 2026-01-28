@@ -1,4 +1,4 @@
-package com.astro5star.app.ui.call
+ package com.astro5star.app.ui.call
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -315,7 +315,8 @@ class CallActivity : AppCompatActivity() {
             SocketManager.getSocket()?.emit("session-connect", connectPayload)
             Log.d(TAG, "Sent session-connect (Initiator) for $sessionId")
 
-            createOffer()
+            // DON'T create offer immediately. Wait for peer-accepted/session-answered.
+            Log.d(TAG, "Initiator: Waiting for partner to accept before creating offer...")
         } else {
             tvStatus.text = "Connecting..."
 
@@ -426,7 +427,10 @@ class CallActivity : AppCompatActivity() {
             }
         }
 
-        val rtcConfig = PeerConnection.RTCConfiguration(iceServers)
+        val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
+            // Revert to Legacy Patterns (Plan B is default in older WebRTC)
+            continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
+        }
         peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, object : PeerConnection.Observer {
             override fun onSignalingChange(p0: PeerConnection.SignalingState?) {
                 Log.d(TAG, "onSignalingChange: $p0")
@@ -480,7 +484,21 @@ class CallActivity : AppCompatActivity() {
                 if (stream != null && stream.videoTracks.isNotEmpty() && callType == "video") {
                     val remoteVideoTrack = stream.videoTracks[0]
                     runOnUiThread {
+                        Log.d(TAG, "Adding remote video track (via onAddStream) to remoteView")
+                        remoteVideoTrack.setEnabled(true)
                         remoteVideoTrack.addSink(remoteView)
+                    }
+                }
+            }
+
+            override fun onTrack(transceiver: RtpTransceiver?) {
+                val track = transceiver?.receiver?.track()
+                Log.d(TAG, "onTrack: ${track?.kind()} id=${track?.id()}")
+                if (track is VideoTrack && callType == "video") {
+                    runOnUiThread {
+                        Log.d(TAG, "Adding remote video track (via onTrack) to remoteView")
+                        track.setEnabled(true)
+                        track.addSink(remoteView)
                     }
                 }
             }
@@ -502,6 +520,18 @@ class CallActivity : AppCompatActivity() {
         SocketManager.onSignal { data ->
             runOnUiThread {
                 handleSignal(data)
+            }
+        }
+
+        // --- NEW: Wait for partner to accept before starting WebRTC handshake ---
+        SocketManager.onSessionAnswered { data ->
+            val accepted = data.optBoolean("accept", false)
+            Log.d(TAG, "Partner answered: accepted=$accepted")
+            if (isInitiator && accepted) {
+                runOnUiThread {
+                    tvStatus.text = "Connecting..."
+                    createOffer()
+                }
             }
         }
 
@@ -600,9 +630,11 @@ class CallActivity : AppCompatActivity() {
 
         when (type) {
             "offer" -> {
-                val sdp = signal.optJSONObject("sdp")
-                val descriptionStr = sdp?.optString("sdp") ?: signal.optString("sdp")
+                val sdpObj = signal.optJSONObject("sdp")
+                val descriptionStr = sdpObj?.optString("sdp") ?: signal.optString("sdp")
+
                 if (descriptionStr.isNotEmpty()) {
+                    Log.d(TAG, "Setting Remote Offer. Nested=${sdpObj != null}")
                     peerConnection.setRemoteDescription(object : SimpleSdpObserver() {
                         override fun onSetSuccess() {
                             Log.d(TAG, "Remote Offer Set. Creating Answer.")
@@ -613,9 +645,11 @@ class CallActivity : AppCompatActivity() {
                 }
             }
             "answer" -> {
-                val sdp = signal.optJSONObject("sdp")
-                val descriptionStr = sdp?.optString("sdp") ?: signal.optString("sdp")
+                val sdpObj = signal.optJSONObject("sdp")
+                val descriptionStr = sdpObj?.optString("sdp") ?: signal.optString("sdp")
+
                 if (descriptionStr.isNotEmpty()) {
+                    Log.d(TAG, "Setting Remote Answer. Nested=${sdpObj != null}")
                     peerConnection.setRemoteDescription(object : SimpleSdpObserver() {
                         override fun onSetSuccess() {
                             Log.d(TAG, "Remote Answer Set.")
@@ -649,10 +683,13 @@ class CallActivity : AppCompatActivity() {
         peerConnection.createOffer(object : SimpleSdpObserver() {
             override fun onCreateSuccess(desc: SessionDescription?) {
                 peerConnection.setLocalDescription(SimpleSdpObserver(), desc)
-                // WRAPPED SIGNAL
+                // BACKWARD COMPATIBLE SIGNAL (Double Nested)
                 val signalData = JSONObject().apply {
                     put("type", "offer")
-                    put("sdp", desc?.description)
+                    put("sdp", JSONObject().apply {
+                        put("type", "offer")
+                        put("sdp", desc?.description)
+                    })
                 }
                 val payload = JSONObject().apply {
                     put("toUserId", partnerId)
@@ -667,10 +704,13 @@ class CallActivity : AppCompatActivity() {
         peerConnection.createAnswer(object : SimpleSdpObserver() {
             override fun onCreateSuccess(desc: SessionDescription?) {
                 peerConnection.setLocalDescription(SimpleSdpObserver(), desc)
-                // WRAPPED SIGNAL
+                // BACKWARD COMPATIBLE SIGNAL (Double Nested)
                 val signalData = JSONObject().apply {
                     put("type", "answer")
-                    put("sdp", desc?.description)
+                    put("sdp", JSONObject().apply {
+                        put("type", "answer")
+                        put("sdp", desc?.description)
+                    })
                 }
                 val payload = JSONObject().apply {
                     put("toUserId", partnerId)

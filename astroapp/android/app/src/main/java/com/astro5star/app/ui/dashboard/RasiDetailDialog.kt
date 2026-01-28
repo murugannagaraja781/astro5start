@@ -21,6 +21,7 @@ import androidx.compose.ui.window.Dialog
 import com.astro5star.app.ui.theme.MetallicGold
 import com.astro5star.app.ui.theme.NebulaPurple
 import com.astro5star.app.ui.theme.DeepSpaceNavy
+import com.astro5star.app.utils.Localization
 
 @Composable
 fun RasiDetailDialog(
@@ -54,7 +55,7 @@ fun RasiDetailDialog(
                 ) {
                     // Header
                     Text(
-                        text = "Rasi Prediction",
+                        text = "ராசி பலன்",
                         style = MaterialTheme.typography.labelMedium,
                         color = MetallicGold,
                         letterSpacing = 2.sp
@@ -91,7 +92,7 @@ fun RasiDetailDialog(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = name,
+                        text = Localization.get(name.lowercase(), true),
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                         color = Color.White // Fix: White Text
                     )
@@ -103,15 +104,15 @@ fun RasiDetailDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        RasiInfoItem("Element", "Air")
-                        RasiInfoItem("Lord", "Venus")
-                        RasiInfoItem("Type", "Movable")
+                        RasiInfoItem("தத்துவம்", "காற்று (Air)")
+                        RasiInfoItem("அதிபதி", "சுக்கிரன் (Venus)")
+                        RasiInfoItem("வகை", "சரம் (Movable)")
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Text(
-                        text = "Today's Prediction",
+                        text = "இன்றைய பலன்",
                         style = MaterialTheme.typography.titleSmall,
                         color = Color.Green, // Green Label
                         modifier = Modifier.align(Alignment.Start)
@@ -135,7 +136,7 @@ fun RasiDetailDialog(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Close", fontWeight = FontWeight.Bold)
+                        Text("சரி", fontWeight = FontWeight.Bold)
                     }
                 }
             }
