@@ -537,8 +537,11 @@ const ChatMessageSchema = new mongoose.Schema({
   fromUserId: String,
   toUserId: String,
   text: String,
-  timestamp: Number
+  timestamp: Number,
+  messageId: { type: String, index: true },
+  status: String
 });
+ChatMessageSchema.index({ sessionId: 1, messageId: 1 }, { unique: true, sparse: true });
 const ChatMessage = mongoose.model('ChatMessage', ChatMessageSchema);
 
 
@@ -1015,6 +1018,8 @@ async function endSessionRecord(sessionId) {
     });
   }
 
+  broadcastAstroUpdate(); // Broadcast available status
+
   // Notify with Summary
   const s1 = userSockets.get(s.clientId);
   const s2 = userSockets.get(s.astrologerId);
@@ -1369,7 +1374,12 @@ io.on('connection', (socket) => {
   async function broadcastAstroUpdate() {
     try {
       const astros = await User.find({ role: 'astrologer' });
-      io.emit('astrologer-update', astros);
+      const astrosWithBusy = astros.map(u => {
+        const uObj = u.toObject();
+        uObj.isBusy = userActiveSession.has(u.userId);
+        return uObj;
+      });
+      io.emit('astrologer-update', astrosWithBusy);
     } catch (e) { }
   }
 
@@ -1608,6 +1618,8 @@ io.on('connection', (socket) => {
       });
       userActiveSession.set(fromUserId, sessionId);
       userActiveSession.set(toUserId, sessionId);
+
+      broadcastAstroUpdate(); // Broadcast busy status
 
       // Try socket notification (might fail if in background - that's OK!)
       const targetSocketId = userSockets.get(toUserId);
@@ -1892,14 +1904,22 @@ io.on('connection', (socket) => {
         status: 'sent',
       });
 
-      // Save to DB (Async)
-      ChatMessage.create({
-        sessionId,
-        fromUserId,
-        toUserId,
-        text: content.text,
-        timestamp: timestamp || Date.now()
-      }).catch(e => console.error('ChatSave Error', e));
+      // Save to DB (Check duplicate first)
+      ChatMessage.updateOne(
+        { messageId },
+        {
+          $setOnInsert: {
+            sessionId,
+            fromUserId,
+            toUserId,
+            text: content.text,
+            timestamp: timestamp || Date.now(),
+            messageId,
+            status: 'sent'
+          }
+        },
+        { upsert: true }
+      ).catch(e => console.error('ChatSave Error', e));
 
       // Check if recipient is connected
       const toSocketId = userSockets.get(toUserId);

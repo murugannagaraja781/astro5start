@@ -628,9 +628,9 @@ fun AstrologerCard(
     onCallClick: (Astrologer, String) -> Unit,
     selectedTab: Int
 ) {
-    val showChat = selectedTab == 0 || selectedTab == 1
-    val showVideo = selectedTab == 0 || selectedTab == 2
-    val showCall = selectedTab == 0 || selectedTab == 3
+    val canChat = astro.isChatOnline && (selectedTab == 0 || selectedTab == 1)
+    val canVideo = astro.isVideoOnline && (selectedTab == 0 || selectedTab == 2)
+    val canCall = astro.isAudioOnline && (selectedTab == 0 || selectedTab == 3)
 
     // ONLINE ANIMATION (Pulse Border)
     val infiniteTransition = rememberInfiniteTransition(label = "OnlinePulse")
@@ -638,7 +638,11 @@ fun AstrologerCard(
         initialValue = 1f, targetValue = if(astro.isOnline) 0.5f else 1f,
         animationSpec = infiniteRepeatable(tween(1000), RepeatMode.Reverse), label = "Alpha"
     )
-    val borderColor = if (astro.isOnline) PeacockGreen.copy(alpha = alpha) else Color.LightGray
+    val borderColor = when {
+        astro.isBusy -> Color.Red
+        astro.isOnline -> PeacockGreen.copy(alpha = alpha)
+        else -> Color.LightGray
+    }
 
     Card(
         modifier = Modifier
@@ -670,7 +674,7 @@ fun AstrologerCard(
                         modifier = Modifier
                             .size(70.dp)
                             .clip(CircleShape)
-                            .border(2.dp, if(astro.isOnline) PeacockGreen else Color.LightGray, CircleShape)
+                            .border(2.dp, if(astro.isBusy) Color.Red else if(astro.isOnline) PeacockGreen else Color.LightGray, CircleShape)
                     )
                      Icon(
                         imageVector = Icons.Filled.CheckCircle,
@@ -709,10 +713,9 @@ fun AstrologerCard(
                  Spacer(modifier = Modifier.height(12.dp))
 
                  Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-
-                     if (showChat) AstrologerActionButton("Chat", Icons.Rounded.Chat, astro.isOnline, AquaBlue, { onChatClick(astro) })
-                     if (showVideo) AstrologerActionButton("Video", Icons.Rounded.VideoCall, astro.isOnline, PriceRed, { onCallClick(astro, "Video") }, Modifier.padding(start=4.dp))
-                     if (showCall) AstrologerActionButton("Call", Icons.Rounded.Call, astro.isOnline, PeacockGreen, { onCallClick(astro, "Audio") }, Modifier.padding(start=4.dp))
+                     if (canChat) AstrologerActionButton("Chat", Icons.Rounded.Chat, true, AquaBlue, { onChatClick(astro) })
+                     if (canVideo) AstrologerActionButton("Video", Icons.Rounded.VideoCall, true, PriceRed, { onCallClick(astro, "Video") }, Modifier.padding(start=4.dp))
+                     if (canCall) AstrologerActionButton("Call", Icons.Rounded.Call, true, PeacockGreen, { onCallClick(astro, "Audio") }, Modifier.padding(start=4.dp))
                  }
              }
         }

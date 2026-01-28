@@ -55,10 +55,11 @@ fun RasiDetailDialog(
                 ) {
                     // Header
                     Text(
-                        text = "ராசி பலன்",
+                        text = Localization.get("horoscope", true),
                         style = MaterialTheme.typography.labelMedium,
                         color = MetallicGold,
-                        letterSpacing = 2.sp
+                        letterSpacing = 2.sp,
+                        textAlign = TextAlign.Center
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -94,7 +95,8 @@ fun RasiDetailDialog(
                     Text(
                         text = Localization.get(name.lowercase(), true),
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White // Fix: White Text
+                        color = Color.White, // Fix: White Text
+                        textAlign = TextAlign.Center
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -104,25 +106,26 @@ fun RasiDetailDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        RasiInfoItem("தத்துவம்", "காற்று (Air)")
-                        RasiInfoItem("அதிபதி", "சுக்கிரன் (Venus)")
-                        RasiInfoItem("வகை", "சரம் (Movable)")
+                        RasiInfoItem(Localization.get("element", true), "காற்று (Air)")
+                        RasiInfoItem(Localization.get("lord", true), "சுக்கிரன் (Venus)")
+                        RasiInfoItem(Localization.get("category", true), "சரம் (Movable)")
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Text(
-                        text = "இன்றைய பலன்",
+                        text = Localization.get("daily_prediction", true),
                         style = MaterialTheme.typography.titleSmall,
                         color = Color.Green, // Green Label
-                        modifier = Modifier.align(Alignment.Start)
+                        modifier = Modifier.padding(top = 8.dp).fillMaxWidth(),
+                        textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "New opportunities are waiting for you today. Focus on your goals. Good luck awaits.",
+                        text = "இன்று உங்களுக்கு புதிய வாய்ப்புகள் காத்திருக்கின்றன. உங்கள் இலக்குகளில் கவனம் செலுத்துங்கள். நல்ல அதிர்ஷ்டம் காத்திருக்கிறது.",
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                         color = Color.White, // Fix: White Text
-                        textAlign = TextAlign.Start,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -136,7 +139,7 @@ fun RasiDetailDialog(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("சரி", fontWeight = FontWeight.Bold)
+                        Text(Localization.get("ok", true), fontWeight = FontWeight.Bold)
                     }
                 }
             }

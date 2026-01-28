@@ -175,7 +175,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun loadHistory(sessionId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             // First attempt to sync from server to catch missed messages
-            repository.fetchHistoryFromServer(sessionId, limit = 6)
+            repository.fetchHistoryFromServer(sessionId, limit = 50)
 
             // Then observe the local DB which is the single source of truth
             repository.getMessages(sessionId).collect { entities ->

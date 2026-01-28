@@ -36,7 +36,12 @@ object Localization {
         "finance" to "Finance",
         "marriage" to "Marriage",
         "health" to "Health",
-        "education" to "Education"
+        "education" to "Education",
+        "element" to "Element",
+        "lord" to "Lord",
+        "category" to "Category",
+        "daily_prediction" to "Daily Prediction",
+        "ok" to "OK"
     )
 
     // Tamil Strings
@@ -74,7 +79,12 @@ object Localization {
         "finance" to "நிதி",
         "marriage" to "திருமணம்",
         "health" to "உடல்நலம்",
-        "education" to "கல்வி"
+        "education" to "கல்வி",
+        "element" to "தத்துவம்",
+        "lord" to "அதிபதி",
+        "category" to "வகை",
+        "daily_prediction" to "இன்றைய பலன்",
+        "ok" to "சரி"
     )
 
     fun get(key: String, isTamil: Boolean): String {

@@ -310,50 +310,52 @@ class CallActivity : AppCompatActivity() {
         initWebRTC()
         setupSocketListeners()
 
+        val myUserId = session?.userId
+        if (myUserId == null) {
+            Log.e(TAG, "Cannot start call: userId is null")
+            finish()
+            return
+        }
+
         if (isInitiator) {
             tvStatus.text = "Calling..."
 
-            // FIX: Initiator MUST also send session-connect to start billing
-            val connectPayload = JSONObject().apply {
-                 put("sessionId", sessionId)
+            Log.d(TAG, "Initiator: Registering user $myUserId before session-connect")
+            SocketManager.registerUser(myUserId) { success ->
+                if (success) {
+                    runOnUiThread {
+                        Log.d(TAG, "Initiator registered, sending session-connect for $sessionId")
+                        val connectPayload = JSONObject().apply {
+                             put("sessionId", sessionId)
+                        }
+                        SocketManager.getSocket()?.emit("session-connect", connectPayload)
+                    }
+                } else {
+                    Log.e(TAG, "Initiator registration FAILED")
+                }
             }
-            SocketManager.getSocket()?.emit("session-connect", connectPayload)
-            Log.d(TAG, "Sent session-connect (Initiator) for $sessionId")
-
-            // createOffer() removed from here - moved to onBillingStarted for reliability
         } else {
             tvStatus.text = "Connecting..."
 
-            val myUserId = session?.userId
+            Log.d(TAG, "Responder: Registering user $myUserId before answering")
+            SocketManager.registerUser(myUserId) { success ->
+                if (success) {
+                    runOnUiThread {
+                        Log.d(TAG, "Responder registered, sending answer-session for $sessionId")
+                        val payload = JSONObject().apply {
+                            put("sessionId", sessionId)
+                            put("toUserId", partnerId)
+                            put("accept", true)
+                        }
+                        SocketManager.getSocket()?.emit("answer-session", payload)
 
-            if (myUserId != null) {
-                fun sendAnswer() {
-                     val payload = JSONObject().apply {
-                         put("sessionId", sessionId)
-                         put("toUserId", partnerId)
-                         put("accept", true)
-                     }
-                    SocketManager.getSocket()?.emit("answer-session", payload)
-                    Log.d(TAG, "Sent answer-session for $sessionId")
-
-                    val connectPayload = JSONObject().apply {
-                         put("sessionId", sessionId)
+                        val connectPayload = JSONObject().apply {
+                            put("sessionId", sessionId)
+                        }
+                        SocketManager.getSocket()?.emit("session-connect", connectPayload)
                     }
-                    SocketManager.getSocket()?.emit("session-connect", connectPayload)
-                    Log.d(TAG, "Sent session-connect for $sessionId")
-                }
-
-                if (SocketManager.getSocket()?.connected() == true) {
-                     SocketManager.registerUser(myUserId) { success ->
-                         runOnUiThread { sendAnswer() }
-                     }
                 } else {
-                    SocketManager.onConnect {
-                         SocketManager.registerUser(myUserId) { success ->
-                             runOnUiThread { sendAnswer() }
-                         }
-                    }
-                    SocketManager.getSocket()?.connect()
+                    Log.e(TAG, "Responder registration FAILED")
                 }
             }
         }
