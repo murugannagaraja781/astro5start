@@ -115,8 +115,8 @@ fun RasipalanScreen(onBack: () -> Unit) {
 fun RasipalanCard(item: RasipalanItem) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-        elevation = CardDefaults.cardElevation(6.dp),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(3.dp), // User Request: Paper elevation 3
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp), // Refined Radius
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent // Gradient handling
         ),

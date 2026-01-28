@@ -93,7 +93,7 @@ fun RasiDetailDialog(
                     Text(
                         text = name,
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Color.White // Fix: White Text
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -113,14 +113,14 @@ fun RasiDetailDialog(
                     Text(
                         text = "Today's Prediction",
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = Color.Green, // Green Label
                         modifier = Modifier.align(Alignment.Start)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "New opportunities are waiting for you today. Focus on your goals. Good luck awaits.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White, // Fix: White Text
                         textAlign = TextAlign.Start,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -148,16 +148,16 @@ fun RasiInfoItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = label.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.tertiary.copy(alpha=0.7f),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            color = Color.LightGray, // Visible on Dark
             fontSize = 10.sp
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Medium
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+            color = Color.White, // Fix: White Value
+            fontWeight = FontWeight.Bold
         )
     }
 }

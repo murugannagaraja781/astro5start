@@ -588,10 +588,16 @@ fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
                     scaleX = scale
                     scaleY = scale
                 }
-                // User Request: "bg full white colr"
+                // User Request: "shadow color also white color set"
+                .shadow(
+                    elevation = 8.dp, // Increased for visible glow
+                    shape = RoundedCornerShape(15.dp),
+                    spotColor = Color.White,
+                    ambientColor = Color.White
+                )
+                // User Request: "bg full white colr" (Kept White)
                 .background(Color.White, RoundedCornerShape(15.dp))
                 .border(2.dp, item.color, RoundedCornerShape(15.dp)) // Visible Border
-                .shadow(4.dp, RoundedCornerShape(15.dp)) // Shadow
         ) {
              Image(
                 painter = painterResource(id = item.iconRes),
@@ -607,7 +613,7 @@ fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
         Text(
             text = Localization.get(item.name.lowercase(), true),
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            color = Color.White,
+            color = Color.DarkGray, // Visible on White Container
             textAlign = TextAlign.Center,
             maxLines = 1
         )
@@ -703,7 +709,6 @@ fun AstrologerCard(
                  Spacer(modifier = Modifier.height(12.dp))
 
                  Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                     if (!astro.isOnline) Text("Wait 5 Min", style = MaterialTheme.typography.labelSmall, color = PriceRed, modifier = Modifier.padding(end = 8.dp))
 
                      if (showChat) AstrologerActionButton("Chat", Icons.Rounded.Chat, astro.isOnline, AquaBlue, { onChatClick(astro) })
                      if (showVideo) AstrologerActionButton("Video", Icons.Rounded.VideoCall, astro.isOnline, PriceRed, { onCallClick(astro, "Video") }, Modifier.padding(start=4.dp))
@@ -780,17 +785,26 @@ fun RasiGridSection(onClick: (ComposeRasiItem) -> Unit) {
         ComposeRasiItem(12, "Pisces", R.drawable.ic_rasi_pisces_premium_copy, PiscesIndigo)
     )
 
-    Column(modifier = Modifier.padding(horizontal = 8.dp)) {
-        val rows = rasiItems.chunked(4)
-        for (rowItems in rows) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                for (item in rowItems) {
-                    RasiItemView(item, onClick)
+    // User Request: "12 rasi contain have one box that box bf use that bg" (Customer Style)
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha=0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Column(modifier = Modifier.padding(vertical = 16.dp, horizontal = 4.dp)) {
+            val rows = rasiItems.chunked(4)
+            for (rowItems in rows) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    for (item in rowItems) {
+                        RasiItemView(item, onClick)
+                    }
                 }
             }
         }

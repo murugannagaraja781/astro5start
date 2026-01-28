@@ -181,42 +181,76 @@ app.get('/api/horoscope/rasi', (req, res) => {
 
 // New Rasi Palan API (requested integration)
 app.get('/api/horoscope/rasi-palan', async (req, res) => {
-  // External GitHub Data URL (Assuming structure based on user request)
-  // Using a raw URL that typically matches such repos (yyyy-mm-dd.json)
   const today = new Date().toISOString().split('T')[0];
-  const GITHUB_API = `https://raw.githubusercontent.com/abinash818/daily-horoscope-data/main/data/${today}.json`; // Attempt dynamic
+  const GITHUB_BASE = `https://raw.githubusercontent.com/abinash818/daily-horoscope-data/main/data`;
+  const GITHUB_API = `${GITHUB_BASE}/horoscope_${today}.json`;
 
-  // Fallback Data
+  const signMapping = {
+    "Aries": 1, "Taurus": 2, "Gemini": 3, "Cancer": 4, "Leo": 5, "Virgo": 6,
+    "Libra": 7, "Scorpio": 8, "Sagittarius": 9, "Capricorn": 10, "Aquarius": 11, "Pisces": 12
+  };
+
+  // Fallback Data matched to RasipalanItem.kt model
   const FALLBACK_DATA = [
-    { id: 1, rasi: "Mesham", rasi_tamil: "மேஷம்", prediction: "இன்று சிறப்பான நாள். பண வரவு இருக்கும்." },
-    { id: 2, rasi: "Rishabam", rasi_tamil: "ரிஷபம்", prediction: "குடும்பத்தில் மகிழ்ச்சி நிலவும். ஆரோக்கியம் மேம்படும்." },
-    { id: 3, rasi: "Mithunam", rasi_tamil: "மிதுனம்", prediction: "புதிய முயற்சிகளில் வெற்றி கிடைக்கும்." },
-    { id: 4, rasi: "Kadagam", rasi_tamil: "கடகம்", prediction: "பயணங்களில் கவனம் தேவை. செலவுகள் கூடும்." },
-    { id: 5, rasi: "Simmam", rasi_tamil: "சிம்மம்", prediction: "நண்பர்கள் உதவுவார்கள். தொழில் முன்னேற்றம் உண்டு." },
-    { id: 6, rasi: "Kanni", rasi_tamil: "கன்னி", prediction: "வேலையில் பாராட்டு கிடைக்கும். நிதானம் தேவை." },
-    { id: 7, rasi: "Thulaam", rasi_tamil: "துலாம்", prediction: "வியாபாரத்தில் லாபம் வரும். உறவினர்கள் வருகை." },
-    { id: 8, rasi: "Viruchigam", rasi_tamil: "விருச்சிகம்", prediction: "ஆன்மீக சிந்தனை அதிகரிக்கும். மன அமைதி கிடைக்கும்." },
-    { id: 9, rasi: "Dhanusu", rasi_tamil: "தனுசு", prediction: "பிள்ளைகள் பெருமை சேர்ப்பார்கள். சுப காரியம் கைகூடும்." },
-    { id: 10, rasi: "Magaram", rasi_tamil: "மகரம்", prediction: "உடல் நலம் சீராகும். கடன் பிரச்சனை தீரும்." },
-    { id: 11, rasi: "Kumbam", rasi_tamil: "கும்பம்", prediction: "தைரியமாக செயல்படுவீர்கள். எதிலும் வெற்றி." },
-    { id: 12, rasi: "Meenam", rasi_tamil: "மீனம்", prediction: "தம்பதிகள் ஒற்றுமை ஓங்கும். சுப நிகழ்ச்சி நடக்கும்." }
+    { signId: 1, signNameEn: "Aries", signNameTa: "மேஷம்", prediction: { ta: "இன்று சிறப்பான நாள். பண வரவு இருக்கும்.", en: "Today is a great day. Financial gains expected." }, details: { career: "Good", finance: "Growth", health: "Active" }, lucky: { number: "9", color: { ta: "சிவப்பு", en: "Red" } } },
+    { signId: 2, signNameEn: "Taurus", signNameTa: "ரிஷபம்", prediction: { ta: "குடும்பத்தில் மகிழ்ச்சி நிலவும். ஆரோக்கியம் மேம்படும்.", en: "Happiness in family. Health will improve." }, details: { career: "Stable", finance: "Moderate", health: "Fine" }, lucky: { number: "6", color: { ta: "வெள்ளை", en: "White" } } },
+    { signId: 3, signNameEn: "Gemini", signNameTa: "மிதுனம்", prediction: { ta: "புதிய முயற்சிகளில் வெற்றி கிடைக்கும்.", en: "Success in new ventures." }, details: { career: "Productive", finance: "Good", health: "Better" }, lucky: { number: "5", color: { ta: "பச்சை", en: "Green" } } },
+    { signId: 4, signNameEn: "Cancer", signNameTa: "கடகம்", prediction: { ta: "பயணங்களில் கவனம் தேவை. செலவுகள் கூடும்.", en: "Be careful while traveling. Expenses may rise." }, details: { career: "Busy", finance: "Watchful", health: "Rest needed" }, lucky: { number: "2", color: { ta: "வெள்ளை", en: "White" } } },
+    { signId: 5, signNameEn: "Leo", signNameTa: "சிம்மம்", prediction: { ta: "நண்பர்கள் உதவுவார்கள். தொழில் முன்னேற்றம் உண்டு.", en: "Friends will help. Career progress is likely." }, details: { career: "Progressive", finance: "Gains", health: "Strong" }, lucky: { number: "1", color: { ta: "ஆரஞ்சு", en: "Orange" } } },
+    { signId: 6, signNameEn: "Virgo", signNameTa: "கன்னி", prediction: { ta: "வேலையில் பாராட்டு கிடைக்கும். நிதானம் தேவை.", en: "Appreciation at work. Stay calm." }, details: { career: "Good", finance: "Stable", health: "Okay" }, lucky: { number: "5", color: { ta: "பச்சை", en: "Green" } } },
+    { signId: 7, signNameEn: "Libra", signNameTa: "துலாம்", prediction: { ta: "வியாபாரத்தில் லாபம் வரும். உறவினர்கள் வருகை.", en: "Profits in business. Relatives will visit." }, details: { career: "Profitable", finance: "Increasing", health: "Good" }, lucky: { number: "7", color: { ta: "வெள்ளை", en: "White" } } },
+    { signId: 8, signNameEn: "Scorpio", signNameTa: "விருச்சிகம்", prediction: { ta: "ஆன்மீக சிந்தனை அதிகரிக்கும். மன அமைதி கிடைக்கும்.", en: "Spiritual thoughts will increase. Peace of mind." }, details: { career: "Focus needed", finance: "Steady", health: "Better" }, lucky: { number: "9", color: { ta: "சிவப்பு", en: "Red" } } },
+    { signId: 9, signNameEn: "Sagittarius", signNameTa: "தனுசு", prediction: { ta: "பிள்ளைகள் பெருமை சேர்ப்பார்கள். சுப காரியம் கைகூடும்.", en: "Children will bring pride. Auspicious events likely." }, details: { career: "Rewarding", finance: "Good", health: "Fit" }, lucky: { number: "3", color: { ta: "மஞ்சள்", en: "Yellow" } } },
+    { signId: 10, signNameEn: "Capricorn", signNameTa: "மகரம்", prediction: { ta: "உடல் நலம் சீராகும். கடன் பிரச்சனை தீரும்.", en: "Health will stabilize. Debt issues will resolve." }, details: { career: "Steady", finance: "Improving", health: "Normal" }, lucky: { number: "8", color: { ta: "நீலம்", en: "Blue" } } },
+    { signId: 11, signNameEn: "Aquarius", signNameTa: "கும்பம்", prediction: { ta: "தைரியமாக செயல்படுவீர்கள். எதிலும் வெற்றி.", en: "You will act bravely. Success in everything." }, details: { career: "Active", finance: "Growth", health: "Great" }, lucky: { number: "8", color: { ta: "கருப்பு", en: "Black" } } },
+    { signId: 12, signNameEn: "Meenam", signNameTa: "மீனம்", prediction: { ta: "தம்பதிகள் ஒற்றுமை ஓங்கும். சுப நிகழ்ச்சி நடக்கும்.", en: "Unity between couples. Auspicious ceremonies." }, details: { career: "Harmonious", finance: "Stable", health: "Good" }, lucky: { number: "3", color: { ta: "மஞ்சள்", en: "Yellow" } } }
   ];
 
   try {
-    // Try fetch external
     const fetch = require('node-fetch');
     const response = await fetch(GITHUB_API);
     if (response.ok) {
-      const data = await response.json();
-      // Assuming data structure matches, or return raw
-      return res.json({ ok: true, source: 'github', data: data });
+      const gitData = await response.json();
+      const rawList = Array.isArray(gitData) ? gitData : (gitData.data || []);
+
+      if (rawList.length > 0) {
+        const mappedData = rawList.map(item => {
+          const signEn = item.sign_en || "";
+          return {
+            signId: signMapping[signEn] || 0,
+            signNameEn: signEn,
+            signNameTa: item.sign_ta || "",
+            date: item.date || today,
+            prediction: {
+              ta: item.forecast_ta || "",
+              en: item.forecast_en || ""
+            },
+            details: {
+              career: item.career_ta || item.career_en || "-",
+              finance: item.finance_ta || item.finance_en || "-",
+              health: item.health_ta || item.health_en || "-"
+            },
+            lucky: {
+              number: String(item.lucky_number || "-"),
+              color: {
+                ta: item.lucky_color_ta || "",
+                en: item.lucky_color_en || ""
+              }
+            }
+          };
+        }).filter(item => item.signId > 0);
+
+        if (mappedData.length > 0) {
+          return res.json(mappedData);
+        }
+      }
     }
   } catch (e) {
     console.warn("GitHub fetch failed, utilizing fallback", e.message);
   }
 
-  // Return Fallback
-  res.json({ ok: true, source: 'fallback', data: FALLBACK_DATA });
+  // Return Fallback List DIRECTLY
+  res.json(FALLBACK_DATA);
 });
 
 app.use(express.json());
