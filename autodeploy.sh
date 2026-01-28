@@ -1,81 +1,93 @@
 #!/bin/bash
 
-# Astro 5 Star - Auto Deploy Script
-# Run this on server: curl -fsSL https://raw.githubusercontent.com/murugannagaraja781/astro5start/main/autodeploy.sh | bash
+# Astro Luna - Auto Deploy Script
+# Run this on server: curl -fsSL https://raw.githubusercontent.com/murugannagaraja781/Astro-luna/main/autodeploy.sh | bash
+
+# Exit on error
+set -e
 
 echo "=========================================="
-echo "    Astro 5 Star Auto Deploy"
+echo "    astroluna   Auto Deploy"
 echo "=========================================="
 
 # Variables
-APP_DIR="/var/www/astro5start"
-REPO_URL="https://github.com/murugannagaraja781/astro5start.git"
+APP_DIR="/var/www/astroluna/"
+REPO_URL="https://github.com/murugannagaraja781/Astro-luna.git"
 APP_NAME="astro-app"
+USER_OPTS="-o IdentitiesOnly=yes -o StrictHostKeyChecking=no"
 
 # Step 1: Create directory if not exists
-echo "[1/6] Creating app directory..."
-sudo mkdir -p $APP_DIR
+echo "[1/6] Checking app directory..."
+if [ ! -d "$APP_DIR" ]; then
+    echo "Creating $APP_DIR..."
+    sudo mkdir -p $APP_DIR
+    sudo chown $USER:$USER $APP_DIR
+fi
+
 cd $APP_DIR
 
 # Step 2: Clone or pull latest code
 echo "[2/6] Getting latest code..."
 
-# Define SSH Key Command if key exists
+# Handle SSH Key if present
 if [ -f "github_action_key" ]; then
-    echo "Found github_action_key. Configuring Git to use it..."
+    echo "Found github_action_key. Configuring..."
     chmod 600 github_action_key
-    # Important: Use full path for key
-    export GIT_SSH_COMMAND="ssh -i $(pwd)/github_action_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no"
+    export GIT_SSH_COMMAND="ssh -i $(pwd)/github_action_key $USER_OPTS"
 
-    # Ensure remote is SSH if we have key
+    # Update remote to SSH if needed
     if [ -d ".git" ]; then
-        current_url=$(git remote get-url origin)
-        if [[ "$current_url" == https* ]]; then
-             echo "Switching remote to SSH..."
-             git remote set-url origin git@github.com:murugannagaraja781/astro5start.git
+        CURRENT_REMOTE=$(git remote get-url origin)
+        if [[ "$CURRENT_REMOTE" == https* ]]; then
+            echo "Switching remote to SSH..."
+            git remote set-url origin git@github.com:murugannagaraja781/Astro-luna.git
         fi
     fi
 fi
 
 if [ -d ".git" ]; then
     echo "Pulling latest changes..."
-    # Reset any local changes (like the manual fix user might have attempted)
-    git reset --hard
+    # Stash any local changes just in case
+    git stash || true
     git fetch origin main
     git reset --hard origin/main
 else
     echo "Cloning repository..."
-    cd /var/www
-    sudo rm -rf astro5start
+    # If directory is not empty but no git, warn or backup might be needed,
+    # but for auto-deploy we assume ownership.
 
-    # If freshly cloning, we might fail if we don't have the key yet (Chicken & Egg).
-    # But user likely has the repo already.
-    # Fallback to HTTPS for initial clone if key not present outside?
-    # Getting key for initial clone is tricky via script if script is curl'd.
-    # Assessing current state: User HAS repo.
-
-    git clone $REPO_URL astro5start
-    cd $APP_DIR
+    if [ -f "github_action_key" ]; then
+        # If we have the key but no repo yet (rare edge case for this script running inside), try SSH
+        git clone git@github.com:murugannagaraja781/Astro-luna.git.
+    else
+        # Fallback to HTTPS
+        git clone $REPO_URL .
+    fi
 fi
 
 # Step 3: Set permissions
 echo "[3/6] Setting permissions..."
+# Ensure current user owns files
 sudo chown -R $USER:$USER $APP_DIR
-chmod -R 755 $APP_DIR
-# IMPORTANT: Reset private key to 600 or SSH will fail next time
-if [ -f "$APP_DIR/github_action_key" ]; then
-    chmod 600 "$APP_DIR/github_action_key"
-    echo "Secured github_action_key (600)"
+# Ensure key stays secure
+if [ -f "github_action_key" ]; then
+    chmod 600 github_action_key
 fi
 
 # Step 3.5: Check for critical configuration files
 if [ ! -f "firebase-service-account.json" ]; then
     echo "=========================================="
-    echo "⚠️  CRITICAL WARNING: firebase-service-account.json MISSING"
+    echo "⚠️  WARNING: firebase-service-account.json MISSING"
     echo "------------------------------------------"
-    echo "This file is ignored by Git for security."
-    echo "You MUST upload it manually to: $APP_DIR"
-    echo "Example: scp firebase-service-account.json user@server:$APP_DIR"
+    echo "Please upload it to: $APP_DIR"
+    echo "=========================================="
+fi
+
+if [ ! -f ".env" ]; then
+    echo "=========================================="
+    echo "⚠️  WARNING: .env file MISSING"
+    echo "------------------------------------------"
+    echo "Please create or upload it to: $APP_DIR"
     echo "=========================================="
 fi
 
@@ -84,9 +96,15 @@ echo "[4/6] Installing dependencies..."
 npm install --production
 
 # Step 5: Setup PM2
-echo "[5/6] Setting up PM2..."
-pm2 delete $APP_NAME 2>/dev/null || true
-pm2 start server.js --name $APP_NAME
+echo "[5/6] Configuration PM2..."
+# Check if app is already running
+if pm2 list | grep -q "$APP_NAME"; then
+    echo "App '$APP_NAME' is already running. Reloading..."
+    pm2 reload $APP_NAME
+else
+    echo "Starting '$APP_NAME'..."
+    pm2 start server.js --name $APP_NAME
+fi
 
 # Step 6: Save PM2 config
 echo "[6/6] Saving PM2 configuration..."
@@ -94,10 +112,8 @@ pm2 save
 
 echo ""
 echo "=========================================="
-echo "    Deployment Complete!11"
+echo "    Deployment Complete!"
 echo "=========================================="
-echo ""
-echo "App running on port 3000"
-echo "PM2 status: pm2 status"
-echo "PM2 logs: pm2 logs $APP_NAME"
+echo "App: $APP_DIR"
+echo "URL: http://$(curl -s ifconfig.me):3000 (Check Firewall)"
 echo ""
