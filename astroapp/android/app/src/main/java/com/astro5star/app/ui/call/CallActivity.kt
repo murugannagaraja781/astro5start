@@ -71,6 +71,8 @@ class CallActivity : AppCompatActivity() {
         PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
         PeerConnection.IceServer.builder("turn:turn.astro5star.com:3478?transport=udp")
             .setUsername("webrtcuser").setPassword("strongpassword123").createIceServer(),
+        PeerConnection.IceServer.builder("turn:turn.astro5star.com:3478?transport=tcp")
+            .setUsername("webrtcuser").setPassword("strongpassword123").createIceServer(),
         PeerConnection.IceServer.builder("turns:turn.astro5star.com:5349")
             .setUsername("webrtcuser").setPassword("strongpassword123").createIceServer()
     )
@@ -102,7 +104,10 @@ class CallActivity : AppCompatActivity() {
         partnerName = intent.getStringExtra("partnerName") ?: partnerId
         sessionId = intent.getStringExtra("sessionId")
         isInitiator = intent.getBooleanExtra("isInitiator", false)
-        callType = intent.getStringExtra("type") ?: intent.getStringExtra("callType") ?: "video"
+        val rawType = intent.getStringExtra("type") ?: intent.getStringExtra("callType") ?: "video"
+        // Normalize: "call" and "video" are both video calls in this app's context
+        callType = if (rawType.lowercase() == "audio" || rawType.lowercase() == "voice") "audio" else "video"
+        Log.d(TAG, "Call Type Normalized: $rawType -> $callType")
 
         val birthDataStr = intent.getStringExtra("birthData")
         if (!birthDataStr.isNullOrEmpty()) {
@@ -315,8 +320,7 @@ class CallActivity : AppCompatActivity() {
             SocketManager.getSocket()?.emit("session-connect", connectPayload)
             Log.d(TAG, "Sent session-connect (Initiator) for $sessionId")
 
-            // DON'T create offer immediately. Wait for peer-accepted/session-answered.
-            Log.d(TAG, "Initiator: Waiting for partner to accept before creating offer...")
+            // createOffer() removed from here - moved to onBillingStarted for reliability
         } else {
             tvStatus.text = "Connecting..."
 
@@ -372,6 +376,7 @@ class CallActivity : AppCompatActivity() {
             remoteView.init(eglBase.eglBaseContext, null)
             remoteView.setEnableHardwareScaler(true)
             remoteView.setScalingType(org.webrtc.RendererCommon.ScalingType.SCALE_ASPECT_FILL)
+            remoteView.visibility = View.VISIBLE // ENSURE VISIBILITY
 
             // Initialize local view (PIP - self view)
             localView.init(eglBase.eglBaseContext, null)
@@ -408,8 +413,7 @@ class CallActivity : AppCompatActivity() {
                     val videoSource = peerConnectionFactory.createVideoSource(videoCapturer!!.isScreencast)
                     videoCapturer!!.initialize(surfaceTextureHelper, this, videoSource.capturerObserver)
 
-                    // Use 640x480 (VGA) which is guaranteed to be supported.
-                    // 720p (1280x720) causes failures on many front cameras.
+                    // Use 640x480 for maximum compatibility (standard for most mobile WebRTC)
                     videoCapturer!!.startCapture(640, 480, 30)
                     Log.d(TAG, "Camera capturer started: 640x480 @30fps")
 
@@ -428,8 +432,11 @@ class CallActivity : AppCompatActivity() {
         }
 
         val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
-            // Revert to Legacy Patterns (Plan B is default in older WebRTC)
+            sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
+            iceTransportsType = PeerConnection.IceTransportsType.ALL
             continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
+            // Potential fix for some devices: disable encryption if it's causing issues (usually not needed)
+            // keyType = PeerConnection.KeyType.ECDSA
         }
         peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, object : PeerConnection.Observer {
             override fun onSignalingChange(p0: PeerConnection.SignalingState?) {
@@ -493,10 +500,10 @@ class CallActivity : AppCompatActivity() {
 
             override fun onTrack(transceiver: RtpTransceiver?) {
                 val track = transceiver?.receiver?.track()
-                Log.d(TAG, "onTrack: ${track?.kind()} id=${track?.id()}")
+                Log.d(TAG, "onTrack received: kind=${track?.kind()} id=${track?.id()} enabled=${track?.enabled()}")
                 if (track is VideoTrack && callType == "video") {
                     runOnUiThread {
-                        Log.d(TAG, "Adding remote video track (via onTrack) to remoteView")
+                        Log.d(TAG, "Adding remote video track (via onTrack) to remoteView. remoteView visibility=${remoteView.visibility}")
                         track.setEnabled(true)
                         track.addSink(remoteView)
                     }
@@ -524,16 +531,7 @@ class CallActivity : AppCompatActivity() {
         }
 
         // --- NEW: Wait for partner to accept before starting WebRTC handshake ---
-        SocketManager.onSessionAnswered { data ->
-            val accepted = data.optBoolean("accept", false)
-            Log.d(TAG, "Partner answered: accepted=$accepted")
-            if (isInitiator && accepted) {
-                runOnUiThread {
-                    tvStatus.text = "Connecting..."
-                    createOffer()
-                }
-            }
-        }
+        // onSessionAnswered removed - using billing-started as a more reliable trigger
 
         SocketManager.getSocket()?.on("client-birth-chart") { args ->
             try {
@@ -551,10 +549,17 @@ class CallActivity : AppCompatActivity() {
         // Billing Started - Show indicator when billing begins
         SocketManager.onBillingStarted { startTime ->
             runOnUiThread {
+                Log.d(TAG, "Billing started! Initiator=$isInitiator")
                 val billingIndicator = findViewById<TextView>(R.id.tvCallStatus)
                 billingIndicator?.text = "🔴 Billing Active"
                 billingIndicator?.visibility = View.VISIBLE
                 billingIndicator?.setTextColor(android.graphics.Color.parseColor("#EF4444"))
+
+                // CRITICAL: Initiator starts WebRTC handshake NOW
+                if (isInitiator) {
+                    Log.d(TAG, "Starting WebRTC Handshake (createOffer)")
+                    createOffer()
+                }
 
                 // Auto-hide after 3 seconds
                 billingIndicator?.postDelayed({
@@ -630,16 +635,11 @@ class CallActivity : AppCompatActivity() {
 
         when (type) {
             "offer" -> {
-                // ROBUST FETCH: Check for nested "sdp.sdp" OR flattened "sdp" string
                 val sdpObj = signal.optJSONObject("sdp")
-                val descriptionStr = if (sdpObj != null) {
-                    sdpObj.optString("sdp")
-                } else {
-                    signal.optString("sdp")
-                }
+                val descriptionStr = sdpObj?.optString("sdp") ?: signal.optString("sdp")
 
                 if (descriptionStr.isNotEmpty()) {
-                    Log.d(TAG, "Setting Remote Offer. Nested=${sdpObj != null}")
+                    Log.d(TAG, "Setting Remote Offer.")
                     peerConnection.setRemoteDescription(object : SimpleSdpObserver() {
                         override fun onSetSuccess() {
                             Log.d(TAG, "Remote Offer Set. Creating Answer.")
@@ -650,16 +650,11 @@ class CallActivity : AppCompatActivity() {
                 }
             }
             "answer" -> {
-                // ROBUST FETCH: Check for nested "sdp.sdp" OR flattened "sdp" string
                 val sdpObj = signal.optJSONObject("sdp")
-                val descriptionStr = if (sdpObj != null) {
-                    sdpObj.optString("sdp")
-                } else {
-                    signal.optString("sdp")
-                }
+                val descriptionStr = sdpObj?.optString("sdp") ?: signal.optString("sdp")
 
                 if (descriptionStr.isNotEmpty()) {
-                    Log.d(TAG, "Setting Remote Answer. Nested=${sdpObj != null}")
+                    Log.d(TAG, "Setting Remote Answer.")
                     peerConnection.setRemoteDescription(object : SimpleSdpObserver() {
                         override fun onSetSuccess() {
                             Log.d(TAG, "Remote Answer Set.")
@@ -676,13 +671,11 @@ class CallActivity : AppCompatActivity() {
 
                 if (sdp.isNotEmpty() && sdpMLineIndex != -1) {
                     val candidate = IceCandidate(sdpMid, sdpMLineIndex, sdp)
-
-                    // QUEUE IF REMOTE DESCRIPTION IS NULL
                     if (peerConnection.remoteDescription == null) {
-                         Log.d(TAG, "Queuing ICE candidate (RemoteDesc is null)")
-                         pendingIceCandidates.add(candidate)
+                        Log.d(TAG, "Queuing ICE candidate")
+                        pendingIceCandidates.add(candidate)
                     } else {
-                         peerConnection.addIceCandidate(candidate)
+                        peerConnection.addIceCandidate(candidate)
                     }
                 }
             }
@@ -690,6 +683,11 @@ class CallActivity : AppCompatActivity() {
     }
 
     private fun createOffer() {
+        val constraints = MediaConstraints().apply {
+            mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
+            mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", if(callType == "video") "true" else "false"))
+        }
+
         peerConnection.createOffer(object : SimpleSdpObserver() {
             override fun onCreateSuccess(desc: SessionDescription?) {
                 peerConnection.setLocalDescription(SimpleSdpObserver(), desc)
@@ -704,10 +702,15 @@ class CallActivity : AppCompatActivity() {
                 }
                 sendSignal(payload)
             }
-        }, MediaConstraints())
+        }, constraints)
     }
 
     private fun createAnswer() {
+        val constraints = MediaConstraints().apply {
+            mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
+            mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", if(callType == "video") "true" else "false"))
+        }
+
         peerConnection.createAnswer(object : SimpleSdpObserver() {
             override fun onCreateSuccess(desc: SessionDescription?) {
                 peerConnection.setLocalDescription(SimpleSdpObserver(), desc)
@@ -722,12 +725,12 @@ class CallActivity : AppCompatActivity() {
                 }
                 sendSignal(payload)
             }
-        }, MediaConstraints())
+        }, constraints)
     }
 
-    private fun sendSignal(data: JSONObject) {
-        data.put("sessionId", sessionId)
-        SocketManager.emitSignal(data)
+    private fun sendSignal(payload: JSONObject) {
+        payload.put("sessionId", sessionId)
+        SocketManager.getSocket()?.emit("signal", payload)
     }
 
     private fun endCall() {
