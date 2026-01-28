@@ -45,6 +45,7 @@ class IncomingCallActivity : AppCompatActivity() {
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
     private val handler = Handler(Looper.getMainLooper())
+    private var shouldStopServiceOnDestroy = true
 
     private var callerId: String = ""
     private var callerName: String = ""
@@ -264,6 +265,7 @@ class IncomingCallActivity : AppCompatActivity() {
 
         // Stop foreground service
         stopService(Intent(this, CallForegroundService::class.java))
+        shouldStopServiceOnDestroy = false
 
         finish()
     }
@@ -285,6 +287,15 @@ class IncomingCallActivity : AppCompatActivity() {
         super.onDestroy()
         stopRingtoneAndVibration()
         handler.removeCallbacks(timeoutRunnable)
+
+        if (shouldStopServiceOnDestroy) {
+            Log.d(TAG, "onDestroy: Stopping service (Abrupt exit)")
+            stopService(Intent(this, CallForegroundService::class.java))
+            // Ensure notification 9999 (FCM) is also gone
+             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+             notificationManager.cancel(9999)
+        }
+
         Log.d(TAG, "IncomingCallActivity destroyed")
     }
 

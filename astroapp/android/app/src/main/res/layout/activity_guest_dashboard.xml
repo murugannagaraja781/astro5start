@@ -21,7 +21,7 @@
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="300dp"
-                android:background="@drawable/bg_gradient_header_dark">
+                android:background="#1B5E20">
 
                 <ImageView
                     android:id="@+id/imgLogo"
@@ -38,7 +38,7 @@
                     android:textSize="26sp"
                     android:letterSpacing="0.1"
                     android:textStyle="bold"
-                    android:textColor="@color/brand_gold"
+                    android:textColor="#FFFFFF"
                     android:layout_gravity="center"
                     android:layout_marginTop="50dp"/>
 
@@ -47,8 +47,7 @@
                     android:layout_height="wrap_content"
                     android:text="பிரீமியம் ஜோதிட சேவைகள்"
                     android:textSize="14sp"
-                    android:textColor="@color/text_secondary"
-                    android:layout_gravity="center"
+                    android:textColor="#E0E0E0"
                     android:layout_marginTop="80dp"/>
             </FrameLayout>
 
@@ -65,29 +64,16 @@
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="20dp"
                     app:cardElevation="8dp"
-                    app:cardBackgroundColor="@android:color/transparent">
+                    app:cardBackgroundColor="#FFFFFF">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/bg_card_premium_dark"
+                        android:background="@drawable/bg_card_premium"
                         android:orientation="vertical"
                         android:padding="24dp">
 
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="✨ இன்றைய ராசி பலன்"
-                                android:textSize="18sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/brand_gold"/>
-                        </LinearLayout>
 
                         <TextView
                             android:id="@+id/tvGuestHoroscope"
@@ -97,7 +83,7 @@
                             android:text="காஸ்மிக் வழிகாட்டலை ஏற்றுகிறது..."
                             android:textSize="14sp"
                             android:lineSpacingMultiplier="1.5"
-                            android:textColor="@color/text_on_card"
+                            android:textColor="#333333"
                             android:fontFamily="sans-serif-light"/>
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
@@ -127,7 +113,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:layout_marginTop="24dp"
-                    android:indeterminateTint="@color/brand_gold"/>
+                    android:indeterminateTint="#1B5E20"/>
 
                 <!-- Bottom Note -->
                 <TextView
@@ -151,10 +137,10 @@
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="24dp"
         android:text="தொடங்கவும்"
-        android:textColor="@color/royal_midnight_blue"
+        android:textColor="#1B5E20"
         android:textSize="16sp"
         android:textStyle="bold"
-        app:backgroundTint="@color/brand_gold"
+        app:backgroundTint="#FFFFFF"
         app:icon="@android:drawable/ic_lock_power_off"
-        app:iconTint="@color/royal_midnight_blue"/>
+        app:iconTint="#1B5E20"/>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

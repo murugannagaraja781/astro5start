@@ -142,4 +142,30 @@ object ApiService {
             ApiResult(success = false, error = e.message ?: "Unknown error")
         }
     }
+
+    fun getChatHistory(serverUrl: String, sessionId: String, limit: Int = 20, before: Long? = null): ApiResult {
+        return try {
+            var url = "$serverUrl/api/chat/history/$sessionId?limit=$limit"
+            if (before != null) {
+                url += "&before=$before"
+            }
+
+            val request = Request.Builder()
+                .url(url)
+                .get()
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                val responseBody = response.body?.string() ?: ""
+                if (response.isSuccessful) {
+                    ApiResult(success = true, data = JSONObject(responseBody))
+                } else {
+                    ApiResult(success = false, error = "HTTP ${response.code}")
+                }
+            }
+        } catch (e: Exception) {
+            ApiResult(success = false, error = e.message)
+        }
+    }
 }
+

@@ -51,3 +51,7 @@ astrofivestar-mobile-native/ios/Pods/
 
 # GitHub Action Keys
 
+
+# Ignore local gradle cache
+astroapp/android/.gradle_local/
+

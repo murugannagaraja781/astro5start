@@ -153,6 +153,13 @@ class CallForegroundService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            stopForeground(true)
+        }
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.cancel(NOTIFICATION_ID)
         Log.d(TAG, "CallForegroundService destroyed")
     }
 

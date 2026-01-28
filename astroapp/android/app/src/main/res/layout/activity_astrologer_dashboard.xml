@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="@drawable/bg_gradient_header_dark"
+        android:background="#1B5E20"
         android:padding="16dp"
         android:elevation="4dp"
         android:gravity="center_vertical">
@@ -23,7 +23,7 @@
             android:text="Astrologer Console"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:textColor="@color/brand_gold"/>
+            android:textColor="#FFFFFF"/>
 
         <ImageButton
             android:id="@+id/btnLogout"
@@ -31,7 +31,7 @@
             android:layout_height="48dp"
             android:src="@android:drawable/ic_lock_power_off"
             android:background="?attr/selectableItemBackgroundBorderless"
-            app:tint="@color/brand_gold"/>
+            app:tint="#FFFFFF"/>
     </LinearLayout>
 
     <ScrollView
@@ -49,8 +49,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="@android:color/transparent"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="#FFFFFF"
                 android:layout_marginBottom="16dp">
 
                 <LinearLayout
@@ -58,7 +58,7 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:padding="20dp"
-                    android:background="@drawable/bg_card_premium_dark">
+                    android:background="@drawable/bg_card_premium">
 
                     <TextView
                         android:id="@+id/tvAstroName"
@@ -67,14 +67,14 @@
                         android:text="Astrologer Name"
                         android:textSize="20sp"
                         android:textStyle="bold"
-                        android:textColor="@color/text_on_card"/>
+                        android:textColor="#333333"/>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Wallet Earnings"
                         android:textSize="14sp"
-                        android:textColor="@color/text_on_card"
+                        android:textColor="#666666"
                         android:layout_marginTop="8dp"/>
 
                     <TextView
@@ -93,8 +93,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="@android:color/transparent"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="#FFFFFF"
                 android:layout_marginBottom="16dp">
 
                 <LinearLayout
@@ -103,7 +103,7 @@
                     android:orientation="horizontal"
                     android:padding="20dp"
                     android:gravity="center_vertical"
-                    android:background="@drawable/bg_card_premium_dark">
+                    android:background="@drawable/bg_card_premium">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -117,7 +117,7 @@
                             android:text="Online Status"
                             android:textSize="18sp"
                             android:textStyle="bold"
-                            android:textColor="@color/text_on_card"/>
+                            android:textColor="#333333"/>
 
                         <TextView
                             android:id="@+id/tvStatusLabel"
@@ -125,7 +125,7 @@
                             android:layout_height="wrap_content"
                             android:text="You are currently Offline"
                             android:textSize="14sp"
-                            android:textColor="@color/text_on_card"/>
+                            android:textColor="#666666"/>
                     </LinearLayout>
 
                     <com.google.android.material.switchmaterial.SwitchMaterial

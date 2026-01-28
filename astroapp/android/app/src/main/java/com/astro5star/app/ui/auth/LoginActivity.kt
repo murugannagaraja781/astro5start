@@ -17,7 +17,7 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        com.astro5star.app.utils.ThemeManager.applyTheme(this)
+        // Legacy ThemeManager removed
         setContentView(R.layout.activity_login)
 
         val phoneInput = findViewById<EditText>(R.id.phoneInput)
@@ -26,12 +26,12 @@ class LoginActivity : AppCompatActivity() {
         btnSendOtp.setOnClickListener {
             val phone = phoneInput.text.toString().trim()
             if (phone.length < 10) {
-                Toast.makeText(this, "சரியான தொலைபேசி எண் தேவை", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Valid phone number required", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             btnSendOtp.isEnabled = false
-            btnSendOtp.text = "அனுப்பப்படுகிறது..."
+            btnSendOtp.text = "Sending..."
 
             // Start Spinner Animation
             val logo = findViewById<android.widget.ImageView>(R.id.imgLoginLogo)
@@ -54,9 +54,9 @@ class LoginActivity : AppCompatActivity() {
                     startActivity(intent)
                     finish()
                 } else {
-                    Toast.makeText(this@LoginActivity, "பிழை: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@LoginActivity, "Error: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
                     btnSendOtp.isEnabled = true
-                    btnSendOtp.text = "OTP பெறவும்"
+                    btnSendOtp.text = "Get OTP"
                 }
             }
         }

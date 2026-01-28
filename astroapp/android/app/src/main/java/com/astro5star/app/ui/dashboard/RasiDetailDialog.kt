@@ -54,7 +54,7 @@ fun RasiDetailDialog(
                 ) {
                     // Header
                     Text(
-                        text = "ராசி பலன்",
+                        text = "Rasi Prediction",
                         style = MaterialTheme.typography.labelMedium,
                         color = MetallicGold,
                         letterSpacing = 2.sp
@@ -103,22 +103,22 @@ fun RasiDetailDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        RasiInfoItem("பூதம்", "காற்று")
-                        RasiInfoItem("அதிபதி", "சுக்கிரன்")
-                        RasiInfoItem("தன்மை", "சர ராசி")
+                        RasiInfoItem("Element", "Air")
+                        RasiInfoItem("Lord", "Venus")
+                        RasiInfoItem("Type", "Movable")
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Text(
-                        text = "இன்றைய பலன்",
+                        text = "Today's Prediction",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.align(Alignment.Start)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "இன்று உங்களுக்கு புதிய வாய்ப்புகள் காத்திருக்கின்றன. உங்கள் இலக்குகளில் கவனம் செலுத்துங்கள். நல்ல அதிர்ஷ்டம் காத்திருக்கிறது.",
+                        text = "New opportunities are waiting for you today. Focus on your goals. Good luck awaits.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                         textAlign = TextAlign.Start,
@@ -135,7 +135,7 @@ fun RasiDetailDialog(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("மூடுக", fontWeight = FontWeight.Bold)
+                        Text("Close", fontWeight = FontWeight.Bold)
                     }
                 }
             }

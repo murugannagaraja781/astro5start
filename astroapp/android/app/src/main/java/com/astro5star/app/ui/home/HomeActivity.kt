@@ -11,7 +11,7 @@ import com.astro5star.app.R
 import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.data.model.Astrologer
 import com.astro5star.app.data.remote.SocketManager
-import com.astro5star.app.ui.theme.AstrologyPremiumTheme
+
 import com.astro5star.app.ui.wallet.WalletActivity
 import com.astro5star.app.utils.showErrorAlert
 import kotlinx.coroutines.Dispatchers
@@ -47,7 +47,8 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        com.astro5star.app.utils.ThemeManager.applyTheme(this)
+        // Legacy ThemeManager removed.
+
         tokenManager = TokenManager(this)
 
         setContent {
@@ -61,16 +62,8 @@ class HomeActivity : AppCompatActivity() {
             val customFont = com.astro5star.app.utils.PageThemeManager.getPageColor(context, pageName, com.astro5star.app.utils.PageThemeManager.ATTR_FONT, 0)
             val customBtn = com.astro5star.app.utils.PageThemeManager.getPageColor(context, pageName, com.astro5star.app.utils.PageThemeManager.ATTR_BUTTON, 0)
 
-            AstrologyPremiumTheme(
-                 // We need to modify AstrologyPremiumTheme to accept overrides OR we pass them down.
-                 // Since modifying the source of truth (Theme) is best, I'll pass a modifier lambda if possible,
-                 // BUT AstrologyPremiumTheme likely takes a ColorScheme.
-                 // Strategy: We will apply these overrides to surface/background/primary locally.
-                 customBg = if (customBg != 0) androidx.compose.ui.graphics.Color(customBg) else null,
-                 customCard = if (customCard != 0) androidx.compose.ui.graphics.Color(customCard) else null,
-                 customPrimary = if (customFont != 0) androidx.compose.ui.graphics.Color(customFont) else null, // Using Font as Primary/Text
-                 customSecondary = if (customBtn != 0) androidx.compose.ui.graphics.Color(customBtn) else null // Using Btn as Secondary
-            ) {
+            // Dynamic Cosmic Theme
+            com.astro5star.app.ui.theme.CosmicAppTheme {
                 val balance by _walletBalance.collectAsState()
                 val horoscope by _horoscope.collectAsState()
                 val astrologers by _astrologers.collectAsState()
@@ -78,13 +71,8 @@ class HomeActivity : AppCompatActivity() {
 
                 var selectedRasiItem by remember { mutableStateOf<ComposeRasiItem?>(null) }
 
-                if (selectedRasiItem != null) {
-                    com.astro5star.app.ui.dashboard.RasiDetailDialog(
-                        name = selectedRasiItem!!.name,
-                        iconRes = selectedRasiItem!!.iconRes,
-                        onDismiss = { selectedRasiItem = null }
-                    )
-                }
+                // Dialog removed in favor of Activity navigation
+
 
                 HomeScreen(
                     walletBalance = balance,
@@ -112,7 +100,10 @@ class HomeActivity : AppCompatActivity() {
                         }
                         startActivity(intent)
                     },
-                    onRasiClick = { item -> selectedRasiItem = item },
+                    onRasiClick = { item ->
+                        // Launch RasipalanActivity
+                        startActivity(Intent(this, com.astro5star.app.ui.rasipalan.RasipalanActivity::class.java))
+                    },
                     onLogoutClick = {
                         tokenManager.clearSession()
                         val intent = Intent(this, com.astro5star.app.ui.auth.LoginActivity::class.java)
@@ -128,6 +119,13 @@ class HomeActivity : AppCompatActivity() {
                                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                                 startActivity(intent)
                                 finish()
+                            }
+                            "Settings" -> {
+                                startActivity(Intent(this, com.astro5star.app.ui.settings.SettingsActivity::class.java))
+                            }
+                            "Profile" -> {
+                                // Optional: Handle Profile navigation if UserProfileActivity exists
+                                // Toast.makeText(context, "Profile Coming Soon", Toast.LENGTH_SHORT).show()
                             }
                             else -> {
                                 // Handle Navigation
@@ -188,7 +186,7 @@ class HomeActivity : AppCompatActivity() {
                 _horoscope.value = fetchHoroscope()
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading horoscope", e)
-                _horoscope.value = "இன்று சந்திராஷ்டமம் விலகி இருப்பதால், நல்ல முன்னேற்றம் உண்டாகும்."
+                _horoscope.value = "Good progress will occur today as Chandrashtama has passed."
             }
         }
     }
@@ -201,9 +199,9 @@ class HomeActivity : AppCompatActivity() {
         client.newCall(request).execute().use { response ->
             if (response.isSuccessful) {
                 val json = JSONObject(response.body?.string() ?: "{}")
-                json.optString("content", "இன்று நல்ல நாள்!")
+                json.optString("content", "Today is a good day!")
             } else {
-                "இன்று நல்ல நாள்!"
+                "Today is a good day!"
             }
         }
     }
@@ -246,6 +244,11 @@ class HomeActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "HTTP fallback failed", e)
         }
+        result.sortWith(
+            compareByDescending<Astrologer> {
+                it.isOnline || it.isChatOnline || it.isAudioOnline || it.isVideoOnline
+            }.thenByDescending { it.experience }
+        )
         result
     }
 
@@ -300,18 +303,53 @@ class HomeActivity : AppCompatActivity() {
             _isLoading.value = false
         }
 
+        socket?.on("astrologer-update") { args ->
+            val data = args[0] as JSONArray
+            val list = mutableListOf<Astrologer>()
+            for (i in 0 until data.length()) {
+                list.add(parseAstrologer(data.getJSONObject(i)))
+            }
+            val sortedList = list.sortedWith(
+                compareByDescending<Astrologer> {
+                    it.isOnline || it.isChatOnline || it.isAudioOnline || it.isVideoOnline
+                }.thenByDescending { it.experience }
+            )
+            lifecycleScope.launch(Dispatchers.Main) {
+                _astrologers.value = sortedList
+            }
+        }
+
         socket?.on("astro-status-change") { args ->
             // Update individual status in list
-            // For simplicity in this Compose version, we just re-fetch or if we had complex state management
-            // Ideally we modify the _astrologers list
             val data = args[0] as JSONObject
             val userId = data.optString("userId")
-            val isOnline = data.optBoolean("isOnline", false)
+
+            // Check for specific service fields or fallback to master online
+            val service = data.optString("service") // "chat", "call", "video"
+            val isEnabled = data.optBoolean("isEnabled", false)
+            val isMasterOnline = data.optBoolean("isOnline", false)
 
             val currentList = _astrologers.value.toMutableList()
             val index = currentList.indexOfFirst { it.userId == userId }
             if (index != -1) {
-                currentList[index] = currentList[index].copy(isOnline = isOnline)
+                val astro = currentList[index]
+                val updatedAstro = if (service.isNotEmpty()) {
+                    when (service) {
+                        "chat" -> astro.copy(isChatOnline = isEnabled)
+                        "call", "audio" -> astro.copy(isAudioOnline = isEnabled)
+                        "video" -> astro.copy(isVideoOnline = isEnabled)
+                        else -> astro
+                    }.copy(
+                        // Re-evaluate master online status
+                        isOnline = isEnabled || (if(service=="chat") false else astro.isChatOnline) ||
+                                              (if(service=="call") false else astro.isAudioOnline) ||
+                                              (if(service=="video") false else astro.isVideoOnline)
+                    )
+                } else {
+                    astro.copy(isOnline = isMasterOnline)
+                }
+
+                currentList[index] = updatedAstro
                 _astrologers.value = currentList
             }
         }
@@ -348,6 +386,8 @@ class HomeActivity : AppCompatActivity() {
         super.onResume()
         loadWalletBalance()
         refreshWalletBalance()
+        // Ensure astrologer list is fresh when returning to the screen
+        SocketManager.getSocket()?.emit("get-astrologers")
     }
 
     override fun onDestroy() {

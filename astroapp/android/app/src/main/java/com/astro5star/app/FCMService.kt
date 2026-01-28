@@ -11,6 +11,8 @@ import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.astro5star.app.data.api.ApiService
+import com.astro5star.app.data.local.AppDatabase
+import com.astro5star.app.data.local.entity.ChatMessageEntity
 import com.astro5star.app.utils.Constants
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -45,8 +47,10 @@ class FCMService : FirebaseMessagingService() {
 
     companion object {
         private const val TAG = "FCMService"
-        private const val CHANNEL_ID = "incoming_calls_v2" // V2 to force update
-        private const val CHANNEL_NAME = "Incoming Calls"
+        private const val CALL_CHANNEL_ID = "incoming_calls_v3"
+        private const val CALL_CHANNEL_NAME = "Incoming Calls"
+        private const val CHAT_CHANNEL_ID = "chat_messages_v1"
+        private const val CHAT_CHANNEL_NAME = "Chat Messages"
         private const val CALL_NOTIFICATION_ID = 9999
     }
 
@@ -55,7 +59,7 @@ class FCMService : FirebaseMessagingService() {
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
+        createNotificationChannels()
     }
 
     /**
@@ -120,10 +124,39 @@ class FCMService : FirebaseMessagingService() {
             when (messageType) {
                 "INCOMING_CALL" -> handleIncomingCall(data)
                 "INCOMING_CHAT" -> {
-                    val callerName = data["callerName"] ?: data["title"] ?: "New Client"
-                    val callerId = data["callerId"] ?: data["userId"] ?: "unknown_user"
+                    val callerName = data["callerName"] ?: "Unknown"
+                    val callerId = data["callerId"] ?: ""
                     val sessionId = data["sessionId"] ?: ""
                     handleIncomingChat(callerName, callerId, sessionId)
+                }
+                "CHAT_MESSAGE" -> {
+                    val text = data["text"] ?: "New message"
+                    val senderName = data["callerName"] ?: "Astrologer"
+                    val senderId = data["callerId"] ?: "unknown"
+                    val sessionId = data["sessionId"] ?: ""
+                    val messageId = data["messageId"] ?: System.currentTimeMillis().toString()
+
+                    // Save to Room DB directly
+                    serviceScope.launch {
+                        try {
+                            val db = AppDatabase.getDatabase(this@FCMService)
+                            val entity = ChatMessageEntity(
+                                messageId = messageId,
+                                sessionId = sessionId,
+                                text = text,
+                                senderId = senderId,
+                                timestamp = System.currentTimeMillis(),
+                                status = "delivered",
+                                isSentByMe = false
+                            )
+                            db.chatDao().insertMessage(entity)
+                            Log.d(TAG, "Saved background message to Room: $messageId")
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to save background message", e)
+                        }
+                    }
+
+                    showChatMessageNotification(senderName, text, senderId, sessionId)
                 }
                 else -> {
                     // Handle generic data messages or unknown types by showing a simple notification
@@ -145,7 +178,7 @@ class FCMService : FirebaseMessagingService() {
     }
 
     private fun showGenericNotification(title: String, body: String) {
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, CHAT_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(body)
@@ -171,8 +204,14 @@ class FCMService : FirebaseMessagingService() {
      * - The notification with fullScreenIntent IS the official way to do this
      */
     private fun handleIncomingCall(data: Map<String, String>) {
-        val callerId = data["callerId"] ?: "Unknown"
-        val callerName = data["callerName"] ?: callerId
+        val callerId = data["callerId"] ?: data["fromUserId"] ?: "Unknown"
+        // FIX: Check multiple keys for name to avoid "Unknown"
+        val callerName = data["callerName"]
+            ?: data["userName"]
+            ?: data["name"]
+            ?: data["title"]
+            ?: callerId
+
         // FIX: Server sends 'sessionId', manual test might send 'callId'
         val callId = data["sessionId"] ?: data["callId"] ?: System.currentTimeMillis().toString()
         val callType = data["callType"] ?: "audio" // Differentiate chat vs audio/video
@@ -209,7 +248,7 @@ class FCMService : FirebaseMessagingService() {
 
         // Show HIGH-PRIORITY notification with full-screen intent
         // This is THE OFFICIAL WAY to show call UI on locked screen
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, CALL_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_call)
             .setContentTitle("Incoming Call")
             .setContentText("$callerName is calling...")
@@ -271,31 +310,42 @@ class FCMService : FirebaseMessagingService() {
      * - HIGH importance allows heads-up notifications
      * - User can customize each channel independently
      */
-    private fun createNotificationChannel() {
+    private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
+            val notificationManager = getSystemService(NotificationManager::class.java)
+
+            // 1. Call Channel (High Importance)
+            val callChannel = NotificationChannel(
+                CALL_CHANNEL_ID,
+                CALL_CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Notifications for incoming calls"
                 enableVibration(true)
                 enableLights(true)
-
-                // CRITICAL: Set sound! A silent channel won't be high priority enough for fullScreenIntent
                 val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
                 setSound(soundUri, AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build())
-
                 setShowBadge(true)
                 lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
             }
+            notificationManager.createNotificationChannel(callChannel)
 
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
-            Log.d(TAG, "Notification channel created: $CHANNEL_ID")
+            // 2. Chat Channel (Default Importance - less intrusive)
+            val chatChannel = NotificationChannel(
+                CHAT_CHANNEL_ID,
+                CHAT_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Notifications for chat messages"
+                enableVibration(true)
+                setShowBadge(true)
+            }
+            notificationManager.createNotificationChannel(chatChannel)
+
+            Log.d(TAG, "Notification channels created")
         }
     }
 
@@ -314,7 +364,7 @@ class FCMService : FirebaseMessagingService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, CHAT_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_agenda)
             .setContentTitle("New Chat Request")
             .setContentText("$callerName wants to chat")
@@ -326,5 +376,33 @@ class FCMService : FirebaseMessagingService() {
 
         val notificationManager = getSystemService(NotificationManager::class.java)
         notificationManager.notify(callerId.hashCode(), notification)
+    }
+
+    private fun showChatMessageNotification(senderName: String, text: String, senderId: String, sessionId: String) {
+        val intent = Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("toUserId", senderId)
+            putExtra("sessionId", sessionId)
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            System.currentTimeMillis().toInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, CHAT_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_menu_agenda)
+            .setContentTitle(senderName)
+            .setContentText(text)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.notify(senderId.hashCode(), notification)
     }
 }

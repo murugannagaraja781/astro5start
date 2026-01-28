@@ -3,9 +3,59 @@ package com.astro5star.app.data.repository
 import com.astro5star.app.data.remote.SocketManager
 import org.json.JSONObject
 
-class ChatRepository {
+import android.content.Context
+import com.astro5star.app.data.local.AppDatabase
+import com.astro5star.app.data.local.entity.ChatMessageEntity
+import com.astro5star.app.data.api.ApiService
+import com.astro5star.app.utils.Constants
+import kotlinx.coroutines.flow.Flow
 
+class ChatRepository(private val context: Context) {
+
+    private val chatDao = AppDatabase.getDatabase(context).chatDao()
     private val socket = SocketManager.getSocket()
+
+    suspend fun saveMessage(msg: ChatMessageEntity) {
+        chatDao.insertMessage(msg)
+    }
+
+    fun getMessages(sessionId: String): Flow<List<ChatMessageEntity>> {
+        return chatDao.getMessages(sessionId)
+    }
+
+    suspend fun updateMessageStatus(messageId: String, status: String) {
+        chatDao.updateStatus(messageId, status)
+    }
+
+    suspend fun fetchHistoryFromServer(sessionId: String, limit: Int = 20, before: Long? = null): Boolean {
+        return try {
+            val response = ApiService.getChatHistory(Constants.SERVER_URL, sessionId, limit, before)
+            if (response.success && response.data != null) {
+                val historyArray = response.data.getJSONArray("history")
+                for (i in 0 until historyArray.length()) {
+                    val msg = historyArray.getJSONObject(i)
+                    val entity = ChatMessageEntity(
+                        messageId = msg.getString("messageId"),
+                        sessionId = sessionId,
+                        text = msg.getString("text"),
+                        senderId = msg.getString("fromUserId"),
+                        timestamp = msg.getLong("timestamp"),
+                        status = msg.optString("status", "read"),
+                        isSentByMe = false // Will be updated by check against TokenManager if needed
+                    )
+                    // We need to know who is 'me' to set isSentByMe correctly
+                    val myUserId = com.astro5star.app.data.local.TokenManager(context).getUserSession()?.userId
+                    val updatedEntity = entity.copy(isSentByMe = entity.senderId == myUserId)
+
+                    chatDao.insertMessage(updatedEntity)
+                }
+                true
+            } else false
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
 
     fun sendMessage(data: JSONObject) {
         socket?.emit("chat-message", data)

@@ -100,6 +100,10 @@
         <activity android:name=".ui.guest.GuestDashboardActivity" />
         <activity android:name=".ui.astro.AstrologerDashboardActivity" />
         <activity android:name=".ui.admin.SuperPowerAdminDashboardActivity" android:exported="false" android:theme="@style/Theme.FCMCallApp"/>
+        <activity android:name=".ui.settings.SettingsActivity" />
+        <activity android:name=".ui.settings.ThemeSettingsActivity" />
+        <activity android:name=".ui.rasipalan.RasipalanActivity" />
+        <activity android:name=".ui.dashboard.GuestActivity" />
         <activity android:name=".ui.payment.PaymentActivity" />
         <activity android:name=".ui.auth.LoginActivity" />
         <activity android:name=".ui.auth.OtpVerificationActivity" />

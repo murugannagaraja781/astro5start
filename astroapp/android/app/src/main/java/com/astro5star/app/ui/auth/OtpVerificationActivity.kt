@@ -20,7 +20,7 @@ class OtpVerificationActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        com.astro5star.app.utils.ThemeManager.applyTheme(this)
+        // Legacy ThemeManager removed
         setContentView(R.layout.activity_otp_verification) // Correct layout reference
         tokenManager = TokenManager(this)
 

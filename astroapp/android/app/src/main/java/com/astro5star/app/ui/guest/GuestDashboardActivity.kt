@@ -12,7 +12,7 @@ import com.astro5star.app.data.model.Astrologer
 import com.astro5star.app.ui.auth.LoginActivity
 import com.astro5star.app.ui.home.ComposeRasiItem
 import com.astro5star.app.ui.home.HomeScreen
-import com.astro5star.app.ui.theme.AstrologyPremiumTheme
+import com.astro5star.app.ui.theme.CosmicAppTheme
 import com.astro5star.app.utils.Constants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -33,12 +33,10 @@ class GuestDashboardActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // ThemeManager application might still be needed for overall app context if it sets unrelated things
-        // but we are using Compose now.
-        com.astro5star.app.utils.ThemeManager.applyTheme(this)
+        // Legacy ThemeManager removed
 
         setContent {
-            AstrologyPremiumTheme {
+            CosmicAppTheme {
                 val horoscope by _horoscope.collectAsState()
                 val astrologers by _astrologers.collectAsState()
                 val isLoading by _isLoading.collectAsState()
@@ -66,13 +64,54 @@ class GuestDashboardActivity : AppCompatActivity() {
                     onDrawerItemClick = { item ->
                          if (item == "Login" || item == "Logout") redirectToLogin()
                          else redirectToLogin() // Guest redirects to login for everything ideally
-                    }
+                    },
+                    isGuest = true
                 )
             }
         }
 
         loadDailyHoroscope()
         loadAstrologers()
+        setupSocket()
+    }
+
+    private fun setupSocket() {
+        com.astro5star.app.data.remote.SocketManager.init()
+        val socket = com.astro5star.app.data.remote.SocketManager.getSocket()
+        socket?.connect()
+
+        socket?.on("astro-list") { args ->
+            val data = args[0] as JSONObject
+            val arr = data.optJSONArray("list")
+            if (arr != null) {
+                updateAstrologerList(arr)
+            }
+        }
+
+        socket?.on("astrologer-update") { args ->
+            // Server broadcasts full list on update
+            val data = args[0] as org.json.JSONArray
+            updateAstrologerList(data)
+        }
+
+        socket?.emit("get-astrologers")
+    }
+
+    private fun updateAstrologerList(jsonArray: org.json.JSONArray) {
+        val list = mutableListOf<Astrologer>()
+        for (i in 0 until jsonArray.length()) {
+            val obj = jsonArray.getJSONObject(i)
+            list.add(parseAstrologer(obj))
+        }
+        val sortedList = list.sortedWith(
+            compareByDescending<Astrologer> {
+                it.isOnline || it.isChatOnline || it.isAudioOnline || it.isVideoOnline
+            }.thenByDescending { it.experience }
+        )
+        lifecycleScope.launch(Dispatchers.Main) {
+            _astrologers.value = sortedList
+            _isLoading.value = false
+        }
     }
 
     private fun redirectToLogin() {
@@ -85,7 +124,7 @@ class GuestDashboardActivity : AppCompatActivity() {
                 _horoscope.value = fetchHoroscope()
             } catch (e: Exception) {
                 Log.e("GuestDashboard", "Error loading horoscope", e)
-                _horoscope.value = "இன்று சந்திராஷ்டமம் விலகி இருப்பதால், நல்ல முன்னேற்றம் உண்டாகும்."
+                _horoscope.value = "Good progress will occur today as Chandrashtama has passed."
             }
         }
     }
@@ -116,9 +155,9 @@ class GuestDashboardActivity : AppCompatActivity() {
         client.newCall(request).execute().use { response ->
             if (response.isSuccessful) {
                 val json = JSONObject(response.body?.string() ?: "{}")
-                json.optString("content", "இன்று நல்ல நாள்!")
+                json.optString("content", "Today is a good day!")
             } else {
-                "இன்று நல்ல நாள்!"
+                "Today is a good day!"
             }
         }
     }
@@ -148,6 +187,11 @@ class GuestDashboardActivity : AppCompatActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        result.sortWith(
+            compareByDescending<Astrologer> {
+                it.isOnline || it.isChatOnline || it.isAudioOnline || it.isVideoOnline
+            }.thenByDescending { it.experience }
+        )
         result
     }
 

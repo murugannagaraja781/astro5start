@@ -1,9 +1,11 @@
 package com.astro5star.app.ui.chat
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.astro5star.app.data.local.entity.ChatMessageEntity
 import com.astro5star.app.data.repository.ChatRepository
 import com.astro5star.app.data.remote.SocketManager
 import kotlinx.coroutines.Dispatchers
@@ -18,12 +20,15 @@ data class SessionSummary(
     val duration: Int
 )
 
-class ChatViewModel : ViewModel() {
+class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = ChatRepository()
+    private val repository = ChatRepository(application)
 
     private val _messages = MutableLiveData<ChatMessage>()
     val messages: LiveData<ChatMessage> = _messages
+
+    private val _history = MutableLiveData<List<ChatMessage>>()
+    val history: LiveData<List<ChatMessage>> = _history
 
     private val _messageStatus = MutableLiveData<JSONObject>()
     val messageStatus: LiveData<JSONObject> = _messageStatus
@@ -43,6 +48,25 @@ class ChatViewModel : ViewModel() {
 
     fun sendMessage(data: JSONObject) {
         viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Save to local DB first (optimistic)
+                val msgId = data.getString("messageId")
+                val text = data.getJSONObject("content").getString("text")
+                val sessionId = data.optString("sessionId")
+                val senderId = com.astro5star.app.data.local.TokenManager(getApplication()).getUserSession()?.userId ?: ""
+
+                val entity = ChatMessageEntity(
+                    messageId = msgId,
+                    sessionId = sessionId,
+                    text = text,
+                    senderId = senderId,
+                    timestamp = System.currentTimeMillis(),
+                    status = "sent",
+                    isSentByMe = true
+                )
+                repository.saveMessage(entity)
+            } catch (e: Exception) { e.printStackTrace() }
+
             repository.sendMessage(data)
         }
     }
@@ -95,7 +119,26 @@ class ChatViewModel : ViewModel() {
             val content = data.getJSONObject("content")
             val text = content.getString("text")
             val msgId = data.optString("messageId")
-            val msg = ChatMessage(msgId, text, false)
+            val sessionId = data.optString("sessionId")
+            val senderId = data.optString("fromUserId")
+
+            // Save to DB
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    val entity = ChatMessageEntity(
+                        messageId = msgId,
+                        sessionId = sessionId,
+                        text = text,
+                        senderId = senderId,
+                        timestamp = System.currentTimeMillis(), // Or parse from data if available
+                        status = "read", // Assuming read if we are listening? logic might need adjustment
+                        isSentByMe = false
+                    )
+                    repository.saveMessage(entity)
+                } catch (e: Exception) { e.printStackTrace() }
+            }
+
+            val msg = ChatMessage(msgId, text, false, timestamp = System.currentTimeMillis())
             _messages.postValue(msg)
         }
 
@@ -127,6 +170,43 @@ class ChatViewModel : ViewModel() {
         repository.removeListeners()
         SocketManager.off("billing-started")
         // session-ended is handled by onSessionEndedWithSummary which removes the old listener
+    }
+
+    fun loadHistory(sessionId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            // First attempt to sync from server to catch missed messages
+            repository.fetchHistoryFromServer(sessionId, limit = 6)
+
+            // Then observe the local DB which is the single source of truth
+            repository.getMessages(sessionId).collect { entities ->
+                val uiMessages = entities.map { entity ->
+                    ChatMessage(
+                        id = entity.messageId,
+                        text = entity.text,
+                        isSent = entity.isSentByMe,
+                        status = entity.status,
+                        timestamp = entity.timestamp
+                    )
+                }
+                _history.postValue(uiMessages)
+            }
+        }
+    }
+
+    private var isHistoryLoading = false
+    private var isMoreHistoryAvailable = true
+
+    fun loadMoreHistory(sessionId: String, oldestTimestamp: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (isHistoryLoading || !isMoreHistoryAvailable) return@launch
+            isHistoryLoading = true
+
+            val success = repository.fetchHistoryFromServer(sessionId, limit = 10, before = oldestTimestamp)
+            if (!success) {
+                // Handle failure or no more messages logic if needed
+            }
+            isHistoryLoading = false
+        }
     }
 }
 

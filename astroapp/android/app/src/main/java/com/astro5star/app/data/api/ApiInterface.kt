@@ -53,4 +53,7 @@ interface ApiInterface {
 
     @retrofit2.http.GET("api/chat/history/{sessionId}")
     suspend fun getChatHistory(@retrofit2.http.Path("sessionId") sessionId: String): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("https://astro5star.com/api/horoscope/rasi-palan")
+    suspend fun getRasipalan(): Response<List<com.astro5star.app.data.model.RasipalanItem>>
 }

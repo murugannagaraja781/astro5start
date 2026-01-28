@@ -17,6 +17,7 @@ class RasiAdapter(
 
     class RasiViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvName: TextView = view.findViewById(R.id.tvRasiName)
+        val imgRasi: ImageView = view.findViewById(R.id.imgRasi)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RasiViewHolder {
@@ -28,7 +29,7 @@ class RasiAdapter(
     override fun onBindViewHolder(holder: RasiViewHolder, position: Int) {
         val item = items[position]
         holder.tvName.text = item.name
-        // holder.imgRasi.setImageResource(item.iconRes) // Removed as per request
+        holder.imgRasi.setImageResource(item.iconRes)
         holder.itemView.setOnClickListener { onClick(item) }
     }
 

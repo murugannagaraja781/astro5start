@@ -8,7 +8,7 @@
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFC107"
+        android:background="@color/peacock_teal"
         app:elevation="0dp">
 
         <androidx.appcompat.widget.Toolbar
@@ -21,14 +21,14 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@android:drawable/ic_menu_close_clear_cancel"
-                app:tint="@color/black"
+                app:tint="@color/white"
                 android:layout_marginEnd="16dp"/>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Profile"
-                android:textColor="@color/black"
+                android:textColor="@color/white"
                 android:textSize="18sp"
                 android:textStyle="bold"/>
 
@@ -36,7 +36,7 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@android:drawable/ic_menu_share"
-                app:tint="@color/black"
+                app:tint="@color/white"
                 android:layout_gravity="end"
                 android:layout_marginEnd="16dp"/>
         </androidx.appcompat.widget.Toolbar>
@@ -57,7 +57,7 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
-                android:background="#FFC107"
+                android:background="@color/peacock_teal"
                 android:layout_marginBottom="-40dp"/>
 
             <!-- Avatar -->
@@ -72,7 +72,7 @@
                     android:layout_height="match_parent"
                     android:src="@drawable/circle_avatar_placeholder"
                     app:civ_border_width="4dp"
-                    app:civ_border_color="#FFFFFF"/>
+                    app:civ_border_color="#1B5E20"/>
 
                 <ImageView
                     android:id="@+id/imgVerifiedBadge"
@@ -194,7 +194,7 @@
                 <ImageButton
                     android:layout_width="50dp"
                     android:layout_height="50dp"
-                    android:background="@drawable/bg_card_premium_dark"
+                    android:background="@drawable/bg_button_secondary"
                     android:src="@android:drawable/sym_action_chat"
                     android:tint="#000000"
                     android:layout_marginStart="16dp"/>
@@ -202,7 +202,7 @@
                 <ImageButton
                     android:layout_width="50dp"
                     android:layout_height="50dp"
-                    android:background="@drawable/bg_card_premium_dark"
+                    android:background="@drawable/bg_button_secondary"
                     android:src="@android:drawable/sym_action_call"
                     android:tint="#000000"
                     android:layout_marginStart="16dp"/>

@@ -1,30 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- PREMIUM GREEN PALETTE -->
-    <!-- 1. Base Background - Warm White (Spiritual) -->
-    <color name="royal_midnight_blue">#FFF8EE</color>
+    <!-- PREMIUM RED PALETTE (Royal Crimson) -->
+    <!-- 1. Base Background - Deep Space Red -->
+    <!-- Premium Palette: Neutral BG + Green & Gold Accents -->
+    <color name="royal_midnight_blue">#FAF9F6</color>
+    <color name="brand_bg_soft">#FAF9F6</color>
+    <color name="brand_card_white">#FFFFFF</color>
+    <color name="milk_white">#FAF9F6</color>
 
-    <!-- 2. Main Identity - Luxury Green (Cards) -->
-    <color name="peacock_teal">#003D33</color>
+    <!-- Main Identity - Primary RED (Royal Crimson) -->
+    <color name="peacock_teal">#8E1B1B</color> <!-- Deep Maroon Header -->
+    <color name="peacock_green">#D32F2F</color> <!-- Lighter Red -->
+    <color name="color4">#8E1B1B</color> <!-- Header -->
+    <color name="royal_gold">#C9A227</color> <!-- Keep for accents -->
 
-    <!-- 3. Accent - Bright Emerald / Neon Green -->
-    <color name="peacock_green">#69F0AE</color>
+    <!-- MARKETPLACE PALETTE -->
+    <color name="marketplace_yellow">#FFC107</color> <!-- Bright Yellow CTA -->
+    <color name="marketplace_red">#D32F2F</color> <!-- Price Highlight -->
+    <color name="marketplace_bg">#F5F5F5</color> <!-- Light Grey BG -->
 
-    <!-- 4. Highlight - Bright Gold -->
-    <color name="royal_gold">#FFD700</color>
-
-    <!-- 5. Feather Glow - Soft Green/Gold for gradients -->
-    <color name="feather_glow">#00BFA5</color>
-
-    <!-- 6. Text - Charcoal Dark (#333333) -->
-    <color name="soft_ivory">#333333</color>
-
-    <!-- 7. Text on Card - Charcoal Dark (for Silver Card) -->
-    <color name="text_on_card">#333333</color>
-    <color name="void_black">#000000</color>
-    <color name="error_red">#CF6679</color>
-    <color name="status_green">#00C853</color>
-    <color name="status_red">#D50000</color>
+    <!-- Text - Deep Slate & Gray -->
+    <color name="text_primary">#1C1F26</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="text_muted">#9CA3AF</color>
+    <color name="soft_ivory">#1C1F26</color>
+    <color name="text_on_card">#1C1F26</color>
+    <color name="void_black">#1C1F26</color>
+    <color name="error_red">#DC2626</color>
+    <color name="status_green">#1B5E20</color>
+    <color name="status_red">#DC2626</color>
 
     <!-- Mappings for System/Legacy -->
     <color name="colorPrimary">@color/peacock_teal</color>
@@ -39,64 +43,61 @@
     <color name="secondary_variant">@color/peacock_green</color>
     <color name="on_secondary">@color/royal_midnight_blue</color>
 
-    <color name="background">@color/royal_midnight_blue</color>
-    <color name="on_background">@color/soft_ivory</color>
+    <color name="background">#FFFFFF</color>
+    <color name="on_background">#1C1F26</color>
 
-    <color name="surface">@color/brand_card_white</color> <!-- Mapped to White Card -->
-    <color name="on_surface">@color/soft_ivory</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="on_surface">#1C1F26</color>
 
     <color name="error">@color/error_red</color>
     <color name="on_error">@color/void_black</color>
 
-    <color name="status_online">@color/status_green</color>
+    <color name="status_online">#1B5E20</color>
     <color name="status_busy">@color/status_red</color>
-    <color name="divider">@color/peacock_green</color>
+    <color name="divider">#E2E8F0</color>
     <color name="white">#FFFFFF</color>
-    <color name="black">@color/void_black</color>
+    <color name="black">#1C1F26</color>
+    <color name="support_blue">#3A4F7A</color>
+    <color name="border_color">#1B5E20</color>
 
     <!-- LEGACY COMPATIBILITY -->
-    <color name="text_primary">@color/soft_ivory</color>
-    <color name="text_secondary">@color/royal_gold</color>
     <color name="text_white">#FFFFFF</color>
-    <color name="text_on_red">@color/soft_ivory</color>
-    <color name="text_muted">#B0BEC5</color>
-    <color name="text_on_primary">@color/soft_ivory</color>
+    <color name="text_on_red">#FFFFFF</color>
+    <color name="text_on_primary">#FFFFFF</color>
 
-    <color name="brand_true_red">@color/peacock_teal</color> <!-- Replaced Red with Dark Green -->
+    <color name="brand_true_red">@color/peacock_teal</color> <!-- It is Red now -->
     <color name="brand_true_red_dark">@color/royal_midnight_blue</color>
-    <color name="brand_bg_soft">#FFF8EE</color>
-    <color name="brand_card_white">#FFFFFF</color>
     <color name="bg_surface_variant">@color/peacock_teal</color>
-    <color name="divider_cream">@color/peacock_green</color>
-    <color name="divider_gold">@color/royal_gold</color>
-    <color name="brand_ripple">@color/peacock_green</color>
+    <color name="divider_cream">#EEEEEE</color>
+    <color name="divider_gold">#EEEEEE</color>
+    <color name="brand_ripple">#EEEEEE</color>
 
-    <color name="brand_avocado">@color/royal_gold</color>
-    <color name="brand_gold">@color/royal_gold</color>
-    <color name="brand_orange">@color/peacock_green</color>
-    <color name="brand_purple">@color/peacock_teal</color>
-    <color name="brand_emerald_royal">@color/peacock_green</color>
-    <color name="brand_emerald_dark">@color/peacock_teal</color>
-    <color name="brand_gold_dark">@color/royal_gold</color>
-    <color name="brand_status_online">@color/status_green</color>
-    <color name="avatar_background">@color/peacock_teal</color>
-    <color name="accent">@color/royal_gold</color>
+    <color name="brand_avocado">#1B5E20</color>
+    <color name="brand_gold">#1B5E20</color>
+    <color name="brand_orange">#1B5E20</color>
+    <color name="brand_purple">#1B5E20</color>
+    <color name="brand_emerald_royal">#1B5E20</color>
+    <color name="brand_emerald_dark">#1B5E20</color>
+    <color name="brand_gold_dark">#1B5E20</color>
+    <color name="brand_status_online">#00C853</color>
+    <color name="avatar_background">#EEEEEE</color>
+    <color name="accent">#000000</color>
 
-    <color name="neuro_indigo">@color/royal_midnight_blue</color>
-    <color name="galaxy_blue">@color/peacock_teal</color>
-    <color name="kuber_gold">@color/royal_gold</color>
-    <color name="muted_gold">@color/royal_gold</color>
-    <color name="starlight_white">@color/soft_ivory</color>
-    <color name="nebula_blue">@color/peacock_teal</color>
-    <color name="nebula_purple">@color/peacock_teal</color>
+    <color name="neuro_indigo">#FFFFFF</color>
+    <color name="galaxy_blue">#000000</color>
+    <color name="kuber_gold">#000000</color>
+    <color name="muted_gold">#757575</color>
+    <color name="starlight_white">#FFFFFF</color>
+    <color name="nebula_blue">#000000</color>
+    <color name="nebula_purple">#000000</color>
 
     <!-- Gradient Colors -->
-    <color name="gradient_start">#004D25</color>
-    <color name="gradient_center">#003318</color>
-    <color name="gradient_end">#001A05</color>
+    <color name="gradient_start">#8E0000</color>
+    <color name="gradient_center">#B71C1C</color>
+    <color name="gradient_end">#D32F2F</color>
 
     <!-- Default Material colors -->
-    <color name="purple_200">@color/peacock_green</color>
+    <color name="purple_200">#FF8A80</color>
     <color name="purple_500">@color/peacock_teal</color>
     <color name="purple_700">@color/royal_midnight_blue</color>
     <color name="teal_200">@color/peacock_green</color>
@@ -107,6 +108,20 @@
     <color name="call_reject">#FF5252</color>
 
     <!-- Action Button Colors -->
-    <color name="action_chat">@color/peacock_green</color>
-    <color name="action_call">@color/royal_gold</color>
+    <color name="action_chat">#1B5E20</color>
+    <color name="action_call">#1B5E20</color>
+
+    <!-- Premium Surface Border -->
+    <color name="surface_border">#E8ECF2</color>
+
+    <!-- Soft Card Shadow Tint -->
+    <color name="card_shadow">#1A000000</color>
+    <!-- 10% black shadow overlay -->
+
+    <!-- Sacred Emerald Glow -->
+    <color name="sacred_emerald_glow">#140F5132</color>
+    <!-- Emerald at low opacity -->
+
+    <!-- Luxury Gold -->
+    <color name="luxury_gold">#C9A227</color>
 </resources>

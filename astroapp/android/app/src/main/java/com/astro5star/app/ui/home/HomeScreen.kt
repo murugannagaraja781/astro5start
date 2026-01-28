@@ -12,12 +12,20 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Chat
 import androidx.compose.material.icons.rounded.VideoCall
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -35,10 +43,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.animation.core.*
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.astro5star.app.utils.Localization
 import com.astro5star.app.R
 import com.astro5star.app.data.model.Astrologer
+import com.astro5star.app.ui.theme.CosmicAppTheme
+import com.astro5star.app.ui.theme.CosmicGradients
+import com.astro5star.app.ui.theme.CosmicColors
+import com.astro5star.app.ui.theme.*
+import com.astro5star.app.ui.theme.CosmicShapes
 import com.astro5star.app.ui.theme.*
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -63,8 +84,8 @@ fun BannerSection() {
     ) {
         HorizontalPager(
             state = pagerState,
-            contentPadding = PaddingValues(horizontal = 32.dp), // Show next/prev items
-            pageSpacing = 16.dp,
+            contentPadding = PaddingValues(horizontal = 0.dp),
+            pageSpacing = 0.dp,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp) // Taller banner
@@ -76,7 +97,7 @@ fun BannerSection() {
             Card(
                 shape = RoundedCornerShape(18.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, RoyalGold.copy(alpha = 0.3f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, PeacockGreen.copy(alpha = 0.3f)),
                 modifier = Modifier
                     .graphicsLayer {
                         scaleX = scale
@@ -109,20 +130,20 @@ fun BannerSection() {
                     ) {
                         Text(
                             text = when(page) {
-                                0 -> "பிரீமியம்\nஆலோசனை"
-                                1 -> "வேத\nபரிகாரங்கள்"
-                                else -> "ராசிக்கல்\nவழிகாட்டி"
+                                0 -> "Premium\nConsultation"
+                                1 -> "Vedic\nRemedies"
+                                else -> "Gemstone\nGuide"
                             },
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                            color = RoyalGold,
+                            color = PeacockGreen,
                             lineHeight = 32.sp
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                          Text(
                             text = when(page) {
-                                0 -> "இன்று 50% சலுகை"
-                                1 -> "அமைதி மற்றும் வளம்"
-                                else -> "உங்கள் ராசிக்கல்லை அறியுங்கள்"
+                                0 -> "50% Off Today"
+                                1 -> "Peace and Prosperity"
+                                else -> "Know your Gemstone"
                             },
                             style = MaterialTheme.typography.titleMedium,
                             color = SoftIvory.copy(alpha=0.9f)
@@ -132,11 +153,11 @@ fun BannerSection() {
                          // CTA Pill
                          Box(
                              modifier = Modifier
-                                 .background(RoyalGold, RoundedCornerShape(50))
+                                 .background(PeacockGreen, RoundedCornerShape(50))
                                  .padding(horizontal = 16.dp, vertical = 6.dp)
                          ) {
                              Text(
-                                 text = "மேலும் அறிய",
+                                 text = "Learn More",
                                  style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                  color = RoyalMidnightBlue
                              )
@@ -154,7 +175,7 @@ fun BannerSection() {
             modifier = Modifier.fillMaxWidth()
         ) {
             repeat(3) { iteration ->
-                val color = if (pagerState.currentPage == iteration) RoyalGold else RoyalGold.copy(alpha = 0.2f)
+                val color = if (pagerState.currentPage == iteration) PeacockGreen else PeacockGreen.copy(alpha = 0.2f)
                 val width by animateDpAsState(targetValue = if (pagerState.currentPage == iteration) 24.dp else 8.dp, label = "dotWidth")
 
                 Box(
@@ -170,67 +191,37 @@ fun BannerSection() {
     }
 }
 
-@Composable
-fun ActionButton(text: String, icon: ImageVector, active: Boolean, onClick: () -> Unit) {
-    val gradientColors = if (active) {
-        listOf(RoyalGold, Color(0xFFC5A028)) // Gold Gradient
-    } else {
-        listOf(PeacockTeal.copy(alpha = 0.3f), PeacockTeal.copy(alpha = 0.3f))
-    }
 
-    val contentColor = if (active) RoyalMidnightBlue else SoftIvory.copy(alpha = 0.5f)
-
-    Button(
-        onClick = onClick,
-        enabled = active,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Transparent,
-            contentColor = contentColor
-        ),
-        contentPadding = PaddingValues(),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier
-            .height(42.dp)
-            .width(100.dp) // Fixed width for uniformity
-            .background(Brush.verticalGradient(gradientColors), RoundedCornerShape(12.dp))
-            .border(1.dp, if(active) SoftIvory.copy(alpha=0.2f) else Color.Transparent, RoundedCornerShape(12.dp))
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-            )
-        }
-    }
-}
 
 // Data class wrapper for Rasi to be used in Compose
 data class ComposeRasiItem(val id: Int, val name: String, val iconRes: Int, val color: Color)
 
-val PriceRed = Color(0xFFFF4D4F)
+// Local color definitions removed to use Theme aliases (White)
 
-// Professional Zodiac Colors
-val AriesRed = Color(0xFFE57373)      // Soft Red
-val TaurusGreen = Color(0xFF81C784)   // Soft Green
-val GeminiYellow = Color(0xFFFFF176)  // Soft Yellow
-val CancerSilver = Color(0xFFE0E0E0)  // Light Grey/Silver
-val LeoGold = Color(0xFFFFD54F)       // Amber/Gold
-val VirgoOlive = Color(0xFFAED581)    // Light Green
-val LibraPink = Color(0xFFF06292)     // Pink
-val ScorpioMaroon = Color(0xFFBA68C8) // Purple/Maroon shade
-val SagPurple = Color(0xFF9575CD)     // Deep Purple
-val CapTeal = Color(0xFF4DB6AC)       // Teal
-val AquaBlue = Color(0xFF4DD0E1)      // Cyan/Blue
-val PiscesIndigo = Color(0xFF7986CB)  // Indigo
+// Helper for Premium Sacred Cards
+@Composable
+fun PremiumCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = androidx.compose.foundation.BorderStroke(1.dp, colorResource(id = R.color.surface_border)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), // Using custom shadow wrapper if possible, or high elevation
+        modifier = modifier
+            .shadow(
+                elevation = 10.dp,
+                shape = RoundedCornerShape(22.dp),
+                spotColor = colorResource(id = R.color.card_shadow),
+                ambientColor = colorResource(id = R.color.card_shadow)
+            )
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+    ) {
+        content()
+    }
+}
 
 @Composable
 fun HomeScreen(
@@ -243,12 +234,68 @@ fun HomeScreen(
     onCallClick: (Astrologer, String) -> Unit,
     onRasiClick: (ComposeRasiItem) -> Unit,
     onLogoutClick: () -> Unit,
-    onDrawerItemClick: (String) -> Unit = {}
+    onDrawerItemClick: (String) -> Unit = {},
+    isGuest: Boolean = false // New Param
 ) {
     val listState = rememberLazyListState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedFilter by remember { mutableStateOf("All") }
+    // Language State (Default Tamil)
+    var isTamil by rememberSaveable { mutableStateOf(true) }
+
+    // Logic to filter astrologers based on selection
+    val filteredAstros = remember(selectedFilter, astrologers) {
+        if (selectedFilter == "All") astrologers
+        else astrologers.filter { astro ->
+             // Match skill or name
+             astro.skills.any { it.contains(selectedFilter, ignoreCase = true) } ||
+             astro.name.contains(selectedFilter, ignoreCase = true)
+        }
+    }
+
+    var showLowBalanceDialog by remember { mutableStateOf(false) }
+
+    if (showLowBalanceDialog) {
+        AlertDialog(
+            onDismissRequest = { showLowBalanceDialog = false },
+            title = { Text("Low Balance!", fontWeight = FontWeight.Bold, color = Color.Red) },
+            text = {
+                Column {
+                    Text("Current session ended due to insufficient funds. Please recharge to continue.", color = CosmicAppTheme.colors.textPrimary)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Current Balance: ₹${walletBalance.toInt()}", fontWeight = FontWeight.Bold, color = CosmicAppTheme.colors.accent)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLowBalanceDialog = false
+                        onWalletClick()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PeacockGreen)
+                ) {
+                    Text("Add Funds Now", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLowBalanceDialog = false }) {
+                    Text("I'll do it later", color = CosmicAppTheme.colors.textSecondary)
+                }
+            },
+            containerColor = CosmicAppTheme.colors.cardBg,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
+    fun checkBalanceAndProceed(action: () -> Unit) {
+        if (!isGuest && walletBalance < 10) { // Skip check for guest (login handles it)
+            showLowBalanceDialog = true
+        } else {
+            action()
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -258,7 +305,8 @@ fun HomeScreen(
                     scope.launch { drawerState.close() }
                     onDrawerItemClick(item)
                     if (item == "Logout") onLogoutClick()
-                }
+                },
+                onClose = { scope.launch { drawerState.close() } }
             )
         }
     ) {
@@ -268,26 +316,48 @@ fun HomeScreen(
                 HomeTopBar(
                     balance = walletBalance,
                     onWalletClick = onWalletClick,
-                    onMenuClick = { scope.launch { drawerState.open() } }
+                    onMenuClick = { scope.launch { drawerState.open() } },
+                    isGuest = isGuest,
+                    isTamil = isTamil,
+                    onToggleLanguage = { isTamil = !isTamil }
                 )
             },
             bottomBar = {
-                HomeBottomBar(
-                    selectedTab = selectedTab,
-                    onTabSelected = { selectedTab = it }
-                )
+                Column {
+                    // STICKY FOOTER: Dual Yellow Buttons
+                    val showFooter = selectedTab == 0 // Only show on Home tab
+                    if (showFooter) {
+                    StickyFooterButtons(
+                        isGuest = isGuest,
+                        onTabSelected = { selectedTab = it },
+                        onLoginClick = onWalletClick
+                    )
+                }
+                    HomeBottomBar(
+                        selectedTab = selectedTab,
+                        onTabSelected = { selectedTab = it }
+                    )
+                }
             }
         ) { padding ->
             Box(modifier = Modifier.padding(padding)) {
-                // Show content for Home(0), Chat(1), Video(2), Call(3)
+                // 🌌 1. COSMIC BACKGROUND & STARS
+                Box(modifier = Modifier.fillMaxSize().background(CosmicAppTheme.backgroundBrush))
+                StarField()
 
+                // Content Layer
                 LazyColumn(
                     state = listState,
                     contentPadding = PaddingValues(bottom = 16.dp),
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(RoyalMidnightBlue)
+                        .background(Color.Transparent) // Let gradient show through
                 ) {
+                    // 0. Top Services Row (Reference UI)
+                    if (selectedTab == 0) {
+                        item { TopServicesSection() }
+                    }
+
                     // 1. Daily Horoscope Card (Only on Home)
                     if (selectedTab == 0) {
                         item { DailyHoroscopeCard(horoscope) }
@@ -302,42 +372,61 @@ fun HomeScreen(
                     if (selectedTab == 0) {
                         item {
                             Text(
-                                text = "ராசி பலன்",
+                                text = Localization.get("horoscope", isTamil),
                                 style = MaterialTheme.typography.titleLarge,
-                                color = RoyalGold,
+                                color = CosmicAppTheme.colors.accent,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                             )
                         }
                         item { RasiGridSection(onRasiClick) }
                     }
 
-                    // 4. Astrologers Title
+                    // 4. Customer Stories (Marketplace)
+                    item { CustomerStoriesSection() }
+
+                    // 5. Astrologers Title
                     item {
                         val title = when(selectedTab) {
-                            1 -> "அரட்டை சேவைகள்" // Chat
-                            2 -> "வீடியோ அழைப்பு" // Video
-                            3 -> "ஆடியோ அழைப்பு" // Call
-                            else -> "பிரீமியம் ஆலோசனை" // Home
+                            1 -> Localization.get("chat_services", isTamil) // Chat
+                            2 -> Localization.get("video_call", isTamil) // Video
+                            3 -> Localization.get("audio_call", isTamil) // Call
+                            else -> Localization.get("premium_consultation", isTamil) // Home
                         }
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleLarge,
-                            color = RoyalGold,
+                            color = CosmicAppTheme.colors.accent,
                             modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
                         )
                     }
 
-                    // 5. Loading Indicator or List
+                    // 5. Filter Bar (Only for Listing Tabs)
+                    if (selectedTab != 0) {
+                        item {
+                            FilterBar(
+                                filters = listOf("All", "Love", "Career", "Finance", "Marriage", "Health", "Education"),
+                                selectedFilter = selectedFilter,
+                                onFilterSelected = { selectedFilter = it }
+                            )
+                        }
+                    }
+
+                    // 6. Loading Indicator or List
                     if (isLoading) {
                         item {
                             Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(color = RoyalGold)
+                                CircularProgressIndicator(color = PeacockGreen)
                             }
                         }
                     } else {
-                        items(astrologers) { astro ->
+                        items(filteredAstros) { astro -> // Use Filtered List
                             // Pass selectedTab to control button visibility
-                            AstrologerCard(astro, onChatClick, onCallClick, selectedTab)
+                            AstrologerCard(
+                                astro = astro,
+                                onChatClick = { selectedAstro -> checkBalanceAndProceed { onChatClick(selectedAstro) } },
+                                onCallClick = { selectedAstro, type -> checkBalanceAndProceed { onCallClick(selectedAstro, type) } },
+                                selectedTab = selectedTab
+                            )
                         }
                     }
                 }
@@ -346,143 +435,281 @@ fun HomeScreen(
     }
 }
 
+// --- 1. DRAWER ---
 @Composable
-fun AppDrawer(onItemClick: (String) -> Unit) {
+fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit) {
     ModalDrawerSheet(
-        drawerContainerColor = RoyalMidnightBlue,
-        drawerContentColor = SoftIvory
+        drawerContainerColor = Color(0xFFF8F9FA), // Light Color (User Request)
+        drawerContentColor = Color.DarkGray
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(PeacockTeal, RoyalMidnightBlue)))
+                .background(Color(0xFFF8F9FA)) // Light BG
                 .padding(24.dp)
         ) {
+            // Close Button Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                IconButton(onClick = onClose) {
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Default.Close,
+                        contentDescription = "Close Drawer",
+                        tint = Color.Red // Red Color (User Request)
+                    )
+                }
+            }
+
+            // Profile Section
             Image(
                 painter = painterResource(id = R.drawable.ic_person_placeholder),
                 contentDescription = "Profile",
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
-                    .border(2.dp, RoyalGold, CircleShape)
+                    .border(2.dp, Color.Gray, CircleShape)
             )
             Spacer(modifier = Modifier.height(12.dp))
-            Text("User Profile", style = MaterialTheme.typography.titleMedium, color = RoyalGold)
-            Text("Edit Profile", style = MaterialTheme.typography.bodySmall, color = SoftIvory.copy(alpha=0.7f))
+            Text("User Profile", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Color.DarkGray) // Strong Gray
+            Text("Edit Profile", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
         }
+
         Spacer(modifier = Modifier.height(8.dp))
-        NavigationDrawerItem(
-            label = { Text("Home", color = SoftIvory) },
-            selected = false,
-            onClick = { onItemClick("Home") },
-            colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
-        )
-         NavigationDrawerItem(
-            label = { Text("Profile", color = SoftIvory) },
-            selected = false,
-            onClick = { onItemClick("Profile") },
-            colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
-        )
-        NavigationDrawerItem(
-            label = { Text("Settings", color = SoftIvory) },
-            selected = false,
-            onClick = { onItemClick("Settings") },
-             colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
-        )
+
+        // Drawer Items
+        val items = listOf("Home", "Profile", "Settings", "Logout")
+        items.forEach { item ->
+            NavigationDrawerItem(
+                label = {
+                    Text(
+                        text = item,
+                        color = if(item == "Logout") Color.Red else Color.DarkGray, // Strong Gray / Red for logout might be nice, but strict request says "fornt garay color stonrg"
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                selected = false,
+                onClick = { onItemClick(item) },
+                colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
+            )
+        }
         Spacer(modifier = Modifier.weight(1f))
-        NavigationDrawerItem(
-            label = { Text("Logout", color = PriceRed) },
-            selected = false,
-            onClick = { onItemClick("Logout") },
-             colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
-        )
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
+// --- 2. HEADER ---
+// --- 2. HEADER ---
 @Composable
-fun HomeTopBar(balance: Double, onWalletClick: () -> Unit, onMenuClick: () -> Unit) {
+fun HomeTopBar(
+    balance: Double,
+    onWalletClick: () -> Unit,
+    onMenuClick: () -> Unit,
+    isGuest: Boolean = false,
+    isTamil: Boolean,
+    onToggleLanguage: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(RoyalMidnightBlue, PeacockTeal.copy(alpha = 0.3f))
-                )
-            )
+            .background(CosmicAppTheme.headerBrush)
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // LEFT: Menu + Title
         Row(verticalAlignment = Alignment.CenterVertically) {
+             // 1. Restore Menu Icon
              IconButton(onClick = onMenuClick) {
                 Icon(
                     imageVector = androidx.compose.material.icons.Icons.Default.Menu,
                     contentDescription = "Menu",
-                    tint = RoyalGold
+                    tint = Color.White
                 )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-             // Logo
-            Image(
-                painter = painterResource(id = R.drawable.logo_mayil),
-                contentDescription = "App Logo",
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .border(1.dp, RoyalGold, CircleShape)
+             }
+             Spacer(modifier = Modifier.width(4.dp))
+             Text(
+                text = "Astro 5 Star",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp),
+                color = Color.White
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
+        }
+
+        // RIGHT: Wallet (Simple)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.clickable { onWalletClick() } // Make clickable
+        ) {
+            if (!isGuest) {
+                // 3. Simple Wallet Display (No Card, just Text)
                 Text(
-                    text = "Astro 5 Star",
+                    text = "₹${balance.toInt()}",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 18.sp),
+                    color = Color.White
+                )
+            } else {
+                Text(
+                    text = "Login",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = SoftIvory
+                    color = Color.White
                 )
             }
         }
+    }
+}
 
-        // Wallet
-        Card(
-            onClick = onWalletClick,
-            shape = RoundedCornerShape(50),
-            colors = CardDefaults.cardColors(containerColor = PeacockTeal),
-            border = androidx.compose.foundation.BorderStroke(1.dp, RoyalGold.copy(alpha = 0.6f)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+// --- 3. RASI ITEM (Fitted BG + Border) ---
+@Composable
+fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
+    // Animation: Gentle Pulse (User Request: "icon show with animation")
+    val infiniteTransition = rememberInfiniteTransition(label = "RasiPulse")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "Scale"
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(84.dp)
+            .clickable { onClick(item) }
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(72.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                // User Request: "bg full white colr"
+                .background(Color.White, RoundedCornerShape(15.dp))
+                .border(2.dp, item.color, RoundedCornerShape(15.dp)) // Visible Border
+                .shadow(4.dp, RoundedCornerShape(15.dp)) // Shadow
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Animated Gold Dot
-                val infiniteTransition = rememberInfiniteTransition(label = "WalletGlow")
-                val alpha by infiniteTransition.animateFloat(
-                    initialValue = 0.5f,
-                    targetValue = 1f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(1500, easing = LinearEasing),
-                        repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "WalletAlpha"
-                )
+             Image(
+                painter = painterResource(id = item.iconRes),
+                contentDescription = item.name,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(6.dp), // Perfect fit
+                colorFilter = ColorFilter.tint(item.color) // User Request: "icon is drak color but not black"
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = Localization.get(item.name.lowercase(), true),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            color = Color.White,
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
+    }
+}
 
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .scale(alpha)
-                        .background(RoyalGold, CircleShape)
-                )
+// --- 4. ASTROLOGER CARD (Green Border, Animation, Shadow) ---
+@Composable
+fun AstrologerCard(
+    astro: Astrologer,
+    onChatClick: (Astrologer) -> Unit,
+    onCallClick: (Astrologer, String) -> Unit,
+    selectedTab: Int
+) {
+    val showChat = selectedTab == 0 || selectedTab == 1
+    val showVideo = selectedTab == 0 || selectedTab == 2
+    val showCall = selectedTab == 0 || selectedTab == 3
 
-                Spacer(modifier = Modifier.width(8.dp))
+    // ONLINE ANIMATION (Pulse Border)
+    val infiniteTransition = rememberInfiniteTransition(label = "OnlinePulse")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 1f, targetValue = if(astro.isOnline) 0.5f else 1f,
+        animationSpec = infiniteRepeatable(tween(1000), RepeatMode.Reverse), label = "Alpha"
+    )
+    val borderColor = if (astro.isOnline) PeacockGreen.copy(alpha = alpha) else Color.LightGray
 
-                Text(
-                    text = "₹${balance.toInt()}",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = RoyalGold
-                )
-            }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            // Added SHADOW
+            .shadow(
+                elevation = if (astro.isOnline) 8.dp else 2.dp,
+                shape = RoundedCornerShape(16.dp),
+                spotColor = if (astro.isOnline) PeacockGreen else Color.Black
+            ),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), // Handled by shadow modifier
+        border = androidx.compose.foundation.BorderStroke(if(astro.isOnline) 2.dp else 0.5.dp, borderColor) // Green Border
+    ) {
+        // ... (Content remains similar, simplified for replacement)
+        Row(
+            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.Top
+        ) {
+             // Left Column (Avatar)
+             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(80.dp)) {
+                 Box(contentAlignment = Alignment.BottomEnd) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_person_placeholder),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(70.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, if(astro.isOnline) PeacockGreen else Color.LightGray, CircleShape)
+                    )
+                     Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = "Verified",
+                        tint = Color(0xFF2196F3),
+                        modifier = Modifier.size(20.dp).background(Color.White, CircleShape).border(1.dp, Color.White, CircleShape)
+                    )
+                 }
+                 Spacer(modifier = Modifier.height(8.dp))
+                 Row(verticalAlignment = Alignment.CenterVertically) {
+                     Text("${if(astro.rating > 0) astro.rating else 4.5}", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = Color.Black)
+                     Icon(Icons.Rounded.Star, null, tint = Color(0xFFFFD700), modifier = Modifier.size(12.dp))
+                 }
+                 Text("${if(astro.orders>0) astro.orders else 3908} Orders", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = Color.Gray)
+             }
+
+             Spacer(modifier = Modifier.width(12.dp))
+
+             // Right Column
+             Column(modifier = Modifier.weight(1f)) {
+                 Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                     Text(astro.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Color.Black, maxLines = 1)
+                     Column(horizontalAlignment = Alignment.End) {
+                         Row(verticalAlignment = Alignment.CenterVertically) {
+                             Text("₹ ${astro.price}", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = PriceRed)
+                             Spacer(modifier = Modifier.width(4.dp))
+                             Text("${(astro.price*2).toInt()}/Min", style = MaterialTheme.typography.bodySmall.copy(textDecoration = TextDecoration.LineThrough, fontSize = 10.sp), color = Color.Gray)
+                         }
+                     }
+                 }
+                 Spacer(modifier = Modifier.height(6.dp))
+                 InfoRow(Icons.Filled.Bolt, if(astro.skills.isNotEmpty()) astro.skills.joinToString(", ") else "Vedic, Vastu")
+                 InfoRow(Icons.Filled.Translate, "Hindi, English, Tamil")
+                 InfoRow(Icons.Filled.Schedule, "Exp: ${if(astro.experience>0) astro.experience else 5} Years")
+
+                 Spacer(modifier = Modifier.height(12.dp))
+
+                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                     if (!astro.isOnline) Text("Wait 5 Min", style = MaterialTheme.typography.labelSmall, color = PriceRed, modifier = Modifier.padding(end = 8.dp))
+
+                     if (showChat) AstrologerActionButton("Chat", Icons.Rounded.Chat, astro.isOnline, AquaBlue, { onChatClick(astro) })
+                     if (showVideo) AstrologerActionButton("Video", Icons.Rounded.VideoCall, astro.isOnline, PriceRed, { onCallClick(astro, "Video") }, Modifier.padding(start=4.dp))
+                     if (showCall) AstrologerActionButton("Call", Icons.Rounded.Call, astro.isOnline, PeacockGreen, { onCallClick(astro, "Audio") }, Modifier.padding(start=4.dp))
+                 }
+             }
         }
     }
 }
@@ -490,8 +717,8 @@ fun HomeTopBar(balance: Double, onWalletClick: () -> Unit, onMenuClick: () -> Un
 @Composable
 fun HomeBottomBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {
     NavigationBar(
-        containerColor = RoyalMidnightBlue,
-        contentColor = RoyalGold
+        containerColor = Color.White,
+        contentColor = PeacockGreen
     ) {
         val items = listOf(
             Triple("Home", androidx.compose.material.icons.Icons.Default.Home, 0),
@@ -508,11 +735,11 @@ fun HomeBottomBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {
                 selected = selectedTab == index,
                 onClick = { onTabSelected(index) },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = RoyalMidnightBlue,
-                    selectedTextColor = RoyalGold,
-                    indicatorColor = RoyalGold,
-                    unselectedIconColor = SoftIvory.copy(alpha = 0.6f),
-                    unselectedTextColor = SoftIvory.copy(alpha = 0.6f)
+                    selectedIconColor = Color.White,
+                    selectedTextColor = PeacockGreen,
+                    indicatorColor = PeacockGreen,
+                    unselectedIconColor = Color.Gray.copy(alpha = 0.6f),
+                    unselectedTextColor = Color.Gray.copy(alpha = 0.6f)
                 )
             )
         }
@@ -533,76 +760,24 @@ fun DailyHoroscopeCard(content: String) {
         label = "CardScale"
     )
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .scale(scale),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = PeacockTeal),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, RoyalGold.copy(alpha = 0.5f))
-    ) {
-        Box {
-            // Gradient Overlay for "Feather" feel
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                            colors = listOf(
-                                NebulaPurple, // Emerald
-                                GalaxyViolet, // Teal
-                                DeepSpaceNavy // Dark Green
-                            )
-                        )
-                    )
-            )
 
-            Column(
-                modifier = Modifier.padding(20.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_rasi_1), // Using a generic star/moon icon if avl, else Rasi 1
-                        contentDescription = null,
-                        tint = RoyalGold,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "இன்றைய ராசி பலன்",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = RoyalGold
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = content,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = SoftIvory,
-                    lineHeight = 26.sp
-                )
-            }
-        }
-    }
 }
 
 @Composable
 fun RasiGridSection(onClick: (ComposeRasiItem) -> Unit) {
     val rasiItems = listOf(
-        ComposeRasiItem(1, "மேஷம்", R.drawable.ic_rasi_aries_premium, AriesRed),
-        ComposeRasiItem(2, "ரிஷபம்", R.drawable.ic_rasi_taurus_premium_copy, TaurusGreen),
-        ComposeRasiItem(3, "மிதுனம்", R.drawable.ic_rasi_gemini_premium_copy, GeminiYellow),
-        ComposeRasiItem(4, "கடகம்", R.drawable.ic_rasi_cancer_premium_copy, CancerSilver),
-        ComposeRasiItem(5, "சிம்மம்", R.drawable.ic_rasi_leo_premium, LeoGold),
-        ComposeRasiItem(6, "கன்னி", R.drawable.ic_rasi_virgo_premium, VirgoOlive),
-        ComposeRasiItem(7, "துலாம்", R.drawable.ic_rasi_libra_premium_copy, LibraPink),
-        ComposeRasiItem(8, "விருச்சிகம்", R.drawable.ic_rasi_scorpio_premium, ScorpioMaroon),
-        ComposeRasiItem(9, "தனுசு", R.drawable.ic_rasi_sagittarius_premium, SagPurple),
-        ComposeRasiItem(10, "மகரம்", R.drawable.ic_rasi_capricorn_premium_copy, CapTeal),
-        ComposeRasiItem(11, "கும்பம்", R.drawable.ic_rasi_aquarius_premium, AquaBlue),
-        ComposeRasiItem(12, "மீனம்", R.drawable.ic_rasi_pisces_premium_copy, PiscesIndigo)
+        ComposeRasiItem(1, "Aries", R.drawable.ic_rasi_aries_premium, AriesRed),
+        ComposeRasiItem(2, "Taurus", R.drawable.ic_rasi_taurus_premium_copy, TaurusGreen),
+        ComposeRasiItem(3, "Gemini", R.drawable.ic_rasi_gemini_premium_copy, GeminiYellow),
+        ComposeRasiItem(4, "Cancer", R.drawable.ic_rasi_cancer_premium_copy, CancerSilver),
+        ComposeRasiItem(5, "Leo", R.drawable.ic_rasi_leo_premium, LeoGold),
+        ComposeRasiItem(6, "Virgo", R.drawable.ic_rasi_virgo_premium, VirgoOlive),
+        ComposeRasiItem(7, "Libra", R.drawable.ic_rasi_libra_premium_copy, LibraPink),
+        ComposeRasiItem(8, "Scorpio", R.drawable.ic_rasi_scorpio_premium, ScorpioMaroon),
+        ComposeRasiItem(9, "Sagittarius", R.drawable.ic_rasi_sagittarius_premium, SagPurple),
+        ComposeRasiItem(10, "Capricorn", R.drawable.ic_rasi_capricorn_premium_copy, CapTeal),
+        ComposeRasiItem(11, "Aquarius", R.drawable.ic_rasi_aquarius_premium, AquaBlue),
+        ComposeRasiItem(12, "Pisces", R.drawable.ic_rasi_pisces_premium_copy, PiscesIndigo)
     )
 
     Column(modifier = Modifier.padding(horizontal = 8.dp)) {
@@ -622,34 +797,26 @@ fun RasiGridSection(onClick: (ComposeRasiItem) -> Unit) {
     }
 }
 
+// Duplicate definitions removed
+
+
 @Composable
-fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .width(80.dp)
-            .clickable { onClick(item) }
+fun InfoRow(icon: ImageVector, text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(vertical = 2.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .background(item.color.copy(alpha = 0.8f), CircleShape) // Use dynamic color with slight transparency
-                .border(2.dp, RoyalGold, CircleShape)
-                .clip(CircleShape), // Clip content to circle
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(id = item.iconRes),
-                contentDescription = item.name,
-                contentScale = ContentScale.Crop, // Fill the circle
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-        Spacer(modifier = Modifier.height(6.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Color.Gray,
+            modifier = Modifier.size(14.dp)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
         Text(
-            text = item.name,
-            style = MaterialTheme.typography.labelSmall,
-            color = SoftIvory,
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.DarkGray,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -657,125 +824,293 @@ fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
 }
 
 @Composable
-fun AstrologerCard(
-    astro: Astrologer,
-    onChatClick: (Astrologer) -> Unit,
-    onCallClick: (Astrologer, String) -> Unit,
-    selectedTab: Int
+fun AstrologerActionButton(
+    text: String,
+    icon: ImageVector,
+    active: Boolean,
+    borderColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = PeacockTeal),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, RoyalGold.copy(alpha = 0.5f))
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Profile Image with "Eye" Border
-            Box {
-                 Image(
-                    painter = painterResource(id = R.drawable.ic_person_placeholder),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(CircleShape)
-                        .border(2.dp, RoyalGold, CircleShape)
-                )
-                if (astro.isOnline) {
-                    Box(
-                        modifier = Modifier
-                            .size(16.dp)
-                            .background(Color(0xFF00C853), CircleShape)
-                            .border(2.dp, RoyalMidnightBlue, CircleShape)
-                            .align(Alignment.BottomEnd)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = astro.name,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = SoftIvory
-                )
-                Text(
-                    text = "${astro.experience} Yrs • ${astro.skills.take(2).joinToString(", ")}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = PeacockGreen
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "₹${astro.price}/min",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = RoyalGold
-                )
-            }
-        }
-
-        // Actions with Tonal Style
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(RoyalMidnightBlue.copy(alpha = 0.4f))
-                .padding(10.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            val showAll = selectedTab == 0
-            val showChat = selectedTab == 1 || showAll
-            val showVideo = selectedTab == 2 || showAll
-            val showAudio = selectedTab == 3 || showAll
-
-            if (showChat) {
-                ActionButton(
-                    text = "அரட்டை",
-                    icon = Icons.Rounded.Chat,
-                    active = astro.isChatOnline,
-                    onClick = { onChatClick(astro) }
-                )
-            }
-            if (showAudio) {
-                ActionButton(
-                    text = "அழைப்பு", // Shortened from "Audio" for better fit
-                    icon = Icons.Rounded.Call,
-                    active = astro.isAudioOnline,
-                    onClick = { onCallClick(astro, "audio") }
-                )
-            }
-            if (showVideo) {
-                ActionButton(
-                    text = "வீடியோ",
-                    icon = Icons.Rounded.VideoCall,
-                    active = astro.isVideoOnline,
-                    onClick = { onCallClick(astro, "video") }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ActionButton(text: String, active: Boolean, onClick: () -> Unit) {
-    val containerColor = if (active) RoyalGold else PeacockTeal.copy(alpha = 0.3f)
-    val contentColor = if (active) RoyalMidnightBlue else SoftIvory.copy(alpha = 0.5f)
+    // User Request: "red color boder chat bue clor border call green color border"
+    val containerColor = Color.White
+    val contentColor = borderColor // Text/Icon matches border
+    val borderStroke = androidx.compose.foundation.BorderStroke(1.dp, borderColor)
 
     Button(
         onClick = onClick,
         enabled = active,
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
-            contentColor = contentColor
+            contentColor = contentColor,
+            disabledContainerColor = Color.Gray.copy(alpha = 0.1f),
+            disabledContentColor = Color.Gray
         ),
+        border = borderStroke,
         shape = RoundedCornerShape(50),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 0.dp),
-        modifier = Modifier.height(34.dp)
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp), // Thinner padding for 3 buttons
+        modifier = modifier.height(32.dp)
     ) {
-        Text(text = text, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+        Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = text, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), maxLines = 1)
+    }
+}
+
+
+
+@Composable
+fun FilterBar(filters: List<String>, selectedFilter: String, onFilterSelected: (String) -> Unit) {
+    androidx.compose.foundation.lazy.LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.padding(bottom = 16.dp)
+    ) {
+        items(filters) { filter ->
+            val isSelected = filter == selectedFilter
+            val containerColor = if (isSelected) Color(0xFF4CAF50) else Color.White
+            val contentColor = if (isSelected) Color.White else Color.Black
+            val borderColor = if (isSelected) Color.Transparent else Color.Gray.copy(alpha = 0.3f)
+
+            Surface(
+                onClick = { onFilterSelected(filter) },
+                shape = RoundedCornerShape(50),
+                color = containerColor,
+                contentColor = contentColor,
+                border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
+                modifier = Modifier.height(32.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Text(
+                        text = filter,
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CircularActionButton(
+    icon: ImageVector,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = color,
+        contentColor = Color.White,
+        modifier = Modifier.size(40.dp),
+        shadowElevation = 4.dp
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+// 🌌 COSMIC ANIMATIONS
+
+@Composable
+fun StarField() {
+    // 🌌 1. BACKGROUND STAR PARTICLE ANIMATION
+    val stars = remember { List(40) { Triple(Math.random().toFloat(), Math.random().toFloat(), Math.random().toFloat()) } }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "StarAnim")
+    val animProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(4000, easing = LinearEasing), RepeatMode.Reverse),
+        label = "StarAlpha"
+    )
+
+    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+        stars.forEachIndexed { index, (x, y, starSize) ->
+            val phase = (index % 10) / 10f
+            val baseAlpha = (animProgress + phase) % 1f
+            drawCircle(
+                color = Color.White,
+                radius = 1.5.dp.toPx() * (starSize + 0.2f),
+                center = androidx.compose.ui.geometry.Offset(x * size.width, y * size.height),
+                alpha = baseAlpha * 0.4f // Low opacity
+            )
+        }
+    }
+}
+
+@Composable
+fun TopServicesSection() {
+    val services = listOf(
+        "Free\nKundali" to R.drawable.ic_rasi_aries_premium, // Placeholder
+        "Kundali\nMatch" to R.drawable.ic_rasi_leo_premium,
+        "Daily\nHoroscope" to R.drawable.ic_rasi_cancer_premium_copy,
+        "Astro\nAcademy" to R.drawable.ic_rasi_libra_premium_copy,
+        "Free\nServices" to R.drawable.ic_rasi_virgo_premium
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp, horizontal = 8.dp)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        services.forEach { (name, icon) ->
+            ServiceItem(name, icon)
+        }
+    }
+}
+
+@Composable
+fun ServiceItem(name: String, iconRes: Int) {
+    // MARKETPLACE SHORTCUT STYLE: White, 12dp, Thin Red Outline
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = androidx.compose.foundation.BorderStroke(1.dp, colorResource(id = R.color.marketplace_red)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier
+            .size(width = 80.dp, height = 90.dp)
+            .clickable { }
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Image(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+                colorFilter = ColorFilter.tint(colorResource(id = R.color.marketplace_red)) // Red Line Icon
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = name,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 13.sp
+                ),
+                color = Color.DarkGray
+            )
+        }
+    }
+}
+
+@Composable
+fun CustomerStoriesSection() {
+    val stories = listOf(
+        Triple("Akshay Sharma", "Sharjah, Dubai", "I talked to Asha ma'am on Anytime..."),
+        Triple("Priya Singh", "Mumbai, India", "Very accurate prediction about my..."),
+        Triple("Rahul Verma", "Delhi, India", "Helped me resolve my marriage...")
+    )
+
+    Column(modifier = Modifier.padding(vertical = 16.dp)) {
+        Text(
+            text = "Customer Stories",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = Color.Black,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            stories.forEach { (name, loc, review) ->
+                CustomerStoryCard(name, loc, review)
+            }
+        }
+    }
+}
+
+@Composable
+fun CustomerStoryCard(name: String, loc: String, review: String) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha=0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.width(260.dp)
+    ) {
+        Row(modifier = Modifier.padding(12.dp)) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_person_placeholder),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = name, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                    Spacer(modifier = Modifier.weight(1f))
+                    Icon(imageVector = Icons.Filled.Menu, contentDescription=null, modifier=Modifier.size(16.dp), tint=Color.Gray) // 3-dot placeholder
+                }
+                Text(text = loc, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = review, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(text = "more", style = MaterialTheme.typography.labelSmall, color = Color.Red)
+            }
+        }
+    }
+}
+
+@Composable
+fun StickyFooterButtons(
+    isGuest: Boolean,
+    onTabSelected: (Int) -> Unit,
+    onLoginClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Chat Button
+        Button(
+            onClick = {
+                if (isGuest) {
+                    onLoginClick()
+                } else {
+                    onTabSelected(1) // Tab 1 = Chat
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = colorResource(id = R.color.marketplace_yellow), contentColor = Color.Black),
+            shape = RoundedCornerShape(50),
+            modifier = Modifier.weight(1f).height(48.dp)
+        ) {
+            Icon(imageVector = androidx.compose.material.icons.Icons.Rounded.Chat, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.Black)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = "Chat with Astrologer", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp))
+        }
+
+        // Talk Button
+        Button(
+            onClick = {
+                 if (isGuest) {
+                    onLoginClick()
+                } else {
+                    onTabSelected(3) // Tab 3 = Call
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = colorResource(id = R.color.marketplace_yellow), contentColor = Color.Black),
+            shape = RoundedCornerShape(50),
+            modifier = Modifier.weight(1f).height(48.dp)
+        ) {
+            Icon(imageVector = androidx.compose.material.icons.Icons.Rounded.Call, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.Black)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = "Talk To Astrologer", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp))
+        }
     }
 }

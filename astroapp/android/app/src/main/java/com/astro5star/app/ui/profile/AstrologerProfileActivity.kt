@@ -5,13 +5,13 @@ import androidx.appcompat.app.AppCompatActivity
 import android.widget.TextView
 import android.widget.ImageView
 import com.astro5star.app.R
-import com.astro5star.app.utils.ThemeManager
+
 
 class AstrologerProfileActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ThemeManager.applyTheme(this) // Use the global theme
+        // Legacy ThemeManager removed
         setContentView(R.layout.activity_astrologer_profile)
 
         val astroName = intent.getStringExtra("astro_name") ?: "Astrologer"

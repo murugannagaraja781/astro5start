@@ -139,8 +139,85 @@ const io = new Server(server);
 const cors = require("cors");
 const compression = require('compression');
 
+// CSP Middleware to fix font/style loading issues - MOVED TO TOP
+app.use((req, res, next) => {
+  res.removeHeader("Content-Security-Policy"); // Remove any existing tight policy
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://*; " +
+    "style-src 'self' 'unsafe-inline' https://*; " +
+    "font-src 'self' data: https://*; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*; " +
+    "img-src 'self' data: blob: https://*;"
+  );
+  next();
+});
+
 app.use(compression());
 app.use(cors({ origin: "*" }));
+
+// Removed duplicate/misplaced CSP middleware block
+
+// ...
+
+// 12 Rasi Horoscope API
+app.get('/api/horoscope/rasi', (req, res) => {
+  const raliList = [
+    { id: 1, name: "Mesham", name_tamil: "மேஷம்", icon: "aries", prediction: "இன்று நீங்கள் எதிலும் நிதானத்துடன் செயல்பட வேண்டும். குடும்பத்தில் மகிழ்ச்சி நிலவும்." },
+    { id: 2, name: "Rishabam", name_tamil: "ரிஷபம்", icon: "taurus", prediction: "தொழில் வியாபாரத்தில் நல்ல லாபம் கிடைக்கும். உறவினர்கள் வருகை இருக்கும்." },
+    { id: 3, name: "Mithunam", name_tamil: "மிதுனம்", icon: "gemini", prediction: "எதிர்பார்த்த உதவிகள் தக்க சமயத்தில் கிடைக்கும். சுப காரிய முயற்சிகள் கைகூடும்." },
+    { id: 4, name: "Kadagam", name_tamil: "கடகம்", icon: "cancer", prediction: "உடல் ஆரோக்கியத்தில் கவனம் தேவை. பயணங்களில் எச்சரிக்கை அவசியம்." },
+    { id: 5, name: "Simmam", name_tamil: "சிம்மம்", icon: "leo", prediction: "நண்பர்கள் மூலம் ஆதாயம் உண்டாகும். நினைத்த காரியம் நிறைவேறும்." },
+    { id: 6, name: "Kanni", name_tamil: "கன்னி", icon: "virgo", prediction: "வேலை சுமை அதிகரிக்கலாம். சக ஊழியர்களிடம் அனுசரித்து செல்வது நல்லது." },
+    { id: 7, name: "Thulaam", name_tamil: "துலாம்", icon: "libra", prediction: "பண வரவு தாராளமாக இருக்கும். புதிய பொருட்கள் வாங்குவீர்கள்." },
+    { id: 8, name: "Viruchigam", name_tamil: "விருச்சிகம்", icon: "scorpio", prediction: "வாழ்க்கை துணையின் ஆதரவு கிடைக்கும். ஆன்மீக நாட்டம் அதிகரிக்கும்." },
+    { id: 9, name: "Dhanusu", name_tamil: "தனுசு", icon: "sagittarius", prediction: "பிள்ளைகள் வழியில் நல்ல செய்தி வரும். சமூகத்தில் மதிப்பு உயரும்." },
+    { id: 10, name: "Magaram", name_tamil: "மகரம்", icon: "capricorn", prediction: "வீண் செலவுகள் ஏற்படும். ஆடம்பர செலவுகளை குறைப்பது நல்லது." },
+    { id: 11, name: "Kumbam", name_tamil: "கும்பம்", icon: "aquarius", prediction: "திறமைக்கு ஏற்ற அங்கீகாரம் கிடைக்கும். மேலதிகாரிகளின் பாராட்டு கிடைக்கும்." },
+    { id: 12, name: "Meenam", name_tamil: "மீனம்", icon: "pisces", prediction: "உடல் சோர்வு நீங்கி புத்துணர்ச்சி பெறுவீர்கள். கணவன் மனைவி அன்யோன்யம் கூடும்." }
+  ];
+  res.json({ ok: true, data: raliList });
+});
+
+// New Rasi Palan API (requested integration)
+app.get('/api/horoscope/rasi-palan', async (req, res) => {
+  // External GitHub Data URL (Assuming structure based on user request)
+  // Using a raw URL that typically matches such repos (yyyy-mm-dd.json)
+  const today = new Date().toISOString().split('T')[0];
+  const GITHUB_API = `https://raw.githubusercontent.com/abinash818/daily-horoscope-data/main/data/${today}.json`; // Attempt dynamic
+
+  // Fallback Data
+  const FALLBACK_DATA = [
+    { id: 1, rasi: "Mesham", rasi_tamil: "மேஷம்", prediction: "இன்று சிறப்பான நாள். பண வரவு இருக்கும்." },
+    { id: 2, rasi: "Rishabam", rasi_tamil: "ரிஷபம்", prediction: "குடும்பத்தில் மகிழ்ச்சி நிலவும். ஆரோக்கியம் மேம்படும்." },
+    { id: 3, rasi: "Mithunam", rasi_tamil: "மிதுனம்", prediction: "புதிய முயற்சிகளில் வெற்றி கிடைக்கும்." },
+    { id: 4, rasi: "Kadagam", rasi_tamil: "கடகம்", prediction: "பயணங்களில் கவனம் தேவை. செலவுகள் கூடும்." },
+    { id: 5, rasi: "Simmam", rasi_tamil: "சிம்மம்", prediction: "நண்பர்கள் உதவுவார்கள். தொழில் முன்னேற்றம் உண்டு." },
+    { id: 6, rasi: "Kanni", rasi_tamil: "கன்னி", prediction: "வேலையில் பாராட்டு கிடைக்கும். நிதானம் தேவை." },
+    { id: 7, rasi: "Thulaam", rasi_tamil: "துலாம்", prediction: "வியாபாரத்தில் லாபம் வரும். உறவினர்கள் வருகை." },
+    { id: 8, rasi: "Viruchigam", rasi_tamil: "விருச்சிகம்", prediction: "ஆன்மீக சிந்தனை அதிகரிக்கும். மன அமைதி கிடைக்கும்." },
+    { id: 9, rasi: "Dhanusu", rasi_tamil: "தனுசு", prediction: "பிள்ளைகள் பெருமை சேர்ப்பார்கள். சுப காரியம் கைகூடும்." },
+    { id: 10, rasi: "Magaram", rasi_tamil: "மகரம்", prediction: "உடல் நலம் சீராகும். கடன் பிரச்சனை தீரும்." },
+    { id: 11, rasi: "Kumbam", rasi_tamil: "கும்பம்", prediction: "தைரியமாக செயல்படுவீர்கள். எதிலும் வெற்றி." },
+    { id: 12, rasi: "Meenam", rasi_tamil: "மீனம்", prediction: "தம்பதிகள் ஒற்றுமை ஓங்கும். சுப நிகழ்ச்சி நடக்கும்." }
+  ];
+
+  try {
+    // Try fetch external
+    const fetch = require('node-fetch');
+    const response = await fetch(GITHUB_API);
+    if (response.ok) {
+      const data = await response.json();
+      // Assuming data structure matches, or return raw
+      return res.json({ ok: true, source: 'github', data: data });
+    }
+  } catch (e) {
+    console.warn("GitHub fetch failed, utilizing fallback", e.message);
+  }
+
+  // Return Fallback
+  res.json({ ok: true, source: 'fallback', data: FALLBACK_DATA });
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -1767,7 +1844,7 @@ io.on('connection', (socket) => {
   });
 
   // --- Chat message (text / audio / file) ---
-  socket.on('chat-message', (data) => {
+  socket.on('chat-message', async (data) => {
     try {
       const { toUserId, sessionId, content, timestamp, messageId } = data || {};
       const fromUserId = socketToUser.get(socket.id);
@@ -1787,38 +1864,46 @@ io.on('connection', (socket) => {
         timestamp: timestamp || Date.now()
       }).catch(e => console.error('ChatSave Error', e));
 
-      // Emit to Room (userId) - works even after reconnect
-      io.to(toUserId).emit('chat-message', {
-        fromUserId,
-        content,
-        sessionId: sessionId || null,
-        timestamp: timestamp || Date.now(),
-        messageId,
-      });
+      // Check if recipient is connected
+      const toSocketId = userSockets.get(toUserId);
+      if (toSocketId) {
+        // Emit to recipient
+        io.to(toSocketId).emit('chat-message', {
+          fromUserId,
+          content,
+          sessionId: sessionId || null,
+          timestamp: timestamp || Date.now(),
+          messageId,
+        });
+      } else {
+        // Recipient offline - Send FCM Push
+        console.log(`[FCM] Recipient ${toUserId} offline. Sending Push for message ${messageId}`);
+        sendChatPush(toUserId, fromUserId, content.text, sessionId, messageId);
+      }
     } catch (err) {
       console.error('chat-message error', err);
     }
   });
 
   // --- Helper: Send Chat Push ---
-  async function sendChatPush(toUserId, fromUserId, messageText, sessionId) {
+  async function sendChatPush(toUserId, fromUserId, messageText, sessionId, messageId) {
     try {
       const toUser = await User.findOne({ userId: toUserId });
       const fromUser = await User.findOne({ userId: fromUserId });
 
       if (toUser && toUser.fcmToken) {
         const payload = {
-          type: 'INCOMING_CALL',
-          callType: 'chat',
+          type: 'CHAT_MESSAGE', // Specific type for chat
           sessionId: sessionId || `chat_${Date.now()}`,
+          messageId: messageId || `msg_${Date.now()}`,
           callerName: fromUser?.name || 'Client',
           callerId: fromUserId,
-          body: messageText.substring(0, 100),
+          text: messageText,
           timestamp: Date.now().toString()
         };
 
         const notification = {
-          title: `Message from ${fromUser?.name}`,
+          title: `New message from ${fromUser?.name || 'Astrologer'}`,
           body: messageText.substring(0, 100)
         };
 
@@ -1843,6 +1928,40 @@ io.on('connection', (socket) => {
 
       cb({ ok: true, sessions });
     } catch (e) { console.error(e); cb({ ok: false }); }
+  });
+
+  // --- GET Chat History API ---
+  app.get('/api/chat/history/:sessionId', async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const limit = parseInt(req.query.limit) || 20;
+      const before = req.query.before ? parseInt(req.query.before) : null;
+
+      let query = { sessionId };
+      if (before) {
+        query.timestamp = { $lt: before };
+      }
+
+      // Get latest messages first, then reverse to chronological order
+      const history = await ChatMessage.find(query)
+        .sort({ timestamp: -1 })
+        .limit(limit);
+
+      const sortedHistory = history.reverse();
+
+      res.json({
+        ok: true, history: sortedHistory.map(m => ({
+          messageId: m.messageId || `msg_${m._id}`,
+          fromUserId: m.fromUserId,
+          toUserId: m.toUserId,
+          text: m.text,
+          timestamp: m.timestamp,
+          status: m.status || 'read'
+        }))
+      });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: e.message });
+    }
   });
 
   // --- Receiver: delivered ack ---

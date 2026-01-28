@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center_horizontal"
-        android:background="@drawable/bg_card_premium_dark"
+        android:background="#FFFFFF"
         android:padding="32dp"
         android:elevation="8dp">
 
@@ -22,7 +22,7 @@
             android:text="My Wallet"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:textColor="@color/brand_gold"
+            android:textColor="#1B5E20"
             android:layout_marginBottom="8dp"/>
 
         <TextView

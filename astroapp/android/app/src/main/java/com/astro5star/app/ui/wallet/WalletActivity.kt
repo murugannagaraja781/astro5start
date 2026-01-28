@@ -51,7 +51,7 @@ class WalletActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        com.astro5star.app.utils.ThemeManager.applyTheme(this)
+        // Legacy ThemeManager removed
         // Note: setContentView(R.layout.activity_wallet) is typically used for XML layouts.
         // For Compose UI, setContent is used. If you intend to use an XML layout,
         // the setContent block below should be removed or adjusted.
@@ -61,13 +61,13 @@ class WalletActivity : ComponentActivity() {
         updateBalanceFromSession()
 
         setContent {
-            AstrologyPremiumTheme {
+            CosmicAppTheme {
                 WalletScreen(
                     balance = balanceState,
                     transactions = transactionsState,
                     onAddMoney = { amount ->
                          if (amount < 1) {
-                            Toast.makeText(this, "சரியான தொகையை உள்ளிடவும்", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Enter valid amount", Toast.LENGTH_SHORT).show()
                         } else {
                             val intent = Intent(this, com.astro5star.app.ui.payment.PaymentActivity::class.java)
                             intent.putExtra("amount", amount.toDouble())
@@ -175,14 +175,14 @@ fun WalletScreen(
         containerColor = DeepSpaceNavy,
         topBar = {
             TopAppBar(
-                title = { Text("எனது டிவைன் வாலட்", color = StarWhite, fontWeight = FontWeight.Bold) },
+                title = { Text("My Divine Wallet", color = StarWhite, fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = DeepSpaceNavy,
                     titleContentColor = StarWhite
                 ),
                 actions = {
                     IconButton(onClick = onRefreshHistory) {
-                        Icon(Icons.Rounded.History, contentDescription = "புதுப்பி", tint = MetallicGold)
+                        Icon(Icons.Rounded.History, contentDescription = "Refresh", tint = MetallicGold)
                     }
                 }
             )
@@ -237,7 +237,7 @@ fun WalletScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("கிடைக்கும் இருப்பு", color = CardText.copy(alpha = 0.7f))
+                                Text("Available Balance", color = CardText.copy(alpha = 0.7f))
                                 Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null, tint = MetallicGold)
                             }
 
@@ -262,7 +262,7 @@ fun WalletScreen(
             // 2. Add Money Section
             item {
                 Text(
-                    text = "வாலட்டை ரீசார்ஜ் செய்யவும்",
+                    text = "Recharge Wallet",
                     style = MaterialTheme.typography.titleMedium,
                     color = MetallicGold
                 )
@@ -272,7 +272,7 @@ fun WalletScreen(
                     OutlinedTextField(
                         value = amountInput,
                         onValueChange = { amountInput = it.filter { char -> char.isDigit() } },
-                        label = { Text("தொகையை உள்ளிடவும் (₹)", color = ConstellationCyan) },
+                        label = { Text("Enter Amount (₹)", color = ConstellationCyan) },
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(14.dp),
@@ -300,7 +300,7 @@ fun WalletScreen(
                             .width(80.dp),
                         contentPadding = PaddingValues(0.dp)
                     ) {
-                        Icon(Icons.Rounded.AddCircle, contentDescription = "சேர்", tint = DeepSpaceNavy, modifier = Modifier.size(28.dp))
+                        Icon(Icons.Rounded.AddCircle, contentDescription = "Add", tint = DeepSpaceNavy, modifier = Modifier.size(28.dp))
                     }
                 }
             }
@@ -308,7 +308,7 @@ fun WalletScreen(
             // 3. Transactions List
             item {
                 Text(
-                    text = "பரிவர்த்தனை வரலாறு",
+                    text = "Transaction History",
                     style = MaterialTheme.typography.titleMedium,
                     color = MetallicGold
                 )

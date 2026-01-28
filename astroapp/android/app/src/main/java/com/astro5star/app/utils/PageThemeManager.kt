@@ -15,7 +15,8 @@ object PageThemeManager {
         "AstrologerDashboardActivity",
         "WalletActivity",
         "ChatActivity",
-        "CallActivity"
+        "CallActivity",
+        "RasipalanActivity"
     )
 
     fun savePageColor(context: Context, pageName: String, attribute: String, color: Int) {
@@ -33,6 +34,9 @@ object PageThemeManager {
     const val ATTR_CARD = "card"
     const val ATTR_FONT = "font"
     const val ATTR_BUTTON = "button"
+    const val ATTR_BORDER = "border"
+    const val ATTR_HEADER = "header"
+    const val ATTR_FOOTER = "footer"
 
     // Helper to clear for a page (optional)
     fun resetPage(context: Context, pageName: String) {
@@ -42,6 +46,9 @@ object PageThemeManager {
         editor.remove("${pageName}_$ATTR_CARD")
         editor.remove("${pageName}_$ATTR_FONT")
         editor.remove("${pageName}_$ATTR_BUTTON")
+        editor.remove("${pageName}_$ATTR_BORDER")
+        editor.remove("${pageName}_$ATTR_HEADER")
+        editor.remove("${pageName}_$ATTR_FOOTER")
         editor.apply()
     }
 }

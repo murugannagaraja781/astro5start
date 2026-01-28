@@ -26,7 +26,7 @@ import org.json.JSONObject
 import java.util.UUID
 
 // Status: "sent", "delivered", "read"
-data class ChatMessage(val id: String, val text: String, val isSent: Boolean, var status: String = "sent")
+data class ChatMessage(val id: String, val text: String, val isSent: Boolean, var status: String = "sent", val timestamp: Long = 0)
 
 class ChatActivity : AppCompatActivity() {
 
@@ -123,11 +123,19 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun setupObservers() {
+        viewModel.history.observe(this) { historyList ->
+            // Single Source of Truth: Room DB
+            messages.clear()
+            messages.addAll(historyList)
+            adapter.notifyDataSetChanged()
+            if (messages.isNotEmpty()) {
+                recyclerChat?.scrollToPosition(messages.size - 1)
+            }
+        }
+
         viewModel.messages.observe(this) { msg ->
             SoundManager.playReceiveSound()
-            messages.add(msg)
-            adapter.notifyItemInserted(messages.size - 1)
-            recyclerChat?.scrollToPosition(messages.size - 1)
+            // UI update handled by history observer via Room
 
             // Auto-send Delivered/Read since Activity is open
             if (sessionId != null && toUserId != null && !msg.isSent) {
@@ -165,7 +173,7 @@ class ChatActivity : AppCompatActivity() {
         // Billing Started - Show indicator when billing begins
         viewModel.billingStarted.observe(this) { started ->
             if (started) {
-                tvSessionTimer.setTextColor(android.graphics.Color.parseColor("#EF4444"))
+                tvSessionTimer.setTextColor(android.graphics.Color.BLACK)
                 Toast.makeText(this, "🔴 Billing Active", Toast.LENGTH_SHORT).show()
             }
         }
@@ -289,6 +297,21 @@ class ChatActivity : AppCompatActivity() {
             recyclerChat?.layoutManager = LinearLayoutManager(this)
             recyclerChat?.adapter = adapter
 
+            recyclerChat?.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    val layoutManager = recyclerView.layoutManager as androidx.recyclerview.widget.LinearLayoutManager
+                    if (layoutManager.findFirstCompletelyVisibleItemPosition() == 0 && messages.isNotEmpty()) {
+                        if (sessionId != null) {
+                            val oldest = messages.first().timestamp
+                            if (oldest > 0) {
+                                viewModel.loadMoreHistory(sessionId!!, oldest)
+                            }
+                        }
+                    }
+                }
+            })
+
             inputMessage.addTextChangedListener(object : android.text.TextWatcher {
                 override fun afterTextChanged(s: android.text.Editable?) {}
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -334,14 +357,17 @@ class ChatActivity : AppCompatActivity() {
                 viewModel.sendMessage(payload)
                 SoundManager.playSentSound()
 
-                messages.add(ChatMessage(messageId, text, true))
-                adapter.notifyItemInserted(messages.size - 1)
+                // messages.add(...) removed; handled by Room observer
                 recyclerChat?.scrollToPosition(messages.size - 1)
 
                 inputMessage.setText("")
+                // Locally handled by ViewModel Room DB persistence now
             }
 
-            if (sessionId != null) fetchChatHistory(sessionId!!)
+            if (sessionId != null) {
+                // Reliance on Room history via ChatViewModel loadHistory
+                viewModel.loadHistory(sessionId!!)
+            }
         } catch (e: Exception) {
              android.util.Log.e("ChatActivity", "setupContent Failed", e)
              Toast.makeText(this, "Chat UI Error", Toast.LENGTH_SHORT).show()
@@ -401,7 +427,8 @@ class ChatActivity : AppCompatActivity() {
 
                                 val isSent = (senderId == myUserId)
                                 if (text.isNotEmpty()) {
-                                    historyList.add(ChatMessage(msgId, text, isSent, status))
+                                    val timestamp = if (msgObj.has("timestamp")) msgObj.get("timestamp").asLong else 0L
+                                    historyList.add(ChatMessage(msgId, text, isSent, status, timestamp))
                                 }
                             }
 

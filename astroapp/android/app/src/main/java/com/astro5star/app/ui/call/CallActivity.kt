@@ -183,15 +183,14 @@ class CallActivity : AppCompatActivity() {
         // Speaker/Video Toggle
         if (callType == "audio") {
             // Audio Call: Use this button for Speaker Toggle
-            btnVideo.setImageResource(android.R.drawable.ic_lock_silent_mode_off) // Generic Speaker Icon
+            // User requested "adding specker icon". Using system icon.
+            btnVideo.setImageResource(android.R.drawable.ic_lock_silent_mode_off)
             localView.visibility = View.GONE
-            // Keep remote view GONE for audio, or maybe show avatar?
-            // For full screen audio UI redesign, we might want a placeholder image in remoteView or just black
-            // Activity layout is black bg, so should be fine.
             remoteView.visibility = View.GONE
             findViewById<View>(android.R.id.content).setBackgroundColor(android.graphics.Color.BLACK)
 
-            setSpeakerphoneOn(false)
+            setSpeakerphoneOn(false) // Default Earpiece for privacy
+            btnVideo.alpha = 0.5f // Dim when OFF
 
             btnVideo.setOnClickListener {
                 isSpeakerOn = !isSpeakerOn
@@ -201,13 +200,22 @@ class CallActivity : AppCompatActivity() {
             }
         } else {
             // Video Call: Use for Camera Toggle
-            setSpeakerphoneOn(true)
+            setSpeakerphoneOn(true) // Default Speaker for Video
+
+            // Enable Switch Camera on Local View Tap
+            localView.setOnClickListener {
+                if (videoCapturer is CameraVideoCapturer) {
+                    (videoCapturer as CameraVideoCapturer).switchCamera(null)
+                    Toast.makeText(this, "Switching Camera...", Toast.LENGTH_SHORT).show()
+                }
+            }
 
             btnVideo.setOnClickListener {
                 val enabled = localVideoTrack?.enabled() ?: true
                 localVideoTrack?.setEnabled(!enabled)
-                btnVideo.alpha = if (!enabled) 1.0f else 0.5f
-                Toast.makeText(this, if (!enabled) "Camera ON" else "Camera OFF", Toast.LENGTH_SHORT).show()
+                // "enable videocall cmera" -> ensure icon reflects state
+                btnVideo.alpha = if (!enabled) 0.5f else 1.0f
+                Toast.makeText(this, if (!enabled) "Camera OFF" else "Camera ON", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -547,24 +555,43 @@ class CallActivity : AppCompatActivity() {
                 val durationStr = String.format("%02d:%02d", minutes, seconds)
 
                 // Show summary dialog
-                val message = when {
-                    session?.role == "astrologer" -> {
-                        "Duration: $durationStr\n\nYou earned: ₹${String.format("%.2f", earned)}"
+                // Show Custom Summary Dialog
+                val dialogView = layoutInflater.inflate(R.layout.dialog_call_summary, null)
+                val tvTitle = dialogView.findViewById<TextView>(R.id.tvTitle)
+                val tvDuration = dialogView.findViewById<TextView>(R.id.tvDuration)
+                val tvCost = dialogView.findViewById<TextView>(R.id.tvCost)
+                val btnClose = dialogView.findViewById<android.widget.Button>(R.id.btnClose)
+
+                tvDuration.text = "Duration: $durationStr"
+
+                if (session?.role == "astrologer") {
+                    tvTitle.text = "Earnings Report"
+                    tvCost.text = "Earned: ₹${String.format("%.2f", earned)}"
+                    tvCost.setTextColor(android.graphics.Color.parseColor("#388E3C")) // Green for earning
+                } else {
+                    if (reason == "insufficient_funds") {
+                         tvTitle.text = "Call Ended (Low Balance)"
+                         tvTitle.setTextColor(android.graphics.Color.RED)
+                    } else {
+                         tvTitle.text = "Call Summary"
                     }
-                    reason == "insufficient_funds" -> {
-                        "Call ended due to insufficient balance.\n\nDuration: $durationStr\nDeducted: ₹${String.format("%.2f", deducted)}"
-                    }
-                    else -> {
-                        "Duration: $durationStr\nDeducted: ₹${String.format("%.2f", deducted)}"
-                    }
+                    tvCost.text = "Deducted: ₹${String.format("%.2f", deducted)}"
                 }
 
-                androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle(if (reason == "insufficient_funds") "⚠️ Low Balance" else "📞 Call Summary")
-                    .setMessage(message)
-                    .setPositiveButton("OK") { _, _ -> finish() }
+                val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setView(dialogView)
                     .setCancelable(false)
-                    .show()
+                    .create()
+
+                // Set transparent background for CardView rounded corners to show
+                dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+
+                btnClose.setOnClickListener {
+                    dialog.dismiss()
+                    finish()
+                }
+
+                dialog.show()
             }
         }
 
@@ -646,6 +673,10 @@ class CallActivity : AppCompatActivity() {
     }
 
     private fun createOffer() {
+        val constraints = MediaConstraints()
+        constraints.mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
+        constraints.mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
+
         peerConnection.createOffer(object : SimpleSdpObserver() {
             override fun onCreateSuccess(desc: SessionDescription?) {
                 peerConnection.setLocalDescription(SimpleSdpObserver(), desc)
@@ -660,10 +691,14 @@ class CallActivity : AppCompatActivity() {
                 }
                 sendSignal(payload)
             }
-        }, MediaConstraints())
+        }, constraints)
     }
 
     private fun createAnswer() {
+        val constraints = MediaConstraints()
+        constraints.mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
+        constraints.mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
+
         peerConnection.createAnswer(object : SimpleSdpObserver() {
             override fun onCreateSuccess(desc: SessionDescription?) {
                 peerConnection.setLocalDescription(SimpleSdpObserver(), desc)
@@ -678,7 +713,7 @@ class CallActivity : AppCompatActivity() {
                 }
                 sendSignal(payload)
             }
-        }, MediaConstraints())
+        }, constraints)
     }
 
     private fun sendSignal(data: JSONObject) {
@@ -694,6 +729,7 @@ class CallActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        stopBackgroundService()
         timerHandler.removeCallbacks(timerRunnable) // Stop Timer
         SocketManager.off("signal")
         SocketManager.off("session-ended")
