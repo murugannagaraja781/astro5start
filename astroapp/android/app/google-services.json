@@ -1,40 +1,21 @@
 {
   "project_info": {
-    "project_number": "210523768022",
-    "project_id": "astro5star-d487c",
-    "storage_bucket": "astro5star-d487c.firebasestorage.app"
+    "project_number": "328897805104",
+    "project_id": "astrolunaapp-ecdf6",
+    "storage_bucket": "astrolunaapp-ecdf6.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:210523768022:android:b4de7ccacb56fa3d32b577",
+        "mobilesdk_app_id": "1:328897805104:android:24092726bca30ccf97e6f5",
         "android_client_info": {
-          "package_name": "com.astro5star.app"
+          "package_name": "com.astroluna.app"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDGCg6OQnWyERiPQVSTrFDkXYlgCyl2BJ8"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:210523768022:android:3ef7a7a4fbe7f36a32b577",
-        "android_client_info": {
-          "package_name": "com1.astro5star.com"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDGCg6OQnWyERiPQVSTrFDkXYlgCyl2BJ8"
+          "current_key": "AIzaSyArDvCqGZltuZz2z9Lw850cieNVavKR3a4"
         }
       ],
       "services": {
