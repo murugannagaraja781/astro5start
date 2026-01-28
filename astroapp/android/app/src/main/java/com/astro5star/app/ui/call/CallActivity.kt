@@ -630,8 +630,13 @@ class CallActivity : AppCompatActivity() {
 
         when (type) {
             "offer" -> {
+                // ROBUST FETCH: Check for nested "sdp.sdp" OR flattened "sdp" string
                 val sdpObj = signal.optJSONObject("sdp")
-                val descriptionStr = sdpObj?.optString("sdp") ?: signal.optString("sdp")
+                val descriptionStr = if (sdpObj != null) {
+                    sdpObj.optString("sdp")
+                } else {
+                    signal.optString("sdp")
+                }
 
                 if (descriptionStr.isNotEmpty()) {
                     Log.d(TAG, "Setting Remote Offer. Nested=${sdpObj != null}")
@@ -645,8 +650,13 @@ class CallActivity : AppCompatActivity() {
                 }
             }
             "answer" -> {
+                // ROBUST FETCH: Check for nested "sdp.sdp" OR flattened "sdp" string
                 val sdpObj = signal.optJSONObject("sdp")
-                val descriptionStr = sdpObj?.optString("sdp") ?: signal.optString("sdp")
+                val descriptionStr = if (sdpObj != null) {
+                    sdpObj.optString("sdp")
+                } else {
+                    signal.optString("sdp")
+                }
 
                 if (descriptionStr.isNotEmpty()) {
                     Log.d(TAG, "Setting Remote Answer. Nested=${sdpObj != null}")
@@ -683,13 +693,10 @@ class CallActivity : AppCompatActivity() {
         peerConnection.createOffer(object : SimpleSdpObserver() {
             override fun onCreateSuccess(desc: SessionDescription?) {
                 peerConnection.setLocalDescription(SimpleSdpObserver(), desc)
-                // BACKWARD COMPATIBLE SIGNAL (Double Nested)
+                // FIX: Flattened SDP structure for Web Compatibility
                 val signalData = JSONObject().apply {
                     put("type", "offer")
-                    put("sdp", JSONObject().apply {
-                        put("type", "offer")
-                        put("sdp", desc?.description)
-                    })
+                    put("sdp", desc?.description)
                 }
                 val payload = JSONObject().apply {
                     put("toUserId", partnerId)
@@ -704,13 +711,10 @@ class CallActivity : AppCompatActivity() {
         peerConnection.createAnswer(object : SimpleSdpObserver() {
             override fun onCreateSuccess(desc: SessionDescription?) {
                 peerConnection.setLocalDescription(SimpleSdpObserver(), desc)
-                // BACKWARD COMPATIBLE SIGNAL (Double Nested)
+                // FIX: Flattened SDP structure for Web Compatibility
                 val signalData = JSONObject().apply {
                     put("type", "answer")
-                    put("sdp", JSONObject().apply {
-                        put("type", "answer")
-                        put("sdp", desc?.description)
-                    })
+                    put("sdp", desc?.description)
                 }
                 val payload = JSONObject().apply {
                     put("toUserId", partnerId)

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -180,6 +181,13 @@ fun AstrologerDashboardScreen(
 ) {
     var walletBalance by remember { mutableDoubleStateOf(initialWallet) }
     var isOnline by remember { mutableStateOf(false) }
+    val services = remember {
+        mutableStateListOf(
+            ServiceData("Chat", false, Icons.Default.Chat),
+            ServiceData("Call", false, Icons.Default.Call),
+            ServiceData("Video", false, Icons.Default.Person)
+        )
+    }
     val context = LocalContext.current
     val scrollState = rememberScrollState()
 
@@ -197,6 +205,15 @@ fun AstrologerDashboardScreen(
                     val json = org.json.JSONObject(response.body?.string() ?: "{}")
                     val fetchedBalance = json.optDouble("walletBalance", initialWallet)
                     walletBalance = fetchedBalance
+
+                    // Update Toggle States from Server
+                    val chatOn = json.optBoolean("isChatOnline", false)
+                    val callOn = json.optBoolean("isAudioOnline", false)
+                    val videoOn = json.optBoolean("isVideoOnline", false)
+
+                    services[0] = services[0].copy(isEnabled = chatOn)
+                    services[1] = services[1].copy(isEnabled = callOn)
+                    services[2] = services[2].copy(isEnabled = videoOn)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -316,7 +333,7 @@ fun AstrologerDashboardScreen(
             }
 
             // 3b. Service Availability Toggles
-            ServiceToggleRow(sessionId)
+            ServiceToggleRow(sessionId, services)
 
             // 4. Action Grid - Custom Row-based Layout to work inside verticalScroll
             val actions = listOf(
@@ -389,15 +406,7 @@ fun AstrologerDashboardScreen(
 }
 
 @Composable
-fun ServiceToggleRow(userId: String) {
-    val services = remember {
-        mutableStateListOf(
-            ServiceData("Chat", false, Icons.Default.Chat),  // FIX: Initially OFF
-            ServiceData("Call", false, Icons.Default.Call),
-            ServiceData("Video", false, Icons.Default.Person)
-        )
-    }
-
+fun ServiceToggleRow(userId: String, services: SnapshotStateList<ServiceData>) {
     Card(
         colors = CardDefaults.cardColors(containerColor = CosmicColors.CardBg),
         shape = CosmicShapes.CardShape,
@@ -439,12 +448,12 @@ fun ServiceToggleRow(userId: String) {
                         Switch(
                             checked = service.isEnabled,
                             onCheckedChange = { isChecked ->
-                                // Update Local State Immediately
+                                // Update State Immediately
                                 services[index] = service.copy(isEnabled = isChecked)
                                 // Send Update to Server
                                 SocketManager.updateServiceStatus(userId, service.name.lowercase(), isChecked)
                             },
-                            enabled = true, // Ensure it's always enabled
+                            enabled = true,
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = CosmicColors.GoldAccent,
                                 checkedTrackColor = CosmicColors.BgEnd,

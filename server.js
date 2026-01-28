@@ -654,6 +654,9 @@ app.get('/api/user/:userId', async (req, res) => {
       role: user.role,
       walletBalance: user.walletBalance,
       isOnline: user.isOnline,
+      isChatOnline: user.isChatOnline || false,
+      isAudioOnline: user.isAudioOnline || false,
+      isVideoOnline: user.isVideoOnline || false,
       totalEarnings: user.totalEarnings || 0,
       image: user.image
     });
