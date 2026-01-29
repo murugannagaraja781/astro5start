@@ -228,7 +228,7 @@ fun AstrologerDashboardScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(CosmicAppTheme.headerBrush) // Dynamic Header Gradient
-                    .padding(16.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val colors = CosmicAppTheme.colors
@@ -249,7 +249,7 @@ fun AstrologerDashboardScreen(
                     Text("ID: $sessionId", fontSize = 12.sp, color = colors.textSecondary)
                 }
                 IconButton(onClick = {}) { Icon(Icons.Default.Notifications, null, tint = colors.accent) }
-                IconButton(onClick = onLogout) { Icon(Icons.Default.ExitToApp, null, tint = colors.accent) }
+                IconButton(onClick = onLogout) { Icon(Icons.Default.ExitToApp, null, tint = Color.White) }
             }
         }
     ) { padding ->

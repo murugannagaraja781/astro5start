@@ -210,7 +210,18 @@ object SocketManager {
             put("service", service) // "chat", "call", "video"
             put("isEnabled", isEnabled)
         }
+        Log.d(TAG, "Emitting update-service-status: userId=$userId, service=$service, enabled=$isEnabled")
         socket?.emit("update-service-status", data)
+    }
+
+    fun answerSessionNative(sessionId: String, accept: Boolean, callType: String) {
+        val data = JSONObject().apply {
+            put("sessionId", sessionId)
+            put("accept", accept)
+            put("callType", callType)
+        }
+        socket?.emit("answer-session-native", data)
+        Log.d(TAG, "Emitted answer-session-native: $sessionId, accept=$accept")
     }
 
     fun onAstrologerUpdate(listener: (JSONObject) -> Unit) {
