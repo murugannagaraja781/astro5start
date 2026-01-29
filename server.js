@@ -389,7 +389,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
   // ... (keeping upload logic if valid) ...
   return res.json({ ok: true, url: req.file ? '/uploads/' + req.file.filename : '' });
 });
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb+srv://murugannagaraja781_db_user:NewLife2025@cluster0.tp2gekn.mongodb.net/astrofive';
+const MONGO_URI = 'mongodb+srv://murugannagaraja781_db_user:NewLife2025@cluster0.tp2gekn.mongodb.net/astrofive';
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB Connected');
@@ -1625,16 +1625,11 @@ io.on('connection', (socket) => {
       const targetSocketId = userSockets.get(toUserId);
       let socketSent = false;
 
-      // DEBUG: Log the user details to see why name might be missing
-      console.log(`[Session] Found caller: ${fromUserId}, Name: ${fromUser?.name}, Phone: ${fromUser?.phone}`);
-
-      const safeCallerName = (fromUser && fromUser.name) ? fromUser.name : 'Unknown Client';
-
       if (targetSocketId) {
         io.to(targetSocketId).emit('incoming-session', {
           sessionId,
           fromUserId,
-          callerName: safeCallerName,
+          callerName: fromUser?.name || 'Client',  // FIX: Add caller name for display
           type,
           birthData: birthData || null
         });
@@ -1650,7 +1645,7 @@ io.on('connection', (socket) => {
           type: 'INCOMING_CALL',
           sessionId: sessionId,
           callType: type,
-          callerName: safeCallerName,
+          callerName: fromUser?.name || 'Client',
           callerId: fromUserId, // Fixed: callerUserId -> callerId
           timestamp: Date.now().toString(),
           birthData: JSON.stringify(birthData || {})
@@ -1658,7 +1653,7 @@ io.on('connection', (socket) => {
 
         const fcmNotification = {
           title: '📞 Incoming Call',
-          body: `${safeCallerName} is calling you`
+          body: `${fromUser?.name || 'Someone'} is calling you`
         };
 
         sendFcmV1Push(toUser.fcmToken, fcmData, fcmNotification)

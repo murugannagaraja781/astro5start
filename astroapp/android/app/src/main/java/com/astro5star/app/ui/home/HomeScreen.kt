@@ -514,7 +514,7 @@ fun HomeTopBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(CosmicAppTheme.headerBrush)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

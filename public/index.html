@@ -5015,18 +5015,7 @@
           lv.play().catch(e => console.warn('Local Video Play Error:', e));
         }
 
-        const p = new SimplePeer({
-          initiator,
-          stream,
-          trickle: false,
-          config: {
-            iceServers: [
-              { urls: 'stun:stun.l.google.com:19302' },
-              { urls: 'turn:turn.astro5star.com:3478?transport=udp', username: 'webrtcuser', credential: 'strongpassword123' },
-              { urls: 'turns:turn.astro5star.com:5349', username: 'webrtcuser', credential: 'strongpassword123' }
-            ]
-          }
-        });
+        const p = new SimplePeer({ initiator, stream, trickle: false });
 
         p.on('signal', d => {
           if (state.session) {

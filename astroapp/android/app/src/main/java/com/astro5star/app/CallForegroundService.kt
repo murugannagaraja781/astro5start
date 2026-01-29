@@ -180,16 +180,4 @@ class CallForegroundService : Service() {
             Log.d(TAG, "Notification channel created: $CHANNEL_ID")
         }
     }
-
-    override fun onTaskRemoved(rootIntent: Intent?) {
-        super.onTaskRemoved(rootIntent)
-        Log.d(TAG, "onTaskRemoved: App swiped away")
-
-        // This is the key: Do NOT stop the service.
-        // It is already a Foreground Service, so it should persist,
-        // but ensuring we don't call stopSelf() or anything here.
-        // We can also trigger a re-check or just log.
-
-        // Return START_STICKY implicitly by not stopping
-    }
 }

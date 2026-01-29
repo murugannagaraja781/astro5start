@@ -41,6 +41,16 @@ class GuestDashboardActivity : AppCompatActivity() {
                 val astrologers by _astrologers.collectAsState()
                 val isLoading by _isLoading.collectAsState()
 
+                var selectedRasiItem by remember { mutableStateOf<ComposeRasiItem?>(null) }
+
+                if (selectedRasiItem != null) {
+                   com.astro5star.app.ui.dashboard.RasiDetailDialog(
+                        name = selectedRasiItem!!.name,
+                        iconRes = selectedRasiItem!!.iconRes,
+                        onDismiss = { selectedRasiItem = null }
+                    )
+                }
+
                 HomeScreen(
                     walletBalance = 0.0, // Guest has 0 balance
                     horoscope = horoscope,
@@ -49,13 +59,7 @@ class GuestDashboardActivity : AppCompatActivity() {
                     onWalletClick = { redirectToLogin() },
                     onChatClick = { redirectToLogin() },
                     onCallClick = { _, _ -> redirectToLogin() },
-                    onRasiClick = { item ->
-                        val intent = Intent(this@GuestDashboardActivity, com.astro5star.app.ui.rasipalan.RasipalanActivity::class.java).apply {
-                            putExtra("signId", item.id)
-                            putExtra("signName", item.name)
-                        }
-                        startActivity(intent)
-                    },
+                    onRasiClick = { item -> selectedRasiItem = item },
                     onLogoutClick = { redirectToLogin() }, // Acts as Login button
                     onDrawerItemClick = { item ->
                          if (item == "Login" || item == "Logout") redirectToLogin()
