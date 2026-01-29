@@ -389,7 +389,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
   // ... (keeping upload logic if valid) ...
   return res.json({ ok: true, url: req.file ? '/uploads/' + req.file.filename : '' });
 });
-const MONGO_URI = 'mongodb+srv://murugannagaraja781_db_user:NewLife2025@cluster0.tp2gekn.mongodb.net/astrofive';
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb+srv://murugannagaraja781_db_user:NewLife2025@cluster0.tp2gekn.mongodb.net/astrofive';
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB Connected');
@@ -1625,11 +1625,16 @@ io.on('connection', (socket) => {
       const targetSocketId = userSockets.get(toUserId);
       let socketSent = false;
 
+      // DEBUG: Log the user details to see why name might be missing
+      console.log(`[Session] Found caller: ${fromUserId}, Name: ${fromUser?.name}, Phone: ${fromUser?.phone}`);
+
+      const safeCallerName = (fromUser && fromUser.name) ? fromUser.name : 'Unknown Client';
+
       if (targetSocketId) {
         io.to(targetSocketId).emit('incoming-session', {
           sessionId,
           fromUserId,
-          callerName: fromUser?.name || 'Client',  // FIX: Add caller name for display
+          callerName: safeCallerName,
           type,
           birthData: birthData || null
         });
@@ -1645,7 +1650,7 @@ io.on('connection', (socket) => {
           type: 'INCOMING_CALL',
           sessionId: sessionId,
           callType: type,
-          callerName: fromUser?.name || 'Client',
+          callerName: safeCallerName,
           callerId: fromUserId, // Fixed: callerUserId -> callerId
           timestamp: Date.now().toString(),
           birthData: JSON.stringify(birthData || {})
@@ -1653,7 +1658,7 @@ io.on('connection', (socket) => {
 
         const fcmNotification = {
           title: '📞 Incoming Call',
-          body: `${fromUser?.name || 'Someone'} is calling you`
+          body: `${safeCallerName} is calling you`
         };
 
         sendFcmV1Push(toUser.fcmToken, fcmData, fcmNotification)
@@ -1733,26 +1738,7 @@ io.on('connection', (socket) => {
   socket.on('answer-session', (data) => {
     try {
       const { sessionId, toUserId, type, accept } = data || {};
-      let fromUserId = socketToUser.get(socket.id);
-
-      // RECOVERY: If fromUserId is missing (race condition), try to recover from session
-      if (!fromUserId && sessionId && toUserId) {
-        try {
-          const sessionRec = activeSessions.get(sessionId);
-          if (sessionRec && sessionRec.users.includes(toUserId)) {
-            fromUserId = sessionRec.users.find(u => u !== toUserId);
-            if (fromUserId) {
-              console.log(`[Recovery] Recovered fromUserId ${fromUserId} from session ${sessionId} for answer-session`);
-              socketToUser.set(socket.id, fromUserId);
-              const existingSocket = userSockets.get(fromUserId);
-              if (!existingSocket || existingSocket !== socket.id) {
-                userSockets.set(fromUserId, socket.id);
-              }
-            }
-          }
-        } catch (e) { console.error('Recovery failed', e); }
-      }
-
+      const fromUserId = socketToUser.get(socket.id);
       if (!fromUserId || !sessionId || !toUserId) {
         console.warn(`[Session] answer-session missing data: from=${fromUserId}, session=${sessionId}, to=${toUserId}`);
         return;
@@ -1782,24 +1768,7 @@ io.on('connection', (socket) => {
   socket.on('answer-session-native', async (data, cb) => {
     try {
       const { sessionId, accept, callType } = data || {};
-      let astrologerId = socketToUser.get(socket.id);
-
-      // RECOVERY: If astrologerId is missing (race condition), try to recover from session
-      if (!astrologerId && sessionId) {
-        try {
-          const sessionRec = activeSessions.get(sessionId);
-          if (sessionRec && sessionRec.astrologerId) {
-            // Assume we are the astrologer since this is answer-session-native
-            astrologerId = sessionRec.astrologerId;
-            console.log(`[Recovery] Recovered astrologerId ${astrologerId} from session ${sessionId} for answer-session-native`);
-            socketToUser.set(socket.id, astrologerId);
-            const existingSocket = userSockets.get(astrologerId);
-            if (!existingSocket || existingSocket !== socket.id) {
-              userSockets.set(astrologerId, socket.id);
-            }
-          }
-        } catch (e) { console.error('Recovery failed', e); }
-      }
+      const astrologerId = socketToUser.get(socket.id);
 
       if (!astrologerId || !sessionId) {
         if (typeof cb === 'function') cb({ ok: false, error: 'Invalid data' });
@@ -1820,34 +1789,50 @@ io.on('connection', (socket) => {
         const targetSocketId = userSockets.get(fromUserId);
 
         if (accept) {
+          // Notify caller that call was accepted
+          if (targetSocketId) {
+            io.to(targetSocketId).emit('session-answered', {
+              sessionId,
+              fromUserId: astrologerId,
+              type: callType || dbSession.type,
+              accept: true
+            });
+          }
+
+          console.log(`[Native] Call accepted - Session: ${sessionId}, From: ${fromUserId}, To: ${astrologerId}`);
+          if (typeof cb === 'function') cb({ ok: true, fromUserId });
+        } else {
+          // Call rejected
+          if (targetSocketId) {
+            io.to(targetSocketId).emit('session-answered', {
+              sessionId,
+              fromUserId: astrologerId,
+              accept: false
+            });
+          }
+          endSessionRecord(sessionId);
+          console.log(`[Native] Call rejected - Session: ${sessionId}`);
+          if (typeof cb === 'function') cb({ ok: true });
+        }
+        return;
+      }
+
+      // Session found in memory
+      const fromUserId = session.users.find(u => u !== astrologerId);
+      const targetSocketId = userSockets.get(fromUserId);
+
+      if (accept) {
+        if (targetSocketId) {
           io.to(targetSocketId).emit('session-answered', {
             sessionId,
             fromUserId: astrologerId,
-            type: callType || session.type, // Use memory session type if avail
+            type: callType || session.type,
             accept: true
           });
         }
-
-        // CRITICAL FIX: Start the timer logic immediately for native calls
-        console.log(`[Native] Call accepted - Session: ${sessionId}, From: ${fromUserId}, To: ${astrologerId}`);
-
-        // 1. Update Session in Memory to ACTIVE
-        session.status = 'active';
-        session.startTime = Date.now();
-        activeSessions.set(sessionId, session);
-
-        // 2. Start Billing Timer
-        startSessionTimer(sessionId);
-
-        // 3. Emit session-started to both (redundant but safe)
-        io.to(socket.id).emit('session-started', { sessionId, startTime: session.startTime });
-        if (targetSocketId) {
-          io.to(targetSocketId).emit('session-started', { sessionId, startTime: session.startTime });
-        }
-
+        console.log(`[Native] Call accepted - Session: ${sessionId}, Caller: ${fromUserId}, Astro: ${astrologerId}`);
         if (typeof cb === 'function') cb({ ok: true, fromUserId });
       } else {
-        // Call rejected
         if (targetSocketId) {
           io.to(targetSocketId).emit('session-answered', {
             sessionId,
@@ -1859,875 +1844,829 @@ io.on('connection', (socket) => {
         console.log(`[Native] Call rejected - Session: ${sessionId}`);
         if (typeof cb === 'function') cb({ ok: true });
       }
-      return;
+
+    } catch (err) {
+      console.error('answer-session-native error', err);
+      if (typeof cb === 'function') cb({ ok: false, error: 'Server error' });
     }
+  });
 
-      // Session found in memory
-      const fromUserId = session.users.find(u => u !== astrologerId);
-    const targetSocketId = userSockets.get(fromUserId);
-
-    if (accept) {
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('session-answered', {
-          sessionId,
-          fromUserId: astrologerId,
-          type: callType || session.type,
-          accept: true
-        });
+  // --- WebRTC signaling relay ---
+  socket.on('signal', (data) => {
+    try {
+      const { sessionId, toUserId, signal } = data || {};
+      const fromUserId = socketToUser.get(socket.id);
+      if (!fromUserId || !sessionId || !toUserId || !signal) {
+        console.warn(`[Signal] Missing data: from=${fromUserId}, session=${sessionId}, to=${toUserId}`);
+        return;
       }
-      console.log(`[Native] Call accepted - Session: ${sessionId}, Caller: ${fromUserId}, Astro: ${astrologerId}`);
-      if (typeof cb === 'function') cb({ ok: true, fromUserId });
-    } else {
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('session-answered', {
-          sessionId,
-          fromUserId: astrologerId,
-          accept: false
-        });
-      }
-      endSessionRecord(sessionId);
-      console.log(`[Native] Call rejected - Session: ${sessionId}`);
-      if (typeof cb === 'function') cb({ ok: true });
-    }
 
-  } catch (err) {
-    console.error('answer-session-native error', err);
-    if (typeof cb === 'function') cb({ ok: false, error: 'Server error' });
-  }
-});
-
-// --- WebRTC signaling relay ---
-socket.on('signal', (data) => {
-  try {
-    const { sessionId, toUserId, signal } = data || {};
-    let fromUserId = socketToUser.get(socket.id);
-
-    // RECOVERY: If fromUserId is missing (race condition), try to recover from session
-    if (!fromUserId && sessionId && toUserId) {
-      try {
-        const sessionRec = activeSessions.get(sessionId);
-        if (sessionRec && sessionRec.users.includes(toUserId)) {
-          fromUserId = sessionRec.users.find(u => u !== toUserId);
-          if (fromUserId) {
-            console.log(`[Recovery] Recovered fromUserId ${fromUserId} from session ${sessionId} for signal`);
-            socketToUser.set(socket.id, fromUserId);
-            // Don't update userSockets here to be safe, just socketToUser for this flow
-          }
-        }
-      } catch (e) { console.error('Recovery failed', e); }
-    }
-
-    if (!fromUserId || !sessionId || !toUserId || !signal) {
-      console.warn(`[Signal] Missing data: from=${fromUserId}, session=${sessionId}, to=${toUserId}`);
-      return;
-    }
-
-    // Emit to Room (userId) - works even after reconnect!
-    io.to(toUserId).emit('signal', {
-      sessionId,
-      fromUserId,
-      signal,
-    });
-  } catch (err) {
-    console.error('signal error', err);
-  }
-});
-
-// --- End Session (Sync for both sides) ---
-socket.on('end-session', async (data) => {
-  try {
-    const { sessionId } = data || {};
-    const fromUserId = socketToUser.get(socket.id);
-
-    if (!fromUserId || !sessionId) return;
-
-    const session = activeSessions.get(sessionId);
-    if (session) {
-      // Find partner
-      const partnerId = session.users.find(u => u !== fromUserId);
-      // Emit to Room (userId) - works even after reconnect
-      io.to(partnerId).emit('session-ended', {
+      // Emit to Room (userId) - works even after reconnect!
+      io.to(toUserId).emit('signal', {
         sessionId,
-        reason: 'partner_ended'
+        fromUserId,
+        signal,
       });
+    } catch (err) {
+      console.error('signal error', err);
     }
+  });
 
-    endSessionRecord(sessionId);
-    console.log(`[Session] Ended by ${fromUserId}: ${sessionId}`);
+  // --- End Session (Sync for both sides) ---
+  socket.on('end-session', async (data) => {
+    try {
+      const { sessionId } = data || {};
+      const fromUserId = socketToUser.get(socket.id);
 
-  } catch (e) { console.error('end-session error', e); }
-});
+      if (!fromUserId || !sessionId) return;
 
-// --- Chat message (text / audio / file) ---
-socket.on('chat-message', async (data) => {
-  try {
-    const { toUserId, sessionId, content, timestamp, messageId } = data || {};
-    const fromUserId = socketToUser.get(socket.id);
-    if (!fromUserId || !toUserId || !content || !messageId) return;
-
-    socket.emit('message-status', {
-      messageId,
-      status: 'sent',
-    });
-
-    // Save to DB (Check duplicate first)
-    ChatMessage.updateOne(
-      { messageId },
-      {
-        $setOnInsert: {
+      const session = activeSessions.get(sessionId);
+      if (session) {
+        // Find partner
+        const partnerId = session.users.find(u => u !== fromUserId);
+        // Emit to Room (userId) - works even after reconnect
+        io.to(partnerId).emit('session-ended', {
           sessionId,
+          reason: 'partner_ended'
+        });
+      }
+
+      endSessionRecord(sessionId);
+      console.log(`[Session] Ended by ${fromUserId}: ${sessionId}`);
+
+    } catch (e) { console.error('end-session error', e); }
+  });
+
+  // --- Chat message (text / audio / file) ---
+  socket.on('chat-message', async (data) => {
+    try {
+      const { toUserId, sessionId, content, timestamp, messageId } = data || {};
+      const fromUserId = socketToUser.get(socket.id);
+      if (!fromUserId || !toUserId || !content || !messageId) return;
+
+      socket.emit('message-status', {
+        messageId,
+        status: 'sent',
+      });
+
+      // Save to DB (Check duplicate first)
+      ChatMessage.updateOne(
+        { messageId },
+        {
+          $setOnInsert: {
+            sessionId,
+            fromUserId,
+            toUserId,
+            text: content.text,
+            timestamp: timestamp || Date.now(),
+            messageId,
+            status: 'sent'
+          }
+        },
+        { upsert: true }
+      ).catch(e => console.error('ChatSave Error', e));
+
+      // Check if recipient is connected
+      const toSocketId = userSockets.get(toUserId);
+      if (toSocketId) {
+        // Emit to recipient
+        io.to(toSocketId).emit('chat-message', {
           fromUserId,
-          toUserId,
-          text: content.text,
+          content,
+          sessionId: sessionId || null,
           timestamp: timestamp || Date.now(),
           messageId,
-          status: 'sent'
-        }
-      },
-      { upsert: true }
-    ).catch(e => console.error('ChatSave Error', e));
-
-    // Check if recipient is connected
-    const toSocketId = userSockets.get(toUserId);
-    if (toSocketId) {
-      // Emit to recipient
-      io.to(toSocketId).emit('chat-message', {
-        fromUserId,
-        content,
-        sessionId: sessionId || null,
-        timestamp: timestamp || Date.now(),
-        messageId,
-      });
-    } else {
-      // Recipient offline - Send FCM Push
-      console.log(`[FCM] Recipient ${toUserId} offline. Sending Push for message ${messageId}`);
-      sendChatPush(toUserId, fromUserId, content.text, sessionId, messageId);
-    }
-  } catch (err) {
-    console.error('chat-message error', err);
-  }
-});
-
-// --- Helper: Send Chat Push ---
-async function sendChatPush(toUserId, fromUserId, messageText, sessionId, messageId) {
-  try {
-    const toUser = await User.findOne({ userId: toUserId });
-    const fromUser = await User.findOne({ userId: fromUserId });
-
-    if (toUser && toUser.fcmToken) {
-      const payload = {
-        type: 'CHAT_MESSAGE', // Specific type for chat
-        sessionId: sessionId || `chat_${Date.now()}`,
-        messageId: messageId || `msg_${Date.now()}`,
-        callerName: fromUser?.name || 'Client',
-        callerId: fromUserId,
-        text: messageText,
-        timestamp: Date.now().toString()
-      };
-
-      const notification = {
-        title: `New message from ${fromUser?.name || 'Astrologer'}`,
-        body: messageText.substring(0, 100)
-      };
-
-      await sendFcmV1Push(toUser.fcmToken, payload, notification);
-    }
-  } catch (e) { console.error('Chat Push Error:', e); }
-}
-
-// --- Get History ---
-socket.on('get-history', async (cb) => {
-  try {
-    const userId = socketToUser.get(socket.id);
-    if (!userId) return cb({ ok: false });
-
-    // Find sessions where user participated
-    const sessions = await Session.find({ $or: [{ fromUserId: userId }, { toUserId: userId }] })
-      .sort({ startTime: -1 })
-      .limit(50);
-
-    // Populate names (Mock style since we don't have populate setup easily, we'll fetch manually or send IDs)
-    // Actually client can resolve names from its own list or we just send IDs + Time + Type
-
-    cb({ ok: true, sessions });
-  } catch (e) { console.error(e); cb({ ok: false }); }
-});
-
-// --- GET Chat History API ---
-app.get('/api/chat/history/:sessionId', async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    const limit = parseInt(req.query.limit) || 20;
-    const before = req.query.before ? parseInt(req.query.before) : null;
-
-    let query = { sessionId };
-    if (before) {
-      query.timestamp = { $lt: before };
-    }
-
-    // Get latest messages first, then reverse to chronological order
-    const history = await ChatMessage.find(query)
-      .sort({ timestamp: -1 })
-      .limit(limit);
-
-    const sortedHistory = history.reverse();
-
-    res.json({
-      ok: true, history: sortedHistory.map(m => ({
-        messageId: m.messageId || `msg_${m._id}`,
-        fromUserId: m.fromUserId,
-        toUserId: m.toUserId,
-        text: m.text,
-        timestamp: m.timestamp,
-        status: m.status || 'read'
-      }))
-    });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
-  }
-});
-
-// --- Receiver: delivered ack ---
-socket.on('message-delivered', (data) => {
-  try {
-    const { toUserId, messageId } = data || {};
-    const fromUserId = socketToUser.get(socket.id);
-    if (!fromUserId || !toUserId || !messageId) return;
-
-    const targetSocketId = userSockets.get(toUserId);
-    if (!targetSocketId) return;
-
-    io.to(targetSocketId).emit('message-status', {
-      messageId,
-      status: 'delivered',
-    });
-  } catch (err) { console.error(err); }
-});
-
-// --- Receiver: read ack ---
-socket.on('message-read', (data) => {
-  try {
-    const { toUserId, messageId } = data || {};
-    const fromUserId = socketToUser.get(socket.id);
-    if (!fromUserId || !toUserId || !messageId) return;
-
-    const targetSocketId = userSockets.get(toUserId);
-    if (!targetSocketId) return;
-
-    io.to(targetSocketId).emit('message-status', {
-      messageId,
-      status: 'read',
-    });
-  } catch (err) { console.error(err); }
-});
-
-// --- Typing indicator ---
-socket.on('typing', (data) => {
-  try {
-    const { toUserId, isTyping } = data || {};
-    const fromUserId = socketToUser.get(socket.id);
-    if (!fromUserId || !toUserId) return;
-
-    const targetSocketId = userSockets.get(toUserId);
-    if (!targetSocketId) return;
-
-    io.to(targetSocketId).emit('typing', {
-      fromUserId,
-      isTyping: !!isTyping,
-    });
-  } catch (err) { console.error('typing error', err); }
-});
-
-// --- Phase 1: Connection & Billing Start ---
-socket.on('session-connect', async (data) => {
-  try {
-    const { sessionId } = data || {};
-    const userId = socketToUser.get(socket.id);
-
-    if (!userId || !sessionId) return;
-
-    console.log(`Session Connect: User ${userId} joined Session ${sessionId}`);
-
-    await handleUserConnection(sessionId, userId);
-
-  } catch (err) {
-    console.error('session-connect error:', err);
-  }
-});
-
-async function handleUserConnection(sessionId, userId) {
-  const session = await Session.findOne({ sessionId });
-  if (!session) return;
-
-  // Determine which timestamp to update
-  const now = Date.now();
-  let updated = false;
-
-  if (userId === session.clientId) {
-    if (!session.clientConnectedAt) {
-      session.clientConnectedAt = now;
-      updated = true;
-      console.log(`Session ${sessionId}: Client connected at ${now}`);
-    }
-  } else if (userId === session.astrologerId) {
-    if (!session.astrologerConnectedAt) {
-      session.astrologerConnectedAt = now;
-      updated = true;
-      console.log(`Session ${sessionId}: Astrologer connected at ${now}`);
-    }
-  }
-
-  if (updated) {
-    await session.save();
-  }
-
-  // Check if billing can start
-  if (session.clientConnectedAt && session.astrologerConnectedAt && !session.actualBillingStart) {
-    const maxTime = Math.max(session.clientConnectedAt, session.astrologerConnectedAt);
-    const billingStart = maxTime + 2000; // 2 seconds buffer
-
-    session.actualBillingStart = billingStart;
-    await session.save();
-
-    // Update in-memory map for the ticker
-    const activeSession = activeSessions.get(sessionId);
-    if (activeSession) {
-      activeSession.actualBillingStart = billingStart;
-
-      // --- FIX: Initialize Billing Fields in Memory ---
-      if (typeof activeSession.elapsedBillableSeconds === 'undefined') {
-        activeSession.elapsedBillableSeconds = 0;
-        activeSession.lastBilledMinute = 1; // Prepare for first minute check
-        activeSession.clientId = session.clientId;
-        activeSession.astrologerId = session.astrologerId;
-        activeSession.currentSlab = 3; // Default Slab if not set
-        activeSession.totalDeducted = 0;
-        activeSession.totalEarned = 0;
-        console.log(`Session ${sessionId}: Billing Fields Initialized (Memory)`);
+        });
+      } else {
+        // Recipient offline - Send FCM Push
+        console.log(`[FCM] Recipient ${toUserId} offline. Sending Push for message ${messageId}`);
+        sendChatPush(toUserId, fromUserId, content.text, sessionId, messageId);
       }
-
-      // --- Phase 4: Init Pair Slab ---
-      try {
-        const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-        const pairId = `${session.clientId}_${session.astrologerId}`;
-
-        let pairRec = await PairMonth.findOne({ pairId, yearMonth: currentMonth });
-        if (!pairRec) {
-          console.log(`Creating PairMonth for ${pairId} (Starting Slab 3)`);
-          pairRec = await PairMonth.create({
-            pairId,
-            clientId: session.clientId,
-            astrologerId: session.astrologerId,
-            yearMonth: currentMonth,
-            currentSlab: 3, // Default Slab 3
-            slabLockedAt: 0
-          });
-        }
-
-        activeSession.pairMonthId = pairRec._id;
-        activeSession.currentSlab = pairRec.currentSlab;
-        activeSession.initialPairSeconds = pairRec.slabLockedAt || 0;
-        console.log(`Session ${sessionId} initialized with Slab ${activeSession.currentSlab}, InitialSecs: ${activeSession.initialPairSeconds}`);
-      } catch (e) {
-        console.error('PairMonth Init Error', e);
-      }
+    } catch (err) {
+      console.error('chat-message error', err);
     }
+  });
 
-    console.log(`Session ${sessionId}: Billing starts at ${billingStart} (Buffer applied)`);
-
-    // Notify both parties
-    io.to(userSockets.get(session.clientId)).emit('billing-started', { startTime: billingStart });
-    io.to(userSockets.get(session.astrologerId)).emit('billing-started', { startTime: billingStart });
-  }
-}
-
-// --- Phase 2: Session Timer Engine ---
-if (global.tickInterval) clearInterval(global.tickInterval);
-global.tickInterval = setInterval(tickSessions, 1000);
-
-// Phase 4 Helper
-function getSlabBySeconds(seconds) {
-  if (seconds <= 300) return 1;
-  if (seconds <= 600) return 2;
-  if (seconds <= 900) return 3;
-  if (seconds <= 1200) return 4;
-  return 4; // Max slab 4+
-}
-
-function tickSessions() {
-  const now = Date.now();
-  if (Math.floor(now / 1000) % 10 === 0) {
-    console.log(`[Ticker] Active: ${activeSessions.size}`);
-    for (const [sid, s] of activeSessions) {
-      console.log(`  - ${sid}: Billable=${s.elapsedBillableSeconds}, Start=${s.actualBillingStart}, TotalDed=${s.totalDeducted}`);
-    }
-  }
-  for (const [sessionId, session] of activeSessions) {
-    // 1. Check if Billing Started
-    if (!session.actualBillingStart || now < session.actualBillingStart) continue;
-
-    // 2. Check Connections (BOTH must be connected)
-    // We check if the socket ID for the user is present in userSockets AND if that socket is actually connected?
-    // userSockets only has entry if registered.
-    // We assume if they serve 'disconnect' event, they are removed from userSockets/socketToUser?
-    // Checking 'disconnect' handler: it conditionally removes from userSockets.
-    // Yes, if (userSockets.get(userId) === socket.id) userSockets.delete(userId);
-
-    const clientSocketId = userSockets.get(session.clientId);
-    const astroSocketId = userSockets.get(session.astrologerId);
-
-    const isClientConnected = !!clientSocketId;
-    const isAstroConnected = !!astroSocketId;
-
-    if (isClientConnected && isAstroConnected) {
-      session.elapsedBillableSeconds++;
-
-      // DEBUG LOGGING
-      console.log(`[${sessionId}] Tick: ${session.elapsedBillableSeconds}, LastBilled: ${session.lastBilledMinute}, Deducted: ${session.totalDeducted}, Slab: ${session.currentSlab}`);
-
-      if (session.elapsedBillableSeconds % 5 === 0) console.log(`Session ${sessionId}: Tick ${session.elapsedBillableSeconds}s`);
-
-      // Phase 3: First Minute Check (at 60s exactly)
-      if (session.elapsedBillableSeconds === 60) {
-        console.log(`Session ${sessionId}: First 60s completed.`);
-        processBillingCharge(sessionId, 60, 1, 'first_60_full');
-        // Note: lastBilledMinute update is below
-      }
-
-      // Phase 4: Check Slab Upgrade
-      if (session.pairMonthId) {
-        const totalSeconds = (session.initialPairSeconds || 0) + session.elapsedBillableSeconds;
-        const calculatedSlab = getSlabBySeconds(totalSeconds);
-        const effectiveSlab = Math.max(calculatedSlab, session.currentSlab || 0);
-
-        if (effectiveSlab > session.currentSlab) {
-          console.log(`Session ${sessionId}: Slab Upgraded ${session.currentSlab} -> ${effectiveSlab}`);
-          session.currentSlab = effectiveSlab;
-          PairMonth.updateOne({ _id: session.pairMonthId }, { currentSlab: effectiveSlab }).exec();
-        }
-      }
-
-      // Check Minute Boundary (Future Slabs > 1)
-      // Phase 5: Post-First-Minute Billing
-      if (session.elapsedBillableSeconds > 60) {
-        const eligibleSeconds = session.elapsedBillableSeconds - 60;
-        const eligibleMinutes = Math.floor(eligibleSeconds / 60);
-        // Total billed = 1 (first min) + eligibleMinutes
-        const totalShouldBeBilled = 1 + eligibleMinutes;
-
-        if (totalShouldBeBilled > session.lastBilledMinute) {
-          console.log(`Session ${sessionId}: Minute ${totalShouldBeBilled} reached.`);
-          processBillingCharge(sessionId, 60, totalShouldBeBilled, 'slab');
-          session.lastBilledMinute = totalShouldBeBilled;
-        }
-      }
-    } else {
-      // Paused
-      // console.log(`Session ${sessionId} Paused. Client: ${isClientConnected}, Astro: ${isAstroConnected}`);
-    }
-  }
-}
-
-
-// --- Client Birth Chart Data ---
-socket.on('client-birth-chart', (data, cb) => {
-  try {
-    const { toUserId, birthData } = data || {};
-    const fromUserId = socketToUser.get(socket.id);
-    if (!fromUserId || !toUserId) return cb({ ok: false, error: 'Invalid data' });
-
-    const targetSocketId = userSockets.get(toUserId);
-    if (!targetSocketId) return cb({ ok: false, error: 'Astrologer offline' });
-
-    // Send birth chart data to astrologer
-    io.to(targetSocketId).emit('client-birth-chart', {
-      fromUserId,
-      birthData
-    });
-
-    cb({ ok: true });
-    console.log(`Birth chart sent from ${fromUserId} to ${toUserId}`);
-  } catch (err) {
-    console.error('client-birth-chart error', err);
-    cb({ ok: false, error: err.message });
-  }
-});
-
-// --- Session end (manual) ---
-socket.on('session-ended', (data) => {
-  try {
-    const { sessionId, toUserId, type, durationMs } = data || {};
-    const fromUserId = socketToUser.get(socket.id);
-    if (!fromUserId || !sessionId || !toUserId) return;
-
-    endSessionRecord(sessionId);
-
-    const targetSocketId = userSockets.get(toUserId);
-    if (targetSocketId) {
-      io.to(targetSocketId).emit('session-ended', {
-        sessionId,
-        fromUserId,
-        type,
-        durationMs,
-      });
-    }
-
-    console.log(
-      `Session ended (manual): sessionId=${sessionId}, type=${type}, from=${fromUserId}, to=${toUserId}, duration=${durationMs} ms`
-    );
-  } catch (err) {
-    console.error('session-ended error', err);
-  }
-});
-
-// --- ADMIN API ---
-const checkAdmin = async (sid) => {
-  const uid = socketToUser.get(sid);
-  if (!uid) return false;
-  const u = await User.findOne({ userId: uid });
-  return u && u.role === 'superadmin';
-};
-
-// --- Admin: Get All Users ---
-socket.on('get-all-users', async (cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false });
-  try {
-    const users = await User.find({}).sort({ role: 1, name: 1 }); // Sort by role then name
-    cb({ ok: true, users });
-  } catch (e) { cb({ ok: false }); }
-});
-
-// --- Admin: Edit User (Name Only) ---
-socket.on('admin-edit-user', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
-  try {
-    const { targetUserId, updates } = data || {};
-    if (!targetUserId || !updates || !updates.name) return cb({ ok: false, error: 'Invalid Data' });
-
-    const u = await User.findOne({ userId: targetUserId });
-    if (!u) return cb({ ok: false, error: 'User not found' });
-
-    u.name = updates.name;
-    await u.save();
-
-    console.log(`Admin edited user ${u.userId}: Name -> ${u.name}`);
-
-    if (u.role === 'astrologer') broadcastAstroUpdate();
-
-    cb({ ok: true });
-  } catch (e) {
-    console.error(e);
-    cb({ ok: false, error: 'Internal Error' });
-  }
-});
-
-// --- Admin: Update User Details (Unified) ---
-socket.on('admin-update-user-details', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
-  try {
-    const { userId, updates } = data;
-    const user = await User.findOne({ userId });
-    if (!user) return cb({ ok: false, error: 'User not found' });
-
-    // Update allowed fields
-    if (updates.name) user.name = updates.name;
-    if (updates.price) user.price = parseInt(updates.price);
-    if (typeof updates.isVerified === 'boolean') user.isVerified = updates.isVerified;
-    if (updates.documentStatus) {
-      user.documentStatus = updates.documentStatus;
-      // Sync legacy boolean for backward compatibility if needed, but UI uses status now
-      user.isDocumentVerified = (updates.documentStatus === 'verified');
-    }
-
-    await user.save();
-    console.log(`Admin updated user ${user.name}:`, updates);
-
-    if (user.role === 'astrologer') broadcastAstroUpdate();
-
-    cb({ ok: true, user });
-  } catch (e) {
-    console.error(e);
-    cb({ ok: false, error: 'Update Failed' });
-  }
-});
-
-socket.on('admin-update-role', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false });
-  try {
-    await User.updateOne({ userId: data.userId }, { role: data.role });
-    cb({ ok: true });
-  } catch (e) { cb({ ok: false }); }
-});
-
-socket.on('admin-add-wallet', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false });
-  try {
-    const u = await User.findOne({ userId: data.userId });
-    u.walletBalance += parseInt(data.amount);
-    await u.save();
-
-    // Notify user
-    const s = userSockets.get(data.userId);
-    if (s) io.to(s).emit('wallet-update', { balance: u.walletBalance });
-
-    cb({ ok: true });
-  } catch (e) { cb({ ok: false }); }
-});
-
-socket.on('admin-toggle-ban', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false });
-  try {
-    await User.updateOne({ userId: data.userId }, { isBanned: data.isBanned });
-    cb({ ok: true });
-    // If banned, disconnect socket?
-    if (data.isBanned) {
-      const s = userSockets.get(data.userId);
-      if (s) io.to(s).emit('force-logout'); // Need to handle client side
-    }
-  } catch (e) { cb({ ok: false }); }
-});
-
-// Phase 10: Ledger Stats
-socket.on('admin-get-ledger-stats', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false });
-  try {
-    // Get billing stats
-    const billingStats = await BillingLedger.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: '$chargedToClient' },
-          totalAstroPayout: { $sum: '$creditedToAstrologer' },
-          totalAdminRevenue: { $sum: '$adminAmount' },
-          totalMinutes: { $sum: 1 }
-        }
-      }
-    ]);
-
-    // Get user counts
-    const totalUsers = await User.countDocuments();
-    const activeSessionCount = activeSessions.size;
-
-    // Get full ledger for breakdown
-    const fullLedger = await BillingLedger.find({}).sort({ createdAt: -1 }).limit(100);
-
-    const billing = billingStats[0] || {};
-
-    // Map to expected format
-    const stats = {
-      totalRevenue: billing.totalRevenue || 0,
-      adminProfit: billing.totalAdminRevenue || 0,
-      astroPayout: billing.totalAstroPayout || 0,
-      totalDuration: (billing.totalMinutes || 0) * 60, // Convert minutes to seconds
-      totalUsers: totalUsers,
-      activeSessions: activeSessionCount
-    };
-
-    cb({ ok: true, stats, fullLedger });
-  } catch (e) {
-    console.error(e);
-    cb({ ok: false });
-  }
-});
-
-// --- Save FCM Token (for push notifications) ---
-socket.on('save-fcm-token', async ({ fcmToken }) => {
-  const userId = socketToUser.get(socket.id);
-  if (!userId || !fcmToken) return;
-
-  try {
-    await User.updateOne({ userId }, { fcmToken });
-    console.log(`[FCM] Token saved for user: ${userId.substring(0, 8)}...`);
-  } catch (e) {
-    console.error('[FCM] Error saving token:', e);
-  }
-});
-
-// --- Get Wallet (Manual Refresh) ---
-socket.on('get-wallet', async (data) => {
-  const userId = socketToUser.get(socket.id);
-  if (!userId) return;
-  try {
-    const u = await User.findOne({ userId });
-    if (u) {
-      socket.emit('wallet-update', {
-        balance: u.walletBalance,
-        totalEarnings: u.totalEarnings || 0
-      });
-    }
-  } catch (e) { }
-});
-
-// --- Withdrawal Logic ---
-socket.on('request-withdrawal', async (data, cb) => {
-  const userId = socketToUser.get(socket.id);
-  if (!userId) return;
-  try {
-    const amount = parseInt(data.amount);
-    if (!amount || amount < 100) return cb({ ok: false, error: 'Minimum limit 100' });
-
-    // Check Balance
-    const u = await User.findOne({ userId });
-    if (!u || u.walletBalance < amount) return cb({ ok: false, error: 'Insufficient Balance' });
-
-    const w = await Withdrawal.create({
-      astroId: userId,
-      amount,
-      status: 'pending',
-      requestedAt: Date.now()
-    });
-
-    // Notify Super Admins
-    io.to('superadmin').emit('admin-notification', {
-      type: 'withdrawal_request',
-      text: `💰 New Withdrawal Request: ${u.name} requested ₹${amount}`,
-      data: { withdrawalId: w._id, astroName: u.name, amount }
-    });
-
-    cb({ ok: true });
-  } catch (e) {
-    console.error(e);
-    cb({ ok: false, error: 'Error' });
-  }
-});
-
-socket.on('approve-withdrawal', async (data, cb) => {
-  try {
-    const { withdrawalId } = data;
-    const w = await Withdrawal.findById(withdrawalId);
-    if (!w || w.status !== 'pending') return cb({ ok: false, error: 'Invalid Request' });
-
-    const u = await User.findOne({ userId: w.astroId });
-    if (!u) return cb({ ok: false, error: 'User not found' });
-
-    if (u.walletBalance < w.amount) return cb({ ok: false, error: 'User Insufficient Balance' });
-
-    // Deduct
-    u.walletBalance -= w.amount;
-    await u.save();
-
-    // Update Request
-    w.status = 'approved';
-    w.processedAt = Date.now();
-    await w.save();
-
-    // Notify Astro
-    const sId = userSockets.get(u.userId);
-    if (sId) {
-      io.to(sId).emit('wallet-update', { balance: u.walletBalance });
-      io.to(sId).emit('app-notification', { text: `✅ Your withdrawal of ₹${w.amount} is approved!` });
-    }
-
-    cb({ ok: true, balance: u.walletBalance });
-  } catch (e) {
-    console.error(e);
-    cb({ ok: false, error: 'Error' });
-  }
-});
-
-socket.on('get-withdrawals', async (cb) => {
-  try {
-    const list = await Withdrawal.find().sort({ requestedAt: -1 }).limit(50);
-    const enriched = [];
-    for (const w of list) {
-      const u = await User.findOne({ userId: w.astroId });
-      enriched.push({ ...w.toObject(), astroName: u ? u.name : 'Unknown' });
-    }
-    if (typeof cb === 'function') cb({ ok: true, list: enriched });
-  } catch (e) {
-    console.error(e);
-    if (typeof cb === 'function') cb({ ok: false, list: [] });
-  }
-});
-
-socket.on('get-payout-status', async (data, cb) => {
-  try {
-    const userId = socketToUser.get(socket.id);
-    if (!userId) return cb({ ok: false });
-
-    const pending = await Withdrawal.find({ astroId: userId, status: 'pending' });
-    const totalPending = pending.reduce((sum, w) => sum + (w.amount || 0), 0);
-
-    cb({ ok: true, pendingAmount: totalPending, count: pending.length });
-  } catch (e) {
-    console.error(e);
-    cb({ ok: false, error: 'Error' });
-  }
-});
-// --- End Withdrawal Logic ---
-
-// --- Disconnect ---
-socket.on('disconnect', async () => {
-  const userId = socketToUser.get(socket.id);
-  if (userId) {
-    console.log(`Socket disconnected: ${socket.id}, userId=${userId}`);
-    socketToUser.delete(socket.id);
-
-    if (userSockets.get(userId) === socket.id) {
-      userSockets.delete(userId);
-    }
-
+  // --- Helper: Send Chat Push ---
+  async function sendChatPush(toUserId, fromUserId, messageText, sessionId, messageId) {
     try {
-      // If Astrologer, use grace period before marking offline
-      const user = await User.findOne({ userId });
-      if (user && user.role === 'astrologer') {
-        console.log(`[Status] Astrologer ${user.name} disconnected - Keeping online status persistent.`);
-        // Clear any existing timeout
-        if (offlineTimeouts.has(userId)) {
-          clearTimeout(offlineTimeouts.get(userId));
-          offlineTimeouts.delete(userId);
-        }
+      const toUser = await User.findOne({ userId: toUserId });
+      const fromUser = await User.findOne({ userId: fromUserId });
+
+      if (toUser && toUser.fcmToken) {
+        const payload = {
+          type: 'CHAT_MESSAGE', // Specific type for chat
+          sessionId: sessionId || `chat_${Date.now()}`,
+          messageId: messageId || `msg_${Date.now()}`,
+          callerName: fromUser?.name || 'Client',
+          callerId: fromUserId,
+          text: messageText,
+          timestamp: Date.now().toString()
+        };
+
+        const notification = {
+          title: `New message from ${fromUser?.name || 'Astrologer'}`,
+          body: messageText.substring(0, 100)
+        };
+
+        await sendFcmV1Push(toUser.fcmToken, payload, notification);
       }
+    } catch (e) { console.error('Chat Push Error:', e); }
+  }
+
+  // --- Get History ---
+  socket.on('get-history', async (cb) => {
+    try {
+      const userId = socketToUser.get(socket.id);
+      if (!userId) return cb({ ok: false });
+
+      // Find sessions where user participated
+      const sessions = await Session.find({ $or: [{ fromUserId: userId }, { toUserId: userId }] })
+        .sort({ startTime: -1 })
+        .limit(50);
+
+      // Populate names (Mock style since we don't have populate setup easily, we'll fetch manually or send IDs)
+      // Actually client can resolve names from its own list or we just send IDs + Time + Type
+
+      cb({ ok: true, sessions });
+    } catch (e) { console.error(e); cb({ ok: false }); }
+  });
+
+  // --- GET Chat History API ---
+  app.get('/api/chat/history/:sessionId', async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const limit = parseInt(req.query.limit) || 20;
+      const before = req.query.before ? parseInt(req.query.before) : null;
+
+      let query = { sessionId };
+      if (before) {
+        query.timestamp = { $lt: before };
+      }
+
+      // Get latest messages first, then reverse to chronological order
+      const history = await ChatMessage.find(query)
+        .sort({ timestamp: -1 })
+        .limit(limit);
+
+      const sortedHistory = history.reverse();
+
+      res.json({
+        ok: true, history: sortedHistory.map(m => ({
+          messageId: m.messageId || `msg_${m._id}`,
+          fromUserId: m.fromUserId,
+          toUserId: m.toUserId,
+          text: m.text,
+          timestamp: m.timestamp,
+          status: m.status || 'read'
+        }))
+      });
     } catch (e) {
-      console.error('Disconnect DB error', e);
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
+  // --- Receiver: delivered ack ---
+  socket.on('message-delivered', (data) => {
+    try {
+      const { toUserId, messageId } = data || {};
+      const fromUserId = socketToUser.get(socket.id);
+      if (!fromUserId || !toUserId || !messageId) return;
+
+      const targetSocketId = userSockets.get(toUserId);
+      if (!targetSocketId) return;
+
+      io.to(targetSocketId).emit('message-status', {
+        messageId,
+        status: 'delivered',
+      });
+    } catch (err) { console.error(err); }
+  });
+
+  // --- Receiver: read ack ---
+  socket.on('message-read', (data) => {
+    try {
+      const { toUserId, messageId } = data || {};
+      const fromUserId = socketToUser.get(socket.id);
+      if (!fromUserId || !toUserId || !messageId) return;
+
+      const targetSocketId = userSockets.get(toUserId);
+      if (!targetSocketId) return;
+
+      io.to(targetSocketId).emit('message-status', {
+        messageId,
+        status: 'read',
+      });
+    } catch (err) { console.error(err); }
+  });
+
+  // --- Typing indicator ---
+  socket.on('typing', (data) => {
+    try {
+      const { toUserId, isTyping } = data || {};
+      const fromUserId = socketToUser.get(socket.id);
+      if (!fromUserId || !toUserId) return;
+
+      const targetSocketId = userSockets.get(toUserId);
+      if (!targetSocketId) return;
+
+      io.to(targetSocketId).emit('typing', {
+        fromUserId,
+        isTyping: !!isTyping,
+      });
+    } catch (err) { console.error('typing error', err); }
+  });
+
+  // --- Phase 1: Connection & Billing Start ---
+  socket.on('session-connect', async (data) => {
+    try {
+      const { sessionId } = data || {};
+      const userId = socketToUser.get(socket.id);
+
+      if (!userId || !sessionId) return;
+
+      console.log(`Session Connect: User ${userId} joined Session ${sessionId}`);
+
+      await handleUserConnection(sessionId, userId);
+
+    } catch (err) {
+      console.error('session-connect error:', err);
+    }
+  });
+
+  async function handleUserConnection(sessionId, userId) {
+    const session = await Session.findOne({ sessionId });
+    if (!session) return;
+
+    // Determine which timestamp to update
+    const now = Date.now();
+    let updated = false;
+
+    if (userId === session.clientId) {
+      if (!session.clientConnectedAt) {
+        session.clientConnectedAt = now;
+        updated = true;
+        console.log(`Session ${sessionId}: Client connected at ${now}`);
+      }
+    } else if (userId === session.astrologerId) {
+      if (!session.astrologerConnectedAt) {
+        session.astrologerConnectedAt = now;
+        updated = true;
+        console.log(`Session ${sessionId}: Astrologer connected at ${now}`);
+      }
     }
 
-    const sid = userActiveSession.get(userId);
-    if (sid) {
-      // --- FIX: Don't end session immediately. Give grace period. ---
-      console.log(`[Session] User ${userId} disconnected. Starting grace period for Session ${sid}`);
+    if (updated) {
+      await session.save();
+    }
 
-      // Clear existing if any (debounce)
-      if (sessionDisconnectTimeouts.has(userId)) {
-        clearTimeout(sessionDisconnectTimeouts.get(userId));
+    // Check if billing can start
+    if (session.clientConnectedAt && session.astrologerConnectedAt && !session.actualBillingStart) {
+      const maxTime = Math.max(session.clientConnectedAt, session.astrologerConnectedAt);
+      const billingStart = maxTime + 2000; // 2 seconds buffer
+
+      session.actualBillingStart = billingStart;
+      await session.save();
+
+      // Update in-memory map for the ticker
+      const activeSession = activeSessions.get(sessionId);
+      if (activeSession) {
+        activeSession.actualBillingStart = billingStart;
+
+        // --- FIX: Initialize Billing Fields in Memory ---
+        if (typeof activeSession.elapsedBillableSeconds === 'undefined') {
+          activeSession.elapsedBillableSeconds = 0;
+          activeSession.lastBilledMinute = 1; // Prepare for first minute check
+          activeSession.clientId = session.clientId;
+          activeSession.astrologerId = session.astrologerId;
+          activeSession.currentSlab = 3; // Default Slab if not set
+          activeSession.totalDeducted = 0;
+          activeSession.totalEarned = 0;
+          console.log(`Session ${sessionId}: Billing Fields Initialized (Memory)`);
+        }
+
+        // --- Phase 4: Init Pair Slab ---
+        try {
+          const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+          const pairId = `${session.clientId}_${session.astrologerId}`;
+
+          let pairRec = await PairMonth.findOne({ pairId, yearMonth: currentMonth });
+          if (!pairRec) {
+            console.log(`Creating PairMonth for ${pairId} (Starting Slab 3)`);
+            pairRec = await PairMonth.create({
+              pairId,
+              clientId: session.clientId,
+              astrologerId: session.astrologerId,
+              yearMonth: currentMonth,
+              currentSlab: 3, // Default Slab 3
+              slabLockedAt: 0
+            });
+          }
+
+          activeSession.pairMonthId = pairRec._id;
+          activeSession.currentSlab = pairRec.currentSlab;
+          activeSession.initialPairSeconds = pairRec.slabLockedAt || 0;
+          console.log(`Session ${sessionId} initialized with Slab ${activeSession.currentSlab}, InitialSecs: ${activeSession.initialPairSeconds}`);
+        } catch (e) {
+          console.error('PairMonth Init Error', e);
+        }
       }
 
-      const timeoutId = setTimeout(() => {
-        // If this runs, it means user didn't reconnect in time
-        console.log(`[Session] Grace period expired for ${userId}. Ending Session ${sid}`);
+      console.log(`Session ${sessionId}: Billing starts at ${billingStart} (Buffer applied)`);
 
-        sessionDisconnectTimeouts.delete(userId);
+      // Notify both parties
+      io.to(userSockets.get(session.clientId)).emit('billing-started', { startTime: billingStart });
+      io.to(userSockets.get(session.astrologerId)).emit('billing-started', { startTime: billingStart });
+    }
+  }
 
-        // Double check if session still active (maybe other user ended it?)
-        const s = activeSessions.get(sid);
-        if (s) {
-          // We can optionally update Session end time in DB here
-          Session.updateOne({ sessionId: sid }, { endTime: Date.now(), duration: Date.now() - s.startedAt }).catch(() => { });
+  // --- Phase 2: Session Timer Engine ---
+  if (global.tickInterval) clearInterval(global.tickInterval);
+  global.tickInterval = setInterval(tickSessions, 1000);
 
-          const otherUserId = getOtherUserIdFromSession(sid, userId);
+  // Phase 4 Helper
+  function getSlabBySeconds(seconds) {
+    if (seconds <= 300) return 1;
+    if (seconds <= 600) return 2;
+    if (seconds <= 900) return 3;
+    if (seconds <= 1200) return 4;
+    return 4; // Max slab 4+
+  }
 
-          // NOW we end it
-          endSessionRecord(sid);
+  function tickSessions() {
+    const now = Date.now();
+    if (Math.floor(now / 1000) % 10 === 0) {
+      console.log(`[Ticker] Active: ${activeSessions.size}`);
+      for (const [sid, s] of activeSessions) {
+        console.log(`  - ${sid}: Billable=${s.elapsedBillableSeconds}, Start=${s.actualBillingStart}, TotalDed=${s.totalDeducted}`);
+      }
+    }
+    for (const [sessionId, session] of activeSessions) {
+      // 1. Check if Billing Started
+      if (!session.actualBillingStart || now < session.actualBillingStart) continue;
 
-          if (otherUserId) {
-            const targetSocketId = userSockets.get(otherUserId);
-            if (targetSocketId) {
-              // Notify other user that partner dropped
-              io.to(targetSocketId).emit('session-ended', {
-                sessionId: sid,
-                reason: 'partner_disconnected'
-              });
-            }
+      // 2. Check Connections (BOTH must be connected)
+      // We check if the socket ID for the user is present in userSockets AND if that socket is actually connected?
+      // userSockets only has entry if registered.
+      // We assume if they serve 'disconnect' event, they are removed from userSockets/socketToUser?
+      // Checking 'disconnect' handler: it conditionally removes from userSockets.
+      // Yes, if (userSockets.get(userId) === socket.id) userSockets.delete(userId);
+
+      const clientSocketId = userSockets.get(session.clientId);
+      const astroSocketId = userSockets.get(session.astrologerId);
+
+      const isClientConnected = !!clientSocketId;
+      const isAstroConnected = !!astroSocketId;
+
+      if (isClientConnected && isAstroConnected) {
+        session.elapsedBillableSeconds++;
+
+        // DEBUG LOGGING
+        console.log(`[${sessionId}] Tick: ${session.elapsedBillableSeconds}, LastBilled: ${session.lastBilledMinute}, Deducted: ${session.totalDeducted}, Slab: ${session.currentSlab}`);
+
+        if (session.elapsedBillableSeconds % 5 === 0) console.log(`Session ${sessionId}: Tick ${session.elapsedBillableSeconds}s`);
+
+        // Phase 3: First Minute Check (at 60s exactly)
+        if (session.elapsedBillableSeconds === 60) {
+          console.log(`Session ${sessionId}: First 60s completed.`);
+          processBillingCharge(sessionId, 60, 1, 'first_60_full');
+          // Note: lastBilledMinute update is below
+        }
+
+        // Phase 4: Check Slab Upgrade
+        if (session.pairMonthId) {
+          const totalSeconds = (session.initialPairSeconds || 0) + session.elapsedBillableSeconds;
+          const calculatedSlab = getSlabBySeconds(totalSeconds);
+          const effectiveSlab = Math.max(calculatedSlab, session.currentSlab || 0);
+
+          if (effectiveSlab > session.currentSlab) {
+            console.log(`Session ${sessionId}: Slab Upgraded ${session.currentSlab} -> ${effectiveSlab}`);
+            session.currentSlab = effectiveSlab;
+            PairMonth.updateOne({ _id: session.pairMonthId }, { currentSlab: effectiveSlab }).exec();
           }
         }
-      }, SESSION_GRACE_PERIOD);
 
-      sessionDisconnectTimeouts.set(userId, timeoutId);
+        // Check Minute Boundary (Future Slabs > 1)
+        // Phase 5: Post-First-Minute Billing
+        if (session.elapsedBillableSeconds > 60) {
+          const eligibleSeconds = session.elapsedBillableSeconds - 60;
+          const eligibleMinutes = Math.floor(eligibleSeconds / 60);
+          // Total billed = 1 (first min) + eligibleMinutes
+          const totalShouldBeBilled = 1 + eligibleMinutes;
+
+          if (totalShouldBeBilled > session.lastBilledMinute) {
+            console.log(`Session ${sessionId}: Minute ${totalShouldBeBilled} reached.`);
+            processBillingCharge(sessionId, 60, totalShouldBeBilled, 'slab');
+            session.lastBilledMinute = totalShouldBeBilled;
+          }
+        }
+      } else {
+        // Paused
+        // console.log(`Session ${sessionId} Paused. Client: ${isClientConnected}, Astro: ${isAstroConnected}`);
+      }
     }
-  } else {
-    console.log('Socket disconnected (no user):', socket.id);
   }
-});
+
+
+  // --- Client Birth Chart Data ---
+  socket.on('client-birth-chart', (data, cb) => {
+    try {
+      const { toUserId, birthData } = data || {};
+      const fromUserId = socketToUser.get(socket.id);
+      if (!fromUserId || !toUserId) return cb({ ok: false, error: 'Invalid data' });
+
+      const targetSocketId = userSockets.get(toUserId);
+      if (!targetSocketId) return cb({ ok: false, error: 'Astrologer offline' });
+
+      // Send birth chart data to astrologer
+      io.to(targetSocketId).emit('client-birth-chart', {
+        fromUserId,
+        birthData
+      });
+
+      cb({ ok: true });
+      console.log(`Birth chart sent from ${fromUserId} to ${toUserId}`);
+    } catch (err) {
+      console.error('client-birth-chart error', err);
+      cb({ ok: false, error: err.message });
+    }
+  });
+
+  // --- Session end (manual) ---
+  socket.on('session-ended', (data) => {
+    try {
+      const { sessionId, toUserId, type, durationMs } = data || {};
+      const fromUserId = socketToUser.get(socket.id);
+      if (!fromUserId || !sessionId || !toUserId) return;
+
+      endSessionRecord(sessionId);
+
+      const targetSocketId = userSockets.get(toUserId);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('session-ended', {
+          sessionId,
+          fromUserId,
+          type,
+          durationMs,
+        });
+      }
+
+      console.log(
+        `Session ended (manual): sessionId=${sessionId}, type=${type}, from=${fromUserId}, to=${toUserId}, duration=${durationMs} ms`
+      );
+    } catch (err) {
+      console.error('session-ended error', err);
+    }
+  });
+
+  // --- ADMIN API ---
+  const checkAdmin = async (sid) => {
+    const uid = socketToUser.get(sid);
+    if (!uid) return false;
+    const u = await User.findOne({ userId: uid });
+    return u && u.role === 'superadmin';
+  };
+
+  // --- Admin: Get All Users ---
+  socket.on('get-all-users', async (cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    try {
+      const users = await User.find({}).sort({ role: 1, name: 1 }); // Sort by role then name
+      cb({ ok: true, users });
+    } catch (e) { cb({ ok: false }); }
+  });
+
+  // --- Admin: Edit User (Name Only) ---
+  socket.on('admin-edit-user', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    try {
+      const { targetUserId, updates } = data || {};
+      if (!targetUserId || !updates || !updates.name) return cb({ ok: false, error: 'Invalid Data' });
+
+      const u = await User.findOne({ userId: targetUserId });
+      if (!u) return cb({ ok: false, error: 'User not found' });
+
+      u.name = updates.name;
+      await u.save();
+
+      console.log(`Admin edited user ${u.userId}: Name -> ${u.name}`);
+
+      if (u.role === 'astrologer') broadcastAstroUpdate();
+
+      cb({ ok: true });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false, error: 'Internal Error' });
+    }
+  });
+
+  // --- Admin: Update User Details (Unified) ---
+  socket.on('admin-update-user-details', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    try {
+      const { userId, updates } = data;
+      const user = await User.findOne({ userId });
+      if (!user) return cb({ ok: false, error: 'User not found' });
+
+      // Update allowed fields
+      if (updates.name) user.name = updates.name;
+      if (updates.price) user.price = parseInt(updates.price);
+      if (typeof updates.isVerified === 'boolean') user.isVerified = updates.isVerified;
+      if (updates.documentStatus) {
+        user.documentStatus = updates.documentStatus;
+        // Sync legacy boolean for backward compatibility if needed, but UI uses status now
+        user.isDocumentVerified = (updates.documentStatus === 'verified');
+      }
+
+      await user.save();
+      console.log(`Admin updated user ${user.name}:`, updates);
+
+      if (user.role === 'astrologer') broadcastAstroUpdate();
+
+      cb({ ok: true, user });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false, error: 'Update Failed' });
+    }
+  });
+
+  socket.on('admin-update-role', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    try {
+      await User.updateOne({ userId: data.userId }, { role: data.role });
+      cb({ ok: true });
+    } catch (e) { cb({ ok: false }); }
+  });
+
+  socket.on('admin-add-wallet', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    try {
+      const u = await User.findOne({ userId: data.userId });
+      u.walletBalance += parseInt(data.amount);
+      await u.save();
+
+      // Notify user
+      const s = userSockets.get(data.userId);
+      if (s) io.to(s).emit('wallet-update', { balance: u.walletBalance });
+
+      cb({ ok: true });
+    } catch (e) { cb({ ok: false }); }
+  });
+
+  socket.on('admin-toggle-ban', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    try {
+      await User.updateOne({ userId: data.userId }, { isBanned: data.isBanned });
+      cb({ ok: true });
+      // If banned, disconnect socket?
+      if (data.isBanned) {
+        const s = userSockets.get(data.userId);
+        if (s) io.to(s).emit('force-logout'); // Need to handle client side
+      }
+    } catch (e) { cb({ ok: false }); }
+  });
+
+  // Phase 10: Ledger Stats
+  socket.on('admin-get-ledger-stats', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    try {
+      // Get billing stats
+      const billingStats = await BillingLedger.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalRevenue: { $sum: '$chargedToClient' },
+            totalAstroPayout: { $sum: '$creditedToAstrologer' },
+            totalAdminRevenue: { $sum: '$adminAmount' },
+            totalMinutes: { $sum: 1 }
+          }
+        }
+      ]);
+
+      // Get user counts
+      const totalUsers = await User.countDocuments();
+      const activeSessionCount = activeSessions.size;
+
+      // Get full ledger for breakdown
+      const fullLedger = await BillingLedger.find({}).sort({ createdAt: -1 }).limit(100);
+
+      const billing = billingStats[0] || {};
+
+      // Map to expected format
+      const stats = {
+        totalRevenue: billing.totalRevenue || 0,
+        adminProfit: billing.totalAdminRevenue || 0,
+        astroPayout: billing.totalAstroPayout || 0,
+        totalDuration: (billing.totalMinutes || 0) * 60, // Convert minutes to seconds
+        totalUsers: totalUsers,
+        activeSessions: activeSessionCount
+      };
+
+      cb({ ok: true, stats, fullLedger });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false });
+    }
+  });
+
+  // --- Save FCM Token (for push notifications) ---
+  socket.on('save-fcm-token', async ({ fcmToken }) => {
+    const userId = socketToUser.get(socket.id);
+    if (!userId || !fcmToken) return;
+
+    try {
+      await User.updateOne({ userId }, { fcmToken });
+      console.log(`[FCM] Token saved for user: ${userId.substring(0, 8)}...`);
+    } catch (e) {
+      console.error('[FCM] Error saving token:', e);
+    }
+  });
+
+  // --- Get Wallet (Manual Refresh) ---
+  socket.on('get-wallet', async (data) => {
+    const userId = socketToUser.get(socket.id);
+    if (!userId) return;
+    try {
+      const u = await User.findOne({ userId });
+      if (u) {
+        socket.emit('wallet-update', {
+          balance: u.walletBalance,
+          totalEarnings: u.totalEarnings || 0
+        });
+      }
+    } catch (e) { }
+  });
+
+  // --- Withdrawal Logic ---
+  socket.on('request-withdrawal', async (data, cb) => {
+    const userId = socketToUser.get(socket.id);
+    if (!userId) return;
+    try {
+      const amount = parseInt(data.amount);
+      if (!amount || amount < 100) return cb({ ok: false, error: 'Minimum limit 100' });
+
+      // Check Balance
+      const u = await User.findOne({ userId });
+      if (!u || u.walletBalance < amount) return cb({ ok: false, error: 'Insufficient Balance' });
+
+      const w = await Withdrawal.create({
+        astroId: userId,
+        amount,
+        status: 'pending',
+        requestedAt: Date.now()
+      });
+
+      // Notify Super Admins
+      io.to('superadmin').emit('admin-notification', {
+        type: 'withdrawal_request',
+        text: `💰 New Withdrawal Request: ${u.name} requested ₹${amount}`,
+        data: { withdrawalId: w._id, astroName: u.name, amount }
+      });
+
+      cb({ ok: true });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false, error: 'Error' });
+    }
+  });
+
+  socket.on('approve-withdrawal', async (data, cb) => {
+    try {
+      const { withdrawalId } = data;
+      const w = await Withdrawal.findById(withdrawalId);
+      if (!w || w.status !== 'pending') return cb({ ok: false, error: 'Invalid Request' });
+
+      const u = await User.findOne({ userId: w.astroId });
+      if (!u) return cb({ ok: false, error: 'User not found' });
+
+      if (u.walletBalance < w.amount) return cb({ ok: false, error: 'User Insufficient Balance' });
+
+      // Deduct
+      u.walletBalance -= w.amount;
+      await u.save();
+
+      // Update Request
+      w.status = 'approved';
+      w.processedAt = Date.now();
+      await w.save();
+
+      // Notify Astro
+      const sId = userSockets.get(u.userId);
+      if (sId) {
+        io.to(sId).emit('wallet-update', { balance: u.walletBalance });
+        io.to(sId).emit('app-notification', { text: `✅ Your withdrawal of ₹${w.amount} is approved!` });
+      }
+
+      cb({ ok: true, balance: u.walletBalance });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false, error: 'Error' });
+    }
+  });
+
+  socket.on('get-withdrawals', async (cb) => {
+    try {
+      const list = await Withdrawal.find().sort({ requestedAt: -1 }).limit(50);
+      const enriched = [];
+      for (const w of list) {
+        const u = await User.findOne({ userId: w.astroId });
+        enriched.push({ ...w.toObject(), astroName: u ? u.name : 'Unknown' });
+      }
+      if (typeof cb === 'function') cb({ ok: true, list: enriched });
+    } catch (e) {
+      console.error(e);
+      if (typeof cb === 'function') cb({ ok: false, list: [] });
+    }
+  });
+
+  socket.on('get-payout-status', async (data, cb) => {
+    try {
+      const userId = socketToUser.get(socket.id);
+      if (!userId) return cb({ ok: false });
+
+      const pending = await Withdrawal.find({ astroId: userId, status: 'pending' });
+      const totalPending = pending.reduce((sum, w) => sum + (w.amount || 0), 0);
+
+      cb({ ok: true, pendingAmount: totalPending, count: pending.length });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false, error: 'Error' });
+    }
+  });
+  // --- End Withdrawal Logic ---
+
+  // --- Disconnect ---
+  socket.on('disconnect', async () => {
+    const userId = socketToUser.get(socket.id);
+    if (userId) {
+      console.log(`Socket disconnected: ${socket.id}, userId=${userId}`);
+      socketToUser.delete(socket.id);
+
+      if (userSockets.get(userId) === socket.id) {
+        userSockets.delete(userId);
+      }
+
+      try {
+        // If Astrologer, use grace period before marking offline
+        const user = await User.findOne({ userId });
+        if (user && user.role === 'astrologer') {
+          console.log(`[Status] Astrologer ${user.name} disconnected - Keeping online status persistent.`);
+          // Clear any existing timeout
+          if (offlineTimeouts.has(userId)) {
+            clearTimeout(offlineTimeouts.get(userId));
+            offlineTimeouts.delete(userId);
+          }
+        }
+      } catch (e) {
+        console.error('Disconnect DB error', e);
+      }
+
+      const sid = userActiveSession.get(userId);
+      if (sid) {
+        // --- FIX: Don't end session immediately. Give grace period. ---
+        console.log(`[Session] User ${userId} disconnected. Starting grace period for Session ${sid}`);
+
+        // Clear existing if any (debounce)
+        if (sessionDisconnectTimeouts.has(userId)) {
+          clearTimeout(sessionDisconnectTimeouts.get(userId));
+        }
+
+        const timeoutId = setTimeout(() => {
+          // If this runs, it means user didn't reconnect in time
+          console.log(`[Session] Grace period expired for ${userId}. Ending Session ${sid}`);
+
+          sessionDisconnectTimeouts.delete(userId);
+
+          // Double check if session still active (maybe other user ended it?)
+          const s = activeSessions.get(sid);
+          if (s) {
+            // We can optionally update Session end time in DB here
+            Session.updateOne({ sessionId: sid }, { endTime: Date.now(), duration: Date.now() - s.startedAt }).catch(() => { });
+
+            const otherUserId = getOtherUserIdFromSession(sid, userId);
+
+            // NOW we end it
+            endSessionRecord(sid);
+
+            if (otherUserId) {
+              const targetSocketId = userSockets.get(otherUserId);
+              if (targetSocketId) {
+                // Notify other user that partner dropped
+                io.to(targetSocketId).emit('session-ended', {
+                  sessionId: sid,
+                  reason: 'partner_disconnected'
+                });
+              }
+            }
+          }
+        }, SESSION_GRACE_PERIOD);
+
+        sessionDisconnectTimeouts.set(userId, timeoutId);
+      }
+    } else {
+      console.log('Socket disconnected (no user):', socket.id);
+    }
+  });
 });
 
 // ===== Reliable Calling System (DB + FCM) =====

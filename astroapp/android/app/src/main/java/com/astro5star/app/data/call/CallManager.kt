@@ -55,8 +55,6 @@ object CallManager {
             PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
             PeerConnection.IceServer.builder("turn:turn.astro5star.com:3478?transport=udp")
                 .setUsername("webrtcuser").setPassword("strongpassword123").createIceServer(),
-            PeerConnection.IceServer.builder("turn:turn.astro5star.com:3478?transport=tcp")
-                .setUsername("webrtcuser").setPassword("strongpassword123").createIceServer(),
             PeerConnection.IceServer.builder("turns:turn.astro5star.com:5349")
                 .setUsername("webrtcuser").setPassword("strongpassword123").createIceServer()
         )
