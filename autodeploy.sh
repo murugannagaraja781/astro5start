@@ -16,6 +16,9 @@ REPO_URL="https://github.com/murugannagaraja781/Astro-luna.git"
 APP_NAME="astro-app"
 USER_OPTS="-o IdentitiesOnly=yes -o StrictHostKeyChecking=no"
 
+# Fix Git Ownership Issue
+git config --global --add safe.directory "$APP_DIR"
+
 # Step 1: Create directory if not exists
 echo "[1/6] Checking app directory..."
 if [ ! -d "$APP_DIR" ]; then
@@ -57,11 +60,19 @@ else
     # but for auto-deploy we assume ownership.
 
     if [ -f "github_action_key" ]; then
-        # If we have the key but no repo yet (rare edge case for this script running inside), try SSH
-        git clone git@github.com:murugannagaraja781/Astro-luna.git.
+        # If key exists, configure SSH for init
+        git init
+        git remote add origin git@github.com:murugannagaraja781/Astro-luna.git
+        git fetch origin main
+        git reset --hard origin/main
+        git branch --set-upstream-to=origin/main main
     else
-        # Fallback to HTTPS
-        git clone $REPO_URL .
+        # Fallback to HTTPS init
+        git init
+        git remote add origin $REPO_URL
+        git fetch origin main
+        git reset --hard origin/main
+        git branch --set-upstream-to=origin/main main
     fi
 fi
 
@@ -97,11 +108,19 @@ npm install --production
 
 # Step 5: Setup PM2
 echo "[5/6] Configuration PM2..."
+# Cleanup conflicting legacy processes (IMPORTANT)
+pm2 delete astroluna-signaling 2>/dev/null || true
+pm2 delete astroluna 2>/dev/null || true
+pm2 delete astrolun 2>/dev/null || true
+
 # Check if app is already running
+if pm2 list | grep -q "$APP_NAME"; then
     echo "App '$APP_NAME' is already running. Stopping and restarting to ensure correct path..."
     pm2 delete $APP_NAME
-    pm2 start server.js --name $APP_NAME
 fi
+
+echo "Starting '$APP_NAME'..."
+pm2 start server.js --name $APP_NAME
 
 # Step 6: Save PM2 config
 echo "[6/6] Saving PM2 configuration..."
@@ -112,5 +131,5 @@ echo "=========================================="
 echo "    Deployment Complete!"
 echo "=========================================="
 echo "App: $APP_DIR"
-echo "URL: http://$(curl -s ifconfig.me):3000 (Check Firewall)"
+echo "URL: https://astroluna.in (or http://astroluna.in:3000)"
 echo ""
