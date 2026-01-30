@@ -251,7 +251,7 @@ fun WalletScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Astro 5 Star", color = PremiumGold, fontWeight = FontWeight.Bold)
+                                Text("AstroLuna", color = PremiumGold, fontWeight = FontWeight.Bold)
                                 Text("**** **** 8888", color = CardText.copy(alpha = 0.5f))
                             }
                         }

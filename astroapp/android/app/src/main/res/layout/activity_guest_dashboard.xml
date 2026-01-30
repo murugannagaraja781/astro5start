@@ -34,7 +34,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="ASTRO 5 STAR"
+                    android:text="AstroLuna"
                     android:textSize="26sp"
                     android:letterSpacing="0.1"
                     android:textStyle="bold"
