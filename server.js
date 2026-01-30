@@ -139,119 +139,8 @@ const io = new Server(server);
 const cors = require("cors");
 const compression = require('compression');
 
-// CSP Middleware to fix font/style loading issues - MOVED TO TOP
-app.use((req, res, next) => {
-  res.removeHeader("Content-Security-Policy"); // Remove any existing tight policy
-  res.setHeader(
-    "Content-Security-Policy",
-    "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://*; " +
-    "style-src 'self' 'unsafe-inline' https://*; " +
-    "font-src 'self' data: https://*; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*; " +
-    "img-src 'self' data: blob: https://*;"
-  );
-  next();
-});
-
 app.use(compression());
 app.use(cors({ origin: "*" }));
-
-// Removed duplicate/misplaced CSP middleware block
-
-// ...
-
-// 12 Rasi Horoscope API
-app.get('/api/horoscope/rasi', (req, res) => {
-  const raliList = [
-    { id: 1, name: "Mesham", name_tamil: "மேஷம்", icon: "aries", prediction: "இன்று நீங்கள் எதிலும் நிதானத்துடன் செயல்பட வேண்டும். குடும்பத்தில் மகிழ்ச்சி நிலவும்." },
-    { id: 2, name: "Rishabam", name_tamil: "ரிஷபம்", icon: "taurus", prediction: "தொழில் வியாபாரத்தில் நல்ல லாபம் கிடைக்கும். உறவினர்கள் வருகை இருக்கும்." },
-    { id: 3, name: "Mithunam", name_tamil: "மிதுனம்", icon: "gemini", prediction: "எதிர்பார்த்த உதவிகள் தக்க சமயத்தில் கிடைக்கும். சுப காரிய முயற்சிகள் கைகூடும்." },
-    { id: 4, name: "Kadagam", name_tamil: "கடகம்", icon: "cancer", prediction: "உடல் ஆரோக்கியத்தில் கவனம் தேவை. பயணங்களில் எச்சரிக்கை அவசியம்." },
-    { id: 5, name: "Simmam", name_tamil: "சிம்மம்", icon: "leo", prediction: "நண்பர்கள் மூலம் ஆதாயம் உண்டாகும். நினைத்த காரியம் நிறைவேறும்." },
-    { id: 6, name: "Kanni", name_tamil: "கன்னி", icon: "virgo", prediction: "வேலை சுமை அதிகரிக்கலாம். சக ஊழியர்களிடம் அனுசரித்து செல்வது நல்லது." },
-    { id: 7, name: "Thulaam", name_tamil: "துலாம்", icon: "libra", prediction: "பண வரவு தாராளமாக இருக்கும். புதிய பொருட்கள் வாங்குவீர்கள்." },
-    { id: 8, name: "Viruchigam", name_tamil: "விருச்சிகம்", icon: "scorpio", prediction: "வாழ்க்கை துணையின் ஆதரவு கிடைக்கும். ஆன்மீக நாட்டம் அதிகரிக்கும்." },
-    { id: 9, name: "Dhanusu", name_tamil: "தனுசு", icon: "sagittarius", prediction: "பிள்ளைகள் வழியில் நல்ல செய்தி வரும். சமூகத்தில் மதிப்பு உயரும்." },
-    { id: 10, name: "Magaram", name_tamil: "மகரம்", icon: "capricorn", prediction: "வீண் செலவுகள் ஏற்படும். ஆடம்பர செலவுகளை குறைப்பது நல்லது." },
-    { id: 11, name: "Kumbam", name_tamil: "கும்பம்", icon: "aquarius", prediction: "திறமைக்கு ஏற்ற அங்கீகாரம் கிடைக்கும். மேலதிகாரிகளின் பாராட்டு கிடைக்கும்." },
-    { id: 12, name: "Meenam", name_tamil: "மீனம்", icon: "pisces", prediction: "உடல் சோர்வு நீங்கி புத்துணர்ச்சி பெறுவீர்கள். கணவன் மனைவி அன்யோன்யம் கூடும்." }
-  ];
-  res.json({ ok: true, data: raliList });
-});
-
-// New Rasi Palan API (requested integration)
-app.get('/api/horoscope/rasi-palan', async (req, res) => {
-  const today = new Date().toISOString().split('T')[0];
-  const GITHUB_BASE = `https://raw.githubusercontent.com/abinash818/daily-horoscope-data/main/data`;
-  const GITHUB_API = `${GITHUB_BASE}/horoscope_${today}.json`;
-
-  const signMapping = {
-    "Aries": 1, "Taurus": 2, "Gemini": 3, "Cancer": 4, "Leo": 5, "Virgo": 6,
-    "Libra": 7, "Scorpio": 8, "Sagittarius": 9, "Capricorn": 10, "Aquarius": 11, "Pisces": 12
-  };
-
-  // Fallback Data matched to RasipalanItem.kt model
-  const FALLBACK_DATA = [
-    { signId: 1, signNameEn: "Aries", signNameTa: "மேஷம்", date: today, prediction: { ta: "இன்று சிறப்பான நாள். பண வரவு இருக்கும்.", en: "Today is a great day. Financial gains expected." }, details: { career: "Good", finance: "Growth", health: "Active" }, lucky: { number: "9", color: { ta: "சிவப்பு", en: "Red" } } },
-    { signId: 2, signNameEn: "Taurus", signNameTa: "ரிஷபம்", date: today, prediction: { ta: "குடும்பத்தில் மகிழ்ச்சி நிலவும். ஆரோக்கியம் மேம்படும்.", en: "Happiness in family. Health will improve." }, details: { career: "Stable", finance: "Moderate", health: "Fine" }, lucky: { number: "6", color: { ta: "வெள்ளை", en: "White" } } },
-    { signId: 3, signNameEn: "Gemini", signNameTa: "மிதுனம்", date: today, prediction: { ta: "புதிய முயற்சிகளில் வெற்றி கிடைக்கும்.", en: "Success in new ventures." }, details: { career: "Productive", finance: "Good", health: "Better" }, lucky: { number: "5", color: { ta: "பச்சை", en: "Green" } } },
-    { signId: 4, signNameEn: "Cancer", signNameTa: "கடகம்", date: today, prediction: { ta: "பயணங்களில் கவனம் தேவை. செலவுகள் கூடும்.", en: "Be careful while traveling. Expenses may rise." }, details: { career: "Busy", finance: "Watchful", health: "Rest needed" }, lucky: { number: "2", color: { ta: "வெள்ளை", en: "White" } } },
-    { signId: 5, signNameEn: "Leo", signNameTa: "சிம்மம்", date: today, prediction: { ta: "நண்பர்கள் உதவுவார்கள். தொழில் முன்னேற்றம் உண்டு.", en: "Friends will help. Career progress is likely." }, details: { career: "Progressive", finance: "Gains", health: "Strong" }, lucky: { number: "1", color: { ta: "ஆரஞ்சு", en: "Orange" } } },
-    { signId: 6, signNameEn: "Virgo", signNameTa: "கன்னி", date: today, prediction: { ta: "வேலையில் பாராட்டு கிடைக்கும். நிதானம் தேவை.", en: "Appreciation at work. Stay calm." }, details: { career: "Good", finance: "Stable", health: "Okay" }, lucky: { number: "5", color: { ta: "பச்சை", en: "Green" } } },
-    { signId: 7, signNameEn: "Libra", signNameTa: "துலாம்", date: today, prediction: { ta: "வியாபாரத்தில் லாபம் வரும். உறவினர்கள் வருகை.", en: "Profits in business. Relatives will visit." }, details: { career: "Profitable", finance: "Increasing", health: "Good" }, lucky: { number: "7", color: { ta: "வெள்ளை", en: "White" } } },
-    { signId: 8, signNameEn: "Scorpio", signNameTa: "விருச்சிகம்", date: today, prediction: { ta: "ஆன்மீக சிந்தனை அதிகரிக்கும். மன அமைதி கிடைக்கும்.", en: "Spiritual thoughts will increase. Peace of mind." }, details: { career: "Focus needed", finance: "Steady", health: "Better" }, lucky: { number: "9", color: { ta: "சிவப்பு", en: "Red" } } },
-    { signId: 9, signNameEn: "Sagittarius", signNameTa: "தனுசு", date: today, prediction: { ta: "பிள்ளைகள் பெருமை சேர்ப்பார்கள். சுப காரியம் கைகூடும்.", en: "Children will bring pride. Auspicious events likely." }, details: { career: "Rewarding", finance: "Good", health: "Fit" }, lucky: { number: "3", color: { ta: "மஞ்சள்", en: "Yellow" } } },
-    { signId: 10, signNameEn: "Capricorn", signNameTa: "மகரம்", date: today, prediction: { ta: "உடல் நலம் சீராகும். கடன் பிரச்சனை தீரும்.", en: "Health will stabilize. Debt issues will resolve." }, details: { career: "Steady", finance: "Improving", health: "Normal" }, lucky: { number: "8", color: { ta: "நீலம்", en: "Blue" } } },
-    { signId: 11, signNameEn: "Aquarius", signNameTa: "கும்பம்", date: today, prediction: { ta: "தைரியமாக செயல்படுவீர்கள். எதிலும் வெற்றி.", en: "You will act bravely. Success in everything." }, details: { career: "Active", finance: "Growth", health: "Great" }, lucky: { number: "8", color: { ta: "கருப்பு", en: "Black" } } },
-    { signId: 12, signNameEn: "Meenam", signNameTa: "மீனம்", date: today, prediction: { ta: "தம்பதிகள் ஒற்றுமை ஓங்கும். சுப நிகழ்ச்சி நடக்கும்.", en: "Unity between couples. Auspicious ceremonies." }, details: { career: "Harmonious", finance: "Stable", health: "Good" }, lucky: { number: "3", color: { ta: "மஞ்சள்", en: "Yellow" } } }
-  ];
-
-  try {
-    const fetch = require('node-fetch');
-    const response = await fetch(GITHUB_API);
-    if (response.ok) {
-      const gitData = await response.json();
-      const rawList = Array.isArray(gitData) ? gitData : (gitData.data || []);
-
-      if (rawList.length > 0) {
-        const mappedData = rawList.map(item => {
-          const signEn = item.sign_en || "";
-          return {
-            signId: signMapping[signEn] || 0,
-            signNameEn: signEn,
-            signNameTa: item.sign_ta || "",
-            date: item.date || today,
-            prediction: {
-              ta: item.forecast_ta || "",
-              en: item.forecast_en || ""
-            },
-            details: {
-              career: item.career_ta || item.career_en || "-",
-              finance: item.finance_ta || item.finance_en || "-",
-              health: item.health_ta || item.health_en || "-"
-            },
-            lucky: {
-              number: String(item.lucky_number || "-"),
-              color: {
-                ta: item.lucky_color_ta || "",
-                en: item.lucky_color_en || ""
-              }
-            }
-          };
-        }).filter(item => item.signId > 0);
-
-        if (mappedData.length > 0) {
-          return res.json(mappedData);
-        }
-      }
-    }
-  } catch (e) {
-    console.warn("GitHub fetch failed, utilizing fallback", e.message);
-  }
-
-  // Return Fallback List DIRECTLY
-  res.json(FALLBACK_DATA);
-});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -263,9 +152,9 @@ app.get('/wallet', (req, res) => {
   const reason = req.query.reason || '';
 
   // Construct Deep Link
-  const scheme = status === 'success' ? 'astroluna://payment-success' : 'astroluna://payment-failed';
+  const scheme = status === 'success' ? 'astro5://payment-success' : 'astro5://payment-failed';
   const deepLink = `${scheme}?status=${status}&reason=${reason}`;
-  const intentUrl = `intent://payment-${status === 'success' ? 'success' : 'failed'}?status=${status}#Intent;scheme=astroluna;package=com.astro5star.app;end`;
+  const intentUrl = `intent://payment-${status === 'success' ? 'success' : 'failed'}?status=${status}#Intent;scheme=astro5;package=com.astro5star.app;end`;
 
   res.send(`
     <html>
@@ -537,11 +426,8 @@ const ChatMessageSchema = new mongoose.Schema({
   fromUserId: String,
   toUserId: String,
   text: String,
-  timestamp: Number,
-  messageId: { type: String, index: true },
-  status: String
+  timestamp: Number
 });
-ChatMessageSchema.index({ sessionId: 1, messageId: 1 }, { unique: true, sparse: true });
 const ChatMessage = mongoose.model('ChatMessage', ChatMessageSchema);
 
 
@@ -657,9 +543,6 @@ app.get('/api/user/:userId', async (req, res) => {
       role: user.role,
       walletBalance: user.walletBalance,
       isOnline: user.isOnline,
-      isChatOnline: user.isChatOnline || false,
-      isAudioOnline: user.isAudioOnline || false,
-      isVideoOnline: user.isVideoOnline || false,
       totalEarnings: user.totalEarnings || 0,
       image: user.image
     });
@@ -1018,8 +901,6 @@ async function endSessionRecord(sessionId) {
     });
   }
 
-  broadcastAstroUpdate(); // Broadcast available status
-
   // Notify with Summary
   const s1 = userSockets.get(s.clientId);
   const s2 = userSockets.get(s.astrologerId);
@@ -1374,12 +1255,7 @@ io.on('connection', (socket) => {
   async function broadcastAstroUpdate() {
     try {
       const astros = await User.find({ role: 'astrologer' });
-      const astrosWithBusy = astros.map(u => {
-        const uObj = u.toObject();
-        uObj.isBusy = userActiveSession.has(u.userId);
-        return uObj;
-      });
-      io.emit('astrologer-update', astrosWithBusy);
+      io.emit('astrologer-update', astros);
     } catch (e) { }
   }
 
@@ -1618,8 +1494,6 @@ io.on('connection', (socket) => {
       });
       userActiveSession.set(fromUserId, sessionId);
       userActiveSession.set(toUserId, sessionId);
-
-      broadcastAstroUpdate(); // Broadcast busy status
 
       // Try socket notification (might fail if in background - that's OK!)
       const targetSocketId = userSockets.get(toUserId);
@@ -1893,7 +1767,7 @@ io.on('connection', (socket) => {
   });
 
   // --- Chat message (text / audio / file) ---
-  socket.on('chat-message', async (data) => {
+  socket.on('chat-message', (data) => {
     try {
       const { toUserId, sessionId, content, timestamp, messageId } = data || {};
       const fromUserId = socketToUser.get(socket.id);
@@ -1904,63 +1778,47 @@ io.on('connection', (socket) => {
         status: 'sent',
       });
 
-      // Save to DB (Check duplicate first)
-      ChatMessage.updateOne(
-        { messageId },
-        {
-          $setOnInsert: {
-            sessionId,
-            fromUserId,
-            toUserId,
-            text: content.text,
-            timestamp: timestamp || Date.now(),
-            messageId,
-            status: 'sent'
-          }
-        },
-        { upsert: true }
-      ).catch(e => console.error('ChatSave Error', e));
+      // Save to DB (Async)
+      ChatMessage.create({
+        sessionId,
+        fromUserId,
+        toUserId,
+        text: content.text,
+        timestamp: timestamp || Date.now()
+      }).catch(e => console.error('ChatSave Error', e));
 
-      // Check if recipient is connected
-      const toSocketId = userSockets.get(toUserId);
-      if (toSocketId) {
-        // Emit to recipient
-        io.to(toSocketId).emit('chat-message', {
-          fromUserId,
-          content,
-          sessionId: sessionId || null,
-          timestamp: timestamp || Date.now(),
-          messageId,
-        });
-      } else {
-        // Recipient offline - Send FCM Push
-        console.log(`[FCM] Recipient ${toUserId} offline. Sending Push for message ${messageId}`);
-        sendChatPush(toUserId, fromUserId, content.text, sessionId, messageId);
-      }
+      // Emit to Room (userId) - works even after reconnect
+      io.to(toUserId).emit('chat-message', {
+        fromUserId,
+        content,
+        sessionId: sessionId || null,
+        timestamp: timestamp || Date.now(),
+        messageId,
+      });
     } catch (err) {
       console.error('chat-message error', err);
     }
   });
 
   // --- Helper: Send Chat Push ---
-  async function sendChatPush(toUserId, fromUserId, messageText, sessionId, messageId) {
+  async function sendChatPush(toUserId, fromUserId, messageText, sessionId) {
     try {
       const toUser = await User.findOne({ userId: toUserId });
       const fromUser = await User.findOne({ userId: fromUserId });
 
       if (toUser && toUser.fcmToken) {
         const payload = {
-          type: 'CHAT_MESSAGE', // Specific type for chat
+          type: 'INCOMING_CALL',
+          callType: 'chat',
           sessionId: sessionId || `chat_${Date.now()}`,
-          messageId: messageId || `msg_${Date.now()}`,
           callerName: fromUser?.name || 'Client',
           callerId: fromUserId,
-          text: messageText,
+          body: messageText.substring(0, 100),
           timestamp: Date.now().toString()
         };
 
         const notification = {
-          title: `New message from ${fromUser?.name || 'Astrologer'}`,
+          title: `Message from ${fromUser?.name}`,
           body: messageText.substring(0, 100)
         };
 
@@ -1985,40 +1843,6 @@ io.on('connection', (socket) => {
 
       cb({ ok: true, sessions });
     } catch (e) { console.error(e); cb({ ok: false }); }
-  });
-
-  // --- GET Chat History API ---
-  app.get('/api/chat/history/:sessionId', async (req, res) => {
-    try {
-      const { sessionId } = req.params;
-      const limit = parseInt(req.query.limit) || 20;
-      const before = req.query.before ? parseInt(req.query.before) : null;
-
-      let query = { sessionId };
-      if (before) {
-        query.timestamp = { $lt: before };
-      }
-
-      // Get latest messages first, then reverse to chronological order
-      const history = await ChatMessage.find(query)
-        .sort({ timestamp: -1 })
-        .limit(limit);
-
-      const sortedHistory = history.reverse();
-
-      res.json({
-        ok: true, history: sortedHistory.map(m => ({
-          messageId: m.messageId || `msg_${m._id}`,
-          fromUserId: m.fromUserId,
-          toUserId: m.toUserId,
-          text: m.text,
-          timestamp: m.timestamp,
-          status: m.status || 'read'
-        }))
-      });
-    } catch (e) {
-      res.status(500).json({ ok: false, error: e.message });
-    }
   });
 
   // --- Receiver: delivered ack ---
@@ -2605,16 +2429,49 @@ io.on('connection', (socket) => {
         // If Astrologer, use grace period before marking offline
         const user = await User.findOne({ userId });
         if (user && user.role === 'astrologer') {
-          console.log(`[Status] Astrologer ${user.name} disconnected - Keeping online status persistent.`);
+          // Save current status before potential offline
+          savedAstroStatus.set(userId, {
+            chat: user.isChatOnline,
+            audio: user.isAudioOnline,
+            video: user.isVideoOnline,
+            timestamp: Date.now()
+          });
+
+          console.log(`[Status] Astrologer ${user.name} disconnected - starting ${OFFLINE_GRACE_PERIOD / 1000}s grace period`);
+
           // Clear any existing timeout
           if (offlineTimeouts.has(userId)) {
             clearTimeout(offlineTimeouts.get(userId));
-            offlineTimeouts.delete(userId);
           }
+
+          // Set new timeout - only mark offline if still disconnected after grace period
+          const timeoutId = setTimeout(async () => {
+            try {
+              // Check if user reconnected
+              if (!userSockets.has(userId)) {
+                const astro = await User.findOne({ userId });
+                if (astro && astro.role === 'astrologer') {
+                  astro.isOnline = false;
+                  astro.isChatOnline = false;
+                  astro.isAudioOnline = false;
+                  astro.isVideoOnline = false;
+                  await astro.save();
+                  broadcastAstroUpdate();
+                  console.log(`[Status] Astrologer ${astro.name} marked offline after grace period`);
+                }
+                savedAstroStatus.delete(userId);
+              } else {
+                console.log(`[Status] Astrologer ${userId} reconnected before grace period ended`);
+              }
+              offlineTimeouts.delete(userId);
+            } catch (err) {
+              console.error('[Status] Grace period timeout error:', err);
+            }
+          }, OFFLINE_GRACE_PERIOD);
+
+          offlineTimeouts.set(userId, timeoutId);
         }
-      } catch (e) {
-        console.error('Disconnect DB error', e);
-      }
+      } catch (e) { console.error('Disconnect DB error', e); }
 
       const sid = userActiveSession.get(userId);
       if (sid) {
@@ -2711,10 +2568,6 @@ app.post('/api/call/initiate', async (req, res) => {
       return res.json({ ok: false, error: 'Astrologer is Offline', code: 'OFFLINE' });
     }
 
-    // Fetch Caller Name for Notification
-    const caller = await User.findOne({ userId: callerId });
-    const callerName = caller ? caller.name : 'Guest';
-
     // B. Create Call Request
     const callId = "CALL_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
     await CallRequest.create({
@@ -2731,12 +2584,12 @@ app.post('/api/call/initiate', async (req, res) => {
         type: 'incoming_call',
         callId: callId,
         callerId: callerId,
-        callerName: callerName // Fixed: Use actual name
+        callerName: 'Client'
       };
 
       const fcmNotification = {
         title: 'Incoming Call',
-        body: `${callerName} is calling...`
+        body: 'Tap to answer video call'
       };
 
       const fcmResult = await sendFcmV1Push(astro.fcmToken, fcmData, fcmNotification);
@@ -2752,24 +2605,6 @@ app.post('/api/call/initiate', async (req, res) => {
     res.json({ ok: false, error: 'Server Error' });
   }
 });
-
-// Update Intake Form (Socket) - Broadcast to partner
-io.on('connection', (socket) => {
-  socket.on('update-intake', (data) => {
-    const { sessionId, formData } = data;
-    const fromUserId = socketToUser.get(socket.id);
-    if (!sessionId || !fromUserId) return;
-
-    const session = activeSessions.get(sessionId);
-    if (session) {
-      const partnerId = session.users.find(u => u !== fromUserId);
-      if (partnerId) {
-        io.to(partnerId).emit('intake-updated', { formData });
-      }
-    }
-  });
-});
-
 
 // 3. Accept Call (Astrologer -> Server)
 app.post('/api/call/accept', async (req, res) => {
@@ -2943,8 +2778,8 @@ app.post('/api/payment/create', async (req, res) => {
 
     const merchantTransactionId = "MT" + Date.now() + Math.floor(Math.random() * 1000);
     const redirectUrl = isApp
-      ? `https://astroluna.in/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`
-      : `https://astroluna.in/api/payment/callback`;
+      ? `https://astro5star.com/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`
+      : `https://astro5star.com/api/payment/callback`;
 
     // Create Pending Record
     await Payment.create({
@@ -2972,7 +2807,7 @@ app.post('/api/payment/create', async (req, res) => {
         amount: amount * 100, // Amount in Paise
         redirectUrl: redirectUrl,
         redirectMode: "POST",
-        callbackUrl: `https://astroluna.in/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`,
+        callbackUrl: `https://astro5star.com/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`,
         mobileNumber: userMobile,
         paymentInstrument: {
           type: "PAY_PAGE"
@@ -3037,7 +2872,7 @@ app.post('/api/payment/create', async (req, res) => {
       amount: amount * 100, // Amount in Paise
       redirectUrl: redirectUrl,
       redirectMode: "POST",
-      callbackUrl: `https://astroluna.in/api/payment/callback`,
+      callbackUrl: `https://astro5star.com/api/payment/callback`,
       mobileNumber: "9000090000",
       paymentInstrument: {
         type: "PAY_PAGE"
@@ -3118,8 +2953,8 @@ app.post('/api/payment/callback', async (req, res) => {
 
       // AUTO-REDIRECT TO APP IF DETECTED (Even if isApp param is missing)
       if (isAndroidApp) {
-        const intentUrl = `intent://payment-failed?reason=no_response#Intent;scheme=astroluna;package=com.astro5star.app;end`;
-        const customScheme = `astroluna://payment-failed?reason=no_response`;
+        const intentUrl = `intent://payment-failed?reason=no_response#Intent;scheme=astro5;package=com.astro5star.app;end`;
+        const customScheme = `astro5://payment-failed?reason=no_response`;
 
         return res.send(`
           <html>
@@ -3200,9 +3035,9 @@ app.post('/api/payment/callback', async (req, res) => {
       // Determine Redirect URL
       let targetUrl = '';
       if (req.query.isApp === 'true') {
-        targetUrl = `astroluna://payment-success?status=success`;
+        targetUrl = `astro5://payment-success?status=success`;
       } else {
-        targetUrl = `https://astroluna.in/wallet?status=success`;
+        targetUrl = `https://astro5star.com/wallet?status=success`;
       }
 
       // Render HTML for App Deep Link (Using Android Intent URL for Chrome)
@@ -3211,9 +3046,9 @@ app.post('/api/payment/callback', async (req, res) => {
         const amount = payment.amount || '';
 
         // Intent URL with S.browser=1 fallback (Chrome will stay in browser if app not installed)
-        const webFallback = encodeURIComponent('https://astroluna.in/?payment=success');
-        const intentUrl = `intent://payment-success?status=success&txnId=${txnId}#Intent;scheme=astroluna;package=com.astro5star.app;S.browser_fallback_url=${webFallback};end`;
-        const customSchemeUrl = `astroluna://payment-success?status=success&txnId=${txnId}`;
+        const webFallback = encodeURIComponent('https://astro5star.com/?payment=success');
+        const intentUrl = `intent://payment-success?status=success&txnId=${txnId}#Intent;scheme=astro5;package=com.astro5star.app;S.browser_fallback_url=${webFallback};end`;
+        const customSchemeUrl = `astro5://payment-success?status=success&txnId=${txnId}`;
 
         const html = `
             <!DOCTYPE html>
@@ -3339,15 +3174,15 @@ app.post('/api/payment/callback', async (req, res) => {
 
       let targetUrl = '';
       if (req.query.isApp === 'true') {
-        targetUrl = `astroluna://payment-failed?status=failed`;
+        targetUrl = `astro5://payment-failed?status=failed`;
       } else {
-        targetUrl = `https://astroluna.in/wallet?status=failure`;
+        targetUrl = `https://astro5star.com/wallet?status=failure`;
       }
 
       if (req.query.isApp === 'true') {
         // Android Intent URL format for Chrome
-        const intentUrl = `intent://payment-failed?status=failed#Intent;scheme=astroluna;package=com.astro5star.app;end`;
-        const fallbackUrl = `astroluna://payment-failed?status=failed`;
+        const intentUrl = `intent://payment-failed?status=failed#Intent;scheme=astro5;package=com.astro5star.app;end`;
+        const fallbackUrl = `astro5://payment-failed?status=failed`;
 
         const html = `
             <!DOCTYPE html>
@@ -3444,9 +3279,9 @@ app.post('/api/phonepe/init', async (req, res) => {
       merchantTransactionId: merchantTransactionId,
       merchantUserId: cleanUserId,
       amount: amount * 100, // Paise
-      redirectUrl: `https://astroluna.in/api/payment/callback?isApp=true`,
+      redirectUrl: `https://astro5star.com/api/payment/callback?isApp=true`,
       redirectMode: "POST",
-      callbackUrl: `https://astroluna.in/api/phonepe/callback`,
+      callbackUrl: `https://astro5star.com/api/phonepe/callback`,
       mobileNumber: userMobile,
       paymentInstrument: {
         type: "PAY_PAGE"
@@ -3515,7 +3350,7 @@ app.post('/api/phonepe/sign', async (req, res) => {
       merchantTransactionId: merchantTransactionId,
       merchantUserId: cleanUserId,
       amount: amount * 100,
-      callbackUrl: "https://astroluna.in/api/phonepe/callback",
+      callbackUrl: "https://astro5star.com/api/phonepe/callback",
       mobileNumber: userMobile,
       paymentInstrument: {
         type: "PAY_PAGE"

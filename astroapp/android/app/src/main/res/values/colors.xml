@@ -27,7 +27,7 @@
     <color name="text_on_card">#1C1F26</color>
     <color name="void_black">#1C1F26</color>
     <color name="error_red">#DC2626</color>
-    <color name="status_green">#7C3AED</color>
+    <color name="status_green">#1B5E20</color>
     <color name="status_red">#DC2626</color>
 
     <!-- Mappings for System/Legacy -->
@@ -52,13 +52,13 @@
     <color name="error">@color/error_red</color>
     <color name="on_error">@color/void_black</color>
 
-    <color name="status_online">#7C3AED</color>
+    <color name="status_online">#1B5E20</color>
     <color name="status_busy">@color/status_red</color>
     <color name="divider">#E2E8F0</color>
     <color name="white">#FFFFFF</color>
     <color name="black">#1C1F26</color>
     <color name="support_blue">#3A4F7A</color>
-    <color name="border_color">#7C3AED</color>
+    <color name="border_color">#1B5E20</color>
 
     <!-- LEGACY COMPATIBILITY -->
     <color name="text_white">#FFFFFF</color>
@@ -72,13 +72,13 @@
     <color name="divider_gold">#EEEEEE</color>
     <color name="brand_ripple">#EEEEEE</color>
 
-    <color name="brand_avocado">#7C3AED</color>
-    <color name="brand_gold">#7C3AED</color>
-    <color name="brand_orange">#7C3AED</color>
-    <color name="brand_purple">#7C3AED</color>
-    <color name="brand_emerald_royal">#7C3AED</color>
-    <color name="brand_emerald_dark">#7C3AED</color>
-    <color name="brand_gold_dark">#7C3AED</color>
+    <color name="brand_avocado">#1B5E20</color>
+    <color name="brand_gold">#1B5E20</color>
+    <color name="brand_orange">#1B5E20</color>
+    <color name="brand_purple">#1B5E20</color>
+    <color name="brand_emerald_royal">#1B5E20</color>
+    <color name="brand_emerald_dark">#1B5E20</color>
+    <color name="brand_gold_dark">#1B5E20</color>
     <color name="brand_status_online">#00C853</color>
     <color name="avatar_background">#EEEEEE</color>
     <color name="accent">#000000</color>
@@ -108,8 +108,8 @@
     <color name="call_reject">#FF5252</color>
 
     <!-- Action Button Colors -->
-    <color name="action_chat">#7C3AED</color>
-    <color name="action_call">#7C3AED</color>
+    <color name="action_chat">#1B5E20</color>
+    <color name="action_call">#1B5E20</color>
 
     <!-- Premium Surface Border -->
     <color name="surface_border">#E8ECF2</color>

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    7: <title>Payment Gateway - Astro Luna</title>
+    <title>Payment Gateway - Astro 5 Star</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -40,14 +40,14 @@
         .wallet-icon {
             width: 60px;
             height: 60px;
-            background: linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%);
+            background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 15px;
             font-size: 1.8rem;
-            color: #7C3AED;
+            color: #047857;
         }
 
         .payment-header h2 {
@@ -96,13 +96,13 @@
         .amount-display .amount {
             font-size: 2.5rem;
             font-weight: 700;
-            color: #7C3AED;
+            color: #047857;
         }
 
         .pay-btn {
             width: 100%;
             padding: 16px;
-            background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
             border: none;
             border-radius: 12px;
             color: white;
@@ -138,7 +138,7 @@
 
         .security-note i {
             margin-right: 5px;
-            color: #7C3AED;
+            color: #047857;
         }
 
         /* Error State */
@@ -196,7 +196,7 @@
             width: 50px;
             height: 50px;
             border: 4px solid #E5E7EB;
-            border-top-color: #7C3AED;
+            border-top-color: #047857;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -387,7 +387,7 @@
                 const isAndroidApp = userAgent.includes('Android') &&
                     (userAgent.includes('wv') || // WebView
                         !userAgent.includes('Chrome/') || // Not Chrome browser
-                        document.referrer.includes('astroluna.in')); // Came from our app
+                        document.referrer.includes('astro5star.com')); // Came from our app
 
                 const response = await fetch('/api/payment/create', {
                     method: 'POST',
@@ -438,14 +438,14 @@
                 setTimeout(() => {
                     const isApp = true; // We can improve detection if needed, but for now we assume this flow is mostly app
                     // Try to open App Scheme
-                    window.location.href = "astroluna://payment-success";
+                    window.location.href = "astro5://payment-success";
 
                     // Fallback "Return to App" button
                     const btn = document.createElement('button');
                     btn.className = 'pay-btn';
                     btn.style.marginTop = '20px';
                     btn.innerHTML = 'Return to App';
-                    btn.onclick = () => window.location.href = "astroluna://payment-success";
+                    btn.onclick = () => window.location.href = "astro5://payment-success";
                     document.getElementById('paymentContainer').appendChild(btn);
 
                 }, 2000);
@@ -458,7 +458,7 @@
                     const btn = document.createElement('button');
                     btn.className = 'retry-btn';
                     btn.innerText = 'Return to App';
-                    btn.onclick = () => window.location.href = "astroluna://payment-failed";
+                    btn.onclick = () => window.location.href = "astro5://payment-failed";
                     document.getElementById('errorContainer').appendChild(btn);
                 }, 1000);
             }

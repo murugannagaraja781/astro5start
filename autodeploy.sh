@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# Astro Luna - Auto Deploy Script
-# Run this on server: curl -fsSL https://raw.githubusercontent.com/murugannagaraja781/Astro-luna/main/autodeploy.sh | bash
+# Astro 5 Star - Auto Deploy Script
+# Run this on server: curl -fsSL https://raw.githubusercontent.com/murugannagaraja781/astro5start/main/autodeploy.sh | bash
 
 echo "=========================================="
-echo "      Astro Luna Auto Deploy"
+echo "    Astro 5 Star Auto Deploy"
 echo "=========================================="
 
 # Variables
-APP_DIR="/var/www/astroluna"
-REPO_URL="https://github.com/murugannagaraja781/Astro-luna.git"
-APP_NAME="astroluna-app"
+APP_DIR="/var/www/astro5start"
+REPO_URL="https://github.com/murugannagaraja781/astro5start.git"
+APP_NAME="astro-app"
 
 # Step 1: Create directory if not exists
 echo "[1/6] Creating app directory..."
@@ -32,31 +32,21 @@ if [ -f "github_action_key" ]; then
         current_url=$(git remote get-url origin)
         if [[ "$current_url" == https* ]]; then
              echo "Switching remote to SSH..."
-             git remote set-url origin git@github.com:murugannagaraja781/Astro-luna.git
+             git remote set-url origin git@github.com:murugannagaraja781/astro5start.git
         fi
     fi
 fi
 
 if [ -d ".git" ]; then
-    echo "Updating remote URL and pulling latest changes..."
-    # Force update the remote URL to the new one
-    git remote set-url origin $REPO_URL || git remote add origin $REPO_URL
+    echo "Pulling latest changes..."
+    # Reset any local changes (like the manual fix user might have attempted)
     git reset --hard
-    git fetch origin
-    # Detect the correct branch (main or master)
-    BRANCH=$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')
-    if [ -z "$BRANCH" ]; then
-        # Fallback if remote show fails
-        if git rev-parse --verify origin/main >/dev/null 2>&1; then BRANCH="main"; else BRANCH="master"; fi
-    fi
-
-    echo "Detected branch: $BRANCH"
-    git checkout $BRANCH || git checkout -b $BRANCH
-    git reset --hard origin/$BRANCH
+    git fetch origin main
+    git reset --hard origin/main
 else
     echo "Cloning repository..."
     cd /var/www
-    sudo rm -rf astroluna
+    sudo rm -rf astro5start
 
     # If freshly cloning, we might fail if we don't have the key yet (Chicken & Egg).
     # But user likely has the repo already.
@@ -64,7 +54,7 @@ else
     # Getting key for initial clone is tricky via script if script is curl'd.
     # Assessing current state: User HAS repo.
 
-    git clone $REPO_URL astroluna
+    git clone $REPO_URL astro5start
     cd $APP_DIR
 fi
 
