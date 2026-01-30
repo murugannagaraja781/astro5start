@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment Gateway - Astro 5 Star</title>
+    7: <title>Payment Gateway - Astro Luna</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -387,7 +387,7 @@
                 const isAndroidApp = userAgent.includes('Android') &&
                     (userAgent.includes('wv') || // WebView
                         !userAgent.includes('Chrome/') || // Not Chrome browser
-                        document.referrer.includes('astro5star.com')); // Came from our app
+                        document.referrer.includes('astroluna.in')); // Came from our app
 
                 const response = await fetch('/api/payment/create', {
                     method: 'POST',
@@ -438,14 +438,14 @@
                 setTimeout(() => {
                     const isApp = true; // We can improve detection if needed, but for now we assume this flow is mostly app
                     // Try to open App Scheme
-                    window.location.href = "astro5://payment-success";
+                    window.location.href = "astroluna://payment-success";
 
                     // Fallback "Return to App" button
                     const btn = document.createElement('button');
                     btn.className = 'pay-btn';
                     btn.style.marginTop = '20px';
                     btn.innerHTML = 'Return to App';
-                    btn.onclick = () => window.location.href = "astro5://payment-success";
+                    btn.onclick = () => window.location.href = "astroluna://payment-success";
                     document.getElementById('paymentContainer').appendChild(btn);
 
                 }, 2000);
@@ -458,7 +458,7 @@
                     const btn = document.createElement('button');
                     btn.className = 'retry-btn';
                     btn.innerText = 'Return to App';
-                    btn.onclick = () => window.location.href = "astro5://payment-failed";
+                    btn.onclick = () => window.location.href = "astroluna://payment-failed";
                     document.getElementById('errorContainer').appendChild(btn);
                 }, 1000);
             }

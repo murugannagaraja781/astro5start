@@ -263,9 +263,9 @@ app.get('/wallet', (req, res) => {
   const reason = req.query.reason || '';
 
   // Construct Deep Link
-  const scheme = status === 'success' ? 'astro5://payment-success' : 'astro5://payment-failed';
+  const scheme = status === 'success' ? 'astroluna://payment-success' : 'astroluna://payment-failed';
   const deepLink = `${scheme}?status=${status}&reason=${reason}`;
-  const intentUrl = `intent://payment-${status === 'success' ? 'success' : 'failed'}?status=${status}#Intent;scheme=astro5;package=com.astro5star.app;end`;
+  const intentUrl = `intent://payment-${status === 'success' ? 'success' : 'failed'}?status=${status}#Intent;scheme=astroluna;package=com.astro5star.app;end`;
 
   res.send(`
     <html>
@@ -2943,8 +2943,8 @@ app.post('/api/payment/create', async (req, res) => {
 
     const merchantTransactionId = "MT" + Date.now() + Math.floor(Math.random() * 1000);
     const redirectUrl = isApp
-      ? `https://astro5star.com/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`
-      : `https://astro5star.com/api/payment/callback`;
+      ? `https://astroluna.in/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`
+      : `https://astroluna.in/api/payment/callback`;
 
     // Create Pending Record
     await Payment.create({
@@ -2972,7 +2972,7 @@ app.post('/api/payment/create', async (req, res) => {
         amount: amount * 100, // Amount in Paise
         redirectUrl: redirectUrl,
         redirectMode: "POST",
-        callbackUrl: `https://astro5star.com/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`,
+        callbackUrl: `https://astroluna.in/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`,
         mobileNumber: userMobile,
         paymentInstrument: {
           type: "PAY_PAGE"
@@ -3037,7 +3037,7 @@ app.post('/api/payment/create', async (req, res) => {
       amount: amount * 100, // Amount in Paise
       redirectUrl: redirectUrl,
       redirectMode: "POST",
-      callbackUrl: `https://astro5star.com/api/payment/callback`,
+      callbackUrl: `https://astroluna.in/api/payment/callback`,
       mobileNumber: "9000090000",
       paymentInstrument: {
         type: "PAY_PAGE"
@@ -3118,8 +3118,8 @@ app.post('/api/payment/callback', async (req, res) => {
 
       // AUTO-REDIRECT TO APP IF DETECTED (Even if isApp param is missing)
       if (isAndroidApp) {
-        const intentUrl = `intent://payment-failed?reason=no_response#Intent;scheme=astro5;package=com.astro5star.app;end`;
-        const customScheme = `astro5://payment-failed?reason=no_response`;
+        const intentUrl = `intent://payment-failed?reason=no_response#Intent;scheme=astroluna;package=com.astro5star.app;end`;
+        const customScheme = `astroluna://payment-failed?reason=no_response`;
 
         return res.send(`
           <html>
@@ -3200,9 +3200,9 @@ app.post('/api/payment/callback', async (req, res) => {
       // Determine Redirect URL
       let targetUrl = '';
       if (req.query.isApp === 'true') {
-        targetUrl = `astro5://payment-success?status=success`;
+        targetUrl = `astroluna://payment-success?status=success`;
       } else {
-        targetUrl = `https://astro5star.com/wallet?status=success`;
+        targetUrl = `https://astroluna.in/wallet?status=success`;
       }
 
       // Render HTML for App Deep Link (Using Android Intent URL for Chrome)
@@ -3211,9 +3211,9 @@ app.post('/api/payment/callback', async (req, res) => {
         const amount = payment.amount || '';
 
         // Intent URL with S.browser=1 fallback (Chrome will stay in browser if app not installed)
-        const webFallback = encodeURIComponent('https://astro5star.com/?payment=success');
-        const intentUrl = `intent://payment-success?status=success&txnId=${txnId}#Intent;scheme=astro5;package=com.astro5star.app;S.browser_fallback_url=${webFallback};end`;
-        const customSchemeUrl = `astro5://payment-success?status=success&txnId=${txnId}`;
+        const webFallback = encodeURIComponent('https://astroluna.in/?payment=success');
+        const intentUrl = `intent://payment-success?status=success&txnId=${txnId}#Intent;scheme=astroluna;package=com.astro5star.app;S.browser_fallback_url=${webFallback};end`;
+        const customSchemeUrl = `astroluna://payment-success?status=success&txnId=${txnId}`;
 
         const html = `
             <!DOCTYPE html>
@@ -3339,15 +3339,15 @@ app.post('/api/payment/callback', async (req, res) => {
 
       let targetUrl = '';
       if (req.query.isApp === 'true') {
-        targetUrl = `astro5://payment-failed?status=failed`;
+        targetUrl = `astroluna://payment-failed?status=failed`;
       } else {
-        targetUrl = `https://astro5star.com/wallet?status=failure`;
+        targetUrl = `https://astroluna.in/wallet?status=failure`;
       }
 
       if (req.query.isApp === 'true') {
         // Android Intent URL format for Chrome
-        const intentUrl = `intent://payment-failed?status=failed#Intent;scheme=astro5;package=com.astro5star.app;end`;
-        const fallbackUrl = `astro5://payment-failed?status=failed`;
+        const intentUrl = `intent://payment-failed?status=failed#Intent;scheme=astroluna;package=com.astro5star.app;end`;
+        const fallbackUrl = `astroluna://payment-failed?status=failed`;
 
         const html = `
             <!DOCTYPE html>
@@ -3444,9 +3444,9 @@ app.post('/api/phonepe/init', async (req, res) => {
       merchantTransactionId: merchantTransactionId,
       merchantUserId: cleanUserId,
       amount: amount * 100, // Paise
-      redirectUrl: `https://astro5star.com/api/payment/callback?isApp=true`,
+      redirectUrl: `https://astroluna.in/api/payment/callback?isApp=true`,
       redirectMode: "POST",
-      callbackUrl: `https://astro5star.com/api/phonepe/callback`,
+      callbackUrl: `https://astroluna.in/api/phonepe/callback`,
       mobileNumber: userMobile,
       paymentInstrument: {
         type: "PAY_PAGE"
@@ -3515,7 +3515,7 @@ app.post('/api/phonepe/sign', async (req, res) => {
       merchantTransactionId: merchantTransactionId,
       merchantUserId: cleanUserId,
       amount: amount * 100,
-      callbackUrl: "https://astro5star.com/api/phonepe/callback",
+      callbackUrl: "https://astroluna.in/api/phonepe/callback",
       mobileNumber: userMobile,
       paymentInstrument: {
         type: "PAY_PAGE"

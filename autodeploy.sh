@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Astro 5 Star - Auto Deploy Script
+# Astro Luna - Auto Deploy Script
 # Run this on server: curl -fsSL https://raw.githubusercontent.com/murugannagaraja781/astro5start/main/autodeploy.sh | bash
 
 echo "=========================================="
-echo "    Astro 5 Star Auto Deploy"
+echo "      Astro Luna Auto Deploy"
 echo "=========================================="
 
 # Variables
