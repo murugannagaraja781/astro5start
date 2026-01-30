@@ -43,9 +43,16 @@ if [ -d ".git" ]; then
     git remote set-url origin $REPO_URL || git remote add origin $REPO_URL
     git reset --hard
     git fetch origin
-    # Try to checkout main, fallback to current if it fails
-    git checkout main || echo "Already on main or branch main not found"
-    git reset --hard origin/main
+    # Detect the correct branch (main or master)
+    BRANCH=$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')
+    if [ -z "$BRANCH" ]; then
+        # Fallback if remote show fails
+        if git rev-parse --verify origin/main >/dev/null 2>&1; then BRANCH="main"; else BRANCH="master"; fi
+    fi
+
+    echo "Detected branch: $BRANCH"
+    git checkout $BRANCH || git checkout -b $BRANCH
+    git reset --hard origin/$BRANCH
 else
     echo "Cloning repository..."
     cd /var/www
