@@ -1,16 +1,16 @@
 #!/bin/bash
 
 # Astro Luna - Auto Deploy Script
-# Run this on server: curl -fsSL https://raw.githubusercontent.com/murugannagaraja781/astro5start/main/autodeploy.sh | bash
+# Run this on server: curl -fsSL https://raw.githubusercontent.com/murugannagaraja781/Astro-luna/main/autodeploy.sh | bash
 
 echo "=========================================="
 echo "      Astro Luna Auto Deploy"
 echo "=========================================="
 
 # Variables
-APP_DIR="/var/www/astro5start"
-REPO_URL="https://github.com/murugannagaraja781/astro5start.git"
-APP_NAME="astro-app"
+APP_DIR="/var/www/astroluna"
+REPO_URL="https://github.com/murugannagaraja781/Astro-luna.git"
+APP_NAME="astroluna-app"
 
 # Step 1: Create directory if not exists
 echo "[1/6] Creating app directory..."
@@ -32,21 +32,24 @@ if [ -f "github_action_key" ]; then
         current_url=$(git remote get-url origin)
         if [[ "$current_url" == https* ]]; then
              echo "Switching remote to SSH..."
-             git remote set-url origin git@github.com:murugannagaraja781/astro5start.git
+             git remote set-url origin git@github.com:murugannagaraja781/Astro-luna.git
         fi
     fi
 fi
 
 if [ -d ".git" ]; then
-    echo "Pulling latest changes..."
-    # Reset any local changes (like the manual fix user might have attempted)
+    echo "Updating remote URL and pulling latest changes..."
+    # Force update the remote URL to the new one
+    git remote set-url origin $REPO_URL || git remote add origin $REPO_URL
     git reset --hard
-    git fetch origin main
+    git fetch origin
+    # Try to checkout main, fallback to current if it fails
+    git checkout main || echo "Already on main or branch main not found"
     git reset --hard origin/main
 else
     echo "Cloning repository..."
     cd /var/www
-    sudo rm -rf astro5start
+    sudo rm -rf astroluna
 
     # If freshly cloning, we might fail if we don't have the key yet (Chicken & Egg).
     # But user likely has the repo already.
@@ -54,7 +57,7 @@ else
     # Getting key for initial clone is tricky via script if script is curl'd.
     # Assessing current state: User HAS repo.
 
-    git clone $REPO_URL astro5start
+    git clone $REPO_URL astroluna
     cd $APP_DIR
 fi
 
