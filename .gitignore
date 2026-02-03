@@ -66,7 +66,7 @@ astroapp/android/keystore.properties
 # Local Configuration
 local.properties
 astroapp/android/local.properties
-
+firebase-service-account.json
 # Local Cache & Temp
 .gradle_home/
 local_tmp/
