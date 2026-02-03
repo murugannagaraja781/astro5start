@@ -55,3 +55,20 @@ astrofivestar-mobile-native/ios/Pods/
 # Ignore local gradle cache
 astroapp/android/.gradle_local/
 
+# Security Keys & Secrets (CRITICAL)
+firebase-service-account.json
+github_action_key
+github_action_key.pub
+astroapp/android/keystore.properties
+**/*.jks
+**/*.keystore
+
+# Local Configuration
+local.properties
+astroapp/android/local.properties
+
+# Local Cache & Temp
+.gradle_home/
+local_tmp/
+.gradle-local/
+

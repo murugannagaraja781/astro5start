@@ -9,33 +9,42 @@ import android.media.RingtoneManager
 import android.os.*
 import android.util.Log
 import android.view.WindowManager
-import android.widget.Button
-import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.CallEnd
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.astro5star.app.ui.theme.CosmicAppTheme
 
 /**
  * IncomingCallActivity - Full-screen incoming call UI
- *
- * THIS ACTIVITY SHOWS THE INCOMING CALL SCREEN, SIMILAR TO WHATSAPP/TELEGRAM.
- *
- * HOW IT APPEARS OVER LOCK SCREEN:
- * 1. AndroidManifest declares: showWhenLocked="true", turnScreenOn="true"
- * 2. We also call setShowWhenLocked(true) and setTurnScreenOn(true) programmatically
- * 3. We use FLAG_KEEP_SCREEN_ON to prevent screen from turning off
- *
- * FLOW:
- * 1. FCMService receives incoming call message
- * 2. FCMService starts this activity with caller info
- * 3. This activity shows full-screen UI with ringtone + vibration
- * 4. User taps Accept or Reject
- * 5. Activity finishes
- *
- * FOREGROUND SERVICE:
- * We start CallForegroundService to prevent Android from killing this process.
- * The foreground service shows a persistent notification during the incoming call.
  */
-class IncomingCallActivity : AppCompatActivity() {
+class IncomingCallActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "IncomingCallActivity"
@@ -50,6 +59,7 @@ class IncomingCallActivity : AppCompatActivity() {
     private var callerId: String = ""
     private var callerName: String = ""
     private var callId: String = ""
+    private var callType: String = "audio"
     private var birthData: String? = null
 
     // Auto-reject call after timeout
@@ -76,25 +86,48 @@ class IncomingCallActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         processIntent(intent)
         setupWindowFlags()
-        setContentView(R.layout.activity_incoming_call)
-        setupUI()
+
         startCallForegroundService()
         startRingtone()
         startVibration()
         handler.postDelayed(timeoutRunnable, CALL_TIMEOUT_MS)
+
+        setContent {
+            CosmicAppTheme {
+                IncomingCallScreen(
+                    callerName = callerName,
+                    callerId = if (callerId == "Unknown" && callId.isNotEmpty()) "Room: $callId" else "Calling from: $callerId",
+                    callType = callType,
+                    onAccept = { onCallAccepted() },
+                    onReject = { onCallRejected() }
+                )
+            }
+        }
     }
 
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        processIntent(intent)
-        setupUI() // Refresh UI with new data
-        // Reset timeout
-        handler.removeCallbacks(timeoutRunnable)
-        handler.postDelayed(timeoutRunnable, CALL_TIMEOUT_MS)
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent) // Corrected nullability
+        intent?.let {
+            setIntent(it)
+            processIntent(it)
+            // Refresh content via Re-composition if needed, but simple setContent update works or force recreation
+            // For now, assume state update isn't complex, we just setContent again to be sure
+             setContent {
+                CosmicAppTheme {
+                    IncomingCallScreen(
+                        callerName = callerName,
+                        callerId = if (callerId == "Unknown" && callId.isNotEmpty()) "Room: $callId" else "Calling from: $callerId",
+                         callType = callType,
+                        onAccept = { onCallAccepted() },
+                        onReject = { onCallRejected() }
+                    )
+                }
+            }
+            // Reset timeout
+            handler.removeCallbacks(timeoutRunnable)
+            handler.postDelayed(timeoutRunnable, CALL_TIMEOUT_MS)
+        }
     }
-
-    private var callType: String = "audio"
 
     private fun processIntent(intent: Intent?) {
         if (intent == null) return
@@ -116,48 +149,6 @@ class IncomingCallActivity : AppCompatActivity() {
         notificationManager.cancel(1002) // Generic FCM
     }
 
-    private fun setupUI() {
-        val callerNameText = findViewById<TextView>(R.id.callerNameText)
-        val callerIdText = findViewById<TextView>(R.id.callerIdText)
-        val titleText = findViewById<TextView>(R.id.tvIncomingLabel)
-        val acceptButton = findViewById<android.widget.ImageButton>(R.id.acceptButton)
-        val rejectButton = findViewById<android.widget.ImageButton>(R.id.rejectButton)
-
-
-        callerNameText.text = callerName
-
-        var typeLabel = "Incoming Call"
-        if (callType == "chat") typeLabel = "Incoming Chat Request"
-        if (callType == "video") typeLabel = "Incoming Video Call"
-
-        titleText.text = typeLabel
-
-        // User Request: If callerId is unknown, use Room ID (callId)
-        if (callerId == "Unknown" && callId.isNotEmpty()) {
-            callerIdText.text = "Room: $callId"
-        } else {
-            callerIdText.text = "Calling from: $callerId"
-        }
-
-        acceptButton.setOnClickListener {
-            onCallAccepted()
-        }
-
-        rejectButton.setOnClickListener {
-            onCallRejected()
-        }
-
-
-    }
-
-    /**
-     * Start foreground service to keep the call process alive
-     *
-     * WHY THIS IS NECESSARY:
-     * Android can kill activities at any time to free memory.
-     * A foreground service has higher priority and is less likely to be killed.
-     * The service also shows a notification, which is required by Android.
-     */
     private fun startCallForegroundService() {
         val serviceIntent = Intent(this, CallForegroundService::class.java).apply {
             putExtra("callerName", callerName)
@@ -167,13 +158,6 @@ class IncomingCallActivity : AppCompatActivity() {
         ContextCompat.startForegroundService(this, serviceIntent)
     }
 
-    /**
-     * Play ringtone for incoming call
-     *
-     * Uses the device's default ringtone. You can replace this with a custom
-     * ringtone by placing an MP3 in res/raw/ and using:
-     * MediaPlayer.create(this, R.raw.ringtone)
-     */
     private fun startRingtone() {
         try {
             val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
@@ -197,11 +181,6 @@ class IncomingCallActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Start vibration pattern for incoming call
-     *
-     * Pattern: vibrate 500ms, pause 500ms, repeat
-     */
     private fun startVibration() {
         vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -245,25 +224,22 @@ class IncomingCallActivity : AppCompatActivity() {
         stopRingtoneAndVibration()
         handler.removeCallbacks(timeoutRunnable)
 
-        // Notify Server via Socket (if connected) or just launch Activity which connects
-        // Ideally we emit 'answer-session-native' here if possible
-
         val intent: Intent
         if (callType == "chat") {
             intent = Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
                 putExtra("sessionId", callId)
                 putExtra("toUserId", callerId)
                 putExtra("toUserName", callerName)
-                putExtra("isNewRequest", true) // Now safe to auto-accept since user clicked Accept
+                putExtra("isNewRequest", true)
                 putExtra("birthData", birthData)
             }
         } else {
             intent = Intent(this, com.astro5star.app.ui.call.CallActivity::class.java).apply {
                 putExtra("sessionId", callId)
                 putExtra("partnerId", callerId)
-                putExtra("partnerName", callerName) // Pass name for UI
+                putExtra("partnerName", callerName)
                 putExtra("isInitiator", false)
-                putExtra("callType", callType) // Pass audio/video type
+                putExtra("callType", callType)
                 putExtra("birthData", birthData)
             }
         }
@@ -280,8 +256,6 @@ class IncomingCallActivity : AppCompatActivity() {
         Log.d(TAG, "Call rejected: $callId")
         stopRingtoneAndVibration()
         handler.removeCallbacks(timeoutRunnable)
-
-        // TODO: Send reject signal to server if needed
 
         // Stop foreground service
         stopService(Intent(this, CallForegroundService::class.java))
@@ -303,13 +277,117 @@ class IncomingCallActivity : AppCompatActivity() {
         Log.d(TAG, "IncomingCallActivity destroyed")
     }
 
-    /**
-     * Prevent back button from dismissing incoming call
-     * User must explicitly Accept or Reject
-     */
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         // Do nothing - user must accept or reject
         Log.d(TAG, "Back pressed - ignoring (user must accept or reject)")
+    }
+}
+
+@Composable
+fun IncomingCallScreen(
+    callerName: String,
+    callerId: String,
+    callType: String,
+    onAccept: () -> Unit,
+    onReject: () -> Unit
+) {
+    val infiniteTransition = rememberInfiniteTransition()
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color(0xFF121212) // Dark background
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(100.dp))
+
+            val typeLabel = when(callType) {
+                "chat" -> "Incoming Chat Request"
+                "video" -> "Incoming Video Call"
+                else -> "Incoming call"
+            }
+
+            Text(typeLabel, color = Color.Gray, fontSize = 16.sp)
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            Box(
+                contentAlignment = Alignment.Center
+            ) {
+                 Box(
+                    modifier = Modifier
+                        .size(160.dp)
+                        .scale(pulseScale)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha=0.1f))
+                )
+
+                Surface(
+                    shape = CircleShape,
+                    color = Color.DarkGray,
+                    modifier = Modifier.size(140.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = "Caller",
+                        tint = Color.Gray,
+                        modifier = Modifier.padding(24.dp).fillMaxSize()
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(callerName, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+            Text(callerId, color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(top=8.dp))
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 60.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    FloatingActionButton(
+                        onClick = onReject,
+                        containerColor = Color(0xFFD32F2F),
+                        contentColor = Color.White,
+                        modifier = Modifier.size(72.dp),
+                        shape = CircleShape
+                    ) {
+                        Icon(Icons.Default.CallEnd, "Decline", modifier = Modifier.size(32.dp))
+                    }
+                    Text("Decline", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(top=8.dp))
+                }
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    FloatingActionButton(
+                        onClick = onAccept,
+                        containerColor = Color(0xFF388E3C), // Green
+                        contentColor = Color.White,
+                        modifier = Modifier.size(72.dp),
+                        shape = CircleShape
+                    ) {
+                         // Shake or animate icon if needed
+                        Icon(Icons.Default.Call, "Accept", modifier = Modifier.size(32.dp))
+                    }
+                    Text("Accept", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(top=8.dp))
+                }
+            }
+        }
     }
 }

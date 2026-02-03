@@ -12,7 +12,6 @@ plugins {
 android {
     namespace = "com.astro5star.app"
     compileSdk = 34
-
     defaultConfig {
         applicationId = "com.astro5star.app"
         minSdk = 24
@@ -21,7 +20,6 @@ android {
         versionName = "1.0.0"
     }
 
-    // Signing configuration for release builds
     signingConfigs {
         create("release") {
             val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -67,39 +65,39 @@ android {
 }
 
 dependencies {
-    // AndroidX Core
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("androidx.activity:activity-ktx:1.8.2")
+    // AndroidX Core & Appcompat (Safe 2024 versions)
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.activity:activity-ktx:1.9.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
 
     // Material Design
-    implementation("com.google.android.material:material:1.11.0")
+    implementation("com.google.android.material:material:1.12.0")
 
     // Image Loading
     implementation("com.github.bumptech.glide:glide:4.16.0")
     implementation("de.hdodenhof:circleimageview:3.1.0")
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
-    // Firebase
-    // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:34.7.0"))
+    // Firebase (Safe 2024 versions)
+    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
     implementation("com.google.firebase:firebase-messaging")
     implementation("com.google.firebase:firebase-analytics")
 
     // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
-    // Coroutines for async operations
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
     // Lifecycle
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
-
-    // Retrofit & Networking
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.0")
 
     // Security
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
@@ -108,38 +106,35 @@ dependencies {
     implementation("io.socket:socket.io-client:2.1.0")
 
     // WebRTC
-    // implementation("com.google.webrtc:google-webrtc:1.0.32006")
-    implementation("io.getstream:stream-webrtc-android:1.2.0")
+    implementation("io.getstream:stream-webrtc-android:1.2.2")
 
-    // PhonePe Payment Gateway
+    // PhonePe (Keep slightly older or check compatibility)
     implementation("phonepe.intentsdk.android.release:IntentSDK:5.3.0")
 
     // Icons
-    implementation("androidx.compose.material:material-icons-extended:1.6.0")
+    implementation("androidx.compose.material:material-icons-extended:1.6.8")
 
-    // Jetpack Compose
-    val composeBom = platform("androidx.compose:compose-bom:2024.02.01")
-    implementation(composeBom)
-    androidTestImplementation(composeBom)
+    // Jetpack Compose (BOM 2024.06.00)
+    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.06.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.activity:activity-compose:1.8.2")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
+    implementation("androidx.compose.runtime:runtime-livedata")
+    implementation("androidx.activity:activity-compose:1.9.0")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     // Unit Testing
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.mockito:mockito-core:5.8.0")
+    testImplementation("org.mockito:mockito-core:5.12.0")
     testImplementation("org.mockito:mockito-inline:5.2.0")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
 
-    // Room Database
-    implementation("androidx.room:room-runtime:2.7.0-alpha01")
-    implementation("androidx.room:room-ktx:2.7.0-alpha01")
-    kapt("androidx.room:room-compiler:2.7.0-alpha01")
+    // Room
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
 }

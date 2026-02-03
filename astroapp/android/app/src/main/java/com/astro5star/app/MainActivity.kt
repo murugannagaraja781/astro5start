@@ -6,14 +6,31 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.data.api.ApiService
-import com.astro5star.app.utils.Constants
-import com.astro5star.app.ui.auth.LoginActivity
+import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.ui.home.HomeActivity
+import com.astro5star.app.ui.theme.CosmicAppTheme
+import com.astro5star.app.utils.Constants
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -40,9 +57,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
         tokenManager = TokenManager(this)
+
+        setContent {
+            CosmicAppTheme {
+                SplashScreen()
+            }
+        }
 
         // Upload FCM Token
         com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
@@ -104,5 +125,30 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, com.astro5star.app.ui.guest.GuestDashboardActivity::class.java))
         }
         finish()
+    }
+}
+
+@Composable
+fun SplashScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Image(
+                painter = painterResource(id = R.mipmap.ic_launcher),
+                contentDescription = "App Logo",
+                modifier = Modifier.size(150.dp),
+                contentScale = ContentScale.Fit
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            CircularProgressIndicator(
+                color = Color(0xFFFF9800)
+            )
+        }
     }
 }

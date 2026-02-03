@@ -1,129 +1,114 @@
 package com.astro5star.app.ui.chart
 
 import android.os.Bundle
-import android.util.Log
-import android.view.View
 import android.webkit.WebView
-import android.widget.ProgressBar
-import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
-import com.astro5star.app.R
+import android.webkit.WebViewClient
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.viewinterop.AndroidView
 import com.astro5star.app.data.api.ApiClient
+import com.astro5star.app.ui.theme.CosmicAppTheme
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
-class MatchDisplayActivity : AppCompatActivity() {
+class MatchDisplayActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_match_display)
 
         val birthDataStr = intent.getStringExtra("birthData")
+        var birthData: JSONObject? = null
+
         if (birthDataStr != null) {
             try {
-                val birthData = JSONObject(birthDataStr)
-                fetchAndRenderMatch(birthData)
+                birthData = JSONObject(birthDataStr)
             } catch (e: Exception) {
-                showError("Invalid Data")
+                Toast.makeText(this, "Invalid Data", Toast.LENGTH_SHORT).show()
+                finish()
+                return
             }
         } else {
-            showError("No Data Received")
+            Toast.makeText(this, "No Data Received", Toast.LENGTH_SHORT).show()
+            finish()
+            return
         }
-    }
 
-    private fun showError(msg: String) {
-        findViewById<ProgressBar>(R.id.progressBar).visibility = View.GONE
-        findViewById<TextView>(R.id.tvError).apply {
-            visibility = View.VISIBLE
-            text = msg
-        }
-    }
-
-    private fun fetchAndRenderMatch(birthData: JSONObject) {
-        kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val apiInterface = ApiClient.api
-
-                // Logic: Assign Boy/Girl
-                // Client Data
-                val cGender = birthData.optString("gender")
-                val pData = birthData.optJSONObject("partner")
-
-                if (pData == null) {
-                    runOnUiThread { showError("Partner Details Missing") }
-                    return@launch
-                }
-
-                // Construct "Boy" and "Girl" objects
-                val boyObj: JSONObject
-                val girlObj: JSONObject
-
-                // Helper to extract clean object for API
-                fun extract(json: JSONObject): JSONObject {
-                    return JSONObject().apply {
-                        put("year", json.getInt("year"))
-                        put("month", json.getInt("month"))
-                        put("day", json.getInt("day"))
-                        put("hour", json.getInt("hour"))
-                        put("minute", json.getInt("minute"))
-                        put("lat", json.getDouble("latitude"))
-                        put("lon", json.getDouble("longitude"))
-                         // timezone likely needed by API too, derived from backend default or explicit?
-                         // User payload didn't show timezone, but server usually needs it.
-                         // But if user payload didn't have it, maybe server defaults to IST or calculates based on lat/lon?
-                         // I will add it if I have it, harmless usually.
-                         // Or wait, user payload strictly: year, month, day, hour, minute, lat, lon.
-                         // I'll stick to user payload strictly first.
-                    }
-                }
-
-                if (cGender.equals("Male", ignoreCase = true)) {
-                    boyObj = extract(birthData)
-                    girlObj = extract(pData)
-                } else {
-                    girlObj = extract(birthData)
-                    boyObj = extract(pData)
-                }
-
-                val payload = com.google.gson.JsonObject().apply {
-                    add("boy", com.google.gson.JsonParser.parseString(boyObj.toString()))
-                    add("girl", com.google.gson.JsonParser.parseString(girlObj.toString()))
-                }
-
-                val response = apiInterface.getMatchPorutham(payload)
-
-                withContext(Dispatchers.Main) {
-                    if (response.isSuccessful && response.body() != null) {
-                        renderHtml(response.body()!!.toString())
-                    } else {
-                        showError("Server Error: ${response.code()}")
-                    }
-                }
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-                withContext(Dispatchers.Main) {
-                    showError("Error: ${e.message}")
-                }
+        setContent {
+            CosmicAppTheme {
+                MatchDisplayScreen(
+                    birthData = birthData!!,
+                    onFetchMatch = { bData -> fetchMatchHtml(bData) }
+                )
             }
         }
     }
 
-    private fun renderHtml(jsonResponse: String) {
-        val webView = findViewById<WebView>(R.id.webView)
-        val progressBar = findViewById<ProgressBar>(R.id.progressBar)
+    private suspend fun fetchMatchHtml(birthData: JSONObject): String? = withContext(Dispatchers.IO) {
+        try {
+            val apiInterface = ApiClient.api
+            val cGender = birthData.optString("gender")
+            val pData = birthData.optJSONObject("partner")
 
-        // Parse JSON to build HTML Report
-        // Assuming Response has "total_points", "matches", etc.
-        // Or if it returns just raw JSON, we display raw JSON?
-        // User asked to "use payload ... need compare".
-        // I'll make a pretty HTML for standard 10 Poruthams if the JSON structure permits.
-        // If unknown structure, I'll print JSON prettified for now or basic table.
-        // Let's assume standard structure: { "matches": [ { "name": "Dina", "status": "Good" }, ... ], "score": 8 }
+            if (pData == null) return@withContext null
 
-        val html = """
+            val boyObj: JSONObject
+            val girlObj: JSONObject
+
+            fun extract(json: JSONObject): JSONObject {
+                return JSONObject().apply {
+                    put("year", json.getInt("year"))
+                    put("month", json.getInt("month"))
+                    put("day", json.getInt("day"))
+                    put("hour", json.getInt("hour"))
+                    put("minute", json.getInt("minute"))
+                    put("lat", json.getDouble("latitude"))
+                    put("lon", json.getDouble("longitude"))
+                }
+            }
+
+            if (cGender.equals("Male", ignoreCase = true)) {
+                boyObj = extract(birthData)
+                girlObj = extract(pData)
+            } else {
+                girlObj = extract(birthData)
+                boyObj = extract(pData)
+            }
+
+            val payload = com.google.gson.JsonObject().apply {
+                add("boy", com.google.gson.JsonParser.parseString(boyObj.toString()))
+                add("girl", com.google.gson.JsonParser.parseString(girlObj.toString()))
+            }
+
+            val response = apiInterface.getMatchPorutham(payload)
+            if (response.isSuccessful && response.body() != null) {
+                val jsonResponse = response.body()!!.toString()
+                generateMatchHtml(jsonResponse)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun generateMatchHtml(jsonResponse: String): String {
+        return """
             <html>
             <head>
                 <style>
@@ -152,38 +137,27 @@ class MatchDisplayActivity : AppCompatActivity() {
                         const data = $jsonResponse;
                         let html = '';
 
-                        // Attempt to parse standard fields if they exist
-                        // If data is just the raw calculation, we might show that.
-                        // I will rely on the Pre tag for raw data if structure is unknown.
-
                         if (data.points || data.total_score || data.score) {
                              const score = data.points || data.total_score || data.score;
                              html += '<div class="score-box">Total Score: ' + score + '</div>';
                         }
 
-                        // If there's an array of matches
-                        // Common key names: matches, poruthams, report
                         const list = data.matches || data.poruthams || data.report;
-
                         if (Array.isArray(list)) {
                             html += '<table><tr><th>Porutham</th><th>Status</th></tr>';
                             list.forEach(item => {
-                                // Adapt to potential keys
                                 const name = item.name || item.porutham || item.key;
                                 const status = item.status || item.result || (item.isMatch ? "Good" : "Bad");
                                 const cls = status.toString().toLowerCase().includes('good') ? 'good' : (status.toString().toLowerCase().includes('bad') ? 'bad' : 'avg');
-
                                 html += '<tr><td>' + name + '</td><td class="' + cls + '">' + status + '</td></tr>';
                             });
                             html += '</table>';
                         }
-
                         if (html.length > 0) {
                              document.getElementById('content').innerHTML = html;
                         } else {
                              document.getElementById('content').innerHTML = '<p>Compatibility analysis detailed below.</p>';
                         }
-
                     } catch(e) {
                          document.getElementById('content').innerText = 'Error parsing result: ' + e.message;
                     }
@@ -191,10 +165,60 @@ class MatchDisplayActivity : AppCompatActivity() {
             </body>
             </html>
         """.trimIndent()
+    }
+}
 
-        progressBar.visibility = View.GONE
-        webView.visibility = View.VISIBLE
-        webView.settings.javaScriptEnabled = true
-        webView.loadData(html, "text/html", "UTF-8")
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MatchDisplayScreen(
+    birthData: JSONObject,
+    onFetchMatch: suspend (JSONObject) -> String?
+) {
+    var htmlContent by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var failed by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val result = onFetchMatch(birthData)
+        if (result != null) {
+            htmlContent = result
+        } else {
+            failed = true
+        }
+        isLoading = false
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Compatibility Match", color = Color.White) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF6200EE))
+            )
+        }
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (failed) {
+                 Text(
+                     text = "Failed to load match data.",
+                     color = Color.Red,
+                     modifier = Modifier.align(Alignment.Center)
+                 )
+            } else if (htmlContent != null) {
+                 AndroidView(
+                    factory = { context ->
+                        WebView(context).apply {
+                            settings.javaScriptEnabled = true
+                            webViewClient = WebViewClient()
+                        }
+                    },
+                    update = { webView ->
+                        webView.loadDataWithBaseURL(null, htmlContent!!, "text/html", "utf-8", null)
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
     }
 }

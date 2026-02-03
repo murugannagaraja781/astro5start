@@ -2,58 +2,71 @@ package com.astro5star.app.ui.wallet
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Button
-import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import com.astro5star.app.MainActivity
-import com.astro5star.app.R
+import com.astro5star.app.data.local.TokenManager
+import com.astro5star.app.ui.theme.CosmicAppTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class PaymentStatusActivity : AppCompatActivity() {
+class PaymentStatusActivity : ComponentActivity() {
 
-    private lateinit var tokenManager: com.astro5star.app.data.local.TokenManager
+    private lateinit var tokenManager: TokenManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_payment_status)
-
-        tokenManager = com.astro5star.app.data.local.TokenManager(this)
-
-        val statusTitle = findViewById<TextView>(R.id.statusTitle)
-        val statusMessage = findViewById<TextView>(R.id.statusMessage)
-        val btnHome = findViewById<Button>(R.id.btnHome)
+        tokenManager = TokenManager(this)
 
         // Handle Deep Link
-        // astro5://payment-success?status=success&txnId=...
         val data = intent.data
         val status = data?.getQueryParameter("status")
         val txnId = data?.getQueryParameter("txnId")
 
-        if (status == "success") {
-            statusTitle.text = "Payment Successful!"
-            statusMessage.text = "Your wallet has been recharged.\nTxn ID: $txnId"
+        val isSuccess = status == "success"
 
-            // Refresh Wallet Balance immediately
+        if (isSuccess) {
             refreshWalletBalance()
-        } else {
-            statusTitle.text = "Payment Failed"
-            statusMessage.text = "Transaction could not be completed."
         }
 
-        btnHome.setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            startActivity(intent)
-            finish()
+        setContent {
+            CosmicAppTheme {
+                PaymentStatusScreen(
+                    isSuccess = isSuccess,
+                    txnId = txnId,
+                    onGoHome = {
+                        val intent = Intent(this, MainActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        startActivity(intent)
+                        finish()
+                    }
+                )
+            }
         }
     }
 
     private fun refreshWalletBalance() {
         val userId = tokenManager.getUserSession()?.userId ?: return
-        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // Fetch latest profile to update wallet balance
                 val response = com.astro5star.app.data.api.ApiClient.api.getUserProfile(userId)
                 if (response.isSuccessful && response.body() != null) {
                     val user = response.body()!!
@@ -61,6 +74,70 @@ class PaymentStatusActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+            }
+        }
+    }
+}
+
+@Composable
+fun PaymentStatusScreen(
+    isSuccess: Boolean,
+    txnId: String?,
+    onGoHome: () -> Unit
+) {
+    val bgColor = if (isSuccess) Color(0xFFE8F5E9) else Color(0xFFFBE9E7)
+    val iconColor = if (isSuccess) Color(0xFF4CAF50) else Color(0xFFD32F2F)
+    val icon: ImageVector = if (isSuccess) Icons.Default.CheckCircle else Icons.Default.Error
+    val title = if (isSuccess) "Payment Successful!" else "Payment Failed"
+    val message = if (isSuccess) "Your wallet has been recharged.\nTxn ID: ${txnId ?: "N/A"}" else "Transaction could not be completed."
+
+    Surface(
+        color = Color.White,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(80.dp)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = title,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = message,
+                fontSize = 16.sp,
+                color = Color.Gray,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = onGoHome,
+                colors = ButtonDefaults.buttonColors(containerColor = iconColor),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Text("Back to Home", fontSize = 16.sp, color = Color.White)
             }
         }
     }

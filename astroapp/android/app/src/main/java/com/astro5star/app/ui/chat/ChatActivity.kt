@@ -2,47 +2,62 @@ package com.astro5star.app.ui.chat
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.ViewModelProvider
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.astro5star.app.R
 import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.data.remote.SocketManager
+import com.astro5star.app.ui.theme.CosmicAppTheme
 import com.astro5star.app.utils.SoundManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 import org.json.JSONObject
 import java.util.UUID
 
 // Status: "sent", "delivered", "read"
 data class ChatMessage(val id: String, val text: String, val isSent: Boolean, var status: String = "sent", val timestamp: Long = 0)
 
-class ChatActivity : AppCompatActivity() {
+class ChatActivity : ComponentActivity() {
 
-    private lateinit var viewModel: ChatViewModel
-    private lateinit var adapter: ChatAdapter
-    private val messages = mutableListOf<ChatMessage>()
+    private val viewModel: ChatViewModel by viewModels()
     private var toUserId: String? = null
     private var sessionId: String? = null
-    private var recyclerChat: RecyclerView? = null
-    private var typingHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private var isTyping = false;
-    private lateinit var tvChatTitle: TextView
-    private lateinit var cvTypingBubble: View // Changed from TextView to View (CardView)
-    private lateinit var tvSessionTimer: TextView
+    private var clientBirthData: JSONObject? = null
 
-    // Timer
+    // For simplicity, keeping explicit timer state here or in ViewModel.
+    // ViewModel is better but migrating minimal logic:
+    private var sessionDuration by mutableStateOf("00:00")
+
+    // Timer Logic
     private var chatDurationSeconds = 0
     private var timerHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val timerRunnable = object : Runnable {
@@ -50,7 +65,7 @@ class ChatActivity : AppCompatActivity() {
             chatDurationSeconds++
             val minutes = chatDurationSeconds / 60
             val seconds = chatDurationSeconds % 60
-            tvSessionTimer.text = String.format("%02d:%02d", minutes, seconds)
+            sessionDuration = String.format("%02d:%02d", minutes, seconds)
             timerHandler.postDelayed(this, 1000)
         }
     }
@@ -63,8 +78,6 @@ class ChatActivity : AppCompatActivity() {
                      val newData = JSONObject(dataStr)
                      clientBirthData = newData
                      Toast.makeText(this, "Details Updated", Toast.LENGTH_SHORT).show()
-                     // Emit update to server/astrologer
-                     // Ideally via Repository/ViewModel too, but keeping minimal changes for now
                      SocketManager.getSocket()?.emit("client-birth-chart", JSONObject().apply {
                          put("sessionId", sessionId)
                          put("birthData", newData)
@@ -74,22 +87,51 @@ class ChatActivity : AppCompatActivity() {
         }
     }
 
-    private var clientBirthData: JSONObject? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_chat)
-
-        viewModel = ViewModelProvider(this).get(ChatViewModel::class.java)
 
         handleIntent(intent)
+
+        setContent {
+            CosmicAppTheme {
+                ChatScreen(
+                    viewModel = viewModel,
+                    sessionDuration = sessionDuration,
+                    title = intent?.getStringExtra("toUserName") ?: "Chat",
+                    onBack = { finish() },
+                    onEndChat = { endChat() },
+                    onEditIntake = {
+                        val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java)
+                        intent.putExtra("isEditMode", true)
+                        intent.putExtra("existingData", clientBirthData?.toString())
+                        editIntakeLauncher.launch(intent)
+                    },
+                    onViewChart = {
+                        if (clientBirthData != null) {
+                            val intent = Intent(this, com.astro5star.app.ui.chart.ChartDisplayActivity::class.java)
+                            intent.putExtra("birthData", clientBirthData.toString())
+                            startActivity(intent)
+                        } else {
+                             Toast.makeText(this, "Waiting for Client Data...", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    isAstrologer = TokenManager(this).getUserSession()?.role == "astrologer",
+                    toUserId = toUserId,
+                    sessionId = sessionId
+                )
+            }
+        }
+
         setupObservers()
+        timerHandler.post(timerRunnable)
     }
 
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        handleIntent(intent)
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent) // Fix: nullability
+        intent?.let {
+            setIntent(it)
+            handleIntent(it)
+        }
     }
 
     private fun handleIntent(intent: Intent?) {
@@ -112,101 +154,32 @@ class ChatActivity : AppCompatActivity() {
             return
         }
 
-        setupContent()
-
-        // Auto-accept if new request
+        // Auto-accept
         val isNewRequest = intent?.getBooleanExtra("isNewRequest", false) == true
         if (isNewRequest && sessionId != null && toUserId != null) {
             SoundManager.playAcceptSound()
             viewModel.acceptSession(sessionId!!, toUserId!!)
         }
+
+        if (sessionId != null) {
+             viewModel.joinSession(sessionId!!)
+             viewModel.loadHistory(sessionId!!)
+        }
     }
 
     private fun setupObservers() {
-        viewModel.history.observe(this) { historyList ->
-            // Single Source of Truth: Room DB
-            messages.clear()
-            messages.addAll(historyList)
-            adapter.notifyDataSetChanged()
-            if (messages.isNotEmpty()) {
-                recyclerChat?.scrollToPosition(messages.size - 1)
-            }
-        }
-
-        viewModel.messages.observe(this) { msg ->
-            SoundManager.playReceiveSound()
-            // UI update handled by history observer via Room
-
-            // Auto-send Delivered/Read since Activity is open
-            if (sessionId != null && toUserId != null && !msg.isSent) {
-                viewModel.markDelivered(msg.id, toUserId!!, sessionId!!)
-                viewModel.markRead(msg.id, toUserId!!, sessionId!!)
-            }
-        }
-
-        viewModel.messageStatus.observe(this) { data ->
-            val msgId = data.optString("messageId")
-            val status = data.optString("status")
-            val index = messages.indexOfFirst { it.id == msgId }
-            if (index != -1) {
-                messages[index].status = status
-                adapter.notifyItemChanged(index)
-            }
-        }
-
-        viewModel.typingStatus.observe(this) { isTyping ->
-            if (isTyping) {
-                if (cvTypingBubble.visibility != View.VISIBLE) {
-                     cvTypingBubble.alpha = 0f
-                     cvTypingBubble.visibility = View.VISIBLE
-                     cvTypingBubble.animate().alpha(1f).setDuration(300).start()
-                }
-            } else {
-                if (cvTypingBubble.visibility == View.VISIBLE) {
-                    cvTypingBubble.animate().alpha(0f).setDuration(300).withEndAction {
-                        cvTypingBubble.visibility = View.GONE
-                    }.start()
-                }
-            }
-        }
-
-        // Billing Started - Show indicator when billing begins
-        viewModel.billingStarted.observe(this) { started ->
-            if (started) {
-                tvSessionTimer.setTextColor(android.graphics.Color.BLACK)
-                Toast.makeText(this, "🔴 Billing Active", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        // Session Summary - Show deducted/earned amounts on chat end
         viewModel.sessionSummary.observe(this) { summary ->
-            // Stop timer
             timerHandler.removeCallbacks(timerRunnable)
-
-            // Format duration
             val minutes = summary.duration / 60
             val seconds = summary.duration % 60
             val durationStr = String.format("%02d:%02d", minutes, seconds)
 
-            val role = TokenManager(this).getUserSession()?.role
+            // Show Native Dialog (easier than Composable dialog injection from here)
+            // or we could use a state variable in ChatScreen. keeping native for robust finish() handling
+            val message = "Duration: $durationStr\nDeducted: ₹${String.format("%.2f", summary.deducted)}"
 
-            // Show summary dialog
-            val message = when {
-                role == "astrologer" -> {
-                    "Duration: $durationStr\n\nYou earned: ₹${String.format("%.2f", summary.earned)}"
-                }
-                summary.reason == "insufficient_funds" -> {
-                    "Chat ended due to insufficient balance.\n\nDuration: $durationStr\nDeducted: ₹${String.format("%.2f", summary.deducted)}"
-                }
-                else -> {
-                    "Duration: $durationStr\nDeducted: ₹${String.format("%.2f", summary.deducted)}"
-                }
-            }
-
-            SoundManager.playEndChatSound()
-
-            androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle(if (summary.reason == "insufficient_funds") "⚠️ Low Balance" else "💬 Chat Summary")
+             androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Chat Summary")
                 .setMessage(message)
                 .setPositiveButton("OK") { _, _ -> finish() }
                 .setCancelable(false)
@@ -214,179 +187,26 @@ class ChatActivity : AppCompatActivity() {
         }
 
         viewModel.sessionEnded.observe(this) { ended ->
-            // Only show Toast if sessionSummary wasn't already handled
             if (ended && viewModel.sessionSummary.value == null) {
-                SoundManager.playEndChatSound()
                 Toast.makeText(this, "Chat Ended by Partner", Toast.LENGTH_SHORT).show()
                 finish()
             }
         }
     }
 
-    private fun setupContent() {
-        try {
-            recyclerChat = findViewById(R.id.recyclerChat)
-            val inputMessage = findViewById<EditText>(R.id.inputMessage)
-            val btnSend = findViewById<View>(R.id.btnSend)
-            val btnEndChat = findViewById<Button>(R.id.btnEndChat)
-            val btnChart = findViewById<android.widget.ImageButton>(R.id.btnChart)
-            val btnEditIntake = findViewById<android.widget.ImageButton>(R.id.btnEditIntake)
-            tvChatTitle = findViewById(R.id.tvChatTitle)
-            cvTypingBubble = findViewById(R.id.cvTypingBubble) // Updated ID
-            tvSessionTimer = findViewById(R.id.tvSessionTimer)
-
-            timerHandler.post(timerRunnable)
-
-            val partnerName = intent.getStringExtra("toUserName") ?: "Chat"
-            tvChatTitle.text = partnerName
-
-            val role = TokenManager(this).getUserSession()?.role
-            if (role == "astrologer") {
-                btnChart.visibility = View.VISIBLE
-                btnChart.setOnClickListener {
-                    try {
-                        if (clientBirthData != null) {
-                            val intent = Intent(this, com.astro5star.app.ui.chart.ChartDisplayActivity::class.java)
-                            intent.putExtra("birthData", clientBirthData.toString())
-                            startActivity(intent)
-                        } else {
-                             Toast.makeText(this, "Waiting for Client Data...", Toast.LENGTH_SHORT).show()
-                        }
-                    } catch (e: Exception) { e.printStackTrace() }
-                }
-
-                val btnMatch = findViewById<android.widget.ImageButton>(R.id.btnMatch)
-                if (clientBirthData?.has("partner") == true) {
-                    btnMatch.visibility = View.VISIBLE
-                }
-
-                btnMatch.setOnClickListener {
-                    try {
-                        if (clientBirthData != null && clientBirthData!!.has("partner")) {
-                             val intent = Intent(this, com.astro5star.app.ui.chart.MatchDisplayActivity::class.java)
-                             intent.putExtra("birthData", clientBirthData.toString())
-                             startActivity(intent)
-                        } else {
-                            Toast.makeText(this, "Partner details not available", Toast.LENGTH_SHORT).show()
-                        }
-                    } catch (e: Exception) { e.printStackTrace() }
-                }
-            }
-
-            btnEndChat.setOnClickListener {
-                if (sessionId != null) {
-                    viewModel.endSession(sessionId!!)
-                    SoundManager.playEndChatSound()
-                    Toast.makeText(this, "Ending Chat...", Toast.LENGTH_SHORT).show()
-                    // Activity will finish when session-ended event is received from server
-                    // Self-initiated end: finish immediately since server won't echo back to us
-                    finish()
-                } else {
-                    finish()
-                }
-            }
-
-            btnEditIntake.setOnClickListener {
-                val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java)
-                intent.putExtra("isEditMode", true)
-                intent.putExtra("existingData", clientBirthData?.toString())
-                editIntakeLauncher.launch(intent)
-            }
-
-            adapter = ChatAdapter(messages)
-            recyclerChat?.layoutManager = LinearLayoutManager(this)
-            recyclerChat?.adapter = adapter
-
-            recyclerChat?.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                    super.onScrolled(recyclerView, dx, dy)
-                    val layoutManager = recyclerView.layoutManager as androidx.recyclerview.widget.LinearLayoutManager
-                    if (layoutManager.findFirstCompletelyVisibleItemPosition() == 0 && messages.isNotEmpty()) {
-                        if (sessionId != null) {
-                            val oldest = messages.first().timestamp
-                            if (oldest > 0) {
-                                viewModel.loadMoreHistory(sessionId!!, oldest)
-                            }
-                        }
-                    }
-                }
-            })
-
-            inputMessage.addTextChangedListener(object : android.text.TextWatcher {
-                override fun afterTextChanged(s: android.text.Editable?) {}
-                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                    if (toUserId != null) {
-                       if (!isTyping) {
-                           isTyping = true
-                           viewModel.sendTyping(toUserId!!)
-                       }
-                       typingHandler.removeCallbacksAndMessages(null)
-                       typingHandler.postDelayed({
-                           isTyping = false
-                           viewModel.sendStopTyping(toUserId!!)
-                       }, 2000)
-                    }
-                }
-            })
-
-            btnSend.setOnClickListener {
-                val text = inputMessage.text.toString().trim()
-                if (text.isEmpty()) return@setOnClickListener
-
-                if (toUserId == null) {
-                    Toast.makeText(this, "No recipient user specified", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-
-                isTyping = false
-                typingHandler.removeCallbacksAndMessages(null)
-                if (toUserId != null) viewModel.sendStopTyping(toUserId!!)
-
-                val messageId = UUID.randomUUID().toString()
-                val payload = JSONObject()
-                payload.put("toUserId", toUserId)
-                payload.put("sessionId", sessionId)
-                payload.put("messageId", messageId)
-                payload.put("timestamp", System.currentTimeMillis())
-
-                val content = JSONObject()
-                content.put("text", text)
-                payload.put("content", content)
-
-                viewModel.sendMessage(payload)
-                SoundManager.playSentSound()
-
-                // messages.add(...) removed; handled by Room observer
-                recyclerChat?.scrollToPosition(messages.size - 1)
-
-                inputMessage.setText("")
-                // Locally handled by ViewModel Room DB persistence now
-            }
-
-            if (sessionId != null) {
-                // Reliance on Room history via ChatViewModel loadHistory
-                viewModel.loadHistory(sessionId!!)
-            }
-        } catch (e: Exception) {
-             android.util.Log.e("ChatActivity", "setupContent Failed", e)
-             Toast.makeText(this, "Chat UI Error", Toast.LENGTH_SHORT).show()
+    private fun endChat() {
+        if (sessionId != null) {
+            viewModel.endSession(sessionId!!)
+            Toast.makeText(this, "Ending Chat...", Toast.LENGTH_SHORT).show()
+            finish() // Optimistic finish
         }
     }
 
     override fun onResume() {
         super.onResume()
         viewModel.startListeners()
-
-        if (sessionId != null) {
-            viewModel.joinSession(sessionId!!)
-        }
-
-        // Also ensure connection is registered for current user
         val myUserId = TokenManager(this).getUserSession()?.userId
-        if (myUserId != null) {
-            SocketManager.registerUser(myUserId) {}
-        }
+        if (myUserId != null) SocketManager.registerUser(myUserId) {}
     }
 
     override fun onPause() {
@@ -398,102 +218,224 @@ class ChatActivity : AppCompatActivity() {
         super.onDestroy()
         timerHandler.removeCallbacks(timerRunnable)
     }
+}
 
-    private fun fetchChatHistory(sessionId: String) {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val apiInterface = com.astro5star.app.data.api.ApiClient.api
-                val response = apiInterface.getChatHistory(sessionId)
-                if (response.isSuccessful && response.body() != null) {
-                    val data = response.body()!! // This is Gson JsonObject
-                    if (data.has("messages")) {
-                        val history = data.getAsJsonArray("messages")
-                        if (history != null && history.size() > 0) {
-                            val historyList = mutableListOf<ChatMessage>()
-                            val myUserId = TokenManager(this@ChatActivity).getUserSession()?.userId
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatScreen(
+    viewModel: ChatViewModel,
+    sessionDuration: String,
+    title: String,
+    onBack: () -> Unit,
+    onEndChat: () -> Unit,
+    onEditIntake: () -> Unit,
+    onViewChart: () -> Unit,
+    isAstrologer: Boolean,
+    toUserId: String?,
+    sessionId: String?
+) {
+    val messages by viewModel.history.observeAsState(emptyList())
+    // Fallback to history observation
 
-                            for (i in 0 until history.size()) {
-                                val msgObj = history.get(i).asJsonObject
-                                val senderId = if (msgObj.has("fromUserId")) msgObj.get("fromUserId").asString else ""
+    val isTyping by viewModel.typingStatus.observeAsState(false)
+    val listState = rememberLazyListState()
+    var inputText by remember { mutableStateOf("") }
 
-                                var text = ""
-                                if (msgObj.has("content")) {
-                                    val content = msgObj.getAsJsonObject("content")
-                                    if (content.has("text")) text = content.get("text").asString
-                                }
-
-                                val msgId = if (msgObj.has("messageId")) msgObj.get("messageId").asString else ""
-                                val status = if (msgObj.has("status")) msgObj.get("status").asString else "sent"
-
-                                val isSent = (senderId == myUserId)
-                                if (text.isNotEmpty()) {
-                                    val timestamp = if (msgObj.has("timestamp")) msgObj.get("timestamp").asLong else 0L
-                                    historyList.add(ChatMessage(msgId, text, isSent, status, timestamp))
-                                }
-                            }
-
-                            withContext(Dispatchers.Main) {
-                                // Clear existing to avoid dupes on resume?
-                                // Ideally DiffUtil, but simpler here:
-                                // Only add if empty, assuming history fetch is mostly initial.
-                                if (messages.isEmpty()) {
-                                    messages.addAll(historyList)
-                                    adapter.notifyDataSetChanged()
-                                    recyclerChat?.scrollToPosition(messages.size - 1)
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+    // Auto scroll
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
         }
     }
 
-    class ChatAdapter(private val list: List<ChatMessage>) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)
+                        Text("Online", fontSize = 12.sp, color = Color.White.copy(alpha=0.7f))
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
+                    }
+                },
+                actions = {
+                    // Timer
+                    Text(sessionDuration, color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end=8.dp))
 
-        override fun getItemViewType(position: Int): Int {
-            return if (list[position].isSent) 1 else 0
+                    if (isAstrologer) {
+                       IconButton(onClick = onEditIntake) {
+                           Icon(Icons.Default.Edit, "Intake", tint = Color.White)
+                       }
+                    }
+
+                    TextButton(onClick = onEndChat) {
+                        Text("End", color = Color.Red, fontWeight = FontWeight.Bold)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF1B5E20), // Dark Green
+                    titleContentColor = Color.White
+                )
+            )
+        },
+        bottomBar = {
+            ChatInputBar(
+                text = inputText,
+                onTextChange = {
+                    inputText = it
+                    if (toUserId != null) viewModel.sendTyping(toUserId)
+                    // Debounce Stop Typing logic handled in viewmodel or simplified here
+                },
+                onSend = {
+                    if (inputText.isNotBlank() && toUserId != null && sessionId != null) {
+                         val payload = JSONObject().apply {
+                            put("toUserId", toUserId)
+                            put("sessionId", sessionId)
+                            put("messageId", UUID.randomUUID().toString())
+                            put("timestamp", System.currentTimeMillis())
+                            put("content", JSONObject().put("text", inputText))
+                         }
+                         viewModel.sendMessage(payload)
+                         SoundManager.playSentSound()
+                         inputText = ""
+                         viewModel.sendStopTyping(toUserId)
+                    }
+                },
+                onViewChart = if (isAstrologer) onViewChart else null
+            )
         }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-            return if (viewType == 1) {
-                val view = LayoutInflater.from(parent.context).inflate(R.layout.item_message_sent, parent, false)
-                SentHolder(view)
-            } else {
-                val view = LayoutInflater.from(parent.context).inflate(R.layout.item_message_received, parent, false)
-                ReceivedHolder(view)
-            }
-        }
-
-        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-            val msg = list[position]
-            if (holder is SentHolder) {
-                holder.text.text = msg.text
-                if (msg.status == "read") {
-                    holder.status.setImageResource(R.drawable.ic_double_check_blue) // Assuming resource exists or tint
-                    holder.status.setColorFilter(android.graphics.Color.parseColor("#34B7F1")) // WhatsApp Blue
-                } else if (msg.status == "delivered") {
-                    holder.status.setImageResource(R.drawable.ic_double_check)
-                    holder.status.setColorFilter(android.graphics.Color.GRAY)
-                } else {
-                    holder.status.setImageResource(R.drawable.ic_check)
-                    holder.status.setColorFilter(android.graphics.Color.GRAY)
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(Color(0xFFF5F5F5)) // Chat BG
+        ) {
+            LazyColumn(
+                state = listState,
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(messages) { msg ->
+                    // Convert History Object (Room entity) to ChatMessage if strictly needed,
+                    // or just use what we have.
+                    // Assuming ViewModel.history returns List<ChatMessage> (Data Class defined above)
+                    ChatBubble(msg)
                 }
-            } else if (holder is ReceivedHolder) {
-                holder.text.text = msg.text
+
+                if (isTyping) {
+                   item {
+                       TypingBubble()
+                   }
+                }
             }
         }
+    }
+}
 
-        override fun getItemCount() = list.size
+@Composable
+fun ChatBubble(msg: ChatMessage) {
+    val isMe = msg.isSent
+    val bubbleColor = if (isMe) Color(0xFFDCF8C6) else Color.White
+    val align = if (isMe) Alignment.End else Alignment.Start
 
-        class SentHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val text: TextView = view.findViewById(R.id.textMessage)
-            val status: ImageView = view.findViewById(R.id.ivStatus)
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = align
+    ) {
+        Surface(
+            color = bubbleColor,
+            shape = RoundedCornerShape(8.dp),
+            shadowElevation = 1.dp,
+            modifier = Modifier.widthIn(max = 280.dp)
+        ) {
+            Column(modifier = Modifier.padding(8.dp)) {
+                Text(msg.text, fontSize = 16.sp, color = Color.Black)
+                if (isMe) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(top = 4.dp),
+                         verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Time can be added here
+                        val icon = when(msg.status) {
+                            "read" -> Icons.Default.DoneAll
+                            "delivered" -> Icons.Default.DoneAll
+                            else -> Icons.Default.Check
+                        }
+                        val tint = if (msg.status == "read") Color(0xFF34B7F1) else Color.Gray
+
+                        Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
         }
-        class ReceivedHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val text: TextView = view.findViewById(R.id.textMessage)
+    }
+}
+
+@Composable
+fun TypingBubble() {
+    Surface(
+        color = Color(0xFFE0E0E0),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.padding(8.dp)
+    ) {
+        Text("Typing...", modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontSize = 12.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+    }
+}
+
+@Composable
+fun ChatInputBar(
+    text: String,
+    onTextChange: (String) -> Unit,
+    onSend: () -> Unit,
+    onViewChart: (() -> Unit)?
+) {
+    Surface(
+        color = Color.White,
+        shadowElevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (onViewChart != null) {
+                IconButton(onClick = onViewChart) {
+                    Icon(painterResource(id = R.drawable.ic_chart), contentDescription = "Chart", tint = Color.Gray)
+                }
+            }
+
+            OutlinedTextField(
+                value = text,
+                onValueChange = onTextChange,
+                modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                shape = RoundedCornerShape(24.dp),
+                placeholder = { Text("Type a message") },
+                colors = TextFieldDefaults.colors(
+                   focusedContainerColor = Color.White,
+                   unfocusedContainerColor = Color.White,
+                   focusedIndicatorColor = Color.Transparent,
+                   unfocusedIndicatorColor = Color.Transparent
+                )
+            )
+
+            FloatingActionButton(
+                onClick = onSend,
+                containerColor = Color(0xFFC9A227),
+                contentColor = Color.White,
+                shape = CircleShape,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(Icons.Default.Send, "Send")
+            }
         }
     }
 }

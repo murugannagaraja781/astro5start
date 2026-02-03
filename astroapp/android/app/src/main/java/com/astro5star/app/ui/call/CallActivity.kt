@@ -1,34 +1,59 @@
- package com.astro5star.app.ui.call
+package com.astro5star.app.ui.call
 
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.widget.ImageButton
-import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CallEnd
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.VideocamOff
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.astro5star.app.R
 import com.astro5star.app.data.remote.SocketManager
 import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.data.model.AuthResponse
+import com.astro5star.app.ui.theme.CosmicAppTheme
+import kotlinx.coroutines.delay
 import org.json.JSONObject
 import org.webrtc.*
 import java.util.LinkedList
 
-class CallActivity : AppCompatActivity() {
+class CallActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "CallActivity"
         private const val PERMISSION_REQ_CODE = 101
     }
 
+    // Views (WebRTC Renderers) - Created programmatically
     private lateinit var remoteView: SurfaceViewRenderer
     private lateinit var localView: SurfaceViewRenderer
-    private lateinit var tvStatus: TextView
 
     private lateinit var peerConnectionFactory: PeerConnectionFactory
     private lateinit var peerConnection: PeerConnection
@@ -46,6 +71,22 @@ class CallActivity : AppCompatActivity() {
     private lateinit var tokenManager: TokenManager
     private var session: AuthResponse? = null
 
+    // Compose State
+    private var callDurationSeconds by mutableStateOf(0)
+    private var statusText by mutableStateOf("Connecting...")
+    private var isBillingActive by mutableStateOf(false)
+    private var isMutedState by mutableStateOf(false)
+    private var isVideoEnabledState by mutableStateOf(true) // For camera toggle
+    private var isSpeakerOnState by mutableStateOf(false) // For audio toggle
+
+    // Helper state for formatted time
+    private val formattedDuration: String
+        get() {
+            val minutes = callDurationSeconds / 60
+            val seconds = callDurationSeconds % 60
+            return String.format("%02d:%02d", minutes, seconds)
+        }
+
     private val editIntakeLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
              val dataStr = result.data?.getStringExtra("birthData")
@@ -54,7 +95,6 @@ class CallActivity : AppCompatActivity() {
                      val newData = JSONObject(dataStr)
                      clientBirthData = newData
                      Toast.makeText(this, "Details Updated", Toast.LENGTH_SHORT).show()
-                     // Emit update to server/astrologer
                      SocketManager.getSocket()?.emit("client-birth-chart", JSONObject().apply {
                          put("sessionId", sessionId)
                          put("birthData", newData)
@@ -64,7 +104,6 @@ class CallActivity : AppCompatActivity() {
         }
     }
 
-    // Queue for ICE candidates received before remote description is set
     private val pendingIceCandidates = LinkedList<IceCandidate>()
 
     private val iceServers = listOf(
@@ -77,27 +116,24 @@ class CallActivity : AppCompatActivity() {
             .setUsername("webrtcuser").setPassword("strongpassword123").createIceServer()
     )
 
-    private var isMuted = false
-    private var isSpeakerOn = false
-    private var callType: String = "video" // Default to video
-
+    // Logic internal state
+    private var callType: String = "video"
     private var partnerName: String? = null
-    private var callDurationSeconds = 0
+
     private val timerHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val timerRunnable = object : Runnable {
         override fun run() {
             callDurationSeconds++
-            val minutes = callDurationSeconds / 60
-            val seconds = callDurationSeconds % 60
-            val timeStr = String.format("%02d:%02d", minutes, seconds)
-            findViewById<TextView>(R.id.tvCallDuration).text = timeStr
             timerHandler.postDelayed(this, 1000)
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_call)
+
+        // Initialize WebRTC Views Programmatically
+        localView = SurfaceViewRenderer(this)
+        remoteView = SurfaceViewRenderer(this)
 
         // Params
         partnerId = intent.getStringExtra("partnerId")
@@ -105,9 +141,11 @@ class CallActivity : AppCompatActivity() {
         sessionId = intent.getStringExtra("sessionId")
         isInitiator = intent.getBooleanExtra("isInitiator", false)
         val rawType = intent.getStringExtra("type") ?: intent.getStringExtra("callType") ?: "video"
-        // Normalize: "call" and "video" are both video calls in this app's context
         callType = if (rawType.lowercase() == "audio" || rawType.lowercase() == "voice") "audio" else "video"
-        Log.d(TAG, "Call Type Normalized: $rawType -> $callType")
+
+        // Initial state sync
+        isVideoEnabledState = (callType == "video")
+        isSpeakerOnState = (callType == "video") // Default speaker on for video, off for audio (earpiece)
 
         val birthDataStr = intent.getStringExtra("birthData")
         if (!birthDataStr.isNullOrEmpty()) {
@@ -117,109 +155,36 @@ class CallActivity : AppCompatActivity() {
              } catch (e: Exception) { e.printStackTrace() }
         }
 
-        // Init Views
-        remoteView = findViewById(R.id.remote_view)
-        localView = findViewById(R.id.local_view)
-        tvStatus = findViewById(R.id.tvCallStatus)
-
-        val tvRemoteName = findViewById<TextView>(R.id.tvRemoteName)
-        val tvCallDuration = findViewById<TextView>(R.id.tvCallDuration)
-        tvRemoteName.text = partnerName ?: "Unknown"
-        tvCallDuration.text = "00:00"
-
-        val btnEndCall = findViewById<ImageButton>(R.id.btnEndCall)
-        val btnMic = findViewById<ImageButton>(R.id.btnMic)
-        val btnVideo = findViewById<ImageButton>(R.id.btnVideo)
-        val btnRasi = findViewById<ImageButton>(R.id.btnRasi)
-        val btnEdit = findViewById<ImageButton>(R.id.btnEdit)
-        val btnBack = findViewById<ImageButton>(R.id.btnBack)
-
-        // Role-based UI Visibility
-        // Role-based UI Visibility
         tokenManager = TokenManager(this)
         session = tokenManager.getUserSession()
         val role = session?.role
 
-        if (role == "astrologer") {
-            btnRasi.visibility = View.VISIBLE
-            // Astrologer can also see Edit button to view/edit client details if needed
-            btnEdit.visibility = View.VISIBLE
-        } else {
-            // Client: Can only see Edit button (to update their own intake)
-            btnRasi.visibility = View.GONE
-            btnEdit.visibility = View.VISIBLE
-        }
-
-        btnEndCall.setOnClickListener { endCall() }
-        btnBack.setOnClickListener { endCall() }
-
-        btnRasi.setOnClickListener {
-             // Show Rasi Chart using ChartDisplayActivity
-             if (clientBirthData != null) {
-                 val intent = android.content.Intent(this, com.astro5star.app.ui.chart.ChartDisplayActivity::class.java)
-                 intent.putExtra("birthData", clientBirthData.toString())
-                 startActivity(intent)
-             } else {
-                 showRasiChart() // Fallback if no data, or show standard message
-                 // Ideally we should try to fetch it if missing, but for now fallback dialog or toast
-                 if (isInitiator) Toast.makeText(this, "Waiting for Client Data...", Toast.LENGTH_SHORT).show()
-             }
-        }
-
-        btnEdit.setOnClickListener {
-             // Open Intake Activity for editing
-             val intent = android.content.Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java)
-             intent.putExtra("isEditMode", true)
-             intent.putExtra("existingData", clientBirthData?.toString())
-             editIntakeLauncher.launch(intent)
-        }
-
-        // Start Timer
-        timerHandler.postDelayed(timerRunnable, 1000)
-
-        // Mic Toggle
-        btnMic.setOnClickListener {
-            isMuted = !isMuted
-            localAudioTrack?.setEnabled(!isMuted)
-            btnMic.alpha = if (isMuted) 0.5f else 1.0f
-            Toast.makeText(this, if (isMuted) "Muted" else "Unmuted", Toast.LENGTH_SHORT).show()
-        }
-
-        // Speaker/Video Toggle
-        if (callType == "audio") {
-            // Audio Call: Use this button for Speaker Toggle
-            btnVideo.setImageResource(android.R.drawable.ic_lock_silent_mode_off) // Generic Speaker Icon
-            localView.visibility = View.GONE
-            // Keep remote view GONE for audio, or maybe show avatar?
-            // For full screen audio UI redesign, we might want a placeholder image in remoteView or just black
-            // Activity layout is black bg, so should be fine.
-            remoteView.visibility = View.GONE
-            findViewById<View>(android.R.id.content).setBackgroundColor(android.graphics.Color.BLACK)
-
-            setSpeakerphoneOn(false)
-
-            btnVideo.setOnClickListener {
-                isSpeakerOn = !isSpeakerOn
-                setSpeakerphoneOn(isSpeakerOn)
-                btnVideo.alpha = if (isSpeakerOn) 1.0f else 0.5f
-                Toast.makeText(this, if (isSpeakerOn) "Speaker ON" else "Speaker OFF", Toast.LENGTH_SHORT).show()
-            }
-        } else {
-            // Video Call: Use for Camera Toggle
-            setSpeakerphoneOn(true)
-
-            btnVideo.setOnClickListener {
-                val enabled = localVideoTrack?.enabled() ?: true
-                localVideoTrack?.setEnabled(!enabled)
-                btnVideo.alpha = if (!enabled) 1.0f else 0.5f
-                Toast.makeText(this, if (!enabled) "Camera ON" else "Camera OFF", Toast.LENGTH_SHORT).show()
+        // Set Content
+        setContent {
+            CosmicAppTheme {
+                CallScreen(
+                    remoteRenderer = remoteView,
+                    localRenderer = localView,
+                    partnerName = partnerName ?: "Unknown",
+                    duration = formattedDuration,
+                    statusText = statusText,
+                    isBillingActive = isBillingActive,
+                    callType = callType,
+                    isMuted = isMutedState,
+                    isCameraOrSpeakerOn = if(callType == "video") isVideoEnabledState else isSpeakerOnState,
+                    role = role ?: "user",
+                    onToggleMic = { toggleMic() },
+                    onToggleCameraOrSpeaker = {
+                        if(callType == "video") toggleCamera() else toggleSpeaker()
+                    },
+                    onEndCall = { endCall() },
+                    onEditIntake = { openEditIntake() },
+                    onShowRasi = { showRasiChart() }
+                )
             }
         }
 
-        // --- CRITICAL FIX: Ensure Socket is Connected (for Killed App state) ---
-        // --- CRITICAL FIX: Ensure Socket is Connected (for Killed App state) ---
-        // tokenManager and session already initialized above
-
+        // --- Socket Init ---
         try {
             SocketManager.init()
             session?.userId?.let { uid ->
@@ -231,7 +196,6 @@ class CallActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "Socket init failed", e)
         }
-        // -----------------------------------------------------------------------
 
         // Check Permissions
         if (checkPermissions()) {
@@ -245,6 +209,44 @@ class CallActivity : AppCompatActivity() {
         }
 
         startBackgroundService()
+
+        // Start Timer Delay
+        timerHandler.postDelayed(timerRunnable, 1000)
+    }
+
+    private fun toggleMic() {
+        val newMute = !isMutedState
+        isMutedState = newMute
+        localAudioTrack?.setEnabled(!newMute)
+        Toast.makeText(this, if (newMute) "Muted" else "Unmuted", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun toggleCamera() {
+        val enabled = localVideoTrack?.enabled() ?: true
+        val newEnabled = !enabled
+        localVideoTrack?.setEnabled(newEnabled)
+        isVideoEnabledState = newEnabled
+        Toast.makeText(this, if (newEnabled) "Camera ON" else "Camera OFF", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun toggleSpeaker() {
+        val newSpeaker = !isSpeakerOnState
+        isSpeakerOnState = newSpeaker
+        setSpeakerphoneOn(newSpeaker)
+        Toast.makeText(this, if (newSpeaker) "Speaker ON" else "Speaker OFF", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun setSpeakerphoneOn(on: Boolean) {
+        val audioManager = getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
+        audioManager.mode = android.media.AudioManager.MODE_IN_COMMUNICATION
+        audioManager.isSpeakerphoneOn = on
+    }
+
+    private fun openEditIntake() {
+        val intent = android.content.Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java)
+        intent.putExtra("isEditMode", true)
+        intent.putExtra("existingData", clientBirthData?.toString())
+        editIntakeLauncher.launch(intent)
     }
 
     private fun startBackgroundService() {
@@ -266,24 +268,14 @@ class CallActivity : AppCompatActivity() {
         startService(serviceIntent)
     }
 
-    private fun setSpeakerphoneOn(on: Boolean) {
-        val audioManager = getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
-        audioManager.mode = android.media.AudioManager.MODE_IN_COMMUNICATION
-        audioManager.isSpeakerphoneOn = on
-        isSpeakerOn = on
-    }
-
     private fun checkPermissions(): Boolean {
-        // For audio call, we theoretically don't need CAMERA, but for simplicity we keep it or check conditional
-        val hasAudio = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+         val hasAudio = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         val hasCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-
         return if (callType == "audio") hasAudio else (hasAudio && hasCamera)
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
         if (requestCode == PERMISSION_REQ_CODE) {
              var allGranted = true
              if (grantResults.isNotEmpty()) {
@@ -296,12 +288,11 @@ class CallActivity : AppCompatActivity() {
              } else {
                  allGranted = false
              }
-
              if (allGranted) {
                  startCallLimit()
              } else {
                  Toast.makeText(this, "Permissions required for call", Toast.LENGTH_LONG).show()
-                 finish() // End call if permissions denied
+                 finish()
              }
         }
     }
@@ -318,30 +309,23 @@ class CallActivity : AppCompatActivity() {
         }
 
         if (isInitiator) {
-            tvStatus.text = "Calling..."
+            statusText = "Calling..."
 
-            Log.d(TAG, "Initiator: Registering user $myUserId before session-connect")
             SocketManager.registerUser(myUserId) { success ->
                 if (success) {
                     runOnUiThread {
-                        Log.d(TAG, "Initiator registered, sending session-connect for $sessionId")
                         val connectPayload = JSONObject().apply {
                              put("sessionId", sessionId)
                         }
                         SocketManager.getSocket()?.emit("session-connect", connectPayload)
                     }
-                } else {
-                    Log.e(TAG, "Initiator registration FAILED")
                 }
             }
         } else {
-            tvStatus.text = "Connecting..."
-
-            Log.d(TAG, "Responder: Registering user $myUserId before answering")
+            statusText = "Connecting..."
             SocketManager.registerUser(myUserId) { success ->
                 if (success) {
                     runOnUiThread {
-                        Log.d(TAG, "Responder registered, sending answer-session for $sessionId")
                         val payload = JSONObject().apply {
                             put("sessionId", sessionId)
                             put("toUserId", partnerId)
@@ -354,8 +338,6 @@ class CallActivity : AppCompatActivity() {
                         }
                         SocketManager.getSocket()?.emit("session-connect", connectPayload)
                     }
-                } else {
-                    Log.e(TAG, "Responder registration FAILED")
                 }
             }
         }
@@ -363,7 +345,6 @@ class CallActivity : AppCompatActivity() {
 
     private fun initWebRTC() {
         eglBase = EglBase.create()
-
         val options = PeerConnectionFactory.InitializationOptions.builder(this).createInitializationOptions()
         PeerConnectionFactory.initialize(options)
 
@@ -372,39 +353,30 @@ class CallActivity : AppCompatActivity() {
             .setVideoDecoderFactory(DefaultVideoDecoderFactory(eglBase.eglBaseContext))
             .createPeerConnectionFactory()
 
-        // Only init Video if Video Call
         if (callType == "video") {
-            // Initialize remote view (full screen)
             remoteView.init(eglBase.eglBaseContext, null)
             remoteView.setEnableHardwareScaler(true)
             remoteView.setScalingType(org.webrtc.RendererCommon.ScalingType.SCALE_ASPECT_FILL)
-            remoteView.visibility = View.VISIBLE // ENSURE VISIBILITY
 
-            // Initialize local view (PIP - self view)
             localView.init(eglBase.eglBaseContext, null)
             localView.setEnableHardwareScaler(true)
-            localView.setMirror(true)  // Mirror for selfie camera
-            localView.setZOrderMediaOverlay(true)  // Show above remote view
+            localView.setMirror(true)
+            localView.setZOrderMediaOverlay(true)
             localView.setScalingType(org.webrtc.RendererCommon.ScalingType.SCALE_ASPECT_FILL)
-
-            // Make sure local view is visible
-            localView.visibility = View.VISIBLE
-            Log.d(TAG, "Video views initialized successfully")
+        } else {
+             setSpeakerphoneOn(false) // Audio call default
         }
 
         val audioSource = peerConnectionFactory.createAudioSource(MediaConstraints())
         localAudioTrack = peerConnectionFactory.createAudioTrack("101", audioSource)
 
         if (callType == "video") {
-            // Try Camera2 first, then Camera1
             videoCapturer = try {
                 createCameraCapturer(Camera2Enumerator(this))
             } catch (e: Exception) {
-                Log.e(TAG, "Camera2Enumerator failed, trying Camera1Enumerator", e)
                 try {
                     createCameraCapturer(Camera1Enumerator(true))
                 } catch (e1: Exception) {
-                    Log.e(TAG, "Camera1Enumerator failed too", e1)
                     null
                 }
             }
@@ -414,22 +386,14 @@ class CallActivity : AppCompatActivity() {
                     val surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", eglBase.eglBaseContext)
                     val videoSource = peerConnectionFactory.createVideoSource(videoCapturer!!.isScreencast)
                     videoCapturer!!.initialize(surfaceTextureHelper, this, videoSource.capturerObserver)
-
-                    // Use 640x480 for maximum compatibility (standard for most mobile WebRTC)
                     videoCapturer!!.startCapture(640, 480, 30)
-                    Log.d(TAG, "Camera capturer started: 640x480 @30fps")
 
                     localVideoTrack = peerConnectionFactory.createVideoTrack("100", videoSource)
-                    localVideoTrack?.setEnabled(true)  // Ensure video track is enabled
+                    localVideoTrack?.setEnabled(true)
                     localVideoTrack?.addSink(localView)
-                    Log.d(TAG, "Local video track created and added to local view")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to start camera capture", e)
-                    Toast.makeText(this, "Failed to start camera: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
-            } else {
-                Log.e(TAG, "ERROR: Could not create camera capturer!")
-                Toast.makeText(this, "Camera not available", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -437,24 +401,16 @@ class CallActivity : AppCompatActivity() {
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
             iceTransportsType = PeerConnection.IceTransportsType.ALL
             continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
-            // Potential fix for some devices: disable encryption if it's causing issues (usually not needed)
-            // keyType = PeerConnection.KeyType.ECDSA
         }
         peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, object : PeerConnection.Observer {
-            override fun onSignalingChange(p0: PeerConnection.SignalingState?) {
-                Log.d(TAG, "onSignalingChange: $p0")
-            }
+            override fun onSignalingChange(p0: PeerConnection.SignalingState?) {}
+
             override fun onIceConnectionChange(newState: PeerConnection.IceConnectionState?) {
-                Log.d(TAG, "onIceConnectionChange: $newState")
                 runOnUiThread {
                     when (newState) {
-                        PeerConnection.IceConnectionState.CONNECTED -> tvStatus.visibility = View.GONE
-                        PeerConnection.IceConnectionState.DISCONNECTED -> {
-                            // Don't end immediately, allow re-negotiation or timeout
-                            Toast.makeText(this@CallActivity, "Connection Unstable", Toast.LENGTH_SHORT).show()
-                        }
+                        PeerConnection.IceConnectionState.CONNECTED -> statusText = "" // Hide status
+                        PeerConnection.IceConnectionState.DISCONNECTED -> Toast.makeText(this@CallActivity, "Connection Unstable", Toast.LENGTH_SHORT).show()
                         PeerConnection.IceConnectionState.FAILED -> {
-                            // Only end on FAILURE
                             Toast.makeText(this@CallActivity, "Connection Failed", Toast.LENGTH_SHORT).show()
                             endCall()
                         }
@@ -463,13 +419,10 @@ class CallActivity : AppCompatActivity() {
                 }
             }
             override fun onIceConnectionReceivingChange(p0: Boolean) {}
-            override fun onIceGatheringChange(p0: PeerConnection.IceGatheringState?) {
-                Log.d(TAG, "onIceGatheringChange: $p0")
-            }
+            override fun onIceGatheringChange(p0: PeerConnection.IceGatheringState?) {}
 
             override fun onIceCandidate(candidate: IceCandidate?) {
                 if (candidate != null) {
-                    // WRAPPED SIGNAL
                     val signalData = JSONObject().apply {
                          put("type", "candidate")
                          put("candidate", JSONObject().apply {
@@ -489,11 +442,9 @@ class CallActivity : AppCompatActivity() {
             override fun onIceCandidatesRemoved(p0: Array<out IceCandidate>?) {}
 
             override fun onAddStream(stream: MediaStream?) {
-                Log.d(TAG, "onAddStream: ${stream?.videoTracks?.size} video tracks")
                 if (stream != null && stream.videoTracks.isNotEmpty() && callType == "video") {
                     val remoteVideoTrack = stream.videoTracks[0]
                     runOnUiThread {
-                        Log.d(TAG, "Adding remote video track (via onAddStream) to remoteView")
                         remoteVideoTrack.setEnabled(true)
                         remoteVideoTrack.addSink(remoteView)
                     }
@@ -502,10 +453,8 @@ class CallActivity : AppCompatActivity() {
 
             override fun onTrack(transceiver: RtpTransceiver?) {
                 val track = transceiver?.receiver?.track()
-                Log.d(TAG, "onTrack received: kind=${track?.kind()} id=${track?.id()} enabled=${track?.enabled()}")
                 if (track is VideoTrack && callType == "video") {
                     runOnUiThread {
-                        Log.d(TAG, "Adding remote video track (via onTrack) to remoteView. remoteView visibility=${remoteView.visibility}")
                         track.setEnabled(true)
                         track.addSink(remoteView)
                     }
@@ -514,16 +463,12 @@ class CallActivity : AppCompatActivity() {
 
             override fun onRemoveStream(p0: MediaStream?) {}
             override fun onDataChannel(p0: DataChannel?) {}
-            override fun onRenegotiationNeeded() {
-                Log.d(TAG, "onRenegotiationNeeded")
-                // Implement renegotiation if supported
-            }
+            override fun onRenegotiationNeeded() {}
         })!!
 
         localAudioTrack?.let { peerConnection.addTrack(it, listOf("mediaStream")) }
         localVideoTrack?.let { peerConnection.addTrack(it, listOf("mediaStream")) }
     }
-
 
     private fun setupSocketListeners() {
         SocketManager.onSignal { data ->
@@ -531,9 +476,6 @@ class CallActivity : AppCompatActivity() {
                 handleSignal(data)
             }
         }
-
-        // --- NEW: Wait for partner to accept before starting WebRTC handshake ---
-        // onSessionAnswered removed - using billing-started as a more reliable trigger
 
         SocketManager.getSocket()?.on("client-birth-chart") { args ->
             try {
@@ -548,52 +490,31 @@ class CallActivity : AppCompatActivity() {
             } catch (e: Exception) { e.printStackTrace() }
         }
 
-        // Billing Started - Show indicator when billing begins
         SocketManager.onBillingStarted { startTime ->
             runOnUiThread {
-                Log.d(TAG, "Billing started! Initiator=$isInitiator")
-                val billingIndicator = findViewById<TextView>(R.id.tvCallStatus)
-                billingIndicator?.text = "🔴 Billing Active"
-                billingIndicator?.visibility = View.VISIBLE
-                billingIndicator?.setTextColor(android.graphics.Color.parseColor("#EF4444"))
-
-                // CRITICAL: Initiator starts WebRTC handshake NOW
+                statusText = "🔴 Billing Active"
+                isBillingActive = true
                 if (isInitiator) {
-                    Log.d(TAG, "Starting WebRTC Handshake (createOffer)")
                     createOffer()
                 }
-
-                // Auto-hide after 3 seconds
-                billingIndicator?.postDelayed({
-                    billingIndicator.visibility = View.GONE
-                }, 3000)
-
-                Log.d(TAG, "Billing started - Session is now billable")
+                androidx.core.os.HandlerCompat.postDelayed(android.os.Handler(android.os.Looper.getMainLooper()), {
+                   if(statusText == "🔴 Billing Active") statusText = "" // Hide after valid
+                   isBillingActive = false // keep UI indicator small or different
+                }, null, 3000)
             }
         }
 
-        // Session Ended with Summary - Show deducted/earned amounts
         SocketManager.onSessionEndedWithSummary { reason, deducted, earned, duration ->
             runOnUiThread {
-                // Stop timer
                 timerHandler.removeCallbacks(timerRunnable)
-
-                // Format duration
                 val minutes = duration / 60
                 val seconds = duration % 60
                 val durationStr = String.format("%02d:%02d", minutes, seconds)
 
-                // Show summary dialog
                 val message = when {
-                    session?.role == "astrologer" -> {
-                        "Duration: $durationStr\n\nYou earned: ₹${String.format("%.2f", earned)}"
-                    }
-                    reason == "insufficient_funds" -> {
-                        "Call ended due to insufficient balance.\n\nDuration: $durationStr\nDeducted: ₹${String.format("%.2f", deducted)}"
-                    }
-                    else -> {
-                        "Duration: $durationStr\nDeducted: ₹${String.format("%.2f", deducted)}"
-                    }
+                    session?.role == "astrologer" -> "Duration: $durationStr\n\nYou earned: ₹${String.format("%.2f", earned)}"
+                    reason == "insufficient_funds" -> "Call ended due to insufficient balance.\n\nDuration: $durationStr\nDeducted: ₹${String.format("%.2f", deducted)}"
+                    else -> "Duration: $durationStr\nDeducted: ₹${String.format("%.2f", deducted)}"
                 }
 
                 androidx.appcompat.app.AlertDialog.Builder(this)
@@ -605,7 +526,6 @@ class CallActivity : AppCompatActivity() {
             }
         }
 
-        // Safety: End call if socket disconnects (internet lost)
         SocketManager.getSocket()?.on(io.socket.client.Socket.EVENT_DISCONNECT) {
              runOnUiThread {
                  Toast.makeText(this, "Connection Lost - Call Ended", Toast.LENGTH_SHORT).show()
@@ -616,7 +536,6 @@ class CallActivity : AppCompatActivity() {
 
     private fun drainRemoteCandidates() {
         if (pendingIceCandidates.isNotEmpty()) {
-            Log.d(TAG, "Draining ${pendingIceCandidates.size} remote candidates")
             for (candidate in pendingIceCandidates) {
                 peerConnection.addIceCandidate(candidate)
             }
@@ -625,26 +544,16 @@ class CallActivity : AppCompatActivity() {
     }
 
     private fun handleSignal(data: JSONObject) {
-        val signal = data.optJSONObject("signal") ?: data // Check if wrapped in signal, else fallback
+        val signal = data.optJSONObject("signal") ?: data
         var type = signal.optString("type")
-
-        // Fallback: If type is empty but 'candidate' exists, treat as candidate
-        if (type.isEmpty() && signal.has("candidate")) {
-            type = "candidate"
-        }
-
-        Log.d(TAG, "Received signal: $type")
+        if (type.isEmpty() && signal.has("candidate")) type = "candidate"
 
         when (type) {
             "offer" -> {
-                val sdpObj = signal.optJSONObject("sdp")
-                val descriptionStr = sdpObj?.optString("sdp") ?: signal.optString("sdp")
-
+                val descriptionStr = signal.optJSONObject("sdp")?.optString("sdp") ?: signal.optString("sdp")
                 if (descriptionStr.isNotEmpty()) {
-                    Log.d(TAG, "Setting Remote Offer.")
                     peerConnection.setRemoteDescription(object : SimpleSdpObserver() {
                         override fun onSetSuccess() {
-                            Log.d(TAG, "Remote Offer Set. Creating Answer.")
                             createAnswer()
                             drainRemoteCandidates()
                         }
@@ -652,14 +561,10 @@ class CallActivity : AppCompatActivity() {
                 }
             }
             "answer" -> {
-                val sdpObj = signal.optJSONObject("sdp")
-                val descriptionStr = sdpObj?.optString("sdp") ?: signal.optString("sdp")
-
+                val descriptionStr = signal.optJSONObject("sdp")?.optString("sdp") ?: signal.optString("sdp")
                 if (descriptionStr.isNotEmpty()) {
-                    Log.d(TAG, "Setting Remote Answer.")
                     peerConnection.setRemoteDescription(object : SimpleSdpObserver() {
                         override fun onSetSuccess() {
-                            Log.d(TAG, "Remote Answer Set.")
                             drainRemoteCandidates()
                         }
                     }, SessionDescription(SessionDescription.Type.ANSWER, descriptionStr))
@@ -674,7 +579,6 @@ class CallActivity : AppCompatActivity() {
                 if (sdp.isNotEmpty() && sdpMLineIndex != -1) {
                     val candidate = IceCandidate(sdpMid, sdpMLineIndex, sdp)
                     if (peerConnection.remoteDescription == null) {
-                        Log.d(TAG, "Queuing ICE candidate")
                         pendingIceCandidates.add(candidate)
                     } else {
                         peerConnection.addIceCandidate(candidate)
@@ -693,7 +597,6 @@ class CallActivity : AppCompatActivity() {
         peerConnection.createOffer(object : SimpleSdpObserver() {
             override fun onCreateSuccess(desc: SessionDescription?) {
                 peerConnection.setLocalDescription(SimpleSdpObserver(), desc)
-                // FIX: Flattened SDP structure for Web Compatibility
                 val signalData = JSONObject().apply {
                     put("type", "offer")
                     put("sdp", desc?.description)
@@ -716,7 +619,6 @@ class CallActivity : AppCompatActivity() {
         peerConnection.createAnswer(object : SimpleSdpObserver() {
             override fun onCreateSuccess(desc: SessionDescription?) {
                 peerConnection.setLocalDescription(SimpleSdpObserver(), desc)
-                // FIX: Flattened SDP structure for Web Compatibility
                 val signalData = JSONObject().apply {
                     put("type", "answer")
                     put("sdp", desc?.description)
@@ -743,7 +645,7 @@ class CallActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        timerHandler.removeCallbacks(timerRunnable) // Stop Timer
+        timerHandler.removeCallbacks(timerRunnable)
         SocketManager.off("signal")
         SocketManager.off("session-ended")
         SocketManager.off("billing-started")
@@ -761,89 +663,223 @@ class CallActivity : AppCompatActivity() {
 
     private fun createCameraCapturer(enumerator: CameraEnumerator): VideoCapturer? {
         val deviceNames = enumerator.deviceNames
-        Log.d(TAG, "Looking for front facing camera from ${deviceNames.size} devices")
-
-        // 1. Try to find front facing camera
         for (deviceName in deviceNames) {
             if (enumerator.isFrontFacing(deviceName)) {
-                Log.d(TAG, "Creating capturer for front facing device: $deviceName")
-                val capturer = enumerator.createCapturer(deviceName, null)
-                if (capturer != null) return capturer
+                return enumerator.createCapturer(deviceName, null)
             }
         }
-
-        // 2. Fallback to back facing camera if front not found (rare but possible on some devices)
         for (deviceName in deviceNames) {
             if (!enumerator.isFrontFacing(deviceName)) {
-                Log.d(TAG, "Creating capturer for back facing device: $deviceName")
-                val capturer = enumerator.createCapturer(deviceName, null)
-                if (capturer != null) return capturer
+                return enumerator.createCapturer(deviceName, null)
             }
         }
-
-        Log.e(TAG, "No camera found!")
         return null
     }
 
     private fun showRasiChart() {
-        // Simple North/South chart placeholder or use RasiDetailDialog logic
-        // For now, showing a simple dialog with the user's Rasi if available
-        // Or specific chart viewer. Given user asked for "Rasi Chart Icon", likely expects the chart image.
-        // We will show a dialog with Rasi Grid similar to Home Screen but simplified.
-
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle("Rasi Chart")
             .setMessage("Chart visualization would appear here.\n(Implementation Pending: Needs Chart Rendering Logic)")
             .setPositiveButton("Close", null)
             .create()
         dialog.show()
     }
+}
 
-    private fun showIntakeDialog() {
-        // Dialog with Name, DOB, TOB, POB inputs
-        val view = layoutInflater.inflate(R.layout.dialog_intake_edit, null)
-        val etName = view.findViewById<android.widget.EditText>(R.id.etName)
-        val etDob = view.findViewById<android.widget.EditText>(R.id.etDob)
-        val etTob = view.findViewById<android.widget.EditText>(R.id.etTob)
-        val etPob = view.findViewById<android.widget.EditText>(R.id.etPob)
+// openHelper for simplified observer
+open class SimpleSdpObserver : SdpObserver {
+    override fun onCreateSuccess(p0: SessionDescription?) {}
+    override fun onSetSuccess() {}
+    override fun onCreateFailure(p0: String?) {}
+    override fun onSetFailure(p0: String?) {}
+}
 
-        // Pre-fill if we have data (requires storing birthData in Activity)
-        // For now, empty or standard.
+@Composable
+fun CallScreen(
+    remoteRenderer: SurfaceViewRenderer,
+    localRenderer: SurfaceViewRenderer,
+    partnerName: String,
+    duration: String,
+    statusText: String,
+    isBillingActive: Boolean,
+    callType: String,
+    isMuted: Boolean,
+    isCameraOrSpeakerOn: Boolean, // Camera for Video, Speaker for Audio
+    role: String,
+    onToggleMic: () -> Unit,
+    onToggleCameraOrSpeaker: () -> Unit,
+    onEndCall: () -> Unit,
+    onEditIntake: () -> Unit,
+    onShowRasi: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        // Remote View Layer (Full Screen)
+        if (callType == "video") {
+            AndroidView(
+                factory = { remoteRenderer },
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            // Audio Call UI Placeholder
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                 Icon(
+                     painter = painterResource(id = R.drawable.ic_person_placeholder), // Ensure this exists or fallback
+                     contentDescription = "User",
+                     tint = Color.Gray,
+                     modifier = Modifier.size(120.dp)
+                 )
+            }
+        }
 
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Update Consultation Details")
-            .setView(view)
-            .setPositiveButton("Update") { _, _ ->
-                val name = etName.text.toString()
-                val dob = etDob.text.toString()
-                val tob = etTob.text.toString()
-                val pob = etPob.text.toString()
+        // Overlay Gradient
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .background(Color.Black.copy(alpha = 0.4f))
+        )
 
-                val formData = JSONObject().apply {
-                    put("name", name)
-                    put("dob", dob)
-                    put("tob", tob)
-                    put("pob", pob)
-                    put("updatedAt", System.currentTimeMillis())
-                }
+        // Top Info Bar
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 40.dp, start = 16.dp, end = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onEndCall, // Back essentially ends call or toggles PIP (simplified as end for now)
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color.White.copy(alpha = 0.5f), CircleShape)
+            ) {
+               // Back Icon
+               Icon(
+                   painter = painterResource(id = android.R.drawable.ic_menu_revert),
+                   contentDescription = "Back",
+                   tint = Color.Black
+               )
+            }
 
-                if (sessionId != null) {
-                    val payload = JSONObject().apply {
-                        put("sessionId", sessionId)
-                        put("formData", formData)
-                    }
-                    SocketManager.getSocket()?.emit("update-intake", payload)
-                    Toast.makeText(this, "Details updated & sent to Astrologer", Toast.LENGTH_SHORT).show()
+            Column(
+                modifier = Modifier
+                    .padding(start = 16.dp)
+                    .weight(1f)
+            ) {
+                Text(
+                    text = partnerName,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+                Text(
+                    text = duration,
+                    color = Color.LightGray,
+                    fontSize = 14.sp
+                )
+                if (statusText.isNotEmpty()) {
+                     Text(
+                        text = statusText,
+                        color = if (isBillingActive || statusText.contains("Billing")) Color.Red else Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
+        }
 
-    open class SimpleSdpObserver : SdpObserver {
-        override fun onCreateSuccess(p0: SessionDescription?) {}
-        override fun onSetSuccess() {}
-        override fun onCreateFailure(p0: String?) { Log.e("SdpObserver", "Create Failure: $p0") }
-        override fun onSetFailure(p0: String?) { Log.e("SdpObserver", "Set Failure: $p0") }
+        // Local Video (PIP) - Only for Video Call
+        if (callType == "video") {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 16.dp, bottom = 120.dp) // adjusted for controls
+                    .size(width = 120.dp, height = 160.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.DarkGray)
+            ) {
+                AndroidView(
+                    factory = { localRenderer },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+
+        // Bottom Controls
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(Color.Black.copy(alpha = 0.6f))
+                .padding(vertical = 24.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (role == "astrologer") {
+                IconButton(
+                    onClick = onShowRasi,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(Color.Gray, CircleShape)
+                ) {
+                    Icon(painterResource(android.R.drawable.ic_menu_gallery), "Rasi", tint = Color.White)
+                }
+            }
+
+            IconButton(
+                onClick = onToggleCameraOrSpeaker,
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color.Gray, CircleShape)
+            ) {
+                 if (callType == "video") {
+                    Icon(
+                        if (isCameraOrSpeakerOn) Icons.Default.Videocam else Icons.Default.VideocamOff,
+                        "Video",
+                        tint = Color.White
+                    )
+                 } else {
+                     Icon(
+                        if (isCameraOrSpeakerOn) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                        "Speaker",
+                        tint = Color.White
+                    )
+                 }
+            }
+
+            IconButton(
+                onClick = onEndCall,
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color.Red, CircleShape)
+            ) {
+                Icon(Icons.Default.CallEnd, "End", tint = Color.White)
+            }
+
+            IconButton(
+                onClick = onToggleMic,
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color.Gray, CircleShape) // Alpha change can be done via modifier
+            ) {
+                Icon(
+                    if (isMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                     "Mic",
+                     tint = Color.White
+                )
+            }
+
+            IconButton(
+                onClick = onEditIntake,
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color.Gray, CircleShape)
+            ) {
+                Icon(Icons.Default.Edit, "Edit", tint = Color.White)
+            }
+        }
     }
 }
