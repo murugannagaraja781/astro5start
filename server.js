@@ -1828,10 +1828,16 @@ io.on('connection', (socket) => {
   }
 
   // --- Get History ---
-  socket.on('get-history', async (cb) => {
+  socket.on('get-history', async (data, cb) => {
+    if (typeof data === 'function') { cb = data; data = {}; }
     try {
       const userId = socketToUser.get(socket.id);
-      if (!userId) return cb({ ok: false });
+      if (!userId) return cb && cb({ ok: false });
+
+      if (data && data.sessionId) {
+        const messages = await ChatMessage.find({ sessionId: data.sessionId }).sort({ timestamp: 1 });
+        return cb && cb({ ok: true, messages });
+      }
 
       // Find sessions where user participated
       const sessions = await Session.find({ $or: [{ fromUserId: userId }, { toUserId: userId }] })

@@ -1,143 +1,143 @@
 package com.astro5star.app.data.repository
 
-import com.astro5star.app.data.remote.SocketManager
-import org.json.JSONObject
-
 import android.content.Context
 import com.astro5star.app.data.local.AppDatabase
 import com.astro5star.app.data.local.entity.ChatMessageEntity
-import com.astro5star.app.data.api.ApiService
-import com.astro5star.app.utils.Constants
+import com.astro5star.app.data.remote.SocketManager
 import kotlinx.coroutines.flow.Flow
+import org.json.JSONObject
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 class ChatRepository(private val context: Context) {
 
-    private val chatDao = AppDatabase.getDatabase(context).chatDao()
-    private val socket = SocketManager.getSocket()
+    private val db = AppDatabase.getDatabase(context)
+    private val chatDao = db.chatDao() // Corrected
 
-    suspend fun saveMessage(msg: ChatMessageEntity) {
-        chatDao.insertMessage(msg)
-    }
-
+    // Local DB Operations
     fun getMessages(sessionId: String): Flow<List<ChatMessageEntity>> {
-        return chatDao.getMessages(sessionId)
+        return chatDao.getMessages(sessionId) // Corrected from getMessagesBySession
     }
 
-    suspend fun updateMessageStatus(messageId: String, status: String) {
-        chatDao.updateStatus(messageId, status)
+    suspend fun saveMessage(message: ChatMessageEntity) {
+        chatDao.insertMessage(message)
     }
 
-    suspend fun fetchHistoryFromServer(sessionId: String, limit: Int = 20, before: Long? = null): Boolean {
-        return try {
-            val response = ApiService.getChatHistory(Constants.SERVER_URL, sessionId, limit, before)
-            if (response.success && response.data != null) {
-                val historyArray = response.data.getJSONArray("history")
-                for (i in 0 until historyArray.length()) {
-                    val msg = historyArray.getJSONObject(i)
-                    val entity = ChatMessageEntity(
-                        messageId = msg.getString("messageId"),
-                        sessionId = sessionId,
-                        text = msg.getString("text"),
-                        senderId = msg.getString("fromUserId"),
-                        timestamp = msg.getLong("timestamp"),
-                        status = msg.optString("status", "read"),
-                        isSentByMe = false // Will be updated by check against TokenManager if needed
-                    )
-                    // We need to know who is 'me' to set isSentByMe correctly
-                    val myUserId = com.astro5star.app.data.local.TokenManager(context).getUserSession()?.userId
-                    val updatedEntity = entity.copy(isSentByMe = entity.senderId == myUserId)
-
-                    chatDao.insertMessage(updatedEntity)
-                }
-                true
-            } else false
-        } catch (e: Exception) {
-            e.printStackTrace()
-            false
-        }
-    }
-
+    // Remote Operations (Socket)
     fun sendMessage(data: JSONObject) {
-        socket?.emit("chat-message", data)
+        SocketManager.getSocket()?.emit("chat-message", data)
     }
 
     fun sendTyping(toUserId: String) {
-        socket?.emit("typing", JSONObject().apply { put("toUserId", toUserId) })
+        val data = JSONObject().put("toUserId", toUserId)
+        SocketManager.getSocket()?.emit("typing", data)
     }
 
     fun sendStopTyping(toUserId: String) {
-        socket?.emit("stop-typing", JSONObject().apply { put("toUserId", toUserId) })
+        val data = JSONObject().put("toUserId", toUserId)
+        SocketManager.getSocket()?.emit("stop-typing", data)
     }
 
     fun markDelivered(messageId: String, toUserId: String, sessionId: String) {
-        val payload = JSONObject().apply {
+        val data = JSONObject().apply {
             put("messageId", messageId)
             put("toUserId", toUserId)
+            put("status", "delivered")
+            put("sessionId", sessionId)
         }
-        socket?.emit("message-delivered", payload)
+        SocketManager.getSocket()?.emit("message-status", data)
     }
 
     fun markRead(messageId: String, toUserId: String, sessionId: String) {
-        val payload = JSONObject().apply {
+         val data = JSONObject().apply {
             put("messageId", messageId)
             put("toUserId", toUserId)
+            put("status", "read")
+            put("sessionId", sessionId)
         }
-        socket?.emit("message-read", payload)
-    }
-
-    fun listenIncoming(onMessage: (JSONObject) -> Unit) {
-        socket?.off("chat-message") // Prevent duplicate listeners
-        socket?.on("chat-message") { args ->
-            if (args.isNotEmpty()) {
-                onMessage(args[0] as JSONObject)
-            }
-        }
-    }
-
-    fun listenMessageStatus(onStatus: (JSONObject) -> Unit) {
-        socket?.off("message-status")
-        socket?.on("message-status") { args ->
-            if (args.isNotEmpty()) {
-                onStatus(args[0] as JSONObject)
-            }
-        }
-    }
-
-    fun listenTyping(onTyping: () -> Unit) {
-        socket?.off("typing")
-        socket?.on("typing") {
-            onTyping()
-        }
-    }
-
-    fun listenStopTyping(onStopTyping: () -> Unit) {
-        socket?.off("stop-typing")
-        socket?.on("stop-typing") {
-            onStopTyping()
-        }
+        SocketManager.getSocket()?.emit("message-status", data)
     }
 
     fun acceptSession(sessionId: String, toUserId: String) {
         val payload = JSONObject().apply {
             put("sessionId", sessionId)
             put("toUserId", toUserId)
-            put("accept", true)
         }
-        socket?.emit("answer-session", payload)
-
-        val connectPayload = JSONObject().apply { put("sessionId", sessionId) }
-        socket?.emit("session-connect", connectPayload)
+        SocketManager.getSocket()?.emit("accept-session", payload)
     }
 
-    fun listenSessionEnded(onSessionEnded: () -> Unit) {
-        socket?.off("session-ended")
-        socket?.on("session-ended") {
-            onSessionEnded()
+    // Listeners
+    fun listenIncoming(onMessage: (JSONObject) -> Unit) {
+        SocketManager.getSocket()?.on("chat-message") { args ->
+            if (args != null && args.isNotEmpty()) {
+                val data = args[0] as JSONObject
+                onMessage(data)
+            }
+        }
+    }
+
+    fun listenMessageStatus(onStatus: (JSONObject) -> Unit) {
+        SocketManager.onMessageStatus(onStatus)
+    }
+
+    fun listenTyping(onTyping: () -> Unit) {
+        SocketManager.getSocket()?.on("typing") {
+            onTyping()
+        }
+    }
+
+    fun listenStopTyping(onStop: () -> Unit) {
+        SocketManager.getSocket()?.on("stop-typing") {
+            onStop()
         }
     }
 
     fun removeListeners() {
         SocketManager.removeChatListeners()
-        socket?.off("session-ended")
+    }
+
+    // Sync
+    suspend fun fetchHistoryFromServer(sessionId: String, limit: Int = 50, before: Long? = null): Boolean {
+        // Implementation calling Socket 'get-history'
+        val jsonList = suspendCancellableCoroutine<List<JSONObject>> { continuation ->
+            SocketManager.getHistory(sessionId) { list ->
+                continuation.resume(list)
+            }
+        }
+
+        if (jsonList.isNotEmpty()) {
+            val myUserId = com.astro5star.app.data.local.TokenManager(context).getUserSession()?.userId
+
+            jsonList.forEach { json ->
+                try {
+                     val content = json.optJSONObject("content")
+                     val text = content?.optString("text") // Handle both structure styles if needed
+                        ?: json.optString("text", "") // Fallback
+
+                     val msgId = json.optString("messageId")
+                     val senderId = json.optString("fromUserId")
+                     // Use timestamp from server or fallback
+                     var timestamp = json.optLong("timestamp", 0L)
+                     if (timestamp == 0L) timestamp = json.optLong("createdAt", System.currentTimeMillis())
+
+                     val isMe = (senderId == myUserId)
+
+                     if (msgId.isNotEmpty()) {
+                         val entity = ChatMessageEntity(
+                             messageId = msgId,
+                             sessionId = sessionId,
+                             text = text,
+                             senderId = senderId,
+                             timestamp = timestamp,
+                             status = "read",
+                             isSentByMe = isMe
+                         )
+                         saveMessage(entity)
+                     }
+                } catch(e: Exception) { e.printStackTrace() }
+            }
+            return true
+        }
+        return false
     }
 }

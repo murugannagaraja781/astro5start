@@ -24,14 +24,11 @@ object SocketManager {
                 timeout = 20000
                 transports = arrayOf("websocket", "polling")
             }
-            // Use the constant URL if available, or hardcode/inject
-            // Assuming Constants.SERVER_URL exists or providing a default
             val url = Constants.SERVER_URL ?: "http://10.0.2.2:3000"
             socket = IO.socket(url, opts)
 
             socket?.on(Socket.EVENT_CONNECT) {
                 Log.d(TAG, "Socket connected: ${socket?.id()}")
-                // Auto-register on connect/reconnect
                 if (currentUserId != null) {
                     registerUser(currentUserId!!)
                 }
@@ -48,12 +45,20 @@ object SocketManager {
         }
     }
 
+    fun ensureConnection() {
+        if (socket == null) {
+            init()
+        }
+        if (socket?.connected() != true) {
+            socket?.connect()
+        }
+    }
+
     fun registerUser(userId: String, callback: ((Boolean) -> Unit)? = null) {
-        currentUserId = userId // Store for reconnection
+        currentUserId = userId
         val data = JSONObject()
         data.put("userId", userId)
 
-        // Use Ack to know when server processed it
         socket?.emit("register", data, Ack { args ->
             val success = if (args != null && args.isNotEmpty()) {
                 val response = args[0] as? JSONObject
@@ -73,8 +78,6 @@ object SocketManager {
         return socket
     }
 
-    // --- Session & Call Signaling ---
-
     fun requestSession(toUserId: String, type: String, birthData: JSONObject? = null, callback: ((JSONObject?) -> Unit)? = null) {
         val payload = JSONObject().apply {
             put("toUserId", toUserId)
@@ -83,7 +86,6 @@ object SocketManager {
                 put("birthData", birthData)
             }
         }
-        // Use Ack for callback
         socket?.emit("request-session", payload, Ack { args ->
             if (args != null && args.isNotEmpty()) {
                 callback?.invoke(args[0] as? JSONObject)
@@ -132,18 +134,35 @@ object SocketManager {
         socket?.emit("end-session", payload)
     }
 
+    fun getHistory(sessionId: String, callback: ((List<JSONObject>) -> Unit)) {
+        val payload = JSONObject().apply {
+            put("sessionId", sessionId)
+        }
+        socket?.emit("get-history", payload, Ack { args ->
+             val list = mutableListOf<JSONObject>()
+             if (args != null && args.isNotEmpty()) {
+                 val response = args[0] as? JSONObject
+                 if (response?.optBoolean("ok") == true) {
+                     val msgs = response.optJSONArray("messages")
+                     if (msgs != null) {
+                        for (i in 0 until msgs.length()) {
+                            list.add(msgs.getJSONObject(i))
+                        }
+                     }
+                 }
+             }
+             callback(list)
+        })
+    }
+
     fun onSessionEnded(listener: () -> Unit) {
         socket?.on("session-ended") {
             listener()
         }
     }
 
-    /**
-     * Listen for session-ended with summary data (deducted, earned, duration)
-     * This provides better billing feedback to the user
-     */
     fun onSessionEndedWithSummary(listener: (reason: String, deducted: Double, earned: Double, duration: Int) -> Unit) {
-        socket?.off("session-ended") // Remove existing listener
+        socket?.off("session-ended")
         socket?.on("session-ended") { args ->
             var reason = "ended"
             var deducted = 0.0
@@ -164,10 +183,6 @@ object SocketManager {
         }
     }
 
-    /**
-     * Listen for billing-started event when both parties connect
-     * This indicates when the billable session actually begins
-     */
     fun onBillingStarted(listener: (startTime: Long) -> Unit) {
         socket?.on("billing-started") { args ->
             if (args != null && args.isNotEmpty()) {
@@ -193,7 +208,6 @@ object SocketManager {
         socket?.off(event)
     }
 
-    // NEW: Allow Activity to wait for connection
     fun onConnect(listener: () -> Unit) {
         if (socket?.connected() == true) {
             listener()
@@ -207,7 +221,7 @@ object SocketManager {
     fun updateServiceStatus(userId: String, service: String, isEnabled: Boolean) {
         val data = JSONObject().apply {
             put("userId", userId)
-            put("service", service) // "chat", "call", "video"
+            put("service", service)
             put("isEnabled", isEnabled)
         }
         socket?.emit("update-service-status", data)
@@ -222,13 +236,8 @@ object SocketManager {
         }
     }
 
-    /**
-     * Listen for incoming session requests (calls/chats) when app is in foreground.
-     * This is CRITICAL because FCM only works reliably when app is in background/killed.
-     * When app is in foreground, server sends via socket instead of FCM.
-     */
     fun onIncomingSession(listener: (JSONObject) -> Unit) {
-        socket?.off("incoming-session") // Remove any existing listener first
+        socket?.off("incoming-session")
         socket?.on("incoming-session") { args ->
             if (args != null && args.isNotEmpty()) {
                 val data = args[0] as JSONObject
@@ -238,9 +247,6 @@ object SocketManager {
         }
     }
 
-    /**
-     * Remove incoming session listener (call when activity is destroyed)
-     */
     fun offIncomingSession() {
         socket?.off("incoming-session")
     }
@@ -258,4 +264,3 @@ object SocketManager {
         socket?.off("stop-typing")
     }
 }
-
