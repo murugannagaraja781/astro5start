@@ -62,8 +62,9 @@ class ChatRepository(private val context: Context) {
         val payload = JSONObject().apply {
             put("sessionId", sessionId)
             put("toUserId", toUserId)
+            put("accept", true)
         }
-        SocketManager.getSocket()?.emit("accept-session", payload)
+        SocketManager.getSocket()?.emit("answer-session", payload)
     }
 
     // Listeners

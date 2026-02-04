@@ -18,8 +18,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,9 +40,11 @@ import com.astro5star.app.ui.theme.CosmicAppTheme
 import io.socket.client.Socket
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.util.Calendar
+import java.util.TimeZone
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 class IntakeActivity : ComponentActivity() {
 
@@ -154,7 +154,10 @@ fun IntakeScreen(
     var unknownTime by remember { mutableStateOf(false) }
 
     // Place
-    var placeName by remember { mutableStateOf("") }
+    var countryName by remember { mutableStateOf("") }
+    var stateName by remember { mutableStateOf("") }
+    var cityName by remember { mutableStateOf("") }
+    var timezoneId by remember { mutableStateOf<String?>(null) }
     var latitude by remember { mutableStateOf<Double?>(null) }
     var longitude by remember { mutableStateOf<Double?>(null) }
     var timezone by remember { mutableStateOf<Double?>(null) }
@@ -167,10 +170,13 @@ fun IntakeScreen(
     // Partner
     var includePartner by remember { mutableStateOf(false) }
     var pName by remember { mutableStateOf("") }
-    var pPlaceName by remember { mutableStateOf("") }
+    var pCountryName by remember { mutableStateOf("") }
+    var pStateName by remember { mutableStateOf("") }
+    var pCityName by remember { mutableStateOf("") }
     var pLat by remember { mutableStateOf<Double?>(null) }
     var pLon by remember { mutableStateOf<Double?>(null) }
     var pTz by remember { mutableStateOf<Double?>(null) }
+    var pTimezoneId by remember { mutableStateOf<String?>(null) }
     var pDay by remember { mutableStateOf("") }
     var pMonth by remember { mutableStateOf("") }
     var pYear by remember { mutableStateOf("") }
@@ -182,22 +188,6 @@ fun IntakeScreen(
     var waitTimeLeft by remember { mutableStateOf(30) }
     var waitingSessionId by remember { mutableStateOf<String?>(null) }
 
-    // City Launcher
-    val cityLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            val d = result.data!!
-            val nameRes = d.getStringExtra("name") ?: ""
-            val latRes = d.getDoubleExtra("lat", 0.0)
-            val lonRes = d.getDoubleExtra("lon", 0.0)
-
-            // Check usage (Client or Partner?) - Need to track who launched it.
-            // Hack: We can use a request code or shared state.
-            // Since launcher is unique per call site or shared, let's use a state var to track target.
-        }
-    }
-
     // State to track which city field triggered search
     var activeCitySearchTarget by remember { mutableStateOf("client") } // "client" or "partner"
 
@@ -206,27 +196,75 @@ fun IntakeScreen(
     ) { result ->
          if (result.resultCode == Activity.RESULT_OK && result.data != null) {
             val d = result.data!!
-            val nameRes = d.getStringExtra("name") ?: ""
+            val fullName = d.getStringExtra("name") ?: ""
+            val cityRes = d.getStringExtra("city") ?: ""
+            val stateRes = d.getStringExtra("state") ?: ""
+            val countryRes = d.getStringExtra("country") ?: ""
+            val tzId = d.getStringExtra("timezoneId")
             val latRes = d.getDoubleExtra("lat", 0.0)
             val lonRes = d.getDoubleExtra("lon", 0.0)
 
+            val parsed = if (cityRes.isBlank() && stateRes.isBlank() && countryRes.isBlank()) {
+                parsePlaceName(fullName)
+            } else {
+                Triple(cityRes, stateRes, countryRes)
+            }
+            val resolvedCity = parsed.first
+            val resolvedState = parsed.second
+            val resolvedCountry = parsed.third
+
             if (activeCitySearchTarget == "client") {
-                placeName = nameRes
+                cityName = resolvedCity
+                stateName = resolvedState
+                countryName = resolvedCountry
+                timezoneId = tzId?.takeIf { it.isNotBlank() }
                 latitude = latRes
                 longitude = lonRes
-                // Fetch TZ
-                scope.launch {
-                    timezone = fetchTz(latRes, lonRes)
-                }
+                val computed = computeTimezoneOffsetHours(timezoneId, day, month, year, hour, minute)
+                if (computed != null) timezone = computed
             } else {
-                pPlaceName = nameRes
+                pCityName = resolvedCity
+                pStateName = resolvedState
+                pCountryName = resolvedCountry
+                pTimezoneId = tzId?.takeIf { it.isNotBlank() }
                 pLat = latRes
                 pLon = lonRes
-                scope.launch {
-                    pTz = fetchTz(latRes, lonRes)
-                }
+                val computed = computeTimezoneOffsetHours(pTimezoneId, pDay, pMonth, pYear, pHour, pMinute)
+                if (computed != null) pTz = computed
             }
          }
+    }
+
+    val placeName = remember(cityName, stateName, countryName) {
+        buildPlaceName(cityName, stateName, countryName)
+    }
+
+    val computedTimezone = remember(timezoneId, day, month, year, hour, minute) {
+        computeTimezoneOffsetHours(timezoneId, day, month, year, hour, minute)
+    }
+    val timezoneOffset = computedTimezone ?: timezone
+    val timezoneDisplay = timezoneOffset?.let { formatUtcOffset(it) } ?: ""
+
+    val pPlaceName = remember(pCityName, pStateName, pCountryName) {
+        buildPlaceName(pCityName, pStateName, pCountryName)
+    }
+
+    val partnerComputedTimezone = remember(pTimezoneId, pDay, pMonth, pYear, pHour, pMinute) {
+        computeTimezoneOffsetHours(pTimezoneId, pDay, pMonth, pYear, pHour, pMinute)
+    }
+    val partnerTimezoneOffset = partnerComputedTimezone ?: pTz
+    val partnerTimezoneDisplay = partnerTimezoneOffset?.let { formatUtcOffset(it) } ?: ""
+
+    val launchLocationPicker = {
+        activeCitySearchTarget = "client"
+        val intent = Intent(context, com.astro5star.app.ui.city.CitySearchActivity::class.java)
+        specificCityLauncher.launch(intent)
+    }
+
+    val launchPartnerLocationPicker = {
+        activeCitySearchTarget = "partner"
+        val intent = Intent(context, com.astro5star.app.ui.city.CitySearchActivity::class.java)
+        specificCityLauncher.launch(intent)
     }
 
     // Prefill
@@ -234,10 +272,15 @@ fun IntakeScreen(
         if (existingData != null) {
             val d = existingData!!
             name = d.optString("name")
-            placeName = d.optString("city")
+            val placeRaw = d.optString("city")
+            val parsed = parsePlaceName(placeRaw)
+            cityName = parsed.first
+            stateName = d.optString("state", parsed.second)
+            countryName = d.optString("country", parsed.third)
             latitude = d.optDouble("latitude", 0.0).takeIf { it != 0.0 }
             longitude = d.optDouble("longitude", 0.0).takeIf { it != 0.0 }
             timezone = d.optDouble("timezone", 5.5)
+            timezoneId = d.optString("timezoneId").takeIf { it.isNotBlank() }
 
             day = d.optInt("day", 0).toString().takeIf { it != "0" } ?: ""
             month = d.optInt("month", 0).toString().takeIf { it != "0" } ?: ""
@@ -254,7 +297,11 @@ fun IntakeScreen(
             if (pd != null) {
                 includePartner = true
                 pName = pd.optString("name")
-                pPlaceName = pd.optString("city")
+                val pPlaceRaw = pd.optString("city")
+                val pParsed = parsePlaceName(pPlaceRaw)
+                pCityName = pParsed.first
+                pStateName = pd.optString("state", pParsed.second)
+                pCountryName = pd.optString("country", pParsed.third)
                 pDay = pd.optInt("day").toString()
                 pMonth = pd.optInt("month").toString()
                 pYear = pd.optInt("year").toString()
@@ -263,27 +310,39 @@ fun IntakeScreen(
                 pLat = pd.optDouble("latitude", 0.0)
                 pLon = pd.optDouble("longitude", 0.0)
                 pTz = pd.optDouble("timezone", 5.5)
+                pTimezoneId = pd.optString("timezoneId").takeIf { it.isNotBlank() }
             }
         } else {
             // Load Defaults
             val prefs = context.getSharedPreferences("AstroIntakeDefaults", Context.MODE_PRIVATE)
-            val storedName = prefs.getString("name", "")
-            if (!storedName.isNullOrEmpty()) {
-                name = storedName
-                placeName = prefs.getString("place", "") ?: ""
-                latitude = prefs.getFloat("latitude", 0f).toDouble()
-                longitude = prefs.getFloat("longitude", 0f).toDouble()
-                timezone = prefs.getFloat("timezone", 5.5f).toDouble()
-                day = prefs.getInt("day", 0).toString().takeIf { it != "0" } ?: ""
-                month = prefs.getInt("month", 0).toString().takeIf { it != "0" } ?: ""
-                year = prefs.getInt("year", 0).toString().takeIf { it != "0" } ?: ""
-                hour = prefs.getInt("hour", 0).toString()
-                minute = prefs.getInt("minute", 0).toString()
-                gender = prefs.getString("gender", "Male") ?: "Male"
-                occupation = prefs.getString("occupation", "") ?: ""
-                maritalStatus = prefs.getString("maritalStatus", "Single") ?: "Single"
-                topic = prefs.getString("topic", "General") ?: "General"
+            name = prefs.getString("name", "") ?: ""
+            val storedCity = prefs.getString("city", "") ?: ""
+            val storedState = prefs.getString("state", "") ?: ""
+            val storedCountry = prefs.getString("country", "") ?: ""
+            if (storedCity.isBlank() && storedState.isBlank() && storedCountry.isBlank()) {
+                val storedPlace = prefs.getString("place", "") ?: ""
+                val parsed = parsePlaceName(storedPlace)
+                cityName = parsed.first
+                stateName = parsed.second
+                countryName = parsed.third
+            } else {
+                cityName = storedCity
+                stateName = storedState
+                countryName = storedCountry
             }
+            latitude = prefs.getFloat("latitude", 0f).toDouble().takeIf { it != 0.0 }
+            longitude = prefs.getFloat("longitude", 0f).toDouble().takeIf { it != 0.0 }
+            timezone = prefs.getFloat("timezone", 5.5f).toDouble()
+            timezoneId = prefs.getString("timezoneId", null)
+            day = prefs.getInt("day", 0).toString().takeIf { it != "0" } ?: ""
+            month = prefs.getInt("month", 0).toString().takeIf { it != "0" } ?: ""
+            year = prefs.getInt("year", 0).toString().takeIf { it != "0" } ?: ""
+            hour = prefs.getInt("hour", 0).toString()
+            minute = prefs.getInt("minute", 0).toString()
+            gender = prefs.getString("gender", "Male") ?: "Male"
+            occupation = prefs.getString("occupation", "") ?: ""
+            maritalStatus = prefs.getString("maritalStatus", "Single") ?: "Single"
+            topic = prefs.getString("topic", "General") ?: "General"
         }
     }
 
@@ -330,16 +389,22 @@ fun IntakeScreen(
     }
 
     fun submit() {
-        if (name.isBlank() || placeName.isBlank() || day.isBlank() || month.isBlank() || year.isBlank()) {
+        if (name.isBlank() || cityName.isBlank() || day.isBlank() || month.isBlank() || year.isBlank()) {
             Toast.makeText(context, "Please fill required fields", Toast.LENGTH_SHORT).show()
             return
         }
+
+        val finalTimezone = computeTimezoneOffsetHours(timezoneId, day, month, year, hour, minute) ?: timezone ?: 5.5
+        val finalPartnerTimezone = computeTimezoneOffsetHours(pTimezoneId, pDay, pMonth, pYear, pHour, pMinute) ?: pTz ?: 5.5
 
         // Save Defaults
         val prefs = context.getSharedPreferences("AstroIntakeDefaults", Context.MODE_PRIVATE)
         prefs.edit().apply {
             putString("name", name)
             putString("place", placeName)
+            putString("city", cityName)
+            putString("state", stateName)
+            putString("country", countryName)
             putInt("day", day.toIntOrNull() ?: 0)
             putInt("month", month.toIntOrNull() ?: 0)
             putInt("year", year.toIntOrNull() ?: 0)
@@ -351,7 +416,12 @@ fun IntakeScreen(
             putString("topic", topic)
             if (latitude != null) putFloat("latitude", latitude!!.toFloat())
             if (longitude != null) putFloat("longitude", longitude!!.toFloat())
-            if (timezone != null) putFloat("timezone", timezone!!.toFloat())
+            putFloat("timezone", finalTimezone.toFloat())
+            if (!timezoneId.isNullOrBlank()) {
+                putString("timezoneId", timezoneId)
+            } else {
+                remove("timezoneId")
+            }
             apply()
         }
 
@@ -365,9 +435,12 @@ fun IntakeScreen(
                  put("hour", pHour.toIntOrNull() ?: 0)
                  put("minute", pMinute.toIntOrNull() ?: 0)
                  put("city", pPlaceName)
+                 put("state", pStateName)
+                 put("country", pCountryName)
                  put("latitude", pLat)
                  put("longitude", pLon)
-                 put("timezone", pTz ?: 5.5)
+                 put("timezone", finalPartnerTimezone)
+                 if (!pTimezoneId.isNullOrBlank()) put("timezoneId", pTimezoneId)
                  put("gender", if (gender == "Male") "Female" else "Male")
             }
         }
@@ -381,9 +454,12 @@ fun IntakeScreen(
             put("hour", hour.toIntOrNull() ?: 0)
             put("minute", minute.toIntOrNull() ?: 0)
             put("city", placeName)
+            put("state", stateName)
+            put("country", countryName)
             put("latitude", latitude)
             put("longitude", longitude)
-            put("timezone", timezone ?: 5.5)
+            put("timezone", finalTimezone)
+            if (!timezoneId.isNullOrBlank()) put("timezoneId", timezoneId)
             put("maritalStatus", maritalStatus)
             put("occupation", occupation)
             put("topic", topic)
@@ -482,18 +558,59 @@ fun IntakeScreen(
                     Text("Don't know exact time")
                 }
 
+                Text("Place of Birth", fontWeight = FontWeight.Bold)
                 OutlinedTextField(
-                    value = placeName,
-                    onValueChange = { placeName = it }, // Ideally read only, click triggers search
-                    label = { Text("Place of Birth") },
+                    value = countryName,
+                    onValueChange = {},
+                    label = { Text("Country") },
                     readOnly = true,
-                    enabled = false, // To force click on Box/Surface or use interaction source
-                    modifier = Modifier.fillMaxWidth().clickable {
-                        activeCitySearchTarget = "client"
-                        val intent = Intent(context, com.astro5star.app.ui.city.CitySearchActivity::class.java)
-                        specificCityLauncher.launch(intent)
-                    },
+                    enabled = false,
+                    modifier = Modifier.fillMaxWidth().clickable { launchLocationPicker() },
                     trailingIcon = { Icon(Icons.Default.LocationOn, "Pick") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+
+                OutlinedTextField(
+                    value = stateName,
+                    onValueChange = {},
+                    label = { Text("State") },
+                    readOnly = true,
+                    enabled = false,
+                    modifier = Modifier.fillMaxWidth().clickable { launchLocationPicker() },
+                    trailingIcon = { Icon(Icons.Default.LocationOn, "Pick") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+
+                OutlinedTextField(
+                    value = cityName,
+                    onValueChange = {},
+                    label = { Text("City") },
+                    readOnly = true,
+                    enabled = false,
+                    modifier = Modifier.fillMaxWidth().clickable { launchLocationPicker() },
+                    trailingIcon = { Icon(Icons.Default.LocationOn, "Pick") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+
+                OutlinedTextField(
+                    value = timezoneDisplay,
+                    onValueChange = {},
+                    label = { Text("Timezone (UTC Offset)") },
+                    readOnly = true,
+                    enabled = false,
+                    modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         disabledTextColor = MaterialTheme.colorScheme.onSurface,
                         disabledBorderColor = MaterialTheme.colorScheme.outline,
@@ -540,18 +657,56 @@ fun IntakeScreen(
                                 OutlinedTextField(value = pHour, onValueChange = { if(it.length <=2) pHour=it }, label = { Text("HH") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                                 OutlinedTextField(value = pMinute, onValueChange = { if(it.length <=2) pMinute=it }, label = { Text("MM") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                             }
-                             OutlinedTextField(
-                                value = pPlaceName,
+                            Text("Partner Place of Birth", fontWeight = FontWeight.Bold)
+                            OutlinedTextField(
+                                value = pCountryName,
                                 onValueChange = {},
-                                label = { Text("Partner Place") },
+                                label = { Text("Country") },
                                 readOnly = true,
                                 enabled = false,
-                                modifier = Modifier.fillMaxWidth().clickable {
-                                    activeCitySearchTarget = "partner"
-                                    val intent = Intent(context, com.astro5star.app.ui.city.CitySearchActivity::class.java)
-                                    specificCityLauncher.launch(intent)
-                                },
+                                modifier = Modifier.fillMaxWidth().clickable { launchPartnerLocationPicker() },
                                 trailingIcon = { Icon(Icons.Default.LocationOn, "Pick") },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                            OutlinedTextField(
+                                value = pStateName,
+                                onValueChange = {},
+                                label = { Text("State") },
+                                readOnly = true,
+                                enabled = false,
+                                modifier = Modifier.fillMaxWidth().clickable { launchPartnerLocationPicker() },
+                                trailingIcon = { Icon(Icons.Default.LocationOn, "Pick") },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                            OutlinedTextField(
+                                value = pCityName,
+                                onValueChange = {},
+                                label = { Text("City") },
+                                readOnly = true,
+                                enabled = false,
+                                modifier = Modifier.fillMaxWidth().clickable { launchPartnerLocationPicker() },
+                                trailingIcon = { Icon(Icons.Default.LocationOn, "Pick") },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                            OutlinedTextField(
+                                value = partnerTimezoneDisplay,
+                                onValueChange = {},
+                                label = { Text("Timezone (UTC Offset)") },
+                                readOnly = true,
+                                enabled = false,
+                                modifier = Modifier.fillMaxWidth(),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     disabledTextColor = MaterialTheme.colorScheme.onSurface,
                                     disabledBorderColor = MaterialTheme.colorScheme.outline,
@@ -665,17 +820,60 @@ fun SpinnerDropdown(label: String, selected: String, items: List<String>, onSele
     }
 }
 
-private suspend fun fetchTz(lat: Double, lon: Double): Double {
-    return withContext(kotlinx.coroutines.Dispatchers.IO) {
-        try {
-            val payload = com.google.gson.JsonObject().apply {
-                 addProperty("latitude", lat)
-                 addProperty("longitude", lon)
-            }
-            val res = com.astro5star.app.data.api.ApiClient.api.getCityTimezone(payload)
-            if (res.isSuccessful && res.body() != null) {
-                res.body()!!.get("timezone").asDouble
-            } else 5.5
-        } catch(e: Exception) { 5.5 }
+private fun buildPlaceName(city: String, state: String, country: String): String {
+    return listOf(city, state, country).filter { it.isNotBlank() }.joinToString(", ")
+}
+
+private fun parsePlaceName(place: String): Triple<String, String, String> {
+    if (place.isBlank()) return Triple("", "", "")
+    val parts = place.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    val city = parts.getOrNull(0) ?: ""
+    val state = parts.getOrNull(1) ?: ""
+    val country = parts.getOrNull(2) ?: ""
+    return Triple(city, state, country)
+}
+
+private fun computeTimezoneOffsetHours(
+    timezoneId: String?,
+    day: String,
+    month: String,
+    year: String,
+    hour: String,
+    minute: String
+): Double? {
+    if (timezoneId.isNullOrBlank()) return null
+    val tz = TimeZone.getTimeZone(timezoneId)
+    if (tz.id == "GMT" && timezoneId != "GMT" && timezoneId != "UTC") return null
+
+    val dayInt = day.toIntOrNull()
+    val monthInt = month.toIntOrNull()
+    val yearInt = year.toIntOrNull()
+    val hourInt = hour.toIntOrNull() ?: 0
+    val minuteInt = minute.toIntOrNull() ?: 0
+
+    val offsetMillis = if (dayInt != null && monthInt != null && yearInt != null) {
+        val cal = Calendar.getInstance(tz).apply {
+            set(Calendar.YEAR, yearInt)
+            set(Calendar.MONTH, (monthInt - 1).coerceIn(0, 11))
+            set(Calendar.DAY_OF_MONTH, dayInt.coerceIn(1, 31))
+            set(Calendar.HOUR_OF_DAY, hourInt.coerceIn(0, 23))
+            set(Calendar.MINUTE, minuteInt.coerceIn(0, 59))
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        tz.getOffset(cal.timeInMillis)
+    } else {
+        tz.rawOffset
     }
+
+    return offsetMillis / 3600000.0
+}
+
+private fun formatUtcOffset(offsetHours: Double): String {
+    val totalMinutes = (offsetHours * 60).roundToInt()
+    val sign = if (totalMinutes >= 0) "+" else "-"
+    val absMinutes = abs(totalMinutes)
+    val hours = absMinutes / 60
+    val minutes = absMinutes % 60
+    return "UTC$sign${"%02d".format(hours)}:${"%02d".format(minutes)}"
 }

@@ -1,50 +1,121 @@
 package com.astro5star.app.ui.city
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.astro5star.app.data.remote.nominatim.CityRepository
-import com.astro5star.app.data.remote.nominatim.NominatimResult
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import com.astro5star.app.data.repository.CSCRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-data class CityUiState(
-    val query: String = "",
-    val results: List<NominatimResult> = emptyList(),
-    val isLoading: Boolean = false,
-    val error: String? = null
+data class LocationItem(
+    val id: String,
+    val name: String,
+    val lat: Double = 0.0,
+    val lon: Double = 0.0,
+    val timezone: String? = null
 )
 
-class CityViewModel : ViewModel() {
-    private val _uiState = MutableStateFlow(CityUiState())
-    val uiState: StateFlow<CityUiState> = _uiState.asStateFlow()
+data class CSCUiState(
+    val countries: List<LocationItem> = emptyList(),
+    val states: List<LocationItem> = emptyList(),
+    val cities: List<LocationItem> = emptyList(),
 
-    private var searchJob: Job? = null
+    val selectedCountry: LocationItem? = null,
+    val selectedState: LocationItem? = null,
+    val selectedCity: LocationItem? = null,
 
-    fun onQueryChanged(newQuery: String) {
-        _uiState.value = _uiState.value.copy(query = newQuery)
-        searchJob?.cancel()
+    val isLoading: Boolean = false
+)
 
-        if (newQuery.length < 3) {
-            _uiState.value = _uiState.value.copy(results = emptyList())
-            return
-        }
+class CityViewModel(application: Application) : AndroidViewModel(application) {
 
-        searchJob = viewModelScope.launch {
-            delay(400) // Debounce
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            try {
-                val cities = CityRepository.searchCities(newQuery)
-                _uiState.value = _uiState.value.copy(results = cities, isLoading = false)
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Failed to fetch cities"
-                )
+    private val repository = CSCRepository(application)
+
+    private val _uiState = MutableStateFlow(CSCUiState())
+    val uiState: StateFlow<CSCUiState> = _uiState.asStateFlow()
+
+    init {
+        loadCountries()
+    }
+
+    private fun loadCountries() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            val list = repository.getCountries().map {
+                LocationItem(it["id"] ?: "", it["name"] ?: "")
+            }
+            _uiState.value = _uiState.value.copy(countries = list, isLoading = false)
+
+            // Default: Select India
+            val india = list.find { it.name.equals("India", ignoreCase = true) }
+            if (india != null) {
+                selectDefaultCountryAndState(india)
             }
         }
+    }
+
+    private fun selectDefaultCountryAndState(country: LocationItem) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                selectedCountry = country,
+                isLoading = true
+            )
+            val states = repository.getStates(country.id).map {
+                LocationItem(it["id"] ?: "", it["name"] ?: "")
+            }
+            _uiState.value = _uiState.value.copy(states = states, isLoading = false)
+
+            // Default: Select Tamil Nadu
+            val tamilNadu = states.find { it.name.equals("Tamil Nadu", ignoreCase = true) }
+            if (tamilNadu != null) {
+                onStateSelected(tamilNadu)
+            }
+        }
+    }
+
+    fun onCountrySelected(country: LocationItem) {
+        if (uiState.value.selectedCountry == country) return
+        _uiState.value = _uiState.value.copy(
+            selectedCountry = country,
+            selectedState = null,
+            selectedCity = null,
+            states = emptyList(),
+            cities = emptyList(),
+            isLoading = true
+        )
+        viewModelScope.launch {
+            val list = repository.getStates(country.id).map {
+                LocationItem(it["id"] ?: "", it["name"] ?: "")
+            }
+            _uiState.value = _uiState.value.copy(states = list, isLoading = false)
+        }
+    }
+
+    fun onStateSelected(state: LocationItem) {
+        if (uiState.value.selectedState == state) return
+        _uiState.value = _uiState.value.copy(
+            selectedState = state,
+            selectedCity = null,
+            cities = emptyList(),
+            isLoading = true
+        )
+        viewModelScope.launch {
+            val list = repository.getCities(state.id).map {
+                LocationItem(
+                    id = it["id"] ?: "",
+                    name = it["name"] ?: "",
+                    lat = it["latitude"]?.toDoubleOrNull() ?: 0.0,
+                    lon = it["longitude"]?.toDoubleOrNull() ?: 0.0,
+                    timezone = it["timezone"]
+                )
+            }
+            _uiState.value = _uiState.value.copy(cities = list, isLoading = false)
+        }
+    }
+
+    fun onCitySelected(city: LocationItem) {
+        _uiState.value = _uiState.value.copy(selectedCity = city)
     }
 }

@@ -217,11 +217,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadHistory(sessionId: String) {
+        // Observe Local DB immediately (Main Source of Truth)
         viewModelScope.launch(Dispatchers.IO) {
-            // First attempt to sync from server to catch missed messages
-            repository.fetchHistoryFromServer(sessionId, limit = 50)
-
-            // Then observe the local DB which is the single source of truth
             repository.getMessages(sessionId).collect { entities ->
                 val uiMessages = entities.map { entity ->
                     ChatMessage(
@@ -234,6 +231,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 _history.postValue(uiMessages)
             }
+        }
+
+        // Fetch missing history from server in parallel
+        viewModelScope.launch(Dispatchers.IO) {
+             try {
+                 repository.fetchHistoryFromServer(sessionId, limit = 50)
+             } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
