@@ -127,7 +127,7 @@ class ChatActivity : ComponentActivity() {
     }
 
     override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent) // Fix: nullability
+        super.onNewIntent(intent)
         intent?.let {
             setIntent(it)
             handleIntent(it)
@@ -162,8 +162,9 @@ class ChatActivity : ComponentActivity() {
         }
 
         if (sessionId != null) {
-             viewModel.joinSession(sessionId!!)
-             viewModel.loadHistory(sessionId!!)
+              viewModel.loadHistory(sessionId!!)
+              // Using Safe Join in ViewModel
+              viewModel.joinSessionSafe(sessionId!!)
         }
     }
 

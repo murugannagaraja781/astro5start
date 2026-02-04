@@ -9,6 +9,7 @@ import com.astro5star.app.data.local.entity.ChatMessageEntity
 import com.astro5star.app.data.repository.ChatRepository
 import com.astro5star.app.data.remote.SocketManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -96,8 +97,29 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun acceptSession(sessionId: String, toUserId: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.acceptSession(sessionId, toUserId)
+        // Use default dispatcher (Main) for Coroutine to allow delay loop to work properly
+        viewModelScope.launch {
+             // Force connection
+             if (SocketManager.getSocket()?.connected() != true) {
+                 SocketManager.getSocket()?.connect()
+             }
+
+             // Wait for connection
+             var connected = false
+             repeat(20) {
+                 if (SocketManager.getSocket()?.connected() == true) {
+                     delay(500) // Ensure registration
+                     repository.acceptSession(sessionId, toUserId)
+                     connected = true
+                     return@launch
+                 }
+                 delay(500)
+             }
+
+             // Fallback
+             if (!connected) {
+                 repository.acceptSession(sessionId, toUserId)
+             }
         }
     }
 
@@ -105,6 +127,28 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
              val payload = JSONObject().apply { put("sessionId", sessionId) }
              SocketManager.getSocket()?.emit("session-connect", payload)
+        }
+    }
+
+    fun joinSessionSafe(sessionId: String) {
+        viewModelScope.launch {
+            // Force connection attempt to handle first-time connect issues
+            SocketManager.getSocket()?.connect()
+
+            // Wait for connection
+            repeat(20) {
+                if (SocketManager.getSocket()?.connected() == true) {
+                    // Slight delay to ensure registration packet is sent first
+                    delay(500)
+                    joinSession(sessionId)
+                    return@launch
+                }
+                delay(500)
+            }
+            // Fallback
+             if (SocketManager.getSocket()?.connected() == true) {
+                 joinSession(sessionId)
+             }
         }
     }
 
@@ -209,4 +253,3 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 }
-

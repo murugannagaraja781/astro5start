@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.astro5star.app.ui.theme.CosmicAppTheme
+import kotlinx.coroutines.delay
+import com.astro5star.app.data.remote.SocketManager
 
 /**
  * IncomingCallActivity - Full-screen incoming call UI
@@ -91,6 +94,11 @@ class IncomingCallActivity : ComponentActivity() {
         startRingtone()
         startVibration()
         handler.postDelayed(timeoutRunnable, CALL_TIMEOUT_MS)
+
+        // Ensure socket is connecting
+        try {
+            SocketManager.init()
+        } catch(e: Exception) { e.printStackTrace() }
 
         setContent {
             CosmicAppTheme {
@@ -292,6 +300,13 @@ fun IncomingCallScreen(
     onAccept: () -> Unit,
     onReject: () -> Unit
 ) {
+    val isSocketConnected by produceState(initialValue = false) {
+         while (true) {
+             value = SocketManager.getSocket()?.connected() == true
+             delay(500)
+         }
+    }
+
     val infiniteTransition = rememberInfiniteTransition()
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -376,16 +391,20 @@ fun IncomingCallScreen(
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     FloatingActionButton(
-                        onClick = onAccept,
-                        containerColor = Color(0xFF388E3C), // Green
+                        onClick = { if (isSocketConnected) onAccept() },
+                        containerColor = if (isSocketConnected) Color(0xFF388E3C) else Color.Gray,
                         contentColor = Color.White,
                         modifier = Modifier.size(72.dp),
                         shape = CircleShape
                     ) {
-                         // Shake or animate icon if needed
-                        Icon(Icons.Default.Call, "Accept", modifier = Modifier.size(32.dp))
+                        if (!isSocketConnected) {
+                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        } else {
+                             // Shake or animate icon if needed
+                            Icon(Icons.Default.Call, "Accept", modifier = Modifier.size(32.dp))
+                        }
                     }
-                    Text("Accept", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(top=8.dp))
+                    Text(if (isSocketConnected) "Accept" else "Connecting...", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(top=8.dp))
                 }
             }
         }
