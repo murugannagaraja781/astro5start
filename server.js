@@ -1858,10 +1858,8 @@ io.on('connection', (socket) => {
       const fromUserId = socketToUser.get(socket.id);
       if (!fromUserId || !toUserId || !messageId) return;
 
-      const targetSocketId = userSockets.get(toUserId);
-      if (!targetSocketId) return;
-
-      io.to(targetSocketId).emit('message-status', {
+      // Emit to userId room (not socketId) - works after reconnect
+      io.to(toUserId).emit('message-status', {
         messageId,
         status: 'delivered',
       });
@@ -1875,10 +1873,8 @@ io.on('connection', (socket) => {
       const fromUserId = socketToUser.get(socket.id);
       if (!fromUserId || !toUserId || !messageId) return;
 
-      const targetSocketId = userSockets.get(toUserId);
-      if (!targetSocketId) return;
-
-      io.to(targetSocketId).emit('message-status', {
+      // Emit to userId room (not socketId) - works after reconnect
+      io.to(toUserId).emit('message-status', {
         messageId,
         status: 'read',
       });
