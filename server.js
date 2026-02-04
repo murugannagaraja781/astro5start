@@ -1851,7 +1851,24 @@ io.on('connection', (socket) => {
     } catch (e) { console.error(e); cb({ ok: false }); }
   });
 
-  // --- Receiver: delivered ack ---
+  // --- message-status (from Android) - handles both delivered and read ---
+  socket.on('message-status', (data) => {
+    try {
+      const { toUserId, messageId, status } = data || {};
+      const fromUserId = socketToUser.get(socket.id);
+      if (!fromUserId || !toUserId || !messageId || !status) return;
+
+      console.log(`[MessageStatus] ${status} from ${fromUserId} to ${toUserId} msgId=${messageId}`);
+
+      // Emit to sender (toUserId is the original sender)
+      io.to(toUserId).emit('message-status', {
+        messageId,
+        status, // 'delivered' or 'read'
+      });
+    } catch (err) { console.error('message-status error', err); }
+  });
+
+  // --- Receiver: delivered ack (legacy) ---
   socket.on('message-delivered', (data) => {
     try {
       const { toUserId, messageId } = data || {};
