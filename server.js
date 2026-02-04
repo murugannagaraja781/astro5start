@@ -2012,9 +2012,25 @@ io.on('connection', (socket) => {
 
       console.log(`Session ${sessionId}: Billing starts at ${billingStart} (Buffer applied)`);
 
+      // Get client wallet and rate for available minutes calculation
+      const client = await User.findOne({ userId: session.clientId });
+      const astro = await User.findOne({ userId: session.astrologerId });
+      const clientBalance = client?.walletBalance || 0;
+      const ratePerMinute = astro?.price || 10;
+      const availableMinutes = Math.floor(clientBalance / ratePerMinute);
+
       // Notify both parties
-      io.to(userSockets.get(session.clientId)).emit('billing-started', { startTime: billingStart });
-      io.to(userSockets.get(session.astrologerId)).emit('billing-started', { startTime: billingStart });
+      io.to(userSockets.get(session.clientId)).emit('billing-started', {
+        startTime: billingStart,
+        clientBalance,
+        availableMinutes
+      });
+      io.to(userSockets.get(session.astrologerId)).emit('billing-started', {
+        startTime: billingStart,
+        clientBalance,
+        ratePerMinute,
+        availableMinutes
+      });
     }
   }
 

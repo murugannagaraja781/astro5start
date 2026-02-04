@@ -183,13 +183,23 @@ object SocketManager {
         }
     }
 
-    fun onBillingStarted(listener: (startTime: Long) -> Unit) {
+    data class BillingInfo(
+        val startTime: Long,
+        val clientBalance: Double,
+        val ratePerMinute: Double,
+        val availableMinutes: Int
+    )
+
+    fun onBillingStarted(listener: (BillingInfo) -> Unit) {
         socket?.on("billing-started") { args ->
             if (args != null && args.isNotEmpty()) {
                 val data = args[0] as? JSONObject
                 val startTime = data?.optLong("startTime", System.currentTimeMillis()) ?: System.currentTimeMillis()
-                Log.d(TAG, "Billing started at: $startTime")
-                listener(startTime)
+                val clientBalance = data?.optDouble("clientBalance", 0.0) ?: 0.0
+                val ratePerMinute = data?.optDouble("ratePerMinute", 10.0) ?: 10.0
+                val availableMinutes = data?.optInt("availableMinutes", 0) ?: 0
+                Log.d(TAG, "Billing started. Available: $availableMinutes mins, Balance: ₹$clientBalance")
+                listener(BillingInfo(startTime, clientBalance, ratePerMinute, availableMinutes))
             }
         }
     }

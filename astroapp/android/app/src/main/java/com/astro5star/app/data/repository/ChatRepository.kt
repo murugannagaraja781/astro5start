@@ -23,6 +23,10 @@ class ChatRepository(private val context: Context) {
         chatDao.insertMessage(message)
     }
 
+    suspend fun updateMessageStatus(messageId: String, status: String) {
+        chatDao.updateStatus(messageId, status)
+    }
+
     // Remote Operations (Socket)
     fun sendMessage(data: JSONObject) {
         SocketManager.getSocket()?.emit("chat-message", data)

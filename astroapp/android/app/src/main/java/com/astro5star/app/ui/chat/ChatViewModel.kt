@@ -174,11 +174,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         sessionId = sessionId,
                         text = text,
                         senderId = senderId,
-                        timestamp = System.currentTimeMillis(), // Or parse from data if available
-                        status = "read", // Assuming read if we are listening? logic might need adjustment
+                        timestamp = System.currentTimeMillis(),
+                        status = "read",
                         isSentByMe = false
                     )
                     repository.saveMessage(entity)
+
+                    // IMPORTANT: Emit read status back to sender for double tick
+                    if (msgId.isNotEmpty() && senderId.isNotEmpty() && sessionId.isNotEmpty()) {
+                        repository.markRead(msgId, senderId, sessionId)
+                    }
                 } catch (e: Exception) { e.printStackTrace() }
             }
 
@@ -188,6 +193,21 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
         repository.listenMessageStatus { data ->
             _messageStatus.postValue(data)
+            // Update the message status in history
+            val msgId = data.optString("messageId")
+            val status = data.optString("status")
+            if (msgId.isNotEmpty() && status.isNotEmpty()) {
+                val currentHistory = _history.value?.toMutableList() ?: mutableListOf()
+                val index = currentHistory.indexOfFirst { it.id == msgId }
+                if (index >= 0) {
+                    currentHistory[index] = currentHistory[index].copy(status = status)
+                    _history.postValue(currentHistory)
+                }
+                // Also update in local DB
+                viewModelScope.launch(Dispatchers.IO) {
+                    repository.updateMessageStatus(msgId, status)
+                }
+            }
         }
 
         repository.listenTyping {
