@@ -1821,6 +1821,75 @@
       <!-- Section: Home -->
       <div id="section-home">
 
+        <!-- Premium Services Grid -->
+        <div class="services-grid-container"
+          style="margin-bottom: 25px; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+          <div style="display: flex; gap: 12px; padding: 5px 0;">
+            <div class="service-item-card"
+              onclick="document.getElementById('universalChartModal').classList.remove('hidden')">
+              <img src="images/kundali_icon.png" alt="Kundali">
+              <span>Free Horoscope</span>
+            </div>
+            <div class="service-item-card"
+              onclick="document.getElementById('screen-porutham').classList.remove('hidden')">
+              <img src="images/match_icon.png" alt="Match">
+              <span>Horoscope Match</span>
+            </div>
+            <div class="service-item-card"
+              onclick="document.getElementById('dailyHoroscopeSection').scrollIntoView({behavior:'smooth'})">
+              <img src="images/daily_horoscope_icon.png" alt="Daily">
+              <span>Daily Horoscope</span>
+            </div>
+            <div class="service-item-card" onclick="openAcademyModal()">
+              <img src="images/academy_icon.png" alt="Academy">
+              <span>Astro Academy</span>
+            </div>
+            <div class="service-item-card" onclick="alert('For free services, please contact: +91 93635 77777')">
+              <img src="images/free_services_icon.png" alt="Free">
+              <span>Free Services</span>
+            </div>
+          </div>
+        </div>
+
+        <style>
+          .services-grid-container::-webkit-scrollbar {
+            display: none;
+          }
+
+          .service-item-card {
+            min-width: 90px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 12px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+          }
+
+          .service-item-card:active {
+            transform: scale(0.95);
+          }
+
+          .service-item-card img {
+            width: 45px;
+            height: 45px;
+            margin-bottom: 8px;
+            object-fit: contain;
+          }
+
+          .service-item-card span {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #374151;
+            line-height: 1.2;
+          }
+        </style>
 
         <!-- Horoscope Section -->
         <div id="dailyHoroscopeSection" style="margin-bottom: 20px;">
@@ -1968,6 +2037,43 @@
       </div>
     </div>
   </div>
+  </div>
+  <!-- Screen: Client Academy Modal -->
+  <div id="clientAcademyModal" class="modal-overlay hidden"
+    style="align-items: center; justify-content: center; z-index: 10000;">
+    <div
+      style="background:#F3F4F6; width:100%; height:90vh; border-top-left-radius:25px; border-top-right-radius:25px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 -5px 20px rgba(0,0,0,0.2); max-width:500px;">
+      <div
+        style="padding:20px; background:white; font-weight:700; font-size:1.2rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e5e5; color:#1F2937;">
+        <span>🎓 Astro Academy</span>
+        <button onclick="document.getElementById('clientAcademyModal').classList.add('hidden')"
+          style="background:none; border:none; font-size:1.4rem; color:#6B7280; cursor:pointer;"><i
+            class="fas fa-times"></i></button>
+      </div>
+      <div id="clientAcademyList"
+        style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:15px;">
+        <!-- Videos will be rendered here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen: Client Academy Modal -->
+  <div id="clientAcademyModal" class="modal-overlay hidden"
+    style="align-items: center; justify-content: center; z-index: 10000;">
+    <div
+      style="background:#F3F4F6; width:100%; height:90vh; border-top-left-radius:25px; border-top-right-radius:25px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 -5px 20px rgba(0,0,0,0.2); max-width:500px;">
+      <div
+        style="padding:20px; background:white; font-weight:700; font-size:1.2rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e5e5; color:#1F2937;">
+        <span>🎓 Astro Academy</span>
+        <button onclick="document.getElementById('clientAcademyModal').classList.add('hidden')"
+          style="background:none; border:none; font-size:1.4rem; color:#6B7280; cursor:pointer;"><i
+            class="fas fa-times"></i></button>
+      </div>
+      <div id="clientAcademyList"
+        style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:15px;">
+        <!-- Videos will be rendered here -->
+      </div>
+    </div>
   </div>
 
   <!-- Mobile Footer -->
@@ -3104,6 +3210,32 @@
         </div>
       </div>
 
+      <!-- Tab 5: Academy Management -->
+      <div id="admin-sect-academy" class="admin-tab-section">
+        <h2
+          style="margin:0 0 15px 0; color:#1F2937; font-size:1.3rem; font-weight:700; display:flex; align-items:center; gap:8px;">
+          <i class="fas fa-graduation-cap" style="color:#1e3a8a;"></i> Astro Academy
+        </h2>
+
+        <div
+          style="background:white; padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid #eee; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+          <h4 style="margin:0 0 10px 0; font-size:0.9rem;">Add New YouTube Video</h4>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <input type="text" id="academyTitle" class="app-input" placeholder="Title (e.g. Daily Horoscope Tips)"
+              style="padding:10px;">
+            <input type="text" id="academyUrl" class="app-input" placeholder="Full YouTube URL" style="padding:10px;">
+            <input type="text" id="academyCategory" class="app-input" placeholder="Category (Basics, Advanced...)"
+              style="padding:10px;">
+            <button class="cosmic-btn" style="margin-top:5px; padding:10px;" onclick="addAcademyVideo()">Add
+              Video</button>
+          </div>
+        </div>
+
+        <div id="adminAcademyList" style="display:flex; flex-direction:column; gap:10px;">
+          <div style="text-align:center; padding:20px; color:#6b7280;">Loading videos...</div>
+        </div>
+      </div>
+
       <!-- Admin Footer (Static) -->
       <div class="admin-footer">
         <div class="admin-footer-content">
@@ -3158,6 +3290,10 @@
       <div class="admin-nav-item" id="anav-users" onclick="navAdmin('users')">
         <i class="fas fa-users"></i>
         <span>Users</span>
+      </div>
+      <div class="admin-nav-item" id="anav-academy" onclick="navAdmin('academy')">
+        <i class="fas fa-graduation-cap"></i>
+        <span>Academy</span>
       </div>
     </div>
   </div>
@@ -5274,8 +5410,44 @@
         // Filter Clients from Cache
         const clients = adminUsersCache.filter(u => u.role !== 'astrologer' && u.role !== 'superadmin');
         renderAdminClients(clients);
+      } else if (tab === 'academy') {
+        fetchAcademyVideosAdmin();
       }
     };
+
+    async function openAcademyModal() {
+      document.getElementById('clientAcademyModal').classList.remove('hidden');
+      const list = document.getElementById('clientAcademyList');
+      list.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fas fa-circle-notch fa-spin"></i> Loading...</div>';
+
+      try {
+        const res = await fetch('/api/academy/videos');
+        const data = await res.json();
+        if (data.ok && data.videos.length > 0) {
+          list.innerHTML = data.videos.map(v => `
+            <a href="${v.youtubeUrl}" target="_blank" style="text-decoration:none; color:inherit;">
+              <div style="background:white; border-radius:15px; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1); border:1px solid #eee;">
+                <div style="padding:15px; display:flex; align-items:center; gap:15px;">
+                  <div style="width:50px; height:50px; background:#fff7ed; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i class="fab fa-youtube" style="font-size:1.8rem; color:#ef4444;"></i>
+                  </div>
+                  <div>
+                    <div style="font-weight:700; color:#1f2937; font-size:1rem; margin-bottom:4px;">${v.title}</div>
+                    <div style="font-size:0.8rem; color:#6b7280; display:flex; align-items:center; gap:5px;">
+                      <span style="background:#f3f4f6; padding:2px 8px; border-radius:10px;">${v.category}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </a>
+          `).join('');
+        } else {
+          list.innerHTML = '<div style="text-align:center; padding:20px; color:#6b7280;">No educational videos available yet.</div>';
+        }
+      } catch (err) {
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444;">Failed to load videos.</div>';
+      }
+    }
 
     function loadAdminDash(user) {
       hideAllScreens();
@@ -5312,6 +5484,72 @@
       if (timeEl) {
         timeEl.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       }
+    }
+
+    async function fetchAcademyVideosAdmin() {
+      try {
+        const res = await fetch('/api/academy/videos');
+        const data = await res.json();
+        if (data.ok) {
+          renderAcademyVideos(data.videos);
+        }
+      } catch (err) { console.error(err); }
+    }
+
+    function renderAcademyVideos(videos) {
+      const list = document.getElementById('adminAcademyList');
+      if (!list) return;
+      if (videos.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:#6b7280;">No videos added yet.</div>';
+        return;
+      }
+
+      list.innerHTML = videos.map(v => `
+        <div style="background:white; padding:12px; border-radius:10px; border:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#1F2937;">${v.title}</div>
+            <div style="font-size:0.75rem; color:#6b7280;">${v.category} | <a href="${v.youtubeUrl}" target="_blank">View on YouTube</a></div>
+          </div>
+          <button class="btn-admin btn-delete" style="flex:none; width:auto; padding:5px 10px;" onclick="deleteAcademyVideo('${v._id}')">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    async function addAcademyVideo() {
+      const title = document.getElementById('academyTitle').value;
+      const youtubeUrl = document.getElementById('academyUrl').value;
+      const category = document.getElementById('academyCategory').value;
+
+      if (!title || !youtubeUrl) return alert('Title and URL are required');
+
+      try {
+        const res = await fetch('/api/admin/academy/videos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, youtubeUrl, category })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          alert('Video added successfully');
+          document.getElementById('academyTitle').value = '';
+          document.getElementById('academyUrl').value = '';
+          document.getElementById('academyCategory').value = '';
+          fetchAcademyVideosAdmin();
+        }
+      } catch (err) { alert('Error adding video'); }
+    }
+
+    async function deleteAcademyVideo(id) {
+      if (!confirm('Are you sure you want to delete this video?')) return;
+      try {
+        const res = await fetch('/api/admin/academy/videos/' + id, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.ok) {
+          fetchAcademyVideosAdmin();
+        }
+      } catch (err) { alert('Error deleting video'); }
     }
 
     function loadAdminLedgerStats() {
@@ -6255,10 +6493,16 @@
         const originalContent = panel.innerHTML;
         panel.innerHTML = '<div style="text-align:center; padding:60px 20px;"><div class="spinner-astro"></div><div style="margin-top:20px; font-weight:500; color:#d97706; font-size:1.1rem;">Analyzing Planets...</div></div>';
 
-        const res = await fetch('/api/charts/birth-chart', {
+        const res = await fetch('/api/rasi-eng/charts/full', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(bd)
+          body: JSON.stringify({
+            date: dateStr,
+            time: timeStr,
+            lat: parseFloat(lat),
+            lng: parseFloat(lon),
+            timezone: parseFloat(tz) || 5.5
+          })
         }).then(r => r.json());
 
         if (res.error) throw new Error(res.error);
@@ -6274,10 +6518,12 @@
     // Display chart results in dashboard modal
     function displayDashboardChartResults(data) {
       const panel = document.getElementById('dashboardChartPanel');
-      const rawPlanets = data.data?.rawPlanets || {};
-      const panchangam = data.data?.panchangam || {};
-      const dasha = data.data?.dasha || {};
-      const lagna = data.data?.lagna || {};
+      const d = data.data || {};
+      const rawPlanets = d.planets || d.rawPlanets || {};
+      const panchangam = d.panchanga || d.panchangam || {};
+      const dashaList = d.dasha || [];
+      const houses = d.houses?.cusps || [];
+      const lagna = d.houses?.lagna || {};
 
       let html = `
         <div style="padding:20px; background:white; font-weight:700; font-size:1.2rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e5e5; color:#1F2937;">
@@ -6434,17 +6680,14 @@
       }
 
       try {
-        const res = await fetch('/api/charts/birth-chart', {
+        const res = await fetch('/api/rasi-eng/charts/full', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            year: bd.year,
-            month: bd.month,
-            day: bd.day,
-            hour: bd.hour,
-            minute: bd.minute,
-            latitude: bd.latitude,
-            longitude: bd.longitude,
+            date: `${bd.year}-${String(bd.month).padStart(2, '0')}-${String(bd.day).padStart(2, '0')}`,
+            time: `${String(bd.hour).padStart(2, '0')}:${String(bd.minute).padStart(2, '0')}`,
+            lat: bd.latitude,
+            lng: bd.longitude,
             timezone: bd.timezone
           })
         }).then(r => r.json());
@@ -7012,10 +7255,13 @@
       document.getElementById('poruthamResults').style.display = 'none';
 
       try {
-        const res = await fetch('/api/match/porutham', {
+        const res = await fetch('/api/rasi-eng/matching', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            boyData: { dob: bDate, tob: bTime, lat: parseFloat(bLat), lng: parseFloat(bLon) },
+            girlData: { dob: gDate, tob: gTime, lat: parseFloat(gLat), lng: parseFloat(gLon) }
+          })
         }).then(r => r.json());
 
         document.getElementById('poruthamLoading').style.display = 'none';
@@ -7097,7 +7343,7 @@
       document.getElementById('activeSignName').innerText = signObj.name;
 
       // Check cache
-      const today = new Date().toDateString();
+      const today = new Date().toISOString().split('T')[0];
       const cacheKey = `${signObj.api}-${today}`;
 
       if (horoscopeCache[cacheKey]) {
@@ -7106,12 +7352,19 @@
       }
 
       try {
-        const res = await fetch(`https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=${signObj.api}&day=today`)
+        // Use our internal Rasi Engine API
+        const res = await fetch(`/api/rasi-eng/horoscope/daily?sign=${signObj.api}`)
           .then(r => r.json());
 
-        if (res.data) {
-          horoscopeCache[cacheKey] = res.data;
-          displayHoroscope(res.data);
+        if (res.success && res.data) {
+          // Normalize to match the display function's expectations if needed
+          const normalized = {
+            date: res.data.date,
+            horoscope_data: res.data.forecast_ta, // Main forecast in Tamil
+            details: res.data
+          };
+          horoscopeCache[cacheKey] = normalized;
+          displayHoroscope(normalized);
         } else {
           throw new Error("No data");
         }
@@ -7131,15 +7384,30 @@
       if (content) content.classList.remove('hidden');
 
       document.getElementById('horoscopeDate').innerText = data.date;
-      document.getElementById('horoscopeText').innerText = data.horoscope_data;
+
+      let html = `<p style="margin-bottom:15px;">${data.horoscope_data}</p>`;
+
+      if (data.details) {
+        html += `
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
+            <div style="font-size:0.85rem;"><i class="fas fa-briefcase" style="color:#d97706; width:18px;"></i> <b>தொழில்:</b> ${data.details.career_ta}</div>
+            <div style="font-size:0.85rem;"><i class="fas fa-coins" style="color:#059669; width:18px;"></i> <b>நிதி:</b> ${data.details.finance_ta}</div>
+            <div style="font-size:0.85rem;"><i class="fas fa-heartbeat" style="color:#ef4444; width:18px;"></i> <b>ஆரோக்கியம்:</b> ${data.details.health_ta}</div>
+            <div style="font-size:0.85rem;"><i class="fas fa-magic" style="color:#3b82f6; width:18px;"></i> <b>அதிர்ஷ்டம்:</b> ${data.details.lucky_number} (${data.details.lucky_color_ta})</div>
+          </div>
+        `;
+      }
+
+      document.getElementById('horoscopeText').innerHTML = html;
     }
 
     // Initialize Horoscope
     renderZodiacScroller();
     fetchHoroscope(zodiacSigns[0]); // Load Aries by default
 
-    function displayPoruthamResults(data) {
-      const m = data.match;
+    function displayPoruthamResults(res) {
+      const data = res.data || {};
+      const m = data; // New engine returns poruthams directly in data or as proper score
       const div = document.getElementById('poruthamResults');
 
       const scoreColor = m.percentage > 50 ? '#10b981' : '#ef4444';
@@ -7165,30 +7433,39 @@
          <div class="porutham-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
        `;
 
-      const items = [
-        { k: 'dina', l: 'Dina' }, { k: 'gana', l: 'Gana' },
-        { k: 'mahendra', l: 'Mahendra' }, { k: 'streeDeergha', l: 'Stree Deergha' },
-        { k: 'yoni', l: 'Yoni' }, { k: 'rasi', l: 'Rasi' },
-        { k: 'rasiAdhipati', l: 'Rasi Adhipati' }, { k: 'vashya', l: 'Vashya' },
-        { k: 'rajju', l: 'Rajju' }, { k: 'vedha', l: 'Vedha' }
-      ];
-
-      items.forEach(i => {
-        const p = m[i.k];
-        if (p) {
-          const icon = p.status ? '✅' : '❌';
-          const bg = p.status ? '#ecfdf5' : '#fef2f2';
-          const border = p.status ? '#10b981' : '#ef4444';
+      if (m.poruthams && Array.isArray(m.poruthams)) {
+        m.poruthams.forEach(p => {
+          const isGood = p.score > 0;
+          const icon = isGood ? '✅' : '❌';
+          const bg = isGood ? '#ecfdf5' : '#fef2f2';
+          const border = isGood ? '#10b981' : '#ef4444';
 
           html += `
                <div style="background:${bg}; border-left:4px solid ${border}; padding:10px; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                 <div style="font-size:0.85rem; color:#666;">${i.l}</div>
-                 <div style="font-weight:bold; font-size:1rem; margin:2px 0;">${icon} ${p.status ? 'Good' : 'Bad'}</div>
-                 <!-- <div style="font-size:0.75rem; color:#777;">${p.description || ''}</div> -->
+                 <div style="font-size:0.85rem; color:#666;">${p.name}</div>
+                 <div style="font-weight:bold; font-size:1rem; margin:2px 0;">${icon} ${isGood ? 'Matched' : 'Not Matched'}</div>
+                 <div style="font-size:0.7rem; color:#888;">${p.score}/${p.max} Points</div>
                </div>
              `;
-        }
-      });
+        });
+      }
+
+      // Add Dosha Info
+      if (m.girlDosha || m.boyDosha) {
+        html += `</div><div style="margin-top:20px; font-weight:bold; color:#555;">Kuja Dosha Check</div>
+         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:5px;">
+            <div style="background:#fef2f2; padding:10px; border-radius:6px; border:1px solid #fee2e2;">
+               <div style="font-size:0.8rem; color:#be185d; font-weight:bold;">Girl Dosha</div>
+               <div style="font-size:0.8rem;">${m.girlDosha?.hasDosha ? 'YES' : 'NO'}</div>
+               <div style="font-size:0.65rem; color:#666;">${m.girlDosha?.desc || ''}</div>
+            </div>
+            <div style="background:#eff6ff; padding:10px; border-radius:6px; border:1px solid #dbeafe;">
+               <div style="font-size:0.8rem; color:#1e40af; font-weight:bold;">Boy Dosha</div>
+               <div style="font-size:0.8rem;">${m.boyDosha?.hasDosha ? 'YES' : 'NO'}</div>
+               <div style="font-size:0.65rem; color:#666;">${m.boyDosha?.desc || ''}</div>
+            </div>
+         </div>`;
+      }
 
       html += `</div>`;
       div.innerHTML = html;

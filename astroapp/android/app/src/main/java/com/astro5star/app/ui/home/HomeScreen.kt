@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -50,17 +51,21 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.animation.core.*
-import kotlinx.coroutines.launch
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.astro5star.app.utils.Localization
-import com.astro5star.app.R
 import com.astro5star.app.data.model.Astrologer
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import com.astro5star.app.R
+import com.astro5star.app.ui.theme.*
 import com.astro5star.app.ui.theme.CosmicAppTheme
 import com.astro5star.app.ui.theme.CosmicGradients
 import com.astro5star.app.ui.theme.CosmicColors
-import com.astro5star.app.ui.theme.*
 import com.astro5star.app.ui.theme.CosmicShapes
-import com.astro5star.app.ui.theme.*
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 
@@ -208,14 +213,14 @@ fun PremiumCard(
     Card(
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = androidx.compose.foundation.BorderStroke(1.dp, colorResource(id = R.color.surface_border)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, colorResource(id = com.astro5star.app.R.color.surface_border)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), // Using custom shadow wrapper if possible, or high elevation
         modifier = modifier
             .shadow(
                 elevation = 10.dp,
                 shape = RoundedCornerShape(22.dp),
-                spotColor = colorResource(id = R.color.card_shadow),
-                ambientColor = colorResource(id = R.color.card_shadow)
+                spotColor = colorResource(id = com.astro5star.app.R.color.card_shadow),
+                ambientColor = colorResource(id = com.astro5star.app.R.color.card_shadow)
             )
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
     ) {
@@ -464,7 +469,7 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit) {
 
             // Profile Section
             Image(
-                painter = painterResource(id = R.drawable.ic_person_placeholder),
+                painter = painterResource(id = com.astro5star.app.R.drawable.ic_person_placeholder),
                 contentDescription = "Profile",
                 modifier = Modifier
                     .size(64.dp)
@@ -583,21 +588,13 @@ fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(72.dp)
+                .size(72.dp) // Restored Original Size
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
                 }
-                // User Request: "shadow color also white color set"
-                .shadow(
-                    elevation = 8.dp, // Increased for visible glow
-                    shape = RoundedCornerShape(15.dp),
-                    spotColor = Color.White,
-                    ambientColor = Color.White
-                )
-                // User Request: "bg full white colr" (Kept White)
-                .background(Color.White, RoundedCornerShape(15.dp))
-                .border(2.dp, item.color, RoundedCornerShape(15.dp)) // Visible Border
+                .background(item.color.copy(alpha = 0.12f), CosmicShapes.ZodiacShape)
+                .border(1.dp, item.color.copy(alpha = 0.25f), CosmicShapes.ZodiacShape)
         ) {
              Image(
                 painter = painterResource(id = item.iconRes),
@@ -605,7 +602,7 @@ fun RasiItemView(item: ComposeRasiItem, onClick: (ComposeRasiItem) -> Unit) {
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(6.dp), // Perfect fit
+                    .padding(8.dp),
                 colorFilter = ColorFilter.tint(item.color) // User Request: "icon is drak color but not black"
             )
         }
@@ -668,7 +665,7 @@ fun AstrologerCard(
              Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(80.dp)) {
                  Box(contentAlignment = Alignment.BottomEnd) {
                     Image(
-                        painter = painterResource(id = R.drawable.ic_person_placeholder),
+                        painter = painterResource(id = com.astro5star.app.R.drawable.ic_person_placeholder),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -768,24 +765,82 @@ fun DailyHoroscopeCard(content: String) {
         label = "CardScale"
     )
 
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, PeacockGreen.copy(alpha = 0.3f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(PeacockGreen.copy(alpha = 0.1f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Star,
+                        contentDescription = null,
+                        tint = PeacockGreen,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "Daily Horoscope",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = RoyalMidnightBlue
+                    )
+                    Text(
+                        text = "இன்றைய ராசிபலன்",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PeacockGreen
+                    )
+                }
+            }
 
+            Text(
+                text = content,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    lineHeight = 22.sp,
+                    color = Color.DarkGray
+                )
+            )
+        }
+    }
 }
 
 @Composable
 fun RasiGridSection(onClick: (ComposeRasiItem) -> Unit) {
     val rasiItems = listOf(
-        ComposeRasiItem(1, "Aries", R.drawable.ic_rasi_aries_premium, AriesRed),
-        ComposeRasiItem(2, "Taurus", R.drawable.ic_rasi_taurus_premium_copy, TaurusGreen),
-        ComposeRasiItem(3, "Gemini", R.drawable.ic_rasi_gemini_premium_copy, GeminiGreen),
-        ComposeRasiItem(4, "Cancer", R.drawable.ic_rasi_cancer_premium_copy, CancerBlue),
-        ComposeRasiItem(5, "Leo", R.drawable.ic_rasi_leo_premium, LeoGold),
-        ComposeRasiItem(6, "Virgo", R.drawable.ic_rasi_virgo_premium, VirgoOlive),
-        ComposeRasiItem(7, "Libra", R.drawable.ic_rasi_libra_premium_copy, LibraPink),
-        ComposeRasiItem(8, "Scorpio", R.drawable.ic_rasi_scorpio_premium, ScorpioMaroon),
-        ComposeRasiItem(9, "Sagittarius", R.drawable.ic_rasi_sagittarius_premium, SagPurple),
-        ComposeRasiItem(10, "Capricorn", R.drawable.ic_rasi_capricorn_premium_copy, CapTeal),
-        ComposeRasiItem(11, "Aquarius", R.drawable.ic_rasi_aquarius_premium, AquaBlue),
-        ComposeRasiItem(12, "Pisces", R.drawable.ic_rasi_pisces_premium_copy, PiscesIndigo)
+        ComposeRasiItem(1, "Aries", com.astro5star.app.R.drawable.ic_rasi_aries_premium, AriesRed),
+        ComposeRasiItem(2, "Taurus", com.astro5star.app.R.drawable.ic_rasi_taurus_premium_copy, TaurusGreen),
+        ComposeRasiItem(3, "Gemini", com.astro5star.app.R.drawable.ic_rasi_gemini_premium_copy, GeminiGreen),
+        ComposeRasiItem(4, "Cancer", com.astro5star.app.R.drawable.ic_rasi_cancer_premium_copy, CancerBlue),
+        ComposeRasiItem(5, "Leo", com.astro5star.app.R.drawable.ic_rasi_leo_premium, LeoGold),
+        ComposeRasiItem(6, "Virgo", com.astro5star.app.R.drawable.ic_rasi_virgo_premium, VirgoOlive),
+        ComposeRasiItem(7, "Libra", com.astro5star.app.R.drawable.ic_rasi_libra_premium_copy, LibraPink),
+        ComposeRasiItem(8, "Scorpio", com.astro5star.app.R.drawable.ic_rasi_scorpio_premium, ScorpioMaroon),
+        ComposeRasiItem(9, "Sagittarius", com.astro5star.app.R.drawable.ic_rasi_sagittarius_premium, SagPurple),
+        ComposeRasiItem(10, "Capricorn", com.astro5star.app.R.drawable.ic_rasi_capricorn_premium_copy, CapTeal),
+        ComposeRasiItem(11, "Aquarius", com.astro5star.app.R.drawable.ic_rasi_aquarius_premium, AquaBlue),
+        ComposeRasiItem(12, "Pisces", com.astro5star.app.R.drawable.ic_rasi_pisces_premium_copy, PiscesIndigo)
     )
 
     // User Request: "12 rasi contain have one box that box bf use that bg" (Customer Style)
@@ -959,12 +1014,13 @@ fun StarField() {
 
 @Composable
 fun TopServicesSection() {
-    val services = listOf(
-        "Free\nKundali" to R.drawable.ic_rasi_aries_premium, // Placeholder
-        "Kundali\nMatch" to R.drawable.ic_rasi_leo_premium,
-        "Daily\nHoroscope" to R.drawable.ic_rasi_cancer_premium_copy,
-        "Astro\nAcademy" to R.drawable.ic_rasi_libra_premium_copy,
-        "Free\nServices" to R.drawable.ic_rasi_virgo_premium
+    val context = LocalContext.current
+    val services: List<Pair<String, Int>> = listOf(
+        "Free\nHoroscope" to com.astro5star.app.R.drawable.ic_free_kundali,
+        "Horoscope\nMatch" to com.astro5star.app.R.drawable.ic_match,
+        "Daily\nHoroscope" to com.astro5star.app.R.drawable.ic_daily_horoscope,
+        "Astro\nAcademy" to com.astro5star.app.R.drawable.ic_academy,
+        "Free\nServices" to com.astro5star.app.R.drawable.ic_free_services
     )
 
     Row(
@@ -975,22 +1031,52 @@ fun TopServicesSection() {
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         services.forEach { (name, icon) ->
-            ServiceItem(name, icon)
+            ServiceItem(name, icon) {
+                when(name) {
+                    "Free\nHoroscope" -> {
+                        val intent = Intent(context, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
+                            putExtra("type", "free_horoscope")
+                        }
+                        context.startActivity(intent)
+                    }
+                    "Horoscope\nMatch" -> {
+                        val intent = Intent(context, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
+                            putExtra("type", "match")
+                        }
+                        context.startActivity(intent)
+                    }
+                    "Daily\nHoroscope" -> {
+                        val intent = Intent(context, com.astro5star.app.ui.rasipalan.RasipalanActivity::class.java)
+                        context.startActivity(intent)
+                    }
+                    "Astro\nAcademy" -> {
+                        val intent = Intent(context, com.astro5star.app.ui.academy.AcademyActivity::class.java)
+                        context.startActivity(intent)
+                    }
+                    "Free\nServices" -> {
+                        android.app.AlertDialog.Builder(context)
+                            .setTitle("Contact Us")
+                            .setMessage("For free services, contact us at: +91 93635 77777")
+                            .setPositiveButton("OK", null)
+                            .show()
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-fun ServiceItem(name: String, iconRes: Int) {
+fun ServiceItem(name: String, iconRes: Int, onClick: () -> Unit) {
     // MARKETPLACE SHORTCUT STYLE: White, 12dp, Thin Red Outline
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = androidx.compose.foundation.BorderStroke(1.dp, colorResource(id = R.color.marketplace_red)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, colorResource(id = com.astro5star.app.R.color.marketplace_red)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier
             .size(width = 80.dp, height = 90.dp)
-            .clickable { }
+            .clickable { onClick() }
     ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -1000,8 +1086,7 @@ fun ServiceItem(name: String, iconRes: Int) {
             Image(
                 painter = painterResource(id = iconRes),
                 contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                colorFilter = ColorFilter.tint(colorResource(id = R.color.marketplace_red)) // Red Line Icon
+                modifier = Modifier.size(40.dp) // Slightly larger for better visibility
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -1059,7 +1144,7 @@ fun CustomerStoryCard(name: String, loc: String, review: String) {
     ) {
         Row(modifier = Modifier.padding(12.dp)) {
             Image(
-                painter = painterResource(id = R.drawable.ic_person_placeholder),
+                painter = painterResource(id = com.astro5star.app.R.drawable.ic_person_placeholder),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -1103,7 +1188,7 @@ fun StickyFooterButtons(
                     onTabSelected(1) // Tab 1 = Chat
                 }
             },
-            colors = ButtonDefaults.buttonColors(containerColor = colorResource(id = R.color.marketplace_yellow), contentColor = Color.Black),
+            colors = ButtonDefaults.buttonColors(containerColor = colorResource(id = com.astro5star.app.R.color.marketplace_yellow), contentColor = Color.Black),
             shape = RoundedCornerShape(50),
             modifier = Modifier.weight(1f).height(48.dp)
         ) {
@@ -1121,7 +1206,7 @@ fun StickyFooterButtons(
                     onTabSelected(3) // Tab 3 = Call
                 }
             },
-            colors = ButtonDefaults.buttonColors(containerColor = colorResource(id = R.color.marketplace_yellow), contentColor = Color.Black),
+            colors = ButtonDefaults.buttonColors(containerColor = colorResource(id = com.astro5star.app.R.color.marketplace_yellow), contentColor = Color.Black),
             shape = RoundedCornerShape(50),
             modifier = Modifier.weight(1f).height(48.dp)
         ) {

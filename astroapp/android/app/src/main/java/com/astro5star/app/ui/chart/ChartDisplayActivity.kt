@@ -61,25 +61,25 @@ class ChartDisplayActivity : ComponentActivity() {
     private suspend fun fetchChartHtml(birthData: JSONObject): String? = withContext(Dispatchers.IO) {
         try {
             val apiInterface = com.astro5star.app.data.api.ApiClient.api
+            val dateStr = String.format("%04d-%02d-%02d", birthData.optInt("year"), birthData.optInt("month"), birthData.optInt("day"))
+            val timeStr = String.format("%02d:%02d", birthData.optInt("hour"), birthData.optInt("minute"))
+
             val payload = com.google.gson.JsonObject().apply {
-                addProperty("year", birthData.optInt("year"))
-                addProperty("month", birthData.optInt("month"))
-                addProperty("day", birthData.optInt("day"))
-                addProperty("hour", birthData.optInt("hour"))
-                addProperty("minute", birthData.optInt("minute"))
-                addProperty("latitude", birthData.optDouble("latitude"))
-                addProperty("longitude", birthData.optDouble("longitude"))
+                addProperty("date", dateStr)
+                addProperty("time", timeStr)
+                addProperty("lat", birthData.optDouble("latitude"))
+                addProperty("lng", birthData.optDouble("longitude"))
                 addProperty("timezone", birthData.optDouble("timezone", 5.5))
             }
 
-            val response = apiInterface.getBirthChart(payload)
+            val response = apiInterface.getRasiEngBirthChart(payload)
             if (response.isSuccessful && response.body() != null) {
                 val jsonResponse = JSONObject(response.body().toString())
                 if (jsonResponse.has("data")) {
                     val data = jsonResponse.getJSONObject("data")
                     generateHtml(data, birthData)
                 } else {
-                    null // Error or invalid format
+                    null
                 }
             } else {
                 null

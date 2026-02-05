@@ -45,6 +45,15 @@ interface ApiInterface {
 
     @POST("api/match/porutham")
     suspend fun getMatchPorutham(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/rasi-eng/charts/full")
+    suspend fun getRasiEngBirthChart(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/rasi-eng/matching")
+    suspend fun getRasiEngMatching(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("api/academy/videos")
+    suspend fun getAcademyVideos(): Response<com.google.gson.JsonObject>
     @retrofit2.http.GET("api/user/{userId}/intake")
     suspend fun getUserIntake(@retrofit2.http.Path("userId") userId: String): Response<com.google.gson.JsonObject>
 

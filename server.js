@@ -11,6 +11,8 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const admin = require('firebase-admin'); // Firebase Admin for Mobile App
+const { DateTime } = require('luxon');
+const { fetchDailyHoroscope } = require("./utils/rasiEng/horoscopeData");
 
 // PhonePe Config
 // PhonePe Config
@@ -187,17 +189,12 @@ app.get('/return-policy', (req, res) => res.sendFile(path.join(__dirname, 'publi
 app.get('/shipping-policy', (req, res) => res.sendFile(path.join(__dirname, 'public/shipping-policy.html')));
 
 // Routes
-const vimshottariRouter = require("./routes/vimshottari");
-const astrologyRouter = require("./routes/astrology");
-const matchRouter = require("./routes/match");
-const horoscopeRouter = require("./routes/horoscope");
-const chartsRouter = require("./routes/charts"); // Local charts
+const rasiEngRouter = require("./routes/rasiEng");
+const rasipalanRouter = require("./routes/rasipalan");
 
-app.use("/api/vimshottari", vimshottariRouter);
-app.use("/api/astrology", astrologyRouter);
-app.use("/api/match", matchRouter);
-app.use("/api/horoscope", horoscopeRouter);
-app.use("/api/charts", chartsRouter); // Mount local charts
+app.use("/api/rasi-eng", rasiEngRouter);
+app.use("/api/rasipalan", rasipalanRouter);
+app.use("/api/horoscope/rasi-palan", rasipalanRouter); // Android App specific path
 
 // FCM Test Endpoint - Verify Firebase is working
 app.get('/api/test-fcm', async (req, res) => {
@@ -426,9 +423,19 @@ const ChatMessageSchema = new mongoose.Schema({
   fromUserId: String,
   toUserId: String,
   text: String,
-  timestamp: Number
+  type: { type: String, default: 'text' }, // text, system
+  createdAt: { type: Date, default: Date.now }
 });
 const ChatMessage = mongoose.model('ChatMessage', ChatMessageSchema);
+
+const AcademyVideoSchema = new mongoose.Schema({
+  title: String,
+  youtubeUrl: String,
+  thumbnail: String,
+  category: String,
+  createdAt: { type: Date, default: Date.now }
+});
+const AcademyVideo = mongoose.model('AcademyVideo', AcademyVideoSchema);
 
 
 // ===== Seed Data =====
@@ -605,10 +612,70 @@ app.post('/register', async (req, res) => {
   }
 });
 
+// Academy Admin APIs
+app.post('/api/admin/academy/videos', async (req, res) => {
+  try {
+    const video = new AcademyVideo(req.body);
+    await video.save();
+    res.json({ ok: true, video });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.put('/api/admin/academy/videos/:id', async (req, res) => {
+  try {
+    const video = await AcademyVideo.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json({ ok: true, video });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.delete('/api/admin/academy/videos/:id', async (req, res) => {
+  try {
+    await AcademyVideo.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Daily Horoscope API
-app.get('/api/daily-horoscope', (req, res) => {
-  const content = generateTamilHoroscope(); // Check and update if new day
-  res.json({ ok: true, content });
+app.get('/api/daily-horoscope', async (req, res) => {
+  try {
+    const today = DateTime.now().setZone('Asia/Kolkata').toFormat('yyyy-MM-dd');
+    const data = await fetchDailyHoroscope(today);
+    if (data && data.length > 0) {
+      // Pick the first rasi (Mesham) as a generic forecast for the home screen
+      res.json({ ok: true, content: data[0].forecast_ta });
+    } else {
+      const content = generateTamilHoroscope();
+      res.json({ ok: true, content });
+    }
+  } catch (err) {
+    console.error('Error in /api/daily-horoscope:', err);
+    const content = generateTamilHoroscope();
+    res.json({ ok: true, content });
+  }
+});
+
+// Academy Videos API
+app.get('/api/academy/videos', async (req, res) => {
+  try {
+    let videos = await AcademyVideo.find().sort({ createdAt: -1 });
+    if (videos.length === 0) {
+      // Return some dummy videos if none exist
+      videos = [
+        { title: "Introduction to Astrology", youtubeUrl: "https://www.youtube.com/watch?v=kYI9W5yisCc", category: "Basics" },
+        { title: "Planetary Positions", youtubeUrl: "https://www.youtube.com/watch?v=FjI1XwHhK_4", category: "Intermediate" },
+        { title: "Daily Prediction Guide", youtubeUrl: "https://www.youtube.com/watch?v=BvRE0mD6uA0", category: "General" }
+      ];
+    }
+    res.json({ ok: true, videos });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // Home Banners API (5 Dummy Images)

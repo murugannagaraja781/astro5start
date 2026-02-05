@@ -66,35 +66,32 @@ class MatchDisplayActivity : ComponentActivity() {
 
             if (pData == null) return@withContext null
 
-            val boyObj: JSONObject
-            val girlObj: JSONObject
-
-            fun extract(json: JSONObject): JSONObject {
-                return JSONObject().apply {
-                    put("year", json.getInt("year"))
-                    put("month", json.getInt("month"))
-                    put("day", json.getInt("day"))
-                    put("hour", json.getInt("hour"))
-                    put("minute", json.getInt("minute"))
-                    put("lat", json.getDouble("latitude"))
-                    put("lon", json.getDouble("longitude"))
+            fun extract(json: JSONObject): com.google.gson.JsonObject {
+                return com.google.gson.JsonObject().apply {
+                    addProperty("dob", String.format("%04d-%02d-%02d", json.getInt("year"), json.getInt("month"), json.getInt("day")))
+                    addProperty("tob", String.format("%02d:%02d", json.getInt("hour"), json.getInt("minute")))
+                    addProperty("lat", json.getDouble("latitude"))
+                    addProperty("lng", json.getDouble("longitude"))
                 }
             }
 
+            val boyData: com.google.gson.JsonObject
+            val girlData: com.google.gson.JsonObject
+
             if (cGender.equals("Male", ignoreCase = true)) {
-                boyObj = extract(birthData)
-                girlObj = extract(pData)
+                boyData = extract(birthData)
+                girlData = extract(pData)
             } else {
-                girlObj = extract(birthData)
-                boyObj = extract(pData)
+                girlData = extract(birthData)
+                boyData = extract(pData)
             }
 
             val payload = com.google.gson.JsonObject().apply {
-                add("boy", com.google.gson.JsonParser.parseString(boyObj.toString()))
-                add("girl", com.google.gson.JsonParser.parseString(girlObj.toString()))
+                add("boyData", boyData)
+                add("girlData", girlData)
             }
 
-            val response = apiInterface.getMatchPorutham(payload)
+            val response = apiInterface.getRasiEngMatching(payload)
             if (response.isSuccessful && response.body() != null) {
                 val jsonResponse = response.body()!!.toString()
                 generateMatchHtml(jsonResponse)

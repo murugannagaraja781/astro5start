@@ -6,8 +6,8 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,10 +22,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -34,7 +36,7 @@ import androidx.lifecycle.lifecycleScope
 import com.astro5star.app.R
 import com.astro5star.app.data.api.ApiClient
 import com.astro5star.app.data.local.TokenManager
-import com.astro5star.app.ui.theme.*
+import com.astro5star.app.ui.theme.CosmicAppTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -171,62 +173,116 @@ fun WalletScreen(
 ) {
     var amountInput by remember { mutableStateOf("") }
 
-    Scaffold(
-        containerColor = DeepSpaceNavy,
-        topBar = {
-            TopAppBar(
-                title = { Text("My Divine Wallet", color = StarWhite, fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DeepSpaceNavy,
-                    titleContentColor = StarWhite
-                ),
-                actions = {
-                    IconButton(onClick = onRefreshHistory) {
-                        Icon(Icons.Rounded.History, contentDescription = "Refresh", tint = MetallicGold)
-                    }
-                }
+    val glassShape = RoundedCornerShape(22.dp)
+    val glassSurface = Color.White.copy(alpha = 0.12f)
+    val glassBorder = Color.White.copy(alpha = 0.35f)
+    val glowPrimary = Color(0xFF6BE6FF).copy(alpha = 0.35f)
+    val glowSecondary = Color(0xFF9B7BFF).copy(alpha = 0.28f)
+    val glowAccent = Color(0xFFFFD27A).copy(alpha = 0.25f)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF0E1226),
+                        Color(0xFF1A1E3A),
+                        Color(0xFF2B1C3C)
+                    )
+                )
             )
-        }
-    ) { padding ->
-        LazyColumn(
+    ) {
+        // Ambient orbs
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(DeepSpaceNavy)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            // 1. Balance Card (Credit Card Style)
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, AntiqueGold.copy(alpha = 0.5f))
-                ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        // Background Gradient
+                .size(240.dp)
+                .offset(x = (-120).dp, y = (-160).dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(glowPrimary, Color.Transparent),
+                        radius = 280f
+                    ),
+                    shape = CircleShape
+                )
+        )
+        Box(
+            modifier = Modifier
+                .size(280.dp)
+                .offset(x = 140.dp, y = (-60).dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(glowSecondary, Color.Transparent),
+                        radius = 320f
+                    ),
+                    shape = CircleShape
+                )
+        )
+        Box(
+            modifier = Modifier
+                .size(240.dp)
+                .offset(x = 60.dp, y = 480.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(glowAccent, Color.Transparent),
+                        radius = 300f
+                    ),
+                    shape = CircleShape
+                )
+        )
+
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = { Text("My Divine Wallet", color = Color.White, fontWeight = FontWeight.Bold) },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = Color.White
+                    ),
+                    actions = {
+                        IconButton(onClick = onRefreshHistory) {
+                            Icon(Icons.Rounded.History, contentDescription = "Refresh", tint = Color.White)
+                        }
+                    }
+                )
+            }
+        ) { padding ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // 1. Balance Card (Glass)
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(210.dp)
+                            .shadow(18.dp, glassShape, clip = false)
+                            .clip(glassShape)
+                            .background(glassSurface)
+                            .border(1.dp, glassBorder, glassShape)
+                    ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
+                                .matchParentSize()
                                 .background(
                                     Brush.linearGradient(
-                                        listOf(CosmicBlue, NebulaPurple)
+                                        colors = listOf(
+                                            Color.White.copy(alpha = 0.22f),
+                                            Color.Transparent,
+                                            Color.White.copy(alpha = 0.08f)
+                                        ),
+                                        start = Offset(0f, 0f),
+                                        end = Offset(700f, 900f)
                                     )
                                 )
+                                .alpha(0.6f)
                         )
 
-                        // Texture/Pattern circles
-                        Box(
-                            modifier = Modifier
-                                .offset(x = 100.dp, y = (-50).dp)
-                                .size(200.dp)
-                                .background(GalaxyViolet.copy(alpha = 0.1f), CircleShape)
-                        )
-
-                        // Content
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -237,138 +293,142 @@ fun WalletScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Available Balance", color = CardText.copy(alpha = 0.7f))
-                                Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null, tint = MetallicGold)
+                                Text("Available Balance", color = Color.White.copy(alpha = 0.8f))
+                                Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null, tint = Color.White)
                             }
 
                             Text(
                                 text = "₹ ${balance.toInt()}",
                                 style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-                                color = PremiumGold
+                                color = Color.White
                             )
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Astro 5 Star", color = PremiumGold, fontWeight = FontWeight.Bold)
-                                Text("**** **** 8888", color = CardText.copy(alpha = 0.5f))
+                                Text("Astro 5 Star", color = Color.White.copy(alpha = 0.9f), fontWeight = FontWeight.Bold)
+                                Text("**** **** 8888", color = Color.White.copy(alpha = 0.6f))
                             }
                         }
                     }
                 }
-            }
 
-            // 2. Add Money Section
-            item {
-                Text(
-                    text = "Recharge Wallet",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MetallicGold
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = amountInput,
-                        onValueChange = { amountInput = it.filter { char -> char.isDigit() } },
-                        label = { Text("Enter Amount (₹)", color = ConstellationCyan) },
-                        modifier = Modifier.weight(1f),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = MetallicGold,
-                            unfocusedBorderColor = AntiqueGold,
-                            containerColor = CosmicBlue.copy(alpha = 0.3f), // Transparent-ish
-                            focusedTextColor = StarWhite,
-                            unfocusedTextColor = StarWhite
-                        ),
-                        singleLine = true
+                // 2. Add Money Section
+                item {
+                    Text(
+                        text = "Recharge Wallet",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(
+                            value = amountInput,
+                            onValueChange = { amountInput = it.filter { char -> char.isDigit() } },
+                            label = { Text("Enter Amount (₹)", color = Color.White.copy(alpha = 0.8f)) },
+                            modifier = Modifier.weight(1f),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color.White.copy(alpha = 0.7f),
+                                unfocusedBorderColor = Color.White.copy(alpha = 0.35f),
+                                focusedContainerColor = Color.White.copy(alpha = 0.08f),
+                                unfocusedContainerColor = Color.White.copy(alpha = 0.06f),
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                cursorColor = Color.White
+                            ),
+                            singleLine = true
+                        )
 
-                    Button(
-                        onClick = {
-                            val amt = amountInput.toIntOrNull() ?: 0
-                            onAddMoney(amt)
-                        },
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MetallicGold),
-                        modifier = Modifier
-                            .height(56.dp)
-                            .width(80.dp),
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Icon(Icons.Rounded.AddCircle, contentDescription = "Add", tint = DeepSpaceNavy, modifier = Modifier.size(28.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Button(
+                            onClick = {
+                                val amt = amountInput.toIntOrNull() ?: 0
+                                onAddMoney(amt)
+                            },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.18f)),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)),
+                            modifier = Modifier
+                                .height(56.dp)
+                                .width(80.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Icon(Icons.Rounded.AddCircle, contentDescription = "Add", tint = Color.White, modifier = Modifier.size(28.dp))
+                        }
                     }
                 }
-            }
 
-            // 3. Transactions List
-            item {
-                Text(
-                    text = "Transaction History",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MetallicGold
-                )
-            }
+                // 3. Transactions List
+                item {
+                    Text(
+                        text = "Transaction History",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
+                    )
+                }
 
-            items(transactions) { transaction ->
-                val amount = transaction.optDouble("amount", 0.0)
-                val status = transaction.optString("status", "pending")
-                val dateStr = transaction.optString("createdAt", "")
-                // Simple parser for demonstration
-                val displayDate = if(dateStr.length > 10) dateStr.substring(0, 10) else dateStr
+                items(transactions) { transaction ->
+                    val amount = transaction.optDouble("amount", 0.0)
+                    val status = transaction.optString("status", "pending")
+                    val dateStr = transaction.optString("createdAt", "")
+                    val displayDate = if (dateStr.length > 10) dateStr.substring(0, 10) else dateStr
 
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = CosmicBlue.copy(alpha = 0.5f)),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .shadow(10.dp, RoundedCornerShape(16.dp), clip = false)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White.copy(alpha = 0.10f))
+                            .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(16.dp))
                     ) {
-                        // Icon based on status
-                        Box(
+                        Row(
                             modifier = Modifier
-                                .size(40.dp)
-                                .background(DeepSpaceNavy, CircleShape)
-                                .border(1.dp, AntiqueGold.copy(alpha=0.3f), CircleShape),
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                           Text(
-                               text = if (status == "success") "✓" else "!",
-                               color = if(status=="success") Color(0xFF00C853) else GalaxyViolet,
-                               fontWeight = FontWeight.Bold
-                           )
-                        }
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(Color.White.copy(alpha = 0.12f), CircleShape)
+                                    .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (status == "success") "✓" else "!",
+                                    color = if (status == "success") Color(0xFF76FFD8) else Color(0xFFFF9FD6),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
 
-                        Spacer(modifier = Modifier.width(16.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
 
-                        Column(modifier = Modifier.weight(1f)) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = status.uppercase(),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (status == "success") Color(0xFF76FFD8) else Color(0xFFFF9FD6),
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = displayDate,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.6f)
+                                )
+                            }
+
                             Text(
-                                text = "${status.uppercase()}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (status == "success") Color(0xFF00C853) else GalaxyViolet,
+                                text = "₹${amount.toInt()}",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White,
                                 fontWeight = FontWeight.Bold
                             )
-                            Text(
-                                text = displayDate,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = CardText.copy(alpha=0.6f)
-                            )
                         }
-
-                        Text(
-                            text = "₹${amount.toInt()}",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = CardText,
-                            fontWeight = FontWeight.Bold
-                        )
                     }
                 }
             }

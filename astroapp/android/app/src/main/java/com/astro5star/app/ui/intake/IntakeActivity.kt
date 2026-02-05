@@ -344,6 +344,10 @@ fun IntakeScreen(
             maritalStatus = prefs.getString("maritalStatus", "Single") ?: "Single"
             topic = prefs.getString("topic", "General") ?: "General"
         }
+
+        if (callType == "match") {
+            includePartner = true
+        }
     }
 
     // Waiting Timer
@@ -486,6 +490,18 @@ fun IntakeScreen(
              intent.putExtra("birthData", birthData.toString())
              (context as? Activity)?.setResult(Activity.RESULT_OK, intent)
              onClose()
+        } else if (callType == "free_horoscope") {
+             val intent = Intent(context, com.astro5star.app.ui.chart.ChartDisplayActivity::class.java).apply {
+                 putExtra("birthData", birthData.toString())
+             }
+             context.startActivity(intent)
+             (context as? Activity)?.finish()
+        } else if (callType == "match") {
+             val intent = Intent(context, com.astro5star.app.ui.chart.MatchDisplayActivity::class.java).apply {
+                 putExtra("birthData", birthData.toString())
+             }
+             context.startActivity(intent)
+             (context as? Activity)?.finish()
         } else {
             // Initiate Session
              if (partnerId != null && callType != null) {

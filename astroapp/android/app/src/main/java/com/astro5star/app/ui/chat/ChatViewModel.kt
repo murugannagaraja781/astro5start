@@ -44,6 +44,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _billingStarted = MutableLiveData<Boolean>()
     val billingStarted: LiveData<Boolean> = _billingStarted
 
+    private val _availableMinutes = MutableLiveData<Int>()
+    val availableMinutes: LiveData<Int> = _availableMinutes
+
+    private val _billingInfo = MutableLiveData<SocketManager.BillingInfo>()
+    val billingInfo: LiveData<SocketManager.BillingInfo> = _billingInfo
+
     private val _sessionSummary = MutableLiveData<SessionSummary>()
     val sessionSummary: LiveData<SessionSummary> = _sessionSummary
 
@@ -219,8 +225,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         // Billing Started Listener
-        SocketManager.onBillingStarted { startTime ->
+        SocketManager.onBillingStarted { info ->
             _billingStarted.postValue(true)
+            _availableMinutes.postValue(info.availableMinutes)
+            _billingInfo.postValue(info)
         }
 
         // Session Ended with Summary

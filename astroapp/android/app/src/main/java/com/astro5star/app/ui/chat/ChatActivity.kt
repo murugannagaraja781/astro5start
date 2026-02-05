@@ -47,7 +47,9 @@ class ChatActivity : ComponentActivity() {
     private var sessionId: String? = null
     private var clientBirthData: JSONObject? = null
     private var sessionDuration by mutableStateOf("00:00")
+    private var remainingTime by mutableStateOf("")
     private var chatDurationSeconds = 0
+    private var remainingSeconds = 0
     private var timerHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val timerRunnable = object : Runnable {
         override fun run() {
@@ -55,6 +57,16 @@ class ChatActivity : ComponentActivity() {
             val minutes = chatDurationSeconds / 60
             val seconds = chatDurationSeconds % 60
             sessionDuration = String.format("%02d:%02d", minutes, seconds)
+
+            if (remainingSeconds > 0) {
+                remainingSeconds--
+                val remMins = remainingSeconds / 60
+                val remSecs = remainingSeconds % 60
+                remainingTime = String.format("%02d:%02d", remMins, remSecs)
+            } else if (remainingSeconds == 0 && remainingTime.isNotEmpty()) {
+                remainingTime = "00:00"
+            }
+
             timerHandler.postDelayed(this, 1000)
         }
     }
@@ -107,7 +119,8 @@ class ChatActivity : ComponentActivity() {
                     },
                     isAstrologer = TokenManager(this).getUserSession()?.role == "astrologer",
                     toUserId = toUserId,
-                    sessionId = sessionId
+                    sessionId = sessionId,
+                    remainingTime = remainingTime
                 )
             }
         }
@@ -185,6 +198,12 @@ class ChatActivity : ComponentActivity() {
                 finish()
             }
         }
+        viewModel.availableMinutes.observe(this) { mins ->
+            remainingSeconds = (mins * 60)
+            val remMins = remainingSeconds / 60
+            val remSecs = remainingSeconds % 60
+            remainingTime = String.format("%02d:%02d", remMins, remSecs)
+        }
     }
 
     private fun endChat() {
@@ -258,7 +277,8 @@ fun ChatScreen(
     onViewChart: () -> Unit,
     isAstrologer: Boolean,
     toUserId: String?,
-    sessionId: String?
+    sessionId: String?,
+    remainingTime: String
 ) {
     val messages by viewModel.history.observeAsState(emptyList())
     val isTyping by viewModel.typingStatus.observeAsState(false)
@@ -348,6 +368,25 @@ fun ChatScreen(
                 .padding(padding)
                 .background(Color(0xFFF5F5F5))
         ) {
+            // Watermark for Astrologer
+            if (isAstrologer && remainingTime.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Remaining Time: $remainingTime",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.Gray.copy(alpha = 0.15f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        lineHeight = 40.sp
+                    )
+                }
+            }
+
             LazyColumn(
                 state = listState,
                 contentPadding = PaddingValues(16.dp),
