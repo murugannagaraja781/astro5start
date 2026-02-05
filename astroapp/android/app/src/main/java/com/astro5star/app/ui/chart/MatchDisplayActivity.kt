@@ -64,14 +64,35 @@ class MatchDisplayActivity : ComponentActivity() {
             val cGender = birthData.optString("gender")
             val pData = birthData.optJSONObject("partner")
 
-            if (pData == null) return@withContext null
+            if (pData == null) {
+                android.util.Log.e("MatchDisplay", "Partner data is null")
+                return@withContext null
+            }
 
             fun extract(json: JSONObject): com.google.gson.JsonObject {
                 return com.google.gson.JsonObject().apply {
-                    addProperty("dob", String.format("%04d-%02d-%02d", json.getInt("year"), json.getInt("month"), json.getInt("day")))
-                    addProperty("tob", String.format("%02d:%02d", json.getInt("hour"), json.getInt("minute")))
-                    addProperty("lat", json.getDouble("latitude"))
-                    addProperty("lng", json.getDouble("longitude"))
+                    // Handle both formats: dob string or day/month/year
+                    val dob = if (json.has("dob")) {
+                        json.getString("dob")
+                    } else {
+                        val y = json.optInt("year", 2000)
+                        val m = json.optInt("month", 1)
+                        val d = json.optInt("day", 1)
+                        String.format("%04d-%02d-%02d", y, m, d)
+                    }
+
+                    val tob = if (json.has("tob")) {
+                        json.getString("tob")
+                    } else {
+                        val h = json.optInt("hour", 12)
+                        val min = json.optInt("minute", 0)
+                        String.format("%02d:%02d", h, min)
+                    }
+
+                    addProperty("dob", dob)
+                    addProperty("tob", tob)
+                    addProperty("lat", json.optDouble("latitude", 13.0827))
+                    addProperty("lng", json.optDouble("longitude", 80.2707))
                 }
             }
 
@@ -86,6 +107,8 @@ class MatchDisplayActivity : ComponentActivity() {
                 boyData = extract(pData)
             }
 
+            android.util.Log.d("MatchDisplay", "Boy: $boyData, Girl: $girlData")
+
             val payload = com.google.gson.JsonObject().apply {
                 add("boyData", boyData)
                 add("girlData", girlData)
@@ -94,11 +117,14 @@ class MatchDisplayActivity : ComponentActivity() {
             val response = apiInterface.getRasiEngMatching(payload)
             if (response.isSuccessful && response.body() != null) {
                 val jsonResponse = response.body()!!.toString()
+                android.util.Log.d("MatchDisplay", "API Response: ${jsonResponse.take(200)}")
                 generateMatchHtml(jsonResponse)
             } else {
+                android.util.Log.e("MatchDisplay", "API Error: ${response.code()} - ${response.errorBody()?.string()}")
                 null
             }
         } catch (e: Exception) {
+            android.util.Log.e("MatchDisplay", "Exception: ${e.message}", e)
             e.printStackTrace()
             null
         }
@@ -108,55 +134,126 @@ class MatchDisplayActivity : ComponentActivity() {
         return """
             <html>
             <head>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <style>
-                    body { font-family: sans-serif; padding: 16px; background-color: #FAFAFA; }
-                    .card { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 16px; }
-                    h2 { color: #673AB7; text-align: center; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    th { background-color: #f2f2f2; color: #333; }
-                    .good { color: green; font-weight: bold; }
-                    .bad { color: red; font-weight: bold; }
-                    .avg { color: orange; font-weight: bold; }
-                    .score-box { text-align: center; font-size: 24px; font-weight: bold; color: #673AB7; margin: 20px 0; }
-                    pre { background: #eee; padding: 10px; overflow: auto; font-size: 10px; }
+                    body {
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        padding: 20px;
+                        background-color: #F0F2F5;
+                        color: #2E7D32;
+                    }
+                    .card {
+                        background: #FFFFFF;
+                        padding: 24px;
+                        border-radius: 24px;
+                        box-shadow: 10px 10px 20px #d1d9e6, -10px -10px 20px #ffffff;
+                        margin-bottom: 24px;
+                    }
+                    h2 { color: #2E7D32; text-align: center; font-weight: 800; margin-top: 0; }
+                    .score-box {
+                        text-align: center;
+                        font-size: 32px;
+                        font-weight: 900;
+                        color: #4CAF50;
+                        margin: 24px 0;
+                        padding: 16px;
+                        background: #F0F2F5;
+                        border-radius: 16px;
+                        box-shadow: inset 4px 4px 8px #d1d9e6, inset -4px -4px 8px #ffffff;
+                    }
+                    .info-row {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 12px 0;
+                        border-bottom: 1px solid #eee;
+                    }
+                    .info-label { font-weight: bold; color: #666; }
+                    .info-value { font-weight: bold; color: #2E7D32; }
+
+                    table { width: 100%; border-collapse: separate; border-spacing: 0 8px; margin-top: 10px; }
+                    th { text-align: left; padding: 12px; color: #666; font-size: 13px; text-transform: uppercase; }
+                    td {
+                        background: #F8F9FA;
+                        padding: 16px;
+                        border-radius: 12px;
+                        font-weight: 600;
+                    }
+                    .good { color: #4CAF50; }
+                    .bad { color: #F44336; }
+                    .verdict {
+                        text-align: center;
+                        font-size: 18px;
+                        font-weight: bold;
+                        padding: 16px;
+                        border-radius: 12px;
+                        margin-top: 16px;
+                    }
+                    .verdict-advisable { background: #E8F5E9; color: #2E7D32; }
+                    .verdict-not { background: #FFEBEE; color: #C62828; }
                 </style>
             </head>
             <body>
                 <div class="card">
-                    <h2>Match Report</h2>
-                    <div id="content">Loading analysis...</div>
-                    <h3>Raw Data</h3>
-                    <pre>$jsonResponse</pre>
+                    <h2>Marriage Compatibility</h2>
+                    <div id="content">Analyzing stars...</div>
                 </div>
+
+                <div class="card" id="dosha-card" style="display:none;">
+                    <h2>Dosha Analysis</h2>
+                    <div id="dosha-content"></div>
+                </div>
+
                 <script>
                     try {
-                        const data = $jsonResponse;
+                        const root = $jsonResponse;
+                        const data = root.data; // Access the nested data object
                         let html = '';
 
-                        if (data.points || data.total_score || data.score) {
-                             const score = data.points || data.total_score || data.score;
-                             html += '<div class="score-box">Total Score: ' + score + '</div>';
-                        }
+                        if (data) {
+                            html += '<div class="info-row"><span class="info-label">Boy Star</span><span class="info-value">' + data.boy.nakshatra + ' (' + data.boy.rasi + ')</span></div>';
+                            html += '<div class="info-row"><span class="info-label">Girl Star</span><span class="info-value">' + data.girl.nakshatra + ' (' + data.girl.rasi + ')</span></div>';
 
-                        const list = data.matches || data.poruthams || data.report;
-                        if (Array.isArray(list)) {
-                            html += '<table><tr><th>Porutham</th><th>Status</th></tr>';
-                            list.forEach(item => {
-                                const name = item.name || item.porutham || item.key;
-                                const status = item.status || item.result || (item.isMatch ? "Good" : "Bad");
-                                const cls = status.toString().toLowerCase().includes('good') ? 'good' : (status.toString().toLowerCase().includes('bad') ? 'bad' : 'avg');
-                                html += '<tr><td>' + name + '</td><td class="' + cls + '">' + status + '</td></tr>';
-                            });
-                            html += '</table>';
-                        }
-                        if (html.length > 0) {
-                             document.getElementById('content').innerHTML = html;
-                        } else {
-                             document.getElementById('content').innerHTML = '<p>Compatibility analysis detailed below.</p>';
+                            html += '<div class="score-box">' + (data.totalScore || 0) + ' / ' + (data.maxScore || 36) + '</div>';
+
+                            const verdictClass = data.verdict === 'Advisable' ? 'verdict-advisable' : 'verdict-not';
+                            html += '<div class="verdict ' + verdictClass + '">' + data.verdict + '</div>';
+
+                            const list = data.poruthams;
+                            if (Array.isArray(list)) {
+                                html += '<table>';
+                                list.forEach(item => {
+                                    const name = item.name;
+                                    const score = item.score;
+                                    const max = item.max;
+                                    const isMatch = score > 0;
+                                    const cls = isMatch ? 'good' : 'bad';
+                                    const icon = isMatch ? '✓' : '✗';
+
+                                    html += '<tr><td>' + name + '</td><td class="' + cls + '" style="text-align:right">' + icon + ' (' + score + '/' + max + ')</td></tr>';
+                                });
+                                html += '</table>';
+                            }
+                            document.getElementById('content').innerHTML = html;
+
+                            // Dosha
+                            let dHtml = '';
+                            const formatDosha = (label, d) => {
+                                const cls = d.hasDosha ? 'bad' : 'good';
+                                return '<div class="info-row"><span class="info-label">' + label + '</span><span class="' + cls + '">' + (d.hasDosha ? 'Dosha Found' : 'No Dosha') + '</span></div>' +
+                                       '<div style="font-size:12px; color:#888; margin-bottom:10px;">' + (d.desc || d.details || '') + '</div>';
+                            };
+                            dHtml += formatDosha('Male', data.boyDosha);
+                            dHtml += formatDosha('Female', data.girlDosha);
+
+                            if (data.sandhi) {
+                                dHtml += '<div class="info-row"><span class="info-label">Dasha Sandhi</span><span class="info-value">' + (data.sandhi.hasSandhi ? 'Overlap Detected' : 'Safe') + '</span></div>';
+                            }
+
+                            document.getElementById('dosha-content').innerHTML = dHtml;
+                            document.getElementById('dosha-card').style.display = 'block';
                         }
                     } catch(e) {
-                         document.getElementById('content').innerText = 'Error parsing result: ' + e.message;
+                         document.getElementById('content').innerText = 'Error: ' + e.message;
                     }
                 </script>
             </body>

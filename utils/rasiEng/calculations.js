@@ -66,6 +66,7 @@ function getHouseCusps(jd, lat, lng, system = 'Placidus', ayanamsaName = 'Lahiri
     const ascendantDetails = {
         ...getKPDetails(houses.ascendant),
         signName: ascSign.name,
+        degreeFormatted: formatLongitude(houses.ascendant),
         signAbbr: ['Ari', 'Tau', 'Gem', 'Can', 'Leo', 'Vir', 'Lib', 'Sco', 'Sag', 'Cap', 'Aqu', 'Pis'][ascSign.index],
         nakshatra: ascNak.name,
         nakshatraIndex: ascNak.index,
@@ -200,11 +201,22 @@ function getPositionString(longitude) {
     return `${signAbbr[signIndex]} ${String(dms.d).padStart(2, '0')}:${String(dms.m).padStart(2, '0')}:${String(Math.floor(dms.s)).padStart(2, '0')}`;
 }
 
+/**
+ * Calculate Navamsa sign for a longitude
+ */
+function getNavamsaSign(longitude) {
+    const signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+    const navamsaLon = (longitude * 9) % 360;
+    const idx = Math.floor(navamsaLon / 30);
+    return signs[idx];
+}
+
 module.exports = {
     getPlanetsWithDetails,
     getHouseCusps,
     getKPDetails,
     getPlanetHouse,
     formatLongitude,
-    getPositionString
+    getPositionString,
+    getNavamsaSign
 };

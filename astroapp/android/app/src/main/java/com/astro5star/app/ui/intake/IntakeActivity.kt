@@ -24,7 +24,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -54,6 +58,7 @@ class IntakeActivity : ComponentActivity() {
     private var partnerImage: String? = null
     private var isEditMode = false
     private var existingData: JSONObject? = null
+    private var targetUserId: String? = null
 
     private lateinit var tokenManager: TokenManager
 
@@ -71,6 +76,7 @@ class IntakeActivity : ComponentActivity() {
         partnerName = intent.getStringExtra("partnerName") ?: "Astrologer"
         partnerImage = intent.getStringExtra("partnerImage")
         isEditMode = intent.getBooleanExtra("isEditMode", false)
+        targetUserId = intent.getStringExtra("targetUserId")
 
         val dataStr = intent.getStringExtra("existingData")
         if (dataStr != null) {
@@ -86,6 +92,7 @@ class IntakeActivity : ComponentActivity() {
                     callType = type,
                     isEditMode = isEditMode,
                     existingData = existingData,
+                    targetUserId = targetUserId,
                     tokenManager = tokenManager,
                     onClose = { finish() },
                     onSessionConnected = { sessionId, callType ->
@@ -131,6 +138,7 @@ fun IntakeScreen(
     callType: String?,
     isEditMode: Boolean,
     existingData: JSONObject?,
+    targetUserId: String?,
     tokenManager: TokenManager,
     onClose: () -> Unit,
     onSessionConnected: (String, String) -> Unit,
@@ -441,8 +449,8 @@ fun IntakeScreen(
                  put("city", pPlaceName)
                  put("state", pStateName)
                  put("country", pCountryName)
-                 put("latitude", pLat)
-                 put("longitude", pLon)
+                 put("latitude", pLat ?: latitude ?: 13.0827)
+                 put("longitude", pLon ?: longitude ?: 80.2707)
                  put("timezone", finalPartnerTimezone)
                  if (!pTimezoneId.isNullOrBlank()) put("timezoneId", pTimezoneId)
                  put("gender", if (gender == "Male") "Female" else "Male")
@@ -471,7 +479,7 @@ fun IntakeScreen(
         }
 
         // Save to API
-        val userId = tokenManager.getUserSession()?.userId
+        val userId = targetUserId ?: tokenManager.getUserSession()?.userId
         if (userId != null) {
               val payload = JSONObject().apply {
                   put("userId", userId)
@@ -491,7 +499,7 @@ fun IntakeScreen(
              (context as? Activity)?.setResult(Activity.RESULT_OK, intent)
              onClose()
         } else if (callType == "free_horoscope") {
-             val intent = Intent(context, com.astro5star.app.ui.chart.ChartDisplayActivity::class.java).apply {
+             val intent = Intent(context, com.astro5star.app.ui.chart.VipChartActivity::class.java).apply {
                  putExtra("birthData", birthData.toString())
              }
              context.startActivity(intent)
@@ -744,45 +752,72 @@ fun IntakeScreen(
                 Spacer(Modifier.height(32.dp))
             }
 
-            // Waiting Overlay
+            // Waiting Overlay (Glassmorphism Look)
             if (isWaiting) {
                 Dialog(onDismissRequest = { /* Prevent dismiss */ }) {
-                     Card(
-                         shape = RoundedCornerShape(16.dp),
-                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                         modifier = Modifier.padding(16.dp).fillMaxWidth()
+                     Box(
+                         modifier = Modifier
+                             .fillMaxWidth()
+                             .padding(16.dp)
+                             .shadow(24.dp, RoundedCornerShape(32.dp))
+                             .clip(RoundedCornerShape(32.dp))
+                             .background(Color.White.copy(alpha = 0.2f)) // Glass base
+                             .border(1.dp, Color.White.copy(alpha = 0.4f), RoundedCornerShape(32.dp))
                      ) {
+                         // Subtle background blur simulation using a gradient
+                         Box(modifier = Modifier.fillMaxSize().background(
+                             Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.3f), Color.White.copy(alpha = 0.05f)))
+                         ))
+
                          Column(
-                             Modifier.padding(24.dp),
+                             Modifier.padding(32.dp),
                              horizontalAlignment = Alignment.CenterHorizontally,
                              verticalArrangement = Arrangement.Center
                          ) {
-                             Text("Connecting...", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                             Spacer(Modifier.height(16.dp))
+                             Text("Connecting...", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                             Spacer(Modifier.height(20.dp))
 
-                             if (!partnerImage.isNullOrEmpty()) {
-                                 AsyncImage(
-                                     model = partnerImage,
-                                     contentDescription = partnerName,
-                                     modifier = Modifier.size(80.dp).clip(RoundedCornerShape(40.dp)),
-                                     contentScale = ContentScale.Crop
-                                 )
-                             } else {
-                                 Box(Modifier.size(80.dp).background(Color.Gray, RoundedCornerShape(40.dp)))
-                             }
-                             Spacer(Modifier.height(16.dp))
-                             Text("Waiting for $partnerName...", color = Color.Gray)
-                             Spacer(Modifier.height(8.dp))
-                             Text("${waitTimeLeft}s", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6200EE))
-                             Spacer(Modifier.height(24.dp))
-                             Button(
-                                 onClick = {
-                                     isWaiting = false
-                                     // Optional: Cancel on server
-                                 },
-                                 colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                             Box(
+                                 modifier = Modifier
+                                     .size(100.dp)
+                                     .shadow(12.dp, CircleShape)
+                                     .border(4.dp, Color.White.copy(alpha = 0.6f), CircleShape)
+                                     .padding(4.dp)
                              ) {
-                                 Text("Cancel Request")
+                                 if (!partnerImage.isNullOrEmpty()) {
+                                     AsyncImage(
+                                         model = partnerImage,
+                                         contentDescription = partnerName,
+                                         modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                         contentScale = ContentScale.Crop
+                                     )
+                                 } else {
+                                     Box(Modifier.fillMaxSize().background(Color.LightGray.copy(alpha=0.5f), CircleShape))
+                                 }
+                             }
+
+                             Spacer(Modifier.height(20.dp))
+                             Text("Waiting for $partnerName", color = Color.White.copy(alpha = 0.9f), fontSize = 16.sp)
+                             Spacer(Modifier.height(12.dp))
+
+                             // Pulsing Timer Text
+                             Text(
+                                 text = "${waitTimeLeft}s",
+                                 fontSize = 42.sp,
+                                 fontWeight = FontWeight.Black,
+                                 color = Color(0xFF4CAF50) // Neon Green accent
+                             )
+
+                             Spacer(Modifier.height(32.dp))
+
+                             Button(
+                                 onClick = { isWaiting = false },
+                                 shape = RoundedCornerShape(20.dp),
+                                 colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(alpha = 0.7f)),
+                                 modifier = Modifier.fillMaxWidth().height(50.dp)
+                                 .border(1.dp, Color.White.copy(alpha=0.3f), RoundedCornerShape(20.dp))
+                             ) {
+                                 Text("Cancel Request", fontWeight = FontWeight.Bold)
                              }
                          }
                      }

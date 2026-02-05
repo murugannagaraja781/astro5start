@@ -106,11 +106,14 @@ class ChatActivity : ComponentActivity() {
                         val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java)
                         intent.putExtra("isEditMode", true)
                         intent.putExtra("existingData", clientBirthData?.toString())
+                        if (TokenManager(this).getUserSession()?.role == "astrologer") {
+                            intent.putExtra("targetUserId", toUserId)
+                        }
                         editIntakeLauncher.launch(intent)
                     },
                     onViewChart = {
                         if (clientBirthData != null) {
-                            val intent = Intent(this, com.astro5star.app.ui.chart.ChartDisplayActivity::class.java)
+                            val intent = Intent(this, com.astro5star.app.ui.chart.VipChartActivity::class.java)
                             intent.putExtra("birthData", clientBirthData.toString())
                             startActivity(intent)
                         } else {
@@ -126,6 +129,22 @@ class ChatActivity : ComponentActivity() {
         }
         setupObservers()
         timerHandler.post(timerRunnable)
+
+        // Listen for client birth data updates during session
+        com.astro5star.app.data.remote.SocketManager.getSocket()?.on("client-birth-chart") { args ->
+            if (args != null && args.isNotEmpty()) {
+                val data = args[0] as? JSONObject
+                val updatedData = data?.optJSONObject("birthData")
+                if (updatedData != null) {
+                    runOnUiThread {
+                        clientBirthData = updatedData
+                        if (TokenManager(this).getUserSession()?.role == "astrologer") {
+                            Toast.makeText(this, "Client updated their birth details", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

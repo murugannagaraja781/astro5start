@@ -26,8 +26,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.border
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -171,12 +174,12 @@ class CallActivity : ComponentActivity() {
                     isBillingActive = isBillingActive,
                     callType = callType,
                     isMuted = isMutedState,
-                    isCameraOrSpeakerOn = if(callType == "video") isVideoEnabledState else isSpeakerOnState,
+                    isVideoEnabled = isVideoEnabledState,
+                    isSpeakerOn = isSpeakerOnState,
                     role = role ?: "user",
                     onToggleMic = { toggleMic() },
-                    onToggleCameraOrSpeaker = {
-                        if(callType == "video") toggleCamera() else toggleSpeaker()
-                    },
+                    onToggleCamera = { toggleCamera() },
+                    onToggleSpeaker = { toggleSpeaker() },
                     onEndCall = { endCall() },
                     onEditIntake = { openEditIntake() },
                     onShowRasi = { showRasiChart() }
@@ -246,6 +249,9 @@ class CallActivity : ComponentActivity() {
         val intent = android.content.Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java)
         intent.putExtra("isEditMode", true)
         intent.putExtra("existingData", clientBirthData?.toString())
+        if (tokenManager.getUserSession()?.role == "astrologer") {
+            intent.putExtra("targetUserId", partnerId)
+        }
         editIntakeLauncher.launch(intent)
     }
 
@@ -484,7 +490,7 @@ class CallActivity : ComponentActivity() {
                  if (bData != null) {
                      clientBirthData = bData
                      runOnUiThread {
-                         Toast.makeText(this@CallActivity, "Client Data Updated", Toast.LENGTH_SHORT).show()
+                         Toast.makeText(this@CallActivity, "Client updated their birth details", Toast.LENGTH_SHORT).show()
                      }
                  }
             } catch (e: Exception) { e.printStackTrace() }
@@ -677,12 +683,13 @@ class CallActivity : ComponentActivity() {
     }
 
     private fun showRasiChart() {
-         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Rasi Chart")
-            .setMessage("Chart visualization would appear here.\n(Implementation Pending: Needs Chart Rendering Logic)")
-            .setPositiveButton("Close", null)
-            .create()
-        dialog.show()
+        if (clientBirthData != null) {
+            val intent = android.content.Intent(this, com.astro5star.app.ui.chart.VipChartActivity::class.java)
+            intent.putExtra("birthData", clientBirthData.toString())
+            startActivity(intent)
+        } else {
+            Toast.makeText(this, "Waiting for Client Data...", Toast.LENGTH_SHORT).show()
+        }
     }
 }
 
@@ -704,10 +711,12 @@ fun CallScreen(
     isBillingActive: Boolean,
     callType: String,
     isMuted: Boolean,
-    isCameraOrSpeakerOn: Boolean, // Camera for Video, Speaker for Audio
+    isVideoEnabled: Boolean,
+    isSpeakerOn: Boolean,
     role: String,
     onToggleMic: () -> Unit,
-    onToggleCameraOrSpeaker: () -> Unit,
+    onToggleCamera: () -> Unit,
+    onToggleSpeaker: () -> Unit,
     onEndCall: () -> Unit,
     onEditIntake: () -> Unit,
     onShowRasi: () -> Unit
@@ -715,7 +724,7 @@ fun CallScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(Color(0xFFF0F2F5)) // Light Gray/White base for Neumorphism
     ) {
         // Remote View Layer (Full Screen)
         if (callType == "video") {
@@ -735,57 +744,41 @@ fun CallScreen(
             }
         }
 
-        // Overlay Gradient
+        // Top Info Bar Area (Neumorphic Card)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp)
-                .background(Color.Black.copy(alpha = 0.4f))
+                .padding(16.dp)
+                .padding(top = 24.dp)
+                .height(100.dp)
+                .shadow(8.dp, RoundedCornerShape(24.dp))
+                .background(Color.White, RoundedCornerShape(24.dp))
         )
 
-        // Top Info Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 40.dp, start = 16.dp, end = 16.dp),
+                .padding(top = 50.dp, start = 32.dp, end = 32.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = onEndCall, // Back essentially ends call or toggles PIP (simplified as end for now)
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Color.White.copy(alpha = 0.5f), CircleShape)
-            ) {
-               // Back Icon
-               Icon(
-                   painter = painterResource(id = android.R.drawable.ic_menu_revert),
-                   contentDescription = "Back",
-                   tint = Color.Black
-               )
-            }
-
-            Column(
-                modifier = Modifier
-                    .padding(start = 16.dp)
-                    .weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = partnerName,
-                    color = Color.White,
+                    color = Color(0xFF2E7D32), // Dark Green
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
+                    fontSize = 20.sp
                 )
                 Text(
                     text = duration,
-                    color = Color.LightGray,
+                    color = Color.Gray,
                     fontSize = 14.sp
                 )
                 if (statusText.isNotEmpty()) {
-                     Text(
+                      Text(
                         text = statusText,
-                        color = if (isBillingActive || statusText.contains("Billing")) Color.Red else Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        color = Color(0xFF4CAF50), // Standard Green
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -808,78 +801,66 @@ fun CallScreen(
             }
         }
 
-        // Bottom Controls
-        Row(
+        // Bottom Controls Container (Neumorphic)
+        Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                .padding(24.dp)
                 .fillMaxWidth()
-                .background(Color.Black.copy(alpha = 0.6f))
-                .padding(vertical = 24.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+                .height(100.dp)
+                .shadow(12.dp, RoundedCornerShape(32.dp))
+                .background(Color.White, RoundedCornerShape(32.dp))
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.Center
         ) {
-            if (role == "astrologer") {
-                IconButton(
-                    onClick = onShowRasi,
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(Color.Gray, CircleShape)
-                ) {
-                    Icon(painterResource(android.R.drawable.ic_menu_gallery), "Rasi", tint = Color.White)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (role == "astrologer") {
+                    ControlBtn(onClick = onShowRasi, icon = android.R.drawable.ic_menu_gallery, active = true)
                 }
-            }
 
-            IconButton(
-                onClick = onToggleCameraOrSpeaker,
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(Color.Gray, CircleShape)
-            ) {
-                 if (callType == "video") {
-                    Icon(
-                        if (isCameraOrSpeakerOn) Icons.Default.Videocam else Icons.Default.VideocamOff,
-                        "Video",
-                        tint = Color.White
-                    )
-                 } else {
-                     Icon(
-                        if (isCameraOrSpeakerOn) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
-                        "Speaker",
-                        tint = Color.White
-                    )
-                 }
-            }
+                if (callType == "video") {
+                    ControlBtn(onClick = onToggleCamera, icon = if (isVideoEnabled) Icons.Default.Videocam else Icons.Default.VideocamOff, active = isVideoEnabled)
+                }
 
-            IconButton(
-                onClick = onEndCall,
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(Color.Red, CircleShape)
-            ) {
-                Icon(Icons.Default.CallEnd, "End", tint = Color.White)
-            }
+                ControlBtn(onClick = onToggleSpeaker, icon = if (isSpeakerOn) Icons.Default.VolumeUp else Icons.Default.VolumeOff, active = isSpeakerOn)
 
-            IconButton(
-                onClick = onToggleMic,
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(Color.Gray, CircleShape) // Alpha change can be done via modifier
-            ) {
-                Icon(
-                    if (isMuted) Icons.Default.MicOff else Icons.Default.Mic,
-                     "Mic",
-                     tint = Color.White
-                )
-            }
+                IconButton(
+                    onClick = onEndCall,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .shadow(8.dp, CircleShape)
+                        .background(Color(0xFFFF5252), CircleShape)
+                ) {
+                    Icon(Icons.Default.CallEnd, "End", tint = Color.White, modifier = Modifier.size(32.dp))
+                }
 
-            IconButton(
-                onClick = onEditIntake,
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(Color.Gray, CircleShape)
-            ) {
-                Icon(Icons.Default.Edit, "Edit", tint = Color.White)
+                ControlBtn(onClick = onToggleMic, icon = if (!isMuted) Icons.Default.Mic else Icons.Default.MicOff, active = !isMuted)
+
+                ControlBtn(onClick = onEditIntake, icon = Icons.Default.Edit, active = false)
             }
+        }
+    }
+}
+
+@Composable
+fun ControlBtn(onClick: () -> Unit, icon: Any, active: Boolean) {
+    val bgColor = if (active) Color(0xFFE8F5E9) else Color(0xFFF5F5F5)
+    val tintColor = if (active) Color(0xFF4CAF50) else Color.Gray
+
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .size(48.dp)
+            .shadow(if (active) 2.dp else 4.dp, CircleShape)
+            .background(bgColor, CircleShape)
+    ) {
+        when (icon) {
+            is ImageVector -> Icon(icon, null, tint = tintColor)
+            is Int -> Icon(painterResource(icon), null, tint = tintColor)
         }
     }
 }

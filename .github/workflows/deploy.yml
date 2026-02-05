@@ -14,17 +14,12 @@ jobs:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_KEY }}
+          port: 22                # change if your droplet uses another port
+          passphrase: ${{ secrets.DO_SSH_PASSPHRASE }} # only if key is encrypted
+          timeout: 30s
           script: |
-            # Go to the project directory
-            cd /var/www/astrofivestar
-
-            # Pull the latest code (Using GITHUB_TOKEN for permission)
+            cd /var/www/astro5start
             git fetch https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main
             git reset --hard FETCH_HEAD
-
-            # Install dependencies
-            npm install
-
-            # Restart the application
-            # We assume the app is already added to PM2 as 'astro-app' (from autodeploy.sh)
+            npm ci --production --no-audit --no-fund --prefer-offline
             pm2 restart astro-app

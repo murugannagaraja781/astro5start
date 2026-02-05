@@ -11,6 +11,7 @@ const { getTamilDate } = require('../../utils/rasiEng/tamilDate');
 const router = express.Router();
 
 // Get complete chart data in one call
+// Get complete chart data in one call
 router.post('/full', async (req, res) => {
     try {
         const {
@@ -38,30 +39,73 @@ router.post('/full', async (req, res) => {
 
         // Calculate all data
         const houses = getHouseCusps(jd, lat, lng, 'Placidus', ayanamsa);
-        const planets = getPlanetsWithDetails(jd, houses.cusps, ayanamsa);
-        const kpSignificators = getKPSignificators(planets, houses);
+
+        // Map planets to include degreeFormatted as expected by App
+        const planets = getPlanetsWithDetails(jd, houses.cusps, ayanamsa).map(p => ({
+            ...p,
+            degreeFormatted: formatLongitude(p.longitude)
+        }));
+
         const panchanga = getPanchanga(jd, lat, lng, ayanamsa);
         const muhurtas = getMuhurtas(jd, lat, lng);
 
-        // Get Moon for Dasha calculation
+        // Calculate detailed Dasha for App
         const moon = planets.find(p => p.name === 'Moon');
-        const dasha = moon ? getVimshottariDasha(moon.longitude, dt) : [];
+        let dashaInfo = {
+            mahadashaName: "Ketu",
+            bhuktiName: "Ketu",
+            antaramName: "Ketu",
+            remainingYearsInCurrentDasha: 0.0,
+            endsAt: ""
+        };
 
-        // Get Current Transits
+        if (moon) {
+            const { getFullDashaBreakdown, getCurrentDasha } = require('../../utils/rasiEng/dashaCalculations');
+            const breakdown = getFullDashaBreakdown(moon.longitude, dt);
+            const now = DateTime.now();
+
+            if (breakdown.currentMahadasha) {
+                const end = DateTime.fromISO(breakdown.currentMahadasha.end);
+                dashaInfo = {
+                    mahadashaName: breakdown.currentMahadasha.lord,
+                    bhuktiName: breakdown.currentBhukti ? breakdown.currentBhukti.lord : breakdown.currentMahadasha.lord,
+                    antaramName: breakdown.currentAntara ? breakdown.currentAntara.lord : (breakdown.currentBhukti ? breakdown.currentBhukti.lord : ""),
+                    remainingYearsInCurrentDasha: Math.max(0, end.diff(now, 'years').years),
+                    endsAt: breakdown.currentMahadasha.end
+                };
+            }
+        }
+
+        // Get Current Transits and format for App
         const now = DateTime.now().toUTC();
         const transitJD = swissEph.julday(now.year, now.month, now.day, now.hour + now.minute / 60);
-        const transits = swissEph.getAllPlanets(transitJD, ayanamsa);
+        const rawTransits = swissEph.getAllPlanets(transitJD, ayanamsa);
+        const transits = rawTransits.map(t => {
+            const sign = swissEph.getSign(t.longitude);
+            return {
+                name: t.name,
+                signName: sign.name,
+                isRetrograde: t.isRetrograde
+            };
+        });
 
-        const tamilDate = await getTamilDate(dt, ayanamsa);
+        const tamilDateData = await getTamilDate(dt, ayanamsa);
+
+        // Calculate Navamsa Data
+        const navamsaPlanets = {};
+        planets.forEach(p => {
+            const { getNavamsaSign } = require('../../utils/rasiEng/calculations');
+            navamsaPlanets[p.name] = getNavamsaSign(p.longitude);
+        });
 
         const chartData = {
             planets,
             houses,
             panchanga: { ...panchanga, ...muhurtas },
-            dasha,
-            kpSignificators,
-            tamilDate,
-            transits
+            dasha: dashaInfo, // Send object instead of array
+            transits,
+            tamilDate: tamilDateData,
+            navamsa: { planets: navamsaPlanets }
         };
 
         res.json({

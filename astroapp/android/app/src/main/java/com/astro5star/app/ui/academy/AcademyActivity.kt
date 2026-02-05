@@ -41,6 +41,7 @@ fun AcademyScreen(onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     var videos by remember { mutableStateOf<List<VideoItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var showComingSoon by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         scope.launch {
@@ -48,30 +49,88 @@ fun AcademyScreen(onBack: () -> Unit) {
                 val response = ApiClient.api.getAcademyVideos()
                 if (response.isSuccessful && response.body() != null) {
                     val root = JSONObject(response.body().toString())
-                    val arr = root.getJSONArray("videos")
-                    val list = mutableListOf<VideoItem>()
-                    for (i in 0 until arr.length()) {
-                        val obj = arr.getJSONObject(i)
-                        list.add(VideoItem(
-                            title = obj.getString("title"),
-                            url = obj.getString("youtubeUrl"),
-                            category = obj.optString("category", "General")
-                        ))
+                    val arr = root.optJSONArray("videos")
+                    if (arr != null && arr.length() > 0) {
+                        val list = mutableListOf<VideoItem>()
+                        for (i in 0 until arr.length()) {
+                            val obj = arr.getJSONObject(i)
+                            list.add(VideoItem(
+                                title = obj.optString("title", "Video"),
+                                url = obj.optString("youtubeUrl", ""),
+                                category = obj.optString("category", "General")
+                            ))
+                        }
+                        videos = list
+                    } else {
+                        showComingSoon = true
                     }
-                    videos = list
+                } else {
+                    showComingSoon = true
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+                showComingSoon = true
             } finally {
                 isLoading = false
             }
         }
     }
 
+    // Coming Soon Dialog
+    if (showComingSoon) {
+        AlertDialog(
+            onDismissRequest = {
+                showComingSoon = false
+                onBack()
+            },
+            icon = {
+                Icon(
+                    Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    tint = Color(0xFF6200EE),
+                    modifier = Modifier.size(48.dp)
+                )
+            },
+            title = {
+                Text(
+                    "Astro Academy",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color(0xFF6200EE)
+                )
+            },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "🚀 விரைவில் வருகிறது!",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color(0xFF333333)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "ஜோதிட பாடங்கள் மற்றும் வீடியோக்கள் விரைவில் கிடைக்கும்.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showComingSoon = false
+                        onBack()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE))
+                ) {
+                    Text("OK", color = Color.White)
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Astro Academy", color = Color.White) },
+                title = { Text("🎓 Astro Academy", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
@@ -84,18 +143,22 @@ fun AcademyScreen(onBack: () -> Unit) {
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (videos.isEmpty()) {
-                Text("No videos found.", modifier = Modifier.align(Alignment.Center))
-            } else {
+            } else if (videos.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(videos) { video ->
                         VideoCard(video)
                     }
                 }
+            } else {
+                Text(
+                    "வீடியோக்கள் எதுவும் இல்லை\nNo videos available",
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color.Gray
+                )
             }
         }
     }
