@@ -6422,6 +6422,11 @@
         document.getElementById('chartLon').value = bd.longitude;
         document.getElementById('chartTz').value = bd.timezone || '5.5';
         document.getElementById('citySearch').value = bd.city || '';
+
+        // Auto-fetch the chart if we have client data
+        setTimeout(() => {
+          fetchChart();
+        }, 500);
       } else {
         const now = new Date();
         document.getElementById('chartDate').value = now.toISOString().split('T')[0];
@@ -6720,65 +6725,64 @@
     }
 
     function displayChartInColumn2(data) {
-      const rawPlanets = data.data?.rawPlanets || data.rawPlanets || {};
-      const panchangam = data.data?.panchangam || data.panchangam || {};
-      const dasha = data.data?.dasha || data.dasha || {};
-      const lagna = data.data?.lagna || data.lagna || {};
+      const d = data.data || {};
+      const rawPlanets = d.planets || [];
+      const panchangam = d.panchanga || {};
+      const dasha = d.dasha || {};
+      const houseData = d.houses || {};
+      const lagna = houseData.ascendantDetails || {};
+      const transitPlanets = d.transits || [];
 
       const planetColors = {
         'Sun': '#ef4444', 'Moon': '#3b82f6', 'Mars': '#b91c1c', 'Mercury': '#10b981',
         'Jupiter': '#f59e0b', 'Venus': '#ec4899', 'Saturn': '#374151', 'Rahu': '#1f2937', 'Ketu': '#4b5563'
       };
 
-      let html = '<div style="padding:15px;">';
+      let html = '<div style="padding:15px; background:#f9fafb;">';
 
-      // Lagna
-      if (lagna && lagna.tamil) {
-        html += `
-          <div style="background:linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px;">
-            <div style="font-size:0.85rem; opacity:0.9;">🌟 Lagna</div>
-            <div style="font-size:1.3rem; font-weight:bold;">${lagna.tamil}</div>
-          </div>
-        `;
-      }
-
-      // South Indian Chart (Rasi)
+      // 1. Lagna & Panchangam Header
       html += `
-        <div style="margin-bottom:20px;">
-          <div style="font-weight:bold; color:#d97706; margin-bottom:10px; font-size:1rem;">🕉️ Rasi Chart</div>
-           <div class="south-indian-chart" id="southChartColumn2"></div>
+        <div style="background:linear-gradient(135deg, #047857 0%, #059669 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px; box-shadow:0 10px 15px -3px rgba(4,120,87,0.2);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+             <div>
+                <div style="font-size:0.8rem; opacity:0.9;">🌟 Ascendant (Lagna)</div>
+                <div style="font-size:1.5rem; font-weight:bold;">${lagna.signName || 'N/A'}</div>
+             </div>
+             <div style="text-align:right;">
+                <div style="font-size:0.8rem; opacity:0.9;">📅 Tithi</div>
+                <div style="font-weight:bold;">${panchangam.tithi || 'N/A'}</div>
+             </div>
+          </div>
+          <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.2); display:flex; gap:15px; font-size:0.85rem;">
+             <div><b>Nakshatra:</b> ${panchangam.nakshatra || 'N/A'}</div>
+             <div><b>Yoga:</b> ${panchangam.yoga || 'N/A'}</div>
+          </div>
         </div>
       `;
 
-      // South Indian Chart (Navamsa)
+      // 2. Charts (Rasi & Navamsa)
       html += `
         <div style="margin-bottom:20px;">
-          <div style="font-weight:bold; color:#d97706; margin-bottom:10px; font-size:1rem;">🕉️ Navamsa Chart</div>
+          <div style="font-weight:bold; color:#374151; margin-bottom:10px; font-size:1rem; display:flex; align-items:center; gap:8px;">
+             <i class="fas fa-th-large" style="color:#d97706;"></i> 🕉️ Rasi Chart
+          </div>
+           <div class="south-indian-chart" id="southChartColumn2"></div>
+        </div>
+        <div style="margin-bottom:20px;">
+          <div style="font-weight:bold; color:#374151; margin-bottom:10px; font-size:1rem; display:flex; align-items:center; gap:8px;">
+             <i class="fas fa-th" style="color:#3b82f6;"></i> 🕉️ Navamsa Chart
+          </div>
            <div class="south-indian-chart" id="navamsaChartColumn2"></div>
         </div>
       `;
 
-      // Render Charts
+      // Render South Indian Grids
       setTimeout(() => {
-
-        const planetSymbols = {
-          'Sun': '☉', 'Moon': '☽', 'Mars': '♂', 'Mercury': '☿',
-          'Jupiter': '♃', 'Venus': '♀', 'Saturn': '♄', 'Rahu': '☊', 'Ketu': '☋'
-        };
-
         const renderSouthGrid = (gridId, chartType) => {
           const grid = document.getElementById(gridId);
           if (!grid) return;
 
           const isRasi = chartType === 'rasi';
-
-          const tamilSigns = {
-            'Aries': 'மேஷம்', 'Taurus': 'ரிஷபம்', 'Gemini': 'மிதுனம்',
-            'Cancer': 'கடகம்', 'Leo': 'சிம்மம்', 'Virgo': 'கன்னி',
-            'Libra': 'துலாம்', 'Scorpio': 'விருச்சிகம்', 'Sagittarius': 'தனுசு',
-            'Capricorn': 'மகரம்', 'Aquarius': 'கும்பம்', 'Pisces': 'மீனம்'
-          };
-
           const cellMap = [
             'Pisces', 'Aries', 'Taurus', 'Gemini',
             'Aquarius', null, null, 'Cancer',
@@ -6787,7 +6791,6 @@
           ];
 
           grid.innerHTML = '';
-
           cellMap.forEach((sign, idx) => {
             const div = document.createElement('div');
             div.className = 'SouthChartBox';
@@ -6796,80 +6799,32 @@
               div.setAttribute('data-center', 'true');
               div.style.cssText = 'border: none; background: transparent;';
               if (idx === 5) {
-                div.style.cssText = 'grid-column: 2 / span 2; grid-row: 2 / span 2; display: flex; align-items: center; justify-content: center;';
-                div.innerHTML = '<img src="images/ganesha.png" class="center-god-icon" alt="Ganesha">';
-              } else if (idx === 6 || idx === 9 || idx === 10) {
+                div.style.cssText = 'grid-column: 2 / span 2; grid-row: 2 / span 2; display: flex; align-items: center; justify-content: center; opacity: 0.1;';
+                div.innerHTML = '<i class="fas fa-om fa-4x" style="color:#d97706;"></i>';
+              } else {
                 div.style.display = 'none';
               }
             } else {
-              const tamilName = tamilSigns[sign] || sign;
               const planetsInSign = [];
-
-              // Logic for Rasi vs Navamsa Planet Mapping
               if (isRasi) {
-                for (let planet in rawPlanets) {
-                  const p = rawPlanets[planet];
-                  if (p && p.sign === sign) {
-                    // Format: Symbol Name Degree (DMS)
-                    const symbol = planetSymbols[planet] || '';
-                    const name = p.nameTamil || planet;
-
-                    const toDMS = (d) => {
-                      if (!d && d !== 0) return '';
-                      const deg = Math.floor(d);
-                      const minFloat = (d - deg) * 60;
-                      const min = Math.floor(minFloat);
-                      const sec = Math.round((minFloat - min) * 60);
-                      return `${deg}° ${min}' ${sec}"`;
-                    };
-
-                    const deg = p.degreeFormatted || (p.degree !== undefined ? toDMS(p.degree) : '');
-                    planetsInSign.push(`<div style="font-size:0.75rem; line-height:1.2;">${symbol} <b>${name}</b><br><span style="font-size:0.65rem; color:#555;">${deg}</span></div>`);
+                rawPlanets.forEach(p => {
+                  if (p.signName === sign) {
+                    planetsInSign.push(`<div style="font-size:0.75rem; color:${planetColors[p.name]}">${p.name.substring(0, 2)}</div>`);
                   }
+                });
+                if (lagna.signName === sign) {
+                  planetsInSign.unshift('<div style="font-weight:bold; color:red; font-size:0.8rem;">Asc</div>');
                 }
-                // Check Lagna (Rasi only)
-                if (lagna && (lagna.sign === sign || lagna.signName === sign)) {
-                  planetsInSign.unshift('<div style="font-weight:bold; color:red; font-size:0.8rem;">Lagna</div>');
-                }
-              } else {
-                // Navamsa Logic
-                // We need to know which sign each planet is in Navamsa.
-                // If rawPlanets has 'navamsaSign', use it.
-                // Or if data.navamsa exists and is a list of houses/planets.
-                // Checking previous code: data.navamsa.houses array...
-                // Let's try to iterate rawPlanets if they have navamsa data, or fallback to houses.
-
-                // Using rawPlanets (if navamsaSign is there - common in some APIs, let's check or fallback)
-                let found = false;
-                for (let planet in rawPlanets) {
-                  const p = rawPlanets[planet];
-                  if (p && (p.navamsaSign === sign || p.navamsaSignName === sign)) { // Hypothetical check
-                    found = true;
-                    const symbol = planetSymbols[planet] || '';
-                    planetsInSign.push(`<div>${symbol} ${p.nameTamil || planet}</div>`); // Simplified
-                  }
-                }
-
-                if (!found && data.data?.navamsa?.planets) {
-                  // Check houses for this sign?
-                  // Usually houses data is per house (1 to 12).
-                  // We need Sign-based mapping.
-                  // Let's look for a planet-to-sign map in Navamsa data if available.
-                  // If not available, we might skip showing planets in Navamsa for now or require API update.
-                  // BUT, user asked for it, implying it should be possible.
-                  // Let's verify if `navamsa` object has planets map.
-                  const np = data.data.navamsa.planets;
-                  for (let k in np) {
-                    if (np[k] === sign) {
-                      const symbol = planetSymbols[k] || '';
-                      planetsInSign.push(`<div>${symbol} ${k}</div>`); // Simplified
-                    }
+              } else if (d.navamsa) {
+                for (let k in d.navamsa.planets) {
+                  if (d.navamsa.planets[k] === sign) {
+                    planetsInSign.push(`<div style="font-size:0.75rem; color:${planetColors[k] || '#555'}">${k.substring(0, 2)}</div>`);
                   }
                 }
               }
 
-              div.innerHTML = `<span class="s-sign-label" title="${tamilName}" style="font-size:0.7rem; color:#d97706; font-weight:bold;">${tamilName.split(' ')[0]}</span>
-                    <div class="s-planet-text" style="display:flex; flex-direction:column; gap:2px; padding-top:12px;">${planetsInSign.join('')}</div>`;
+              div.innerHTML = `<span style="font-size:0.65rem; color:#999; font-weight:bold;">${sign.substring(0, 3)}</span>
+                    <div style="display:flex; flex-wrap:wrap; gap:2px; padding-top:10px; justify-content:center;">${planetsInSign.join('')}</div>`;
             }
             if (div.style.display !== 'none') grid.appendChild(div);
           });
@@ -6877,91 +6832,57 @@
 
         renderSouthGrid('southChartColumn2', 'rasi');
         renderSouthGrid('navamsaChartColumn2', 'navamsa');
-
       }, 100);
 
-      // Planets
-      if (Object.keys(rawPlanets).length > 0) {
-        html += '<div style="margin-bottom:15px;"><div style="font-weight:bold; color:#d97706; margin-bottom:10px; font-size:1rem;">🌟 Planets</div>';
-        html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">';
+      // 3. Planet Details with KP Lords
+      html += '<div style="margin-bottom:20px;"><div style="font-weight:bold; color:#374151; margin-bottom:12px; font-size:1rem;">🪐 Planet & KP Lords</div>';
+      html += '<div style="display:flex; flex-direction:column; gap:8px;">';
 
-        const planetOrder = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu'];
-        planetOrder.forEach(planet => {
-          const p = rawPlanets[planet];
-          if (p) {
-            const color = planetColors[planet] || '#6b7280';
-            html += `
-              <div style="background:white; border-left:4px solid ${color}; padding:10px; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                <div style="font-weight:bold; color:${color}; font-size:0.85rem; margin-bottom:3px;">${p.nameTamil || planet}</div>
-                <div style="font-size:0.75rem; color:#555;">${p.signTamil || p.sign}</div>
-                <div style="font-size:0.7rem; color:#999;">${p.degreeFormatted || p.degree}</div>
-              </div>
-            `;
-          }
-        });
-        html += '</div></div>';
-      }
-
-      // Panchangam
-      if (panchangam && panchangam.tithi) {
+      rawPlanets.forEach(p => {
+        const color = planetColors[p.name] || '#6b7280';
         html += `
-          <div style="margin-bottom:15px;">
-            <div style="font-weight:bold; color:#d97706; margin-bottom:10px; font-size:1rem;">📅 Panchangam</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-              <div style="background:#ecfdf5; padding:10px; border-radius:6px; border-left:4px solid #10b981;">
-                <div style="font-size:0.75rem; color:#666; margin-bottom:3px;">Tithi</div>
-                <div style="font-weight:bold; color:#047857; font-size:0.85rem;">${panchangam.tithi}</div>
-              </div>
-              <div style="background:#eff6ff; padding:10px; border-radius:6px; border-left:4px solid #3b82f6;">
-                <div style="font-size:0.75rem; color:#666; margin-bottom:3px;">Nakshatra</div>
-                <div style="font-weight:bold; color:#1e40af; font-size:0.85rem;">${panchangam.nakshatra}</div>
-              </div>
-              <div style="background:#fff7ed; padding:10px; border-radius:6px; border-left:4px solid #f59e0b;">
-                <div style="font-size:0.75rem; color:#666; margin-bottom:3px;">Yoga</div>
-                <div style="font-weight:bold; color:#b45309; font-size:0.85rem;">${panchangam.yoga}</div>
-              </div>
-              <div style="background:#faf5ff; padding:10px; border-radius:6px; border-left:4px solid #a855f7;">
-                <div style="font-size:0.75rem; color:#666; margin-bottom:3px;">Karana</div>
-                <div style="font-weight:bold; color:#6b21a8; font-size:0.85rem;">${panchangam.karana}</div>
-              </div>
+          <div style="background:white; border-left:4px solid ${color}; padding:12px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+               <div style="font-weight:bold; color:${color};">${p.name}</div>
+               <div style="font-size:0.75rem; color:#d97706; background:#fff7ed; padding:1px 6px; border-radius:4px;">${p.nakshatra} (${p.nakshatraPada})</div>
+            </div>
+            <div style="font-size:0.75rem; color:#666; margin-bottom:8px;">${p.signName} - ${p.degreeFormatted}</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; text-align:center; border-top:1px solid #f3f4f6; padding-top:8px;">
+              <div><span style="color:#999;font-size:0.65rem;">SignL</span><br><b>${p.signLord?.substring(0, 3)}</b></div>
+              <div><span style="color:#999;font-size:0.65rem;">StarL</span><br><b>${p.starLord?.substring(0, 3)}</b></div>
+              <div><span style="color:#999;font-size:0.65rem;">SubL</span><br><b>${p.subLord?.substring(0, 3)}</b></div>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div></div>';
+
+      // 4. Current Dasha
+      if (dasha && dasha.currentLord) {
+        html += `
+          <div style="background:linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color:white; padding:15px; border-radius:12px; margin-bottom:20px; box-shadow:0 10px 15px -3px rgba(79,70,229,0.2);">
+            <div style="font-size:0.8rem; opacity:0.9; margin-bottom:5px;">⏳ Current Mahadasha</div>
+            <div style="font-size:1.3rem; font-weight:bold;">${dasha.currentLord}</div>
+            <div style="margin-top:10px; font-size:0.85rem; opacity:0.9;">
+               <div><b>Remaining:</b> ${parseFloat(dasha.remainingYearsInCurrentDasha || 0).toFixed(2)} Years</div>
             </div>
           </div>
         `;
       }
 
-      // Dasha Section (Full Hierarchy in Tamil)
-      if (dasha && dasha.mahadashaName) {
-        const endsAt = dasha.endsAt ? new Date(dasha.endsAt).toLocaleDateString() : '';
-        html += `
-              <div style="background:linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color:white; padding:15px; border-radius:12px; margin-bottom:20px;">
-                <div style="font-weight:bold; font-size:1.1rem; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.3); padding-bottom:5px;">
-                  ⏳ தற்போதைய திசை (Current Dasha)
-                </div>
-
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
-                  <div>
-                    <div style="font-size:0.8rem; opacity:0.8;">மகாதிசை (Mahadasha)</div>
-                    <div style="font-size:1.2rem; font-weight:bold;">${dasha.mahadashaName}</div>
-                  </div>
-                  <div>
-                    <div style="font-size:0.8rem; opacity:0.8;">புத்தி (Bhukti)</div>
-                    <div style="font-size:1.2rem; font-weight:bold;">${dasha.bhuktiName || '-'}</div>
-                  </div>
-                  <div>
-                    <div style="font-size:0.8rem; opacity:0.8;">அந்தரம் (Antaram)</div>
-                    <div style="font-size:1.2rem; font-weight:bold;">${dasha.antaramName || '-'}</div>
-                  </div>
-                  <div>
-                     <div style="font-size:0.8rem; opacity:0.8;">முடிவு (Ends)</div>
-                     <div style="font-size:1rem; font-weight:bold;">${endsAt}</div>
-                  </div>
-                </div>
-
-                <div style="background:rgba(255,255,255,0.2); padding:8px; border-radius:8px; font-size:0.9rem;">
-                   இருப்பு (Remaining): <b>${dasha.remainingYearsInCurrentDasha ? parseFloat(dasha.remainingYearsInCurrentDasha).toFixed(2) : '0'}</b> வருடங்கள் (Years)
-                </div>
-              </div>
-            `;
+      // 5. Transits (Gocharam)
+      if (transitPlanets.length > 0) {
+        html += '<div style="margin-bottom:20px;"><div style="font-weight:bold; color:#374151; margin-bottom:12px; font-size:1rem;">🚀 Current Transits (Gocharam)</div>';
+        html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">';
+        transitPlanets.forEach(tp => {
+          html += `
+            <div style="background:#f0f9ff; padding:8px; border-radius:6px; border:1px solid #bae6fd; font-size:0.75rem;">
+               <div style="font-weight:bold; color:#0369a1;">${tp.name}</div>
+               <div style="color:#075985;">${tp.signName}</div>
+            </div>
+          `;
+        });
+        html += '</div></div>';
       }
 
       html += '</div>';
@@ -6988,52 +6909,40 @@
     };
 
     function renderChartResults(data) {
-      // Handle new API response format
-      const rawPlanets = data.data?.rawPlanets || data.rawPlanets || {};
+      const d = data.data || {};
+      const rawPlanets = d.planets || [];
+      const houses = d.houses || {};
 
       const pList = document.getElementById('planetList');
       if (pList) {
         pList.innerHTML = '';
+        const planetColors = {
+          'Sun': '#ef4444', 'Moon': '#3b82f6', 'Mars': '#b91c1c', 'Mercury': '#10b981',
+          'Jupiter': '#f59e0b', 'Venus': '#ec4899', 'Saturn': '#374151', 'Rahu': '#1f2937', 'Ketu': '#4b5563'
+        };
 
-        // Use rawPlanets from new API format
-        const planetOrder = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu'];
-
-        planetOrder.forEach(planet => {
-          const info = rawPlanets[planet];
-          if (info) {
-            const div = document.createElement('div');
-            div.className = 'planet-item';
-            div.innerHTML = `
+        rawPlanets.forEach(p => {
+          const div = document.createElement('div');
+          div.className = 'planet-item';
+          const color = planetColors[p.name] || '#6b7280';
+          div.innerHTML = `
               <div style="display:flex; justify-content:space-between; align-items:center">
-                <b>${info.nameTamil || planet}</b>
-                <span style="background:#e5e7eb; padding:2px 8px; border-radius:10px; font-size:0.75rem;">${info.signTamil || info.sign}</span>
+                <b style="color:${color}">${p.name}</b>
+                <span style="background:#e5e7eb; padding:2px 8px; border-radius:10px; font-size:0.75rem;">${p.signName}</span>
               </div>
               <div style="margin-top:5px; font-size:0.85rem; color:#555;">
-                ${info.degreeFormatted || info.degree} | ${info.nakshatraTamil || info.nakshatra}
+                ${p.degreeFormatted} | ${p.nakshatra} (${p.nakshatraPada})
               </div>
             `;
-            pList.appendChild(div);
-          }
+          pList.appendChild(div);
         });
       }
 
       function renderSouthGrid(containerId, chartType) {
-        // Render Rasi or Navamsa chart from new API format
         const grid = document.getElementById(containerId);
         if (!grid) return;
 
-        const houses = chartType === 'rasi' ? (data.data?.houses || data.houses || {}) : (data.data?.navamsa?.houses || data.navamsa?.houses || []);
-        const rawPlanets = data.data?.rawPlanets || data.rawPlanets || {};
-
-        grid.innerHTML = '';
-
-        const tamilSigns = {
-          'Aries': 'மேஷம்', 'Taurus': 'ரிஷபம்', 'Gemini': 'மிதுனம்',
-          'Cancer': 'கடகம்', 'Leo': 'சிம்மம்', 'Virgo': 'கன்னி',
-          'Libra': 'துலாம்', 'Scorpio': 'விருச்சிகம்', 'Sagittarius': 'தனுசு',
-          'Capricorn': 'மகரம்', 'Aquarius': 'கும்பம்', 'Pisces': 'மீனம்'
-        };
-
+        const isRasi = chartType === 'rasi';
         const cellMap = [
           'Pisces', 'Aries', 'Taurus', 'Gemini',
           'Aquarius', null, null, 'Cancer',
@@ -7041,6 +6950,7 @@
           'Sagittarius', 'Scorpio', 'Libra', 'Virgo'
         ];
 
+        grid.innerHTML = '';
         cellMap.forEach((sign, idx) => {
           const div = document.createElement('div');
           div.className = 'SouthChartBox';
@@ -7051,22 +6961,30 @@
             if (idx === 5) {
               div.style.cssText = 'grid-column: 2 / span 2; grid-row: 2 / span 2; display: flex; align-items: center; justify-content: center;';
               div.innerHTML = '<div style="color: #d97706; font-size: 2rem;">🕉️</div>';
-            } else if (idx === 6 || idx === 9 || idx === 10) {
+            } else {
               div.style.display = 'none';
             }
           } else {
-            const tamilName = tamilSigns[sign] || sign;
-            // Get planets in this sign from rawPlanets
             const planetsInSign = [];
-            for (let planet in rawPlanets) {
-              const p = rawPlanets[planet];
-              if (p && p.sign === sign) {
-                planetsInSign.push(p.nameTamil?.substring(0, 2) || planet.substring(0, 2));
+            if (isRasi) {
+              rawPlanets.forEach(p => {
+                if (p.signName === sign) {
+                  planetsInSign.push(p.name.substring(0, 2));
+                }
+              });
+              if (houses.ascendantDetails?.signName === sign) {
+                planetsInSign.unshift('Asc');
+              }
+            } else if (d.navamsa) {
+              for (let k in d.navamsa.planets) {
+                if (d.navamsa.planets[k] === sign) {
+                  planetsInSign.push(k.substring(0, 2));
+                }
               }
             }
 
-            div.innerHTML = `<span class="s-sign-label" title="${tamilName}" style="font-size:0.7rem; color:#d97706; font-weight:bold;">${tamilName.split(' ')[0]}</span>
-              <div class="s-planet-text" style="font-size:0.85rem; line-height:1.4;">${planetsInSign.join('<br>') || ''}</div>`;
+            div.innerHTML = `<span class="s-sign-label" style="font-size:0.7rem; color:#d97706; font-weight:bold;">${sign.substring(0, 3)}</span>
+                  <div class="s-planet-text" style="font-size:0.85rem; line-height:1.4;">${planetsInSign.join('<br>') || ''}</div>`;
           }
           if (div.style.display !== 'none') grid.appendChild(div);
         });
