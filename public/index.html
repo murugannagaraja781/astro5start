@@ -6477,13 +6477,10 @@
       const [hour, minute] = timeStr.split(':');
 
       const bd = {
-        year: parseInt(year),
-        month: parseInt(month),
-        day: parseInt(day),
-        hour: parseInt(hour),
-        minute: parseInt(minute),
-        latitude: parseFloat(lat),
-        longitude: parseFloat(lon),
+        date: dateStr || new Date().toISOString().split('T')[0],
+        time: timeStr || "12:00",
+        lat: parseFloat(lat) || 13.0827,
+        lng: parseFloat(lon) || 80.2707,
         timezone: parseFloat(tz) || 5.5
       };
 
@@ -6514,16 +6511,15 @@
         console.error('Chart API Error:', e);
       }
     }
-
     // Display chart results in dashboard modal
     function displayDashboardChartResults(data) {
       const panel = document.getElementById('dashboardChartPanel');
       const d = data.data || {};
-      const rawPlanets = d.planets || d.rawPlanets || {};
-      const panchangam = d.panchanga || d.panchangam || {};
+      const rawPlanets = d.planets || [];
+      const panchangam = d.panchanga || {};
       const dashaList = d.dasha || [];
-      const houses = d.houses?.cusps || [];
-      const lagna = d.houses?.lagna || {};
+      const houses = d.houses?.details || [];
+      const transitPlanets = d.transits || [];
 
       let html = `
         <div style="padding:20px; background:white; font-weight:700; font-size:1.2rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e5e5; color:#1F2937;">
@@ -6532,48 +6528,70 @@
         </div>
         <div style="flex:1; overflow-y:auto; padding:20px;">
           <!-- Lagna Section -->
-          <div style="background:linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color:white; padding:20px; border-radius:12px; margin-bottom:20px;">
-            <div style="font-size:0.9rem; opacity:0.9; margin-bottom:5px;">🌟 Lagna (Ascendant)</div>
-            <div style="font-size:1.8rem; font-weight:bold;">${lagna.tamil || lagna.name || 'N/A'}</div>
-            <div style="font-size:0.9rem; margin-top:8px;">Lord: ${lagna.lordTamil || lagna.lord || 'N/A'}</div>
+          <div style="background:linear-gradient(135deg, #047857 0%, #059669 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px;">
+            <div style="font-size:0.8rem; opacity:0.9; margin-bottom:5px;">🌟 Ascendant (Lagna)</div>
+            <div style="font-size:1.5rem; font-weight:bold;">${d.houses?.ascendantDetails?.signName || 'N/A'}</div>
+            <div style="font-size:0.8rem; margin-top:5px;">Nakshatra: ${d.houses?.ascendantDetails?.nakshatra || 'N/A'}</div>
           </div>
 
-          <!-- Planets Section -->
-          <div style="margin-bottom:20px;">
-            <div style="font-weight:bold; color:#d97706; margin-bottom:12px; font-size:1.1rem;">🌟 Planets</div>
+          <!-- Deep Analysis Tabs -->
+          <div style="display:flex; gap:10px; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
+             <button onclick="switchDeepTab('planets')" class="chip-btn active" id="btn-deep-planets">Planets</button>
+             <button onclick="switchDeepTab('kp')" class="chip-btn" id="btn-deep-kp">KP Analysis</button>
+             <button onclick="switchDeepTab('json')" class="chip-btn" id="btn-deep-json">Raw JSON</button>
+          </div>
+
+          <div id="deep-planets" class="deep-tab-content">
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
       `;
 
-      // Add planets
-      const planetOrder = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu'];
-      const planetColors = {
-        'Sun': '#ef4444', 'Moon': '#3b82f6', 'Mars': '#b91c1c', 'Mercury': '#10b981',
-        'Jupiter': '#f59e0b', 'Venus': '#ec4899', 'Saturn': '#374151', 'Rahu': '#1f2937', 'Ketu': '#4b5563'
-      };
-
-      planetOrder.forEach(planet => {
-        const p = rawPlanets[planet];
-        if (p) {
-          const color = planetColors[planet] || '#6b7280';
-          html += `
+      // Planet List
+      rawPlanets.forEach(p => {
+        const color = planetColors[p.name] || '#6b7280';
+        html += `
             <div style="background:white; border-left:4px solid ${color}; padding:12px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-              <div style="font-weight:bold; color:${color}; margin-bottom:4px;">${p.nameTamil || planet}</div>
+              <div style="font-weight:bold; color:${color}; margin-bottom:4px;">${p.name}</div>
               <div style="font-size:0.85rem; color:#555;">
-                <div>${p.signTamil || p.sign}</div>
-                <div style="color:#999; font-size:0.8rem;">${p.degreeFormatted || p.degree}</div>
+                <div>${p.signName}</div>
+                <div style="color:#d97706; font-size:0.8rem;">${p.nakshatra} (${p.nakshatraPada})</div>
               </div>
             </div>
           `;
-        }
       });
 
       html += `
             </div>
           </div>
 
-          <!-- Panchangam Section -->
-          <div style="margin-bottom:20px;">
-            <div style="font-weight:bold; color:#d97706; margin-bottom:12px; font-size:1.1rem;">📅 Panchangam</div>
+          <div id="deep-kp" class="deep-tab-content hidden">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+      `;
+
+      // KP Details Table-like view
+      rawPlanets.forEach(p => {
+        html += `
+          <div style="background:white; padding:10px; border-radius:8px; border:1px solid #eee; font-size:0.85rem;">
+            <div style="font-weight:bold; color:#047857; margin-bottom:5px; border-bottom:1px solid #f9f9f9;">${p.name}</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; text-align:center;">
+              <div><span style="color:#999;font-size:0.7rem;">SignL</span><br>${p.signLord?.substring(0, 3)}</div>
+              <div><span style="color:#999;font-size:0.7rem;">StarL</span><br>${p.starLord?.substring(0, 3)}</div>
+              <div><span style="color:#999;font-size:0.7rem;">SubL</span><br>${p.subLord?.substring(0, 3)}</div>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `
+            </div>
+          </div>
+
+          <div id="deep-json" class="deep-tab-content hidden">
+            <pre style="background:#1f2937; color:#10b981; padding:15px; border-radius:8px; font-size:0.75rem; overflow-x:auto; max-height:400px;">${JSON.stringify(d, null, 2)}</pre>
+          </div>
+
+          <!-- Existing sections follow... -->
+          <div style="margin-top:20px;">
+            <div style="font-weight:bold; color:#d97706; margin-bottom:12px; font-size:1.1rem;">📅 Today's Panchangam</div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
               <div style="background:#ecfdf5; padding:12px; border-radius:8px; border-left:4px solid #10b981;">
                 <div style="font-size:0.8rem; color:#666; margin-bottom:4px;">Tithi</div>
@@ -6583,40 +6601,25 @@
                 <div style="font-size:0.8rem; color:#666; margin-bottom:4px;">Nakshatra</div>
                 <div style="font-weight:bold; color:#1e40af;">${panchangam.nakshatra || 'N/A'}</div>
               </div>
-              <div style="background:#fff7ed; padding:12px; border-radius:8px; border-left:4px solid #f59e0b;">
-                <div style="font-size:0.8rem; color:#666; margin-bottom:4px;">Yoga</div>
-                <div style="font-weight:bold; color:#b45309;">${panchangam.yoga || 'N/A'}</div>
-              </div>
-              <div style="background:#faf5ff; padding:12px; border-radius:8px; border-left:4px solid #a855f7;">
-                <div style="font-size:0.8rem; color:#666; margin-bottom:4px;">Karana</div>
-                <div style="font-weight:bold; color:#6b21a8;">${panchangam.karana || 'N/A'}</div>
-              </div>
             </div>
           </div>
 
-          <!-- Dasha Section -->
-          <div style="margin-bottom:20px;">
-            <div style="font-weight:bold; color:#d97706; margin-bottom:12px; font-size:1.1rem;">⏳ Current Dasha</div>
-            <div style="background:linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color:white; padding:15px; border-radius:8px;">
-              <div style="font-size:0.9rem; opacity:0.9; margin-bottom:5px;">Mahadasha</div>
-              <div style="font-size:1.3rem; font-weight:bold; margin-bottom:10px;">${dasha.currentLord || 'N/A'}</div>
-              <div style="font-size:0.85rem; opacity:0.9;">
-                <div>Remaining: ${dasha.remainingYearsInCurrentDasha ? parseFloat(dasha.remainingYearsInCurrentDasha).toFixed(2) : 'N/A'} years</div>
-                <div>Elapsed: ${dasha.yearsElapsedInCurrentDasha ? parseFloat(dasha.yearsElapsedInCurrentDasha).toFixed(2) : 'N/A'} years</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Moon Sign Section -->
-          <div style="background:#fdf2f8; padding:15px; border-radius:8px; border-left:4px solid #ec4899; margin-bottom:20px;">
-            <div style="font-size:0.9rem; color:#666; margin-bottom:5px;">🌙 Moon Sign</div>
-            <div style="font-size:1.2rem; font-weight:bold; color:#be185d;">${data.data?.moonSign?.tamil || data.data?.moonSign?.name || 'N/A'}</div>
-          </div>
+        </div>
+        <div style="padding:15px; background:white; border-top:1px solid #eee;">
+           <button class="cosmic-btn" onclick="openUniversalChartModal()">Calculate New</button>
         </div>
       `;
 
       panel.innerHTML = html;
     }
+
+    window.switchDeepTab = function (tab) {
+      document.querySelectorAll('.deep-tab-content').forEach(d => d.classList.add('hidden'));
+      document.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
+
+      document.getElementById('deep-' + tab).classList.remove('hidden');
+      document.getElementById('btn-deep-' + tab).classList.add('active');
+    };
 
     window.showChartHelperWithData = function () {
       showBirthChartColumn();
