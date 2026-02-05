@@ -93,6 +93,10 @@ class CallActivity : ComponentActivity() {
 
     private val editIntakeLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
         isEditingIntake = false // Reset flag when returning
+
+        // Ensure socket is connected after returning from edit
+        ensureSocketConnected()
+
         if (result.resultCode == RESULT_OK) {
              val dataStr = result.data?.getStringExtra("birthData")
              if (dataStr != null) {
@@ -107,6 +111,9 @@ class CallActivity : ComponentActivity() {
                  } catch (e: Exception) { e.printStackTrace() }
              }
         }
+
+        // Check ICE connection state and restart if needed
+        checkAndRestoreConnection()
     }
 
     private val pendingIceCandidates = LinkedList<IceCandidate>()
@@ -275,6 +282,96 @@ class CallActivity : ComponentActivity() {
             action = "ACTION_STOP_SERVICE"
         }
         startService(serviceIntent)
+    }
+
+    /**
+     * Ensure socket is connected after returning from background activity
+     */
+    private fun ensureSocketConnected() {
+        val socket = SocketManager.getSocket()
+        if (socket == null || !socket.connected()) {
+            Log.d(TAG, "Socket disconnected - reconnecting...")
+            SocketManager.init()
+            // Re-setup listeners after reconnect
+            setupSocketListeners()
+            // Re-join session room
+            SocketManager.getSocket()?.emit("rejoin-session", JSONObject().apply {
+                put("sessionId", sessionId)
+            })
+        } else {
+            Log.d(TAG, "Socket still connected")
+        }
+    }
+
+    /**
+     * Check ICE connection state and attempt restart if connection is unstable
+     */
+    private fun checkAndRestoreConnection() {
+        try {
+            val iceState = peerConnection.iceConnectionState()
+            Log.d(TAG, "ICE Connection State after edit: $iceState")
+
+            when (iceState) {
+                PeerConnection.IceConnectionState.DISCONNECTED,
+                PeerConnection.IceConnectionState.FAILED -> {
+                    Log.w(TAG, "ICE connection unstable - requesting restart")
+                    statusText = "Reconnecting..."
+                    // Request ICE restart by creating a new offer with iceRestart option
+                    if (isInitiator) {
+                        restartIce()
+                    }
+                }
+                PeerConnection.IceConnectionState.CONNECTED,
+                PeerConnection.IceConnectionState.COMPLETED -> {
+                    Log.d(TAG, "ICE connection stable")
+                    statusText = ""
+                }
+                else -> {
+                    Log.d(TAG, "ICE state: $iceState - monitoring...")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking connection state", e)
+        }
+    }
+
+    /**
+     * Restart ICE connection if it becomes unstable
+     */
+    private fun restartIce() {
+        try {
+            val constraints = MediaConstraints().apply {
+                mandatory.add(MediaConstraints.KeyValuePair("IceRestart", "true"))
+                mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
+                if (callType == "video") {
+                    mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
+                }
+            }
+
+            peerConnection.createOffer(object : SdpObserver {
+                override fun onCreateSuccess(desc: SessionDescription?) {
+                    desc?.let {
+                        peerConnection.setLocalDescription(object : SdpObserver {
+                            override fun onSetSuccess() {
+                                sendSignal(JSONObject().apply {
+                                    put("type", "offer")
+                                    put("sdp", desc.description)
+                                })
+                                Log.d(TAG, "ICE restart offer sent")
+                            }
+                            override fun onSetFailure(s: String?) { Log.e(TAG, "ICE restart setLocal fail: $s") }
+                            override fun onCreateSuccess(p0: SessionDescription?) {}
+                            override fun onCreateFailure(p0: String?) {}
+                        }, desc)
+                    }
+                }
+                override fun onSetSuccess() {}
+                override fun onCreateFailure(s: String?) { Log.e(TAG, "ICE restart create fail: $s") }
+                override fun onSetFailure(s: String?) {}
+            }, constraints)
+        } catch (e: Exception) {
+            Log.e(TAG, "ICE restart failed", e)
+        }
     }
 
     private fun checkPermissions(): Boolean {

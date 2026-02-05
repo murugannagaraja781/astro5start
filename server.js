@@ -1319,6 +1319,24 @@ io.on('connection', (socket) => {
     }
   });
 
+  // --- Rejoin Session (for reconnecting after background/edit) ---
+  socket.on('rejoin-session', (data) => {
+    try {
+      const { sessionId } = data || {};
+      const userId = socketToUser.get(socket.id);
+
+      if (sessionId && userId) {
+        socket.join(sessionId);
+        console.log(`[Socket] User ${userId} rejoined session: ${sessionId}`);
+
+        // Notify the other party that user has reconnected
+        socket.to(sessionId).emit('peer-reconnected', { userId });
+      }
+    } catch (err) {
+      console.error('rejoin-session error', err);
+    }
+  });
+
   async function broadcastAstroUpdate() {
     try {
       const astros = await User.find({ role: 'astrologer' });
