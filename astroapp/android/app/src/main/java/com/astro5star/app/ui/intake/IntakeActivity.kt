@@ -406,6 +406,22 @@ fun IntakeScreen(
             return
         }
 
+        // Validation for Match - Partner details required
+        if (callType == "match" && includePartner) {
+            if (pName.isBlank()) {
+                Toast.makeText(context, "Partner name required / துணைவர் பெயர் தேவை", Toast.LENGTH_SHORT).show()
+                return
+            }
+            if (pDay.isBlank() || pMonth.isBlank() || pYear.isBlank()) {
+                Toast.makeText(context, "Partner DOB required / துணைவர் பிறந்த தேதி தேவை", Toast.LENGTH_SHORT).show()
+                return
+            }
+            if (pCityName.isBlank()) {
+                Toast.makeText(context, "Partner place required / துணைவர் ஊர் தேவை", Toast.LENGTH_SHORT).show()
+                return
+            }
+        }
+
         val finalTimezone = computeTimezoneOffsetHours(timezoneId, day, month, year, hour, minute) ?: timezone ?: 5.5
         val finalPartnerTimezone = computeTimezoneOffsetHours(pTimezoneId, pDay, pMonth, pYear, pHour, pMinute) ?: pTz ?: 5.5
 

@@ -1834,7 +1834,7 @@ io.on('connection', (socket) => {
   });
 
   // --- Chat message (text / audio / file) ---
-  socket.on('chat-message', (data) => {
+  socket.on('chat-message', async (data) => {
     try {
       const { toUserId, sessionId, content, timestamp, messageId } = data || {};
       const fromUserId = socketToUser.get(socket.id);
@@ -1862,10 +1862,45 @@ io.on('connection', (socket) => {
         timestamp: timestamp || Date.now(),
         messageId,
       });
+
+      // Also send FCM push for background delivery
+      // Check if recipient is online (has active socket)
+      const recipientSockets = await io.in(toUserId).fetchSockets();
+      if (recipientSockets.length === 0) {
+        // User is offline or in background - send FCM push
+        sendChatMessagePush(toUserId, fromUserId, content.text || 'New message', sessionId, messageId);
+      }
     } catch (err) {
       console.error('chat-message error', err);
     }
   });
+
+  // --- Helper: Send Chat Message Push (for background messages) ---
+  async function sendChatMessagePush(toUserId, fromUserId, messageText, sessionId, messageId) {
+    try {
+      const toUser = await User.findOne({ userId: toUserId });
+      const fromUser = await User.findOne({ userId: fromUserId });
+
+      if (toUser && toUser.fcmToken) {
+        const payload = {
+          type: 'CHAT_MESSAGE',
+          sessionId: sessionId || '',
+          callerName: fromUser?.name || 'Astrologer',
+          callerId: fromUserId,
+          text: (messageText || 'New message').substring(0, 200),
+          messageId: messageId || Date.now().toString(),
+          timestamp: Date.now().toString()
+        };
+
+        // Data-only message for background handling
+        await sendFcmV1Push(toUser.fcmToken, payload, null);
+        console.log(`Chat push sent to ${toUserId} from ${fromUserId}`);
+      }
+    } catch (e) {
+      console.error('Chat Message Push Error:', e);
+    }
+  }
+
 
   // --- Helper: Send Chat Push ---
   async function sendChatPush(toUserId, fromUserId, messageText, sessionId) {

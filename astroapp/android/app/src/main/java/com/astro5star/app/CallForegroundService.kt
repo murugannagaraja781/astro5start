@@ -5,10 +5,13 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 
@@ -34,6 +37,9 @@ import androidx.core.app.NotificationCompat
  *    The notification informs the user that a call is in progress.
  *    This is both a legal requirement and good UX.
  *
+ * 5. WAKELOCK & WIFILOCK:
+ *    Keeps CPU and WiFi active during calls even when screen is off.
+ *
  * LIFECYCLE:
  * - Started by IncomingCallActivity when call arrives
  * - Stopped when call is accepted or rejected
@@ -48,6 +54,9 @@ class CallForegroundService : Service() {
         private const val NOTIFICATION_ID = 1001
     }
 
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var wifiLock: WifiManager.WifiLock? = null
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -60,6 +69,7 @@ class CallForegroundService : Service() {
         val action = intent?.action
 
         if (action == "ACTION_STOP_SERVICE") {
+            releaseWakeLocks()
             stopForeground(true)
             stopSelf()
             return START_NOT_STICKY
@@ -67,6 +77,7 @@ class CallForegroundService : Service() {
 
         if (action == "ACTION_START_CALL") {
             val partnerName = intent?.getStringExtra("partnerName") ?: "Client"
+            acquireWakeLocks() // Keep CPU and WiFi active during call
             startActiveCallForeground(partnerName)
             return START_STICKY // Keep alive
         }
@@ -112,6 +123,56 @@ class CallForegroundService : Service() {
         return START_NOT_STICKY
     }
 
+    private fun acquireWakeLocks() {
+        try {
+            // CPU WakeLock - Keep CPU running even when screen is off
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            wakeLock = powerManager.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "Astro5Star:CallWakeLock"
+            ).apply {
+                setReferenceCounted(false)
+                acquire(60 * 60 * 1000L) // 1 hour max (safety limit)
+            }
+            Log.d(TAG, "WakeLock acquired")
+
+            // WiFi Lock - Keep WiFi connection active
+            val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            wifiLock = wifiManager.createWifiLock(
+                WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                "Astro5Star:CallWifiLock"
+            ).apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+            Log.d(TAG, "WifiLock acquired")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error acquiring WakeLocks", e)
+        }
+    }
+
+    private fun releaseWakeLocks() {
+        try {
+            wakeLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                    Log.d(TAG, "WakeLock released")
+                }
+            }
+            wakeLock = null
+
+            wifiLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                    Log.d(TAG, "WifiLock released")
+                }
+            }
+            wifiLock = null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error releasing WakeLocks", e)
+        }
+    }
+
     private fun startActiveCallForeground(partnerName: String) {
         val notificationIntent = Intent(this, com.astro5star.app.ui.call.CallActivity::class.java).apply {
              flags = Intent.FLAG_ACTIVITY_SINGLE_TOP // Don't recreate activity
@@ -128,7 +189,7 @@ class CallForegroundService : Service() {
         )
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Call in Progress")
+            .setContentTitle("📞 Call in Progress")
             .setContentText("Speaking with $partnerName")
             .setSmallIcon(android.R.drawable.ic_menu_call)
             .setPriority(NotificationCompat.PRIORITY_LOW) // Less intrusive
@@ -153,6 +214,7 @@ class CallForegroundService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        releaseWakeLocks() // Release locks when service is destroyed
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
@@ -181,3 +243,4 @@ class CallForegroundService : Service() {
         }
     }
 }
+

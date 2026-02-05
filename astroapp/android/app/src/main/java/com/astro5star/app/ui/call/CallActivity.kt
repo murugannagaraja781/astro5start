@@ -81,6 +81,7 @@ class CallActivity : ComponentActivity() {
     private var isMutedState by mutableStateOf(false)
     private var isVideoEnabledState by mutableStateOf(true) // For camera toggle
     private var isSpeakerOnState by mutableStateOf(false) // For audio toggle
+    private var isEditingIntake by mutableStateOf(false) // Track when edit form is open
 
     // Helper state for formatted time
     private val formattedDuration: String
@@ -91,6 +92,7 @@ class CallActivity : ComponentActivity() {
         }
 
     private val editIntakeLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
+        isEditingIntake = false // Reset flag when returning
         if (result.resultCode == RESULT_OK) {
              val dataStr = result.data?.getStringExtra("birthData")
              if (dataStr != null) {
@@ -246,6 +248,7 @@ class CallActivity : ComponentActivity() {
     }
 
     private fun openEditIntake() {
+        isEditingIntake = true // Mark that we're editing
         val intent = android.content.Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java)
         intent.putExtra("isEditMode", true)
         intent.putExtra("existingData", clientBirthData?.toString())
@@ -534,8 +537,14 @@ class CallActivity : ComponentActivity() {
 
         SocketManager.getSocket()?.on(io.socket.client.Socket.EVENT_DISCONNECT) {
              runOnUiThread {
-                 Toast.makeText(this, "Connection Lost - Call Ended", Toast.LENGTH_SHORT).show()
-                 finish()
+                 // Don't end call if user is editing intake form
+                 if (!isEditingIntake) {
+                     Toast.makeText(this, "Connection Lost - Call Ended", Toast.LENGTH_SHORT).show()
+                     finish()
+                 } else {
+                     // Try to reconnect silently
+                     Log.d(TAG, "Socket disconnected while editing - will reconnect")
+                 }
              }
         }
     }
