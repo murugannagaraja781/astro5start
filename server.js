@@ -1863,13 +1863,10 @@ io.on('connection', (socket) => {
         messageId,
       });
 
-      // Also send FCM push for background delivery
-      // Check if recipient is online (has active socket)
-      const recipientSockets = await io.in(toUserId).fetchSockets();
-      if (recipientSockets.length === 0) {
-        // User is offline or in background - send FCM push
-        sendChatMessagePush(toUserId, fromUserId, content.text || 'New message', sessionId, messageId);
-      }
+      // ALWAYS send FCM push for background delivery
+      // App may be in background but socket still connected
+      // FCM ensures message is delivered even if app is killed
+      sendChatMessagePush(toUserId, fromUserId, content.text || 'New message', sessionId, messageId);
     } catch (err) {
       console.error('chat-message error', err);
     }

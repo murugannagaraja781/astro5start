@@ -58,6 +58,22 @@ class FCMService : FirebaseMessagingService() {
     // Coroutine scope for async operations within service lifecycle
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /**
+     * Check if app is in foreground (visible to user)
+     */
+    private fun isAppInForeground(): Boolean {
+        val activityManager = getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        val appProcesses = activityManager.runningAppProcesses ?: return false
+        val packageName = packageName
+        for (appProcess in appProcesses) {
+            if (appProcess.importance == android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+                && appProcess.processName == packageName) {
+                return true
+            }
+        }
+        return false
+    }
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
@@ -157,7 +173,12 @@ class FCMService : FirebaseMessagingService() {
                         }
                     }
 
-                    showChatMessageNotification(senderName, text, senderId, sessionId)
+                    // Only show notification if app is in background
+                    if (!isAppInForeground()) {
+                        showChatMessageNotification(senderName, text, senderId, sessionId)
+                    } else {
+                        Log.d(TAG, "App in foreground - skipping notification for $messageId")
+                    }
                 }
                 else -> {
                     // Handle generic data messages or unknown types by showing a simple notification
