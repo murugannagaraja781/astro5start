@@ -114,7 +114,13 @@ router.post('/full', async (req, res) => {
         const chartData = {
             planets,
             houses,
-            panchanga: { ...panchanga, ...muhurtas },
+            panchanga: {
+                tithi: panchanga.tithi.name,
+                nakshatra: panchanga.nakshatra.name,
+                yoga: panchanga.yoga.name,
+                karana: panchanga.karana.name,
+                ...muhurtas
+            },
             dasha: dashaInfo, // Send object instead of array
             transits,
             tamilDate: tamilDateData,
