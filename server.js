@@ -709,6 +709,202 @@ app.get('/api/horoscope/rasi', (req, res) => {
   res.json({ ok: true, data: raliList });
 });
 
+// ==========================================
+// USER INTAKE APIs (Required by Android App)
+// ==========================================
+
+// Get user intake details
+app.get('/api/user/:userId/intake', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findOne({ userId });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      data: user.intakeDetails || null
+    });
+  } catch (err) {
+    console.error('Get intake error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Save user intake details
+app.post('/api/user/intake', async (req, res) => {
+  try {
+    const { userId, ...intakeData } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'userId required' });
+    }
+
+    const user = await User.findOneAndUpdate(
+      { userId },
+      { $set: { intakeDetails: intakeData } },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    res.json({ success: true, data: user.intakeDetails });
+  } catch (err) {
+    console.error('Save intake error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ==========================================
+// CHAT HISTORY API (Required by Android App)
+// ==========================================
+app.get('/api/chat/history/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const messages = await ChatMessage.find({ sessionId }).sort({ timestamp: 1 });
+
+    res.json({
+      success: true,
+      messages: messages.map(m => ({
+        messageId: m._id.toString(),
+        text: m.text,
+        fromUserId: m.fromUserId,
+        toUserId: m.toUserId,
+        timestamp: m.timestamp
+      }))
+    });
+  } catch (err) {
+    console.error('Chat history error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ==========================================
+// LEGACY CHART APIs (Redirect to rasi-eng)
+// ==========================================
+
+// Birth chart - proxy to rasi-eng/charts/full
+app.post('/api/charts/birth-chart', async (req, res) => {
+  try {
+    const { DateTime } = require('luxon');
+    const { swissEph } = require('./utils/rasiEng/swisseph');
+    const { getPlanetsWithDetails, getHouseCusps } = require('./utils/rasiEng/calculations');
+
+    const { date, time, lat, lng, timezone = 5.5, ayanamsa = 'Lahiri' } = req.body;
+
+    const offsetHours = Math.floor(Math.abs(timezone));
+    const offsetMinutes = Math.round((Math.abs(timezone) - offsetHours) * 60);
+    const sign = timezone >= 0 ? '+' : '-';
+    const zone = `UTC${sign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`;
+
+    const dt = DateTime.fromFormat(`${date} ${time}`, "yyyy-MM-dd HH:mm", { zone });
+    if (!dt.isValid) {
+      return res.status(400).json({ error: 'Invalid date or time format' });
+    }
+
+    const utc = dt.toUTC();
+    const jd = swissEph.julday(utc.year, utc.month, utc.day, utc.hour + utc.minute / 60);
+
+    const houses = getHouseCusps(jd, lat, lng, 'Placidus', ayanamsa);
+    const planets = getPlanetsWithDetails(jd, houses.cusps, ayanamsa);
+
+    res.json({ success: true, data: { planets, houses } });
+  } catch (err) {
+    console.error('Birth chart error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Match porutham
+app.post('/api/match/porutham', async (req, res) => {
+  try {
+    const { DateTime } = require('luxon');
+    const { swissEph } = require('./utils/rasiEng/swisseph');
+    const { calculatePorutham } = require('./utils/rasiEng/matchCalculations');
+
+    const {
+      groomDate, groomTime, groomLat, groomLng, groomTimezone = 5.5,
+      brideDate, brideTime, brideLat, brideLng, brideTimezone = 5.5,
+      // Alternative fields for compatibility
+      gDate, gTime, gLat, gLng, gTz,
+      bDate, bTime, bLat, bLng, bTz,
+      // Direct moon longitude input (if already calculated)
+      groomMoonLon, brideMoonLon
+    } = req.body;
+
+    let gMoonLon, bMoonLon;
+
+    // If moon longitudes are provided directly, use them
+    if (groomMoonLon !== undefined && brideMoonLon !== undefined) {
+      gMoonLon = groomMoonLon;
+      bMoonLon = brideMoonLon;
+    } else {
+      // Calculate moon positions from birth data
+      const gD = groomDate || gDate;
+      const gT = groomTime || gTime || '12:00';
+      const gLa = groomLat || gLat || 13.08;
+      const gLo = groomLng || gLng || 80.27;
+      const gZ = groomTimezone || gTz || 5.5;
+
+      const bD = brideDate || bDate;
+      const bT = brideTime || bTime || '12:00';
+      const bLa = brideLat || bLat || 13.08;
+      const bLo = brideLng || bLng || 80.27;
+      const bZ = brideTimezone || bTz || 5.5;
+
+      if (!gD || !bD) {
+        return res.status(400).json({ success: false, error: 'Both groom and bride birth dates required' });
+      }
+
+      // Helper to parse datetime
+      const parseDateTime = (date, time, tz) => {
+        const offsetHours = Math.floor(Math.abs(tz));
+        const offsetMinutes = Math.round((Math.abs(tz) - offsetHours) * 60);
+        const sign = tz >= 0 ? '+' : '-';
+        const zone = `UTC${sign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`;
+        return DateTime.fromFormat(`${date} ${time}`, "yyyy-MM-dd HH:mm", { zone });
+      };
+
+      const gDt = parseDateTime(gD, gT, gZ);
+      const bDt = parseDateTime(bD, bT, bZ);
+
+      if (!gDt.isValid || !bDt.isValid) {
+        return res.status(400).json({ success: false, error: 'Invalid date/time format' });
+      }
+
+      // Calculate Julian Days
+      const gUtc = gDt.toUTC();
+      const bUtc = bDt.toUTC();
+      const gJd = swissEph.julday(gUtc.year, gUtc.month, gUtc.day, gUtc.hour + gUtc.minute / 60);
+      const bJd = swissEph.julday(bUtc.year, bUtc.month, bUtc.day, bUtc.hour + bUtc.minute / 60);
+
+      // Get Moon positions
+      const gPlanets = swissEph.getAllPlanets(gJd, 'Lahiri');
+      const bPlanets = swissEph.getAllPlanets(bJd, 'Lahiri');
+
+      const gMoon = gPlanets.find(p => p.name === 'Moon');
+      const bMoon = bPlanets.find(p => p.name === 'Moon');
+
+      if (!gMoon || !bMoon) {
+        return res.status(500).json({ success: false, error: 'Could not calculate Moon positions' });
+      }
+
+      gMoonLon = gMoon.longitude;
+      bMoonLon = bMoon.longitude;
+    }
+
+    const result = calculatePorutham(gMoonLon, bMoonLon);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    console.error('Match porutham error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // OTP Send (Mock)
 app.post('/api/send-otp', (req, res) => {
   const { phone } = req.body;
