@@ -768,75 +768,59 @@ fun IntakeScreen(
                 Spacer(Modifier.height(32.dp))
             }
 
-            // Waiting Overlay (Glassmorphism Look)
+            // Simple Waiting Dialog
             if (isWaiting) {
                 Dialog(onDismissRequest = { /* Prevent dismiss */ }) {
-                     Box(
-                         modifier = Modifier
-                             .fillMaxWidth()
-                             .padding(16.dp)
-                             .shadow(24.dp, RoundedCornerShape(32.dp))
-                             .clip(RoundedCornerShape(32.dp))
-                             .background(Color.White.copy(alpha = 0.2f)) // Glass base
-                             .border(1.dp, Color.White.copy(alpha = 0.4f), RoundedCornerShape(32.dp))
-                     ) {
-                         // Subtle background blur simulation using a gradient
-                         Box(modifier = Modifier.fillMaxSize().background(
-                             Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.3f), Color.White.copy(alpha = 0.05f)))
-                         ))
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            // Circular Progress Indicator
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(64.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                strokeWidth = 4.dp
+                            )
 
-                         Column(
-                             Modifier.padding(32.dp),
-                             horizontalAlignment = Alignment.CenterHorizontally,
-                             verticalArrangement = Arrangement.Center
-                         ) {
-                             Text("Connecting...", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                             Spacer(Modifier.height(20.dp))
+                            Spacer(Modifier.height(16.dp))
 
-                             Box(
-                                 modifier = Modifier
-                                     .size(100.dp)
-                                     .shadow(12.dp, CircleShape)
-                                     .border(4.dp, Color.White.copy(alpha = 0.6f), CircleShape)
-                                     .padding(4.dp)
-                             ) {
-                                 if (!partnerImage.isNullOrEmpty()) {
-                                     AsyncImage(
-                                         model = partnerImage,
-                                         contentDescription = partnerName,
-                                         modifier = Modifier.fillMaxSize().clip(CircleShape),
-                                         contentScale = ContentScale.Crop
-                                     )
-                                 } else {
-                                     Box(Modifier.fillMaxSize().background(Color.LightGray.copy(alpha=0.5f), CircleShape))
-                                 }
-                             }
+                            // Connecting message
+                            Text(
+                                text = "Connecting to $partnerName...",
+                                style = MaterialTheme.typography.titleMedium,
+                                textAlign = TextAlign.Center
+                            )
 
-                             Spacer(Modifier.height(20.dp))
-                             Text("Waiting for $partnerName", color = Color.White.copy(alpha = 0.9f), fontSize = 16.sp)
-                             Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(8.dp))
 
-                             // Pulsing Timer Text
-                             Text(
-                                 text = "${waitTimeLeft}s",
-                                 fontSize = 42.sp,
-                                 fontWeight = FontWeight.Black,
-                                 color = Color(0xFF4CAF50) // Neon Green accent
-                             )
+                            // Timer countdown
+                            Text(
+                                text = "${waitTimeLeft}s",
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
 
-                             Spacer(Modifier.height(32.dp))
+                            Spacer(Modifier.height(16.dp))
 
-                             Button(
-                                 onClick = { isWaiting = false },
-                                 shape = RoundedCornerShape(20.dp),
-                                 colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(alpha = 0.7f)),
-                                 modifier = Modifier.fillMaxWidth().height(50.dp)
-                                 .border(1.dp, Color.White.copy(alpha=0.3f), RoundedCornerShape(20.dp))
-                             ) {
-                                 Text("Cancel Request", fontWeight = FontWeight.Bold)
-                             }
-                         }
-                     }
+                            // Cancel button
+                            Button(
+                                onClick = { isWaiting = false },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Cancel Request")
+                            }
+                        }
+                    }
                 }
             }
         }
