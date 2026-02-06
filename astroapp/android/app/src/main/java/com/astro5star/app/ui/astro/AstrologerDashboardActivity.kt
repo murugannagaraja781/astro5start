@@ -159,6 +159,40 @@ class AstrologerDashboardActivity : ComponentActivity() {
                 startActivity(intent)
             }
         }
+
+        // NEW FIX: Listen for chat-specific requests
+        // When astrologer accepts chat from dashboard, navigate directly to ChatActivity
+        socket?.on("session-request") { args ->
+            runOnUiThread {
+                try {
+                    val data = args[0] as? JSONObject ?: return@runOnUiThread
+                    val sessionId = data.optString("sessionId", "")
+                    val fromUserId = data.optString("fromUserId", "")
+                    val type = data.optString("type", "chat")
+                    val callerName = data.optString("callerName")
+                        .takeIf { !it.isNullOrEmpty() }
+                        ?: data.optString("userName")
+                        .takeIf { !it.isNullOrEmpty() }
+                        ?: fromUserId
+
+                    android.util.Log.d("AstrologerDashboard", "session-request received: sessionId=$sessionId, type=$type")
+
+                    // Navigate to ChatActivity for chat requests
+                    if (type == "chat") {
+                        val intent = Intent(this@AstrologerDashboardActivity, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                            putExtra("sessionId", sessionId)
+                            putExtra("toUserId", fromUserId)
+                            putExtra("toUserName", callerName)
+                            putExtra("isNewRequest", true) // Auto-accept when opened
+                        }
+                        startActivity(intent)
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("AstrologerDashboard", "Error handling session-request", e)
+                }
+            }
+        }
     }
 
     override fun onDestroy() {
