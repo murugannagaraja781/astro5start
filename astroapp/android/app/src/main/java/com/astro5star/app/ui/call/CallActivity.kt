@@ -82,6 +82,7 @@ class CallActivity : ComponentActivity() {
     private var isVideoEnabledState by mutableStateOf(true) // For camera toggle
     private var isSpeakerOnState by mutableStateOf(false) // For audio toggle
     private var isEditingIntake by mutableStateOf(false) // Track when edit form is open
+    private var remainingTime by mutableStateOf("") // Available time from wallet
 
     // Helper state for formatted time
     private val formattedDuration: String
@@ -186,6 +187,7 @@ class CallActivity : ComponentActivity() {
                     isVideoEnabled = isVideoEnabledState,
                     isSpeakerOn = isSpeakerOnState,
                     role = role ?: "user",
+                    remainingTime = remainingTime,
                     onToggleMic = { toggleMic() },
                     onToggleCamera = { toggleCamera() },
                     onToggleSpeaker = { toggleSpeaker() },
@@ -224,6 +226,49 @@ class CallActivity : ComponentActivity() {
 
         // Start Timer Delay
         timerHandler.postDelayed(timerRunnable, 1000)
+
+        // Start Remaining Time Countdown (for astrologers only)
+        if (role == "astrologer") {
+            lifecycleScope.launch {
+                while (isActive) {
+                    delay(1000)
+                    if (remainingTime.isNotEmpty() && remainingTime != "00:00") {
+                        val parts = remainingTime.split(":")
+                        if (parts.size == 2) {
+                            val mins = parts[0].toIntOrNull() ?: 0
+                            val secs = parts[1].toIntOrNull() ?: 0
+                            val totalSecs = mins * 60 + secs - 1
+                            if (totalSecs > 0) {
+                                remainingTime = String.format("%02d:%02d", totalSecs / 60, totalSecs % 60)
+                            } else {
+                                remainingTime = "00:00"
+                                endCall() // Auto-end when time exhausted
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Fetch wallet and calculate initial remaining time
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    val client = okhttp3.OkHttpClient()
+                    val request = okhttp3.Request.Builder()
+                        .url("https://astro5star.com/api/user/${partnerId}")
+                        .build()
+                    val response = client.newCall(request).execute()
+                    if (response.isSuccessful) {
+                        val json = JSONObject(response.body?.string() ?: "{}")
+                        val walletBalance = json.optDouble("walletBalance", 0.0)
+                        val ratePerMin = 10.0 // Default rate, ideally from partner data
+                        val totalMinutes = (walletBalance / ratePerMin).toInt()
+                        remainingTime = String.format("%02d:%02d", totalMinutes, 0)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to fetch wallet balance", e)
+                }
+            }
+        }
     }
 
     private fun toggleMic() {
@@ -820,6 +865,7 @@ fun CallScreen(
     isVideoEnabled: Boolean,
     isSpeakerOn: Boolean,
     role: String,
+    remainingTime: String,
     onToggleMic: () -> Unit,
     onToggleCamera: () -> Unit,
     onToggleSpeaker: () -> Unit,
@@ -847,6 +893,25 @@ fun CallScreen(
                      tint = Color.Gray,
                      modifier = Modifier.size(120.dp)
                  )
+            }
+        }
+
+        // Watermark for Astrologer - Remaining Time (RED)
+        if (role == "astrologer" && remainingTime.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Remaining Time: $remainingTime",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.Red.copy(alpha = 0.3f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    lineHeight = 40.sp
+                )
             }
         }
 
