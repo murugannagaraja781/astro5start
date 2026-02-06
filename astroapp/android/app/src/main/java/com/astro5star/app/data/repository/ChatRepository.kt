@@ -73,6 +73,7 @@ class ChatRepository(private val context: Context) {
 
     // Listeners
     fun listenIncoming(onMessage: (JSONObject) -> Unit) {
+        SocketManager.getSocket()?.off("chat-message")
         SocketManager.getSocket()?.on("chat-message") { args ->
             if (args != null && args.isNotEmpty()) {
                 val data = args[0] as JSONObject
@@ -86,12 +87,14 @@ class ChatRepository(private val context: Context) {
     }
 
     fun listenTyping(onTyping: () -> Unit) {
+        SocketManager.getSocket()?.off("typing")
         SocketManager.getSocket()?.on("typing") {
             onTyping()
         }
     }
 
     fun listenStopTyping(onStop: () -> Unit) {
+        SocketManager.getSocket()?.off("stop-typing")
         SocketManager.getSocket()?.on("stop-typing") {
             onStop()
         }

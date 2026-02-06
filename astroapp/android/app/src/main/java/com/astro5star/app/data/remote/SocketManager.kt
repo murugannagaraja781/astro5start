@@ -96,6 +96,7 @@ object SocketManager {
     }
 
     fun onSessionAnswered(listener: (JSONObject) -> Unit) {
+        socket?.off("session-answered")
         socket?.on("session-answered") { args ->
             if (args != null && args.isNotEmpty()) {
                 val data = args[0] as JSONObject
@@ -105,6 +106,7 @@ object SocketManager {
     }
 
     fun onSignal(listener: (JSONObject) -> Unit) {
+        socket?.off("signal")
         socket?.on("signal") { args ->
             if (args != null && args.isNotEmpty()) {
                 val data = args[0] as JSONObject
@@ -118,6 +120,7 @@ object SocketManager {
     }
 
     fun onMessageStatus(listener: (JSONObject) -> Unit) {
+        socket?.off("message-status")
         socket?.on("message-status") { args ->
             if (args != null && args.isNotEmpty()) {
                 val data = args[0] as JSONObject

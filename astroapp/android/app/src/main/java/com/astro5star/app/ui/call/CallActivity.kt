@@ -97,7 +97,10 @@ class CallActivity : ComponentActivity() {
         }
 
     private val editIntakeLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
-        isEditingIntake = false // Reset flag when returning
+        // Delay resetting isEditingIntake to give socket time to stabilize after foreground switch
+        timerHandler.postDelayed({
+            isEditingIntake = false
+        }, 3000)
 
         // Ensure socket is connected after returning from edit
         ensureSocketConnected()
@@ -138,6 +141,8 @@ class CallActivity : ComponentActivity() {
     private var partnerName: String? = null
 
     private val timerHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var listenersInitialized = false
+
     private val timerRunnable = object : Runnable {
         override fun run() {
             callDurationSeconds++
@@ -145,8 +150,24 @@ class CallActivity : ComponentActivity() {
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean("isEditingIntake", isEditingIntake)
+        outState.putString("clientBirthData", clientBirthData?.toString())
+        outState.putInt("callDurationSeconds", callDurationSeconds)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (savedInstanceState != null) {
+            isEditingIntake = savedInstanceState.getBoolean("isEditingIntake")
+            val birthDataStr = savedInstanceState.getString("clientBirthData")
+            if (!birthDataStr.isNullOrEmpty()) {
+                clientBirthData = JSONObject(birthDataStr)
+            }
+            callDurationSeconds = savedInstanceState.getInt("callDurationSeconds")
+        }
 
         // Initialize WebRTC Views Programmatically
         localView = SurfaceViewRenderer(this)
@@ -564,10 +585,19 @@ class CallActivity : ComponentActivity() {
                 runOnUiThread {
                     when (newState) {
                         PeerConnection.IceConnectionState.CONNECTED -> statusText = "" // Hide status
-                        PeerConnection.IceConnectionState.DISCONNECTED -> Toast.makeText(this@CallActivity, "Connection Unstable", Toast.LENGTH_SHORT).show()
+                        PeerConnection.IceConnectionState.DISCONNECTED -> {
+                            if (!isEditingIntake) {
+                                Toast.makeText(this@CallActivity, "Connection Unstable", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                         PeerConnection.IceConnectionState.FAILED -> {
-                            Toast.makeText(this@CallActivity, "Connection Failed", Toast.LENGTH_SHORT).show()
-                            endCall()
+                            if (!isEditingIntake) {
+                                Toast.makeText(this@CallActivity, "Connection Failed", Toast.LENGTH_SHORT).show()
+                                endCall()
+                            } else {
+                                Log.d(TAG, "ICE Failed while editing intake - ignoring to allow reconnect")
+                                statusText = "Reconnecting..."
+                            }
                         }
                         else -> {}
                     }
@@ -626,6 +656,9 @@ class CallActivity : ComponentActivity() {
     }
 
     private fun setupSocketListeners() {
+        if (listenersInitialized) return
+        listenersInitialized = true
+
         SocketManager.onSignal { data ->
             runOnUiThread {
                 handleSignal(data)
@@ -685,10 +718,11 @@ class CallActivity : ComponentActivity() {
              runOnUiThread {
                  // Don't end call if user is editing intake form
                  if (!isEditingIntake) {
-                     Toast.makeText(this, "Connection Lost - Call Ended", Toast.LENGTH_SHORT).show()
-                     finish()
+                     statusText = "Reconnecting..."
+                     // Don't finish immediately, let it attempt reconnection
+                     // Only finish if session is explicitly ended by server
+                     Log.d(TAG, "Socket disconnected - waiting for reconnect or session end")
                  } else {
-                     // Try to reconnect silently
                      Log.d(TAG, "Socket disconnected while editing - will reconnect")
                  }
              }

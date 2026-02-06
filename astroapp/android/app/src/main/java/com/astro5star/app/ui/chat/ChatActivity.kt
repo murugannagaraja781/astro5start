@@ -259,6 +259,12 @@ class ChatActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Re-synchronize on resume to catch any messages missed during multitasking
+        sessionId?.let {
+            viewModel.loadHistory(it)
+            viewModel.joinSessionSafe(it)
+        }
+
         viewModel.startListeners()
         val myUserId = TokenManager(this).getUserSession()?.userId
         if (myUserId != null) {
@@ -275,12 +281,13 @@ class ChatActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
-        viewModel.stopListeners()
+        // We no longer stop listeners here to allow background reception while multi-tasking
     }
 
     override fun onDestroy() {
         super.onDestroy()
         timerHandler.removeCallbacks(timerRunnable)
+        viewModel.stopListeners()
     }
 }
 
@@ -417,7 +424,10 @@ fun ChatScreen(
                     item {
                         Box(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
                             OutlinedButton(
-                                onClick = { showHistory = true },
+                                onClick = {
+                                    showHistory = true
+                                    sessionId?.let { viewModel.loadHistory(it) } // Force re-sync from server
+                                },
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     contentColor = Color(0xFF6200EE)
                                 ),

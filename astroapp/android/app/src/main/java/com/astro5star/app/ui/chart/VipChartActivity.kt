@@ -3,75 +3,140 @@ package com.astro5star.app.ui.chart
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.astro5star.app.ui.theme.CosmicAppTheme
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import com.google.gson.Gson
 
-// --- Data Models ---
+// --- Aesthetic Constants ---
+val ParchmentBase = Color(0xFFF4E1C1) // Vintage Paper Color
+val ParchmentLight = Color(0xFFFCF5E5)
+val TraditionalRed = Color(0xFF8B0000) // Deep Blood Red for borders
+val TextGold = Color(0xFFB8860B)
+val BorderColor = Color(0xFF8B0000)
+
+// --- Tamil Translation Constants ---
+val signTamil = mapOf(
+    "Aries" to "மேஷம்", "Taurus" to "ரிஷபம்", "Gemini" to "மிதுனம்", "Cancer" to "கடகம்",
+    "Leo" to "சிம்மம்", "Virgo" to "கன்னி", "Libra" to "துலாம்", "Scorpio" to "விருச்சிகம்",
+    "Sagittarius" to "தனுசு", "Capricorn" to "மகரம்", "Aquarius" to "கும்பம்", "Pisces" to "மீனம்"
+)
+
+val planetTamil = mapOf(
+    "Sun" to "சூரியன்", "Moon" to "சந்திரன்", "Mars" to "செவ்வாய்", "Mercury" to "புதன்",
+    "Jupiter" to "குரு", "Venus" to "சுக்கிரன்", "Saturn" to "சனி", "Rahu" to "ராகு",
+    "Ketu" to "கேது", "Ascendant" to "லக்னம்"
+)
+
+val planetAbbrTamil = mapOf(
+    "Sun" to "சூ", "Moon" to "சந்", "Mars" to "செவ்", "Mercury" to "பு",
+    "Jupiter" to "குரு", "Venus" to "சுக்", "Saturn" to "சனி", "Rahu" to "ரா",
+    "Ketu" to "கே", "Ascendant" to "ல", "As" to "ல"
+)
+
+// --- Updated Data Models ---
 data class ChartResponse(val success: Boolean, val data: ChartData)
 data class ChartData(
     val planets: List<Planet>,
     val houses: HouseData,
     val panchanga: Panchanga,
-    val dasha: Dasha,
+    val dasha: List<DashaPeriod>,
     val transits: List<Transit>,
+    val tamilDate: TamilDate?,
+    val kpSignificators: KPSignificators? = null,
     val navamsa: NavamsaData? = null
 )
-data class NavamsaData(val planets: Map<String, String>)
+
 data class Planet(
     val name: String,
     val signName: String,
+    val signIndex: Int,
     val house: Int,
     val nakshatra: String,
     val nakshatraPada: Int,
-    val degreeFormatted: String,
-    val signLord: String,
-    val starLord: String,
-    val subLord: String
+    val degreeFormatted: String? = null,
+    val signLord: String? = null,
+    val starLord: String? = null,
+    val subLord: String? = null
 )
-data class HouseData(val ascendantDetails: AscendantDetails)
-data class AscendantDetails(val signName: String, val degreeFormatted: String, val signLord: String)
-data class Panchanga(val tithi: String, val nakshatra: String, val yoga: String, val karana: String)
-data class Dasha(
-    val mahadashaName: String,
-    val bhuktiName: String,
-    val antaramName: String,
-    val remainingYearsInCurrentDasha: Double,
-    val endsAt: String
+
+data class HouseData(
+    val cusps: List<Double>,
+    val details: List<HouseDetail>,
+    val ascendantDetails: HouseDetail
+)
+
+data class HouseDetail(
+    val signName: String,
+    val signAbbr: String? = null,
+    val nakshatra: String? = null,
+    val starLord: String? = null,
+    val subLord: String? = null,
+    val degreeFormatted: String? = null
+)
+
+data class Panchanga(
+    val tithi: PanchangaValue? = null,
+    val nakshatra: PanchangaValue? = null,
+    val yoga: PanchangaValue? = null,
+    val karana: PanchangaValue? = null,
+    val vara: PanchangaValue? = null,
+    val sunrise: String? = null,
+    val sunset: String? = null,
+    val moonSign: String? = null,
+    val sunSign: String? = null
+)
+
+data class PanchangaValue(val name: String)
+data class DashaPeriod(
+    val lord: String,
+    val start: String,
+    val end: String,
+    val level: Int,
+    val subPeriods: List<DashaPeriod>? = null
 )
 data class Transit(val name: String, val signName: String, val isRetrograde: Boolean)
-
-// --- Theme Colors ---
-val NeumorphicBg = Color(0xFFF0F2F5)
-val NeumorphicGreen = Color(0xFF4CAF50)
-val DarkGreen = Color(0xFF2E7D32)
-val NeumorphicWhite = Color.White
+data class TamilDate(val day: Int, val month: String, val year: String)
+data class NavamsaData(val planets: List<Planet>? = null)
+data class KPSignificators(val planetView: List<KPPlanet>?, val houseView: List<KPHouse>?)
+data class KPPlanet(val name: String, val levelA: List<Int>, val levelB: List<Int>, val levelC: List<Int>, val levelD: List<Int>)
+data class KPHouse(val house: Int, val level1: List<String>, val level2: List<String>, val level3: List<String>, val level4: List<String>, val lord: String)
 
 class VipChartActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         val birthDataStr = intent.getStringExtra("birthData") ?: "{}"
         val birthData = JSONObject(birthDataStr)
 
@@ -88,20 +153,14 @@ class VipChartActivity : ComponentActivity() {
 fun VipChartScreen(birthData: JSONObject, onBack: () -> Unit) {
     var chartState by remember { mutableStateOf<ChartData?>(null) }
     var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var selectedTab by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         scope.launch {
             try {
                 val result = fetchFullChart(birthData)
-                if (result != null) {
-                    chartState = result
-                } else {
-                    errorMessage = "Unable to fetch astrological data."
-                }
-            } catch (e: Exception) {
-                errorMessage = e.localizedMessage
+                chartState = result
             } finally {
                 isLoading = false
             }
@@ -111,50 +170,60 @@ fun VipChartScreen(birthData: JSONObject, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Celestial Analysis", color = DarkGreen, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = DarkGreen)
+                title = {
+                    Column {
+                        Text("ராசி & நவாம்ச கட்டங்கள்", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TraditionalRed)
+                        Text(birthData.optString("name", "User"), style = MaterialTheme.typography.labelSmall, color = Color.Gray)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = NeumorphicWhite)
+                navigationIcon = {
+                    IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back", tint = TraditionalRed) }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = ParchmentLight)
             )
         }
     ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(NeumorphicBg)
-        ) {
+        Column(modifier = Modifier.padding(padding).fillMaxSize().background(ParchmentLight)) {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = NeumorphicGreen)
-            } else if (errorMessage != null) {
-                Text(errorMessage!!, color = Color.Red, modifier = Modifier.align(Alignment.Center))
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = TraditionalRed)
+                }
             } else if (chartState != null) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    item { AscendantCard(chartState!!.houses.ascendantDetails) }
-                    item { PanchangaCard(chartState!!.panchanga) }
-
-                    item { SectionTitle("Rasi Chart") }
-                    item { SouthIndianGrid(chartState!!.planets, chartState!!.houses.ascendantDetails.signName) }
-
-                    if (chartState!!.navamsa != null) {
-                        item { SectionTitle("Navamsa Chart") }
-                        item { NavamsaGrid(chartState!!.navamsa!!) }
+                ScrollableTabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = ParchmentLight,
+                    edgePadding = 16.dp,
+                    divider = {},
+                    indicator = { tabPositions ->
+                        TabRowDefaults.Indicator(
+                            Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                            color = TraditionalRed
+                        )
                     }
+                ) {
+                    val tabs = listOf("கட்டங்கள்", "கிரக நிலைகள்", "தசா புக்தி விபரங்கள்")
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = {
+                                Text(
+                                    title,
+                                    fontSize = 13.sp,
+                                    fontWeight = if(selectedTab == index) FontWeight.Bold else FontWeight.Medium,
+                                    color = if(selectedTab == index) TraditionalRed else Color.Gray
+                                )
+                            }
+                        )
+                    }
+                }
 
-                    item { SectionTitle("Planetary Positions") }
-                    items(chartState!!.planets) { planet -> PlanetCard(planet) }
-                    item { SectionTitle("Current Dasha Period") }
-                    item { DashaCard(chartState!!.dasha) }
-                    item { SectionTitle("Planetary Transits (Gocharam)") }
-                    items(chartState!!.transits) { transit -> TransitCard(transit) }
-                    item { Spacer(modifier = Modifier.height(20.dp)) }
+                Box(modifier = Modifier.weight(1f)) {
+                    when (selectedTab) {
+                        0 -> ChartsTab(chartState!!, birthData)
+                        1 -> PlanetsTab(chartState!!)
+                        2 -> DashaListTab(chartState!!.dasha)
+                    }
                 }
             }
         }
@@ -162,263 +231,267 @@ fun VipChartScreen(birthData: JSONObject, onBack: () -> Unit) {
 }
 
 @Composable
-fun SectionTitle(title: String) {
-    Text(
-        text = title,
-        color = DarkGreen,
-        fontSize = 18.sp,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-    )
-}
+fun ChartsTab(data: ChartData, birthData: JSONObject) {
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
 
-@Composable
-fun AscendantCard(asc: AscendantDetails) {
-    Card(
-        modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = NeumorphicWhite)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text("🌟 ASCENDANT (LAGNA)", color = DarkGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(asc.signName, color = Color.Black, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(asc.degreeFormatted, color = Color.Gray, fontSize = 16.sp)
-            }
-            Text("Sign Lord: ${asc.signLord}", color = NeumorphicGreen, fontSize = 14.sp)
-        }
-    }
-}
-@Composable
-fun PlanetCard(p: Planet) {
-    Card(
-        modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = NeumorphicWhite)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Text(p.name, color = DarkGreen, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text(p.degreeFormatted, color = Color.Gray, fontSize = 14.sp)
-            }
-            Text("${p.signName} (House ${p.house})", color = Color.DarkGray, fontSize = 14.sp)
-            Text("Nakshatra: ${p.nakshatra} (Pada ${p.nakshatraPada})", color = Color.Gray, fontSize = 12.sp)
+        Text("ராசி கட்டம் (Rasi Chart)", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TraditionalRed)
+        Spacer(Modifier.height(8.dp))
+        SouthIndianGridEnhanced(data.planets, data.houses.ascendantDetails.signName, "Rasi", birthData, data.panchanga.nakshatra?.name ?: "")
 
-            Divider(modifier = Modifier.padding(vertical = 8.dp), color = NeumorphicBg)
+        Spacer(Modifier.height(32.dp))
 
-            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                LordsItem("Sign L", p.signLord)
-                LordsItem("Star L", p.starLord)
-                LordsItem("Sub L", p.subLord)
-            }
-        }
+        Text("நவாம்ச கட்டம் (Navamsa - D9)", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TraditionalRed)
+        Spacer(Modifier.height(8.dp))
+        SouthIndianGridEnhanced(data.navamsa?.planets ?: emptyList(), "", "Navamsa", birthData, "")
+
+        Spacer(Modifier.height(40.dp))
     }
 }
 
 @Composable
-fun LordsItem(label: String, value: String) {
+fun SouthIndianGridEnhanced(planets: List<Planet>, ascSign: String, title: String, birthData: JSONObject, starName: String) {
+    val signNames = listOf("Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces")
+    val gridMap = listOf(11, 0, 1, 2, 10, -1, -1, 3, 9, -1, -1, 4, 8, 7, 6, 5)
+    val ascIdx = if (ascSign.isNotEmpty()) signNames.indexOf(ascSign) else -1
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .background(ParchmentBase, RoundedCornerShape(4.dp))
+            .border(3.dp, TraditionalRed, RoundedCornerShape(4.dp))
+    ) {
+        // Decorative Borders for boxes
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val cellW = w / 4
+            val cellH = h / 4
+
+            // Perimeter internal lines
+            for (i in 1..3) {
+                drawLine(TraditionalRed, Offset(i * cellW, 0f), Offset(i * cellW, h), strokeWidth = 1.dp.toPx())
+                drawLine(TraditionalRed, Offset(0f, i * cellH), Offset(w, i * cellH), strokeWidth = 1.dp.toPx())
+            }
+
+            // Central Border (Thicker)
+            val centralPadding = 2.dp.toPx()
+            val rectPath = Path().apply {
+                moveTo(cellW + centralPadding, cellH + centralPadding)
+                lineTo(3 * cellW - centralPadding, cellH + centralPadding)
+                lineTo(3 * cellW - centralPadding, 3 * cellH - centralPadding)
+                lineTo(cellW + centralPadding, 3 * cellH - centralPadding)
+                close()
+            }
+            drawPath(rectPath, TraditionalRed, style = Stroke(width = 2.dp.toPx()))
+        }
+
+        // Contents
+        Column(Modifier.fillMaxSize()) {
+            for (row in 0..3) {
+                Row(Modifier.weight(1f)) {
+                    for (col in 0..3) {
+                        val pos = row * 4 + col
+                        val signIdx = gridMap[pos]
+
+                        Box(Modifier.weight(1f).fillMaxHeight()) {
+                            if (signIdx != -1) {
+                                val signEn = signNames[signIdx]
+                                val signNo = signIdx + 1
+                                val occupants = mutableListOf<String>()
+                                if (signEn == ascSign) occupants.add("As")
+                                planets.filter { it.signName == signEn }.forEach { occupants.add(it.name) }
+
+                                Column(Modifier.fillMaxSize().padding(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(signNo.toString(), fontSize = 10.sp, color = TraditionalRed.copy(0.6f), modifier = Modifier.align(Alignment.Start))
+
+                                    Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                                        occupants.forEach { pName ->
+                                            Text(
+                                                text = planetAbbrTamil[pName] ?: pName.take(3),
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if(pName == "As") Color.Blue else Color.Black,
+                                                lineHeight = 14.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            } else if (pos == 5) {
+                                // Central Info Display (Spans 2x2 area 5,6,9,10 but we use box 5 as anchor)
+                                Box(modifier = Modifier.fillMaxSize().offset(x = 0.dp), contentAlignment = Alignment.Center) {
+                                    // Spanning 2 cells
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Overlay central text over the 2x2 hole
+        Box(modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                val dob = "${birthData.optInt("day")}-${getMonthName(birthData.optInt("month"))}-${birthData.optInt("year")}"
+                val tob = String.format("%02d:%02d", birthData.optInt("hour"), birthData.optInt("minute"))
+
+                Text(dob, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Text(tob, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Spacer(Modifier.height(4.dp))
+                Text(title, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = TraditionalRed)
+                if (starName.isNotEmpty()) {
+                    Text(starName, fontSize = 12.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+    }
+}
+
+fun getMonthName(m: Int): String = listOf("", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")[m]
+
+@Composable
+fun PlanetsTab(data: ChartData) {
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item {
+            Text("கிரகங்களின் விரிவான நிலைகள்", fontWeight = FontWeight.Bold, color = TraditionalRed, fontSize = 18.sp)
+            Spacer(Modifier.height(8.dp))
+        }
+
+        items(data.planets) { planet ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = ParchmentBase),
+                elevation = CardDefaults.cardElevation(2.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, TraditionalRed.copy(0.2f))
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(shape = CircleShape, color = TraditionalRed, modifier = Modifier.size(36.dp)) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(planetAbbrTamil[planet.name] ?: planet.name.take(1), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(planetTamil[planet.name] ?: planet.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text("${signTamil[planet.signName] ?: planet.signName} - ${planet.degreeFormatted ?: ""}", fontSize = 12.sp, color = Color.DarkGray)
+                        }
+                        Text("${planet.house}-ம் வீடு", fontWeight = FontWeight.Bold, color = TraditionalRed)
+                    }
+                    Divider(Modifier.padding(vertical = 12.dp), color = TraditionalRed.copy(0.1f))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        PlanetDetailSub("நட்சத்திரம்", planet.nakshatra)
+                        PlanetDetailSub("நட்சத்திர அதிபதி", planet.starLord ?: "N/A")
+                        PlanetDetailSub("உப அதிபதி", planet.subLord ?: "N/A")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PlanetDetailSub(label: String, value: String) {
     Column {
-        Text(label, color = Color.Gray, fontSize = 10.sp)
-        Text(value, color = DarkGreen, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text(label, fontSize = 10.sp, color = Color.Gray)
+        Text(value, fontSize = 12.sp, fontWeight = FontWeight.Medium)
     }
 }
 
 @Composable
-fun DashaCard(dasha: Dasha) {
-    Card(
-        modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = NeumorphicWhite)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text("⏳ CURRENT DASHA", color = DarkGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(10.dp))
-            Text("${dasha.mahadashaName} - ${dasha.bhuktiName}", color = Color.Black, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Text("Antaram: ${dasha.antaramName}", color = Color.DarkGray, fontSize = 14.sp)
-            Spacer(modifier = Modifier.height(12.dp))
-            LinearProgressIndicator(
-                progress = 0.5f,
-                modifier = Modifier.fillMaxWidth().height(8.dp).shadow(2.dp, RoundedCornerShape(4.dp)),
-                color = NeumorphicGreen,
-                trackColor = NeumorphicBg
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Ends: ${dasha.endsAt.take(10)} (${String.format("%.2f", dasha.remainingYearsInCurrentDasha)} Years left)", color = Color.Gray, fontSize = 12.sp)
+fun DashaListTab(mahadashas: List<DashaPeriod>) {
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        item {
+            Box(Modifier.fillMaxWidth().background(TraditionalRed).padding(16.dp)) {
+                Text("விம்ஷோத்தரி தசா புக்தி விபரங்கள்", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        }
+        items(mahadashas) { md ->
+            DashaNodeInternal(md)
         }
     }
 }
 
 @Composable
-fun TransitCard(t: Transit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(12.dp)),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = NeumorphicWhite)
-    ) {
+fun DashaNodeInternal(period: DashaPeriod) {
+    var expanded by remember { mutableStateOf(false) }
+    val hasSub = !period.subPeriods.isNullOrEmpty()
+
+    Column(Modifier.fillMaxWidth().animateContentSize()) {
         Row(
-            modifier = Modifier.padding(12.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = hasSub) { expanded = !expanded }
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(t.name, color = Color.Black, fontWeight = FontWeight.Bold)
-                if (t.isRetrograde) Text("Retrograde", color = Color(0xFFFF5252), fontSize = 10.sp)
+            val levelIndent = (period.level - 1) * 20
+            Spacer(Modifier.width(levelIndent.dp))
+
+            // Icon/Prefix based on level
+            val iconColor = when(period.level) {
+                1 -> TraditionalRed
+                2 -> Color(0xFF2E7D32)
+                3 -> Color(0xFF1976D2)
+                else -> Color.DarkGray
             }
-            Text(t.signName, color = DarkGreen, fontWeight = FontWeight.Medium)
-        }
-    }
-}
 
-@Composable
-fun PanchangaCard(p: Panchanga) {
-    Card(
-        modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = NeumorphicWhite)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            PanchangaItem("Tithi", p.tithi)
-            PanchangaItem("Nakshatra", p.nakshatra)
-            PanchangaItem("Yoga", p.yoga)
-            PanchangaItem("Karana", p.karana)
-        }
-    }
-}
+            Box(Modifier.size(32.dp).background(iconColor.copy(0.1f), CircleShape), contentAlignment = Alignment.Center) {
+                Text(planetAbbrTamil[period.lord] ?: period.lord.take(2), color = iconColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
 
-@Composable
-fun PanchangaItem(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(label, color = Color.Gray, fontSize = 14.sp)
-        Text(value, color = DarkGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-    }
-}
+            Spacer(Modifier.width(12.dp))
 
-@Composable
-fun SouthIndianGrid(planets: List<Planet>, ascSign: String) {
-    val signMap = listOf(
-        "Pisces", "Aries", "Taurus", "Gemini",
-        "Aquarius", "", "", "Cancer",
-        "Capricorn", "", "", "Leo",
-        "Sagittarius", "Scorpio", "Libra", "Virgo"
-    )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = "${planetTamil[period.lord] ?: period.lord} " + when(period.level) {
+                        1 -> "மகா தசை"
+                        2 -> "புக்தி"
+                        3 -> "ஆந்தரம்"
+                        4 -> "பிரத்யந்தரம்"
+                        else -> "சிக்ஷ்ம"
+                    },
+                    fontWeight = if(period.level == 1) FontWeight.Bold else FontWeight.Medium,
+                    fontSize = if(period.level == 1) 16.sp else 14.sp
+                )
+                Text("${period.start.take(10).replace("-", ".")} - ${period.end.take(10).replace("-", ".")}", fontSize = 11.sp, color = Color.Gray)
+            }
 
-    Card(
-        modifier = Modifier.fillMaxWidth().aspectRatio(1f).shadow(12.dp, RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = NeumorphicWhite)
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            for (row in 0..3) {
-                Row(modifier = Modifier.weight(1f)) {
-                    for (col in 0..3) {
-                        val index = row * 4 + col
-                        val sign = signMap[index]
-
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .border(0.5.dp, NeumorphicBg),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (sign.isNotEmpty()) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(sign.take(3), fontSize = 10.sp, color = DarkGreen.copy(alpha = 0.5f))
-                                    val inSign = mutableListOf<String>()
-                                    if (sign == ascSign) inSign.add("Asc")
-                                    planets.filter { it.signName == sign }.forEach { inSign.add(it.name.take(2)) }
-
-                                    inSign.chunked(2).forEach { pair ->
-                                        Text(pair.joinToString(" "), fontSize = 12.sp, color = DarkGreen, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            } else if (index == 5) {
-                                Text("🕉️", fontSize = 24.sp, color = NeumorphicGreen)
-                            }
-                        }
-                    }
-                }
+            if (hasSub) {
+                Icon(
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = Color.Gray
+                )
             }
         }
-    }
-}
 
-@Composable
-fun NavamsaGrid(navamsa: NavamsaData) {
-    val signMap = listOf(
-        "Pisces", "Aries", "Taurus", "Gemini",
-        "Aquarius", "", "", "Cancer",
-        "Capricorn", "", "", "Leo",
-        "Sagittarius", "Scorpio", "Libra", "Virgo"
-    )
-
-    Card(
-        modifier = Modifier.fillMaxWidth().aspectRatio(1f).shadow(12.dp, RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = NeumorphicWhite)
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            for (row in 0..3) {
-                Row(modifier = Modifier.weight(1f)) {
-                    for (col in 0..3) {
-                        val index = row * 4 + col
-                        val sign = signMap[index]
-
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .border(0.5.dp, NeumorphicBg),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (sign.isNotEmpty()) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(sign.take(3), fontSize = 10.sp, color = DarkGreen.copy(alpha = 0.5f))
-                                    val inSign = navamsa.planets.filter { it.value == sign }.map { it.key.take(2) }
-
-                                    inSign.chunked(2).forEach { pair ->
-                                        Text(pair.joinToString(" "), fontSize = 12.sp, color = DarkGreen, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            } else if (index == 6) {
-                                Text("Navamsa", fontSize = 12.sp, color = NeumorphicGreen.copy(alpha = 0.7f))
-                            }
-                        }
-                    }
-                }
+        if (expanded && hasSub) {
+            period.subPeriods?.forEach { child ->
+                DashaNodeInternal(child)
             }
+            Divider(Modifier.padding(start = ((period.level) * 20).dp), color = Color.Gray.copy(0.1f))
+        }
+        if (period.level == 1) {
+            Divider(color = Color.LightGray.copy(0.4f))
         }
     }
 }
 
-// --- Network Helper ---
 private suspend fun fetchFullChart(birthData: JSONObject): ChartData? = withContext(Dispatchers.IO) {
     try {
-        val dateStr = String.format("%04d-%02d-%02d", birthData.optInt("year"), birthData.optInt("month"), birthData.optInt("day"))
-        val timeStr = String.format("%02d:%02d", birthData.optInt("hour"), birthData.optInt("minute"))
-
         val payload = com.google.gson.JsonObject().apply {
-            addProperty("date", dateStr)
-            addProperty("time", timeStr)
+            addProperty("date", String.format("%04d-%02d-%02d", birthData.optInt("year"), birthData.optInt("month"), birthData.optInt("day")))
+            addProperty("time", String.format("%02d:%02d", birthData.optInt("hour"), birthData.optInt("minute")))
             addProperty("lat", birthData.optDouble("latitude"))
             addProperty("lng", birthData.optDouble("longitude"))
             addProperty("timezone", birthData.optDouble("timezone", 5.5))
         }
 
-        val api = com.astro5star.app.data.api.ApiClient.api
-        val response = api.getRasiEngBirthChart(payload)
-
+        val response = com.astro5star.app.data.api.ApiClient.api.getRasiEngBirthChart(payload)
         if (response.isSuccessful && response.body() != null) {
-            val gson = Gson()
-            val chartResponse = gson.fromJson(response.body().toString(), ChartResponse::class.java)
-            if (chartResponse.success) {
-                return@withContext chartResponse.data
-            }
+            val chartResponse = Gson().fromJson(response.body().toString(), ChartResponse::class.java)
+            if (chartResponse.success) return@withContext chartResponse.data
         }
         null
     } catch (e: Exception) {
