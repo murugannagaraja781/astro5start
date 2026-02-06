@@ -42,7 +42,11 @@ import com.astro5star.app.data.remote.SocketManager
 import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.data.model.AuthResponse
 import com.astro5star.app.ui.theme.CosmicAppTheme
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.webrtc.*
 import java.util.LinkedList

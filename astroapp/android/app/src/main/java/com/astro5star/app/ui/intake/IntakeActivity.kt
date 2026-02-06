@@ -408,7 +408,10 @@ fun IntakeScreen(
         }
 
         // Validation for Match - Partner details required
-        if (callType == "match" && includePartner) {
+        if (callType == "match") {
+            // Force true if it's a match call
+            includePartner = true
+
             if (pName.isBlank()) {
                 Toast.makeText(context, "Partner name required / துணைவர் பெயர் தேவை", Toast.LENGTH_SHORT).show()
                 return
@@ -679,8 +682,13 @@ fun IntakeScreen(
                 Divider()
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                if (callType != "match") {
                      Checkbox(checked = includePartner, onCheckedChange = { includePartner = it })
-                     Text("Enter Partner's Details", fontWeight = FontWeight.Bold)
+                     Text("Include Partner Details / துணைவர் விவரங்களைச் சேர்க்கவும்", modifier = Modifier.padding(start = 8.dp))
+                } else {
+                     // For match, always include
+                     Text("Partner Details / துணைவர் விவரங்கள்", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE))
+                }
                 }
 
                 if (includePartner) {

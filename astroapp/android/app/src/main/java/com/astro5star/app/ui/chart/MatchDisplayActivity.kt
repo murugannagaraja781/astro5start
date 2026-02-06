@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.astro5star.app.data.api.ApiClient
 import com.astro5star.app.ui.theme.CosmicAppTheme
@@ -120,13 +121,13 @@ class MatchDisplayActivity : ComponentActivity() {
                 android.util.Log.d("MatchDisplay", "API Response: ${jsonResponse.take(200)}")
                 generateMatchHtml(jsonResponse)
             } else {
-                android.util.Log.e("MatchDisplay", "API Error: ${response.code()} - ${response.errorBody()?.string()}")
-                null
+                val errorMsg = response.errorBody()?.string() ?: "Unknown API Error"
+                android.util.Log.e("MatchDisplay", "API Error: ${response.code()} - $errorMsg")
+                "ERROR: API returned ${response.code()}: $errorMsg"
             }
         } catch (e: Exception) {
-            android.util.Log.e("MatchDisplay", "Exception: ${e.message}", e)
-            e.printStackTrace()
-            null
+            android.util.Log.e("MatchDisplay", "Exception during fetch: ${e.message}", e)
+            "ERROR: ${e.localizedMessage ?: "Unknown Exception"}"
         }
     }
 
@@ -293,11 +294,12 @@ fun MatchDisplayScreen(
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (failed) {
+            } else if (failed || htmlContent?.startsWith("ERROR:") == true) {
                  Text(
-                     text = "Failed to load match data.",
+                     text = htmlContent ?: "Failed to load match data.",
                      color = Color.Red,
-                     modifier = Modifier.align(Alignment.Center)
+                     modifier = Modifier.align(Alignment.Center).padding(16.dp),
+                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                  )
             } else if (htmlContent != null) {
                  AndroidView(

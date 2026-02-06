@@ -11,10 +11,21 @@ router.post('/', (req, res) => {
     try {
         let { girlData, boyData, ayanamsa = 'KP (Krishnamurti)' } = req.body;
 
+        if (!girlData || !boyData) {
+            return res.status(400).json({ error: 'Both girlData and boyData are required' });
+        }
+
         const processProfile = (profile) => {
             if (profile.planets && profile.houses) return profile;
 
+            if (!profile.dob) {
+                throw new Error(`Date of birth missing for ${profile.name || 'profile'}`);
+            }
+
             const dt = DateTime.fromFormat(`${profile.dob} ${profile.tob || '12:00'}`, 'yyyy-MM-dd HH:mm');
+            if (!dt.isValid) {
+                throw new Error(`Invalid date/time format for ${profile.name || 'profile'}: ${profile.dob} ${profile.tob}`);
+            }
             const utc = dt.toUTC();
             const jd = swissEph.julday(utc.year, utc.month, utc.day, utc.hour + utc.minute / 60);
 
