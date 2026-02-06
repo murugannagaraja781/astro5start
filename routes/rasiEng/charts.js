@@ -105,23 +105,26 @@ router.post('/full', async (req, res) => {
         const tamilDateData = await getTamilDate(dt, ayanamsa);
 
         // Calculate Navamsa Data
-        const navamsaPlanets = {};
-        planets.forEach(p => {
+        const navamsaPlanets = planets.map(p => {
             const { getNavamsaSign } = require('../../utils/rasiEng/calculations');
-            navamsaPlanets[p.name] = getNavamsaSign(p.longitude);
+            return {
+                name: p.name,
+                signName: getNavamsaSign(p.longitude)
+            };
         });
+
+        const { getVimshottariDasha } = require('../../utils/rasiEng/dashaCalculations');
+        const moonLon = moon ? moon.longitude : 0;
+        const dashaPeriods = getVimshottariDasha(moonLon, dt);
 
         const chartData = {
             planets,
             houses,
             panchanga: {
-                tithi: panchanga.tithi.name,
-                nakshatra: panchanga.nakshatra.name,
-                yoga: panchanga.yoga.name,
-                karana: panchanga.karana.name,
+                ...panchanga,
                 ...muhurtas
             },
-            dasha: dashaInfo, // Send object instead of array
+            dasha: dashaPeriods, // Now list of objects
             transits,
             tamilDate: tamilDateData,
             navamsa: { planets: navamsaPlanets }
@@ -129,7 +132,7 @@ router.post('/full', async (req, res) => {
 
         res.json({
             success: true,
-            version: "v5.2",
+            version: "v5.3",
             data: chartData
         });
     } catch (error) {
