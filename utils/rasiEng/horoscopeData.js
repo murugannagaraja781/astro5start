@@ -2,7 +2,7 @@
 const fetch = require('node-fetch');
 const { DateTime } = require('luxon');
 
-const BASE_URL = 'https://raw.githubusercontent.com/abinash818/daily-horoscope-data/11d1811fc28c52297c82d37ed7f0e8f0f70f2ab9/data';
+const BASE_URL = 'https://raw.githubusercontent.com/abinash818/daily-horoscope-data/main/data';
 
 // Simple in-memory cache
 const cache = new Map();
