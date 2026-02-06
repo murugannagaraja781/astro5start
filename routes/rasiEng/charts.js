@@ -129,7 +129,7 @@ router.post('/full', async (req, res) => {
 
         res.json({
             success: true,
-            version: "v5.1",
+            version: "v5.2",
             data: chartData
         });
     } catch (error) {
