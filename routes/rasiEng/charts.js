@@ -113,9 +113,18 @@ router.post('/full', async (req, res) => {
             };
         });
 
-        const { getVimshottariDasha } = require('../../utils/rasiEng/dashaCalculations');
+        const { getVimshottariDasha, getSubPeriods } = require('../../utils/rasiEng/dashaCalculations');
         const moonLon = moon ? moon.longitude : 0;
         const dashaPeriods = getVimshottariDasha(moonLon, dt);
+
+        // Add one level of nesting (Bhuktis)
+        const detailedDasha = dashaPeriods.map(md => {
+            const bhuktis = getSubPeriods(md.start, md.end, md.lord, 1);
+            return {
+                ...md,
+                subPeriods: bhuktis
+            };
+        });
 
         const chartData = {
             planets,
@@ -124,7 +133,7 @@ router.post('/full', async (req, res) => {
                 ...panchanga,
                 ...muhurtas
             },
-            dasha: dashaPeriods, // Now list of objects
+            dasha: detailedDasha, // Now includes subPeriods
             transits,
             tamilDate: tamilDateData,
             navamsa: { planets: navamsaPlanets }
@@ -132,7 +141,7 @@ router.post('/full', async (req, res) => {
 
         res.json({
             success: true,
-            version: "v5.3",
+            version: "v5.4",
             data: chartData
         });
     } catch (error) {
