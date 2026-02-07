@@ -2,6 +2,9 @@ package com.astro5star.app.ui.astro
 
 import android.content.Intent
 import android.media.MediaPlayer
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.io.File
 import android.net.Uri
 import androidx.core.content.FileProvider
@@ -110,8 +113,34 @@ class AstrologerDashboardActivity : ComponentActivity() {
                 put("isOnline", isOnline)
             }
             SocketManager.getSocket()?.emit("update-status", data)
+
+            // Sync with DB Reliable API as well
+            lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    val client = okhttp3.OkHttpClient()
+                    val body = okhttp3.RequestBody.create(
+                        okhttp3.MediaType.get("application/json"),
+                        JSONObject().apply {
+                            put("userId", session.userId)
+                            put("available", isOnline)
+                        }.toString()
+                    )
+                    val request = okhttp3.Request.Builder()
+                        .url("https://astro5star.com/api/astrologer/online")
+                        .post(body)
+                        .build()
+                    client.newCall(request).execute()
+
+                    if (!isOnline) {
+                        SocketManager.disconnect()
+                    } else {
+                        SocketManager.init()
+                        SocketManager.registerUser(session.userId)
+                    }
+                } catch (e: Exception) { e.printStackTrace() }
+            }
         }
-        Toast.makeText(this, if(isOnline) "You are Online" else "You are Offline", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, if(isOnline) "You are now ONLINE" else "You are now OFFLINE", Toast.LENGTH_SHORT).show()
     }
 
     private fun showWithdrawDialog() {
@@ -122,7 +151,13 @@ class AstrologerDashboardActivity : ComponentActivity() {
 
     private fun setupSocket(userId: String?) {
         SocketManager.init()
-        if (userId != null) SocketManager.registerUser(userId)
+        if (userId != null) {
+            SocketManager.registerUser(userId) { success ->
+                if (success) {
+                    // Status is managed by DB flag on server
+                }
+            }
+        }
         val socket = SocketManager.getSocket()
         socket?.connect()
 
@@ -218,12 +253,17 @@ fun AstrologerDashboardScreen(
     onToggleOnline: (Boolean) -> Unit
 ) {
     var walletBalance by remember { mutableDoubleStateOf(initialWallet) }
-    var isOnline by remember { mutableStateOf(false) }
+    var isOnline by remember { mutableStateOf(false) } // This will be our 'isAvailable' state
+
+    // NEW: Local Today's Progress Logic
+    val tokenManager = remember { TokenManager(context) }
+    var todayProgress by remember { mutableIntStateOf(tokenManager.getDailyProgress()) }
+
     val services = remember {
         mutableStateListOf(
-            ServiceData("Chat", false, Icons.Default.Chat),
-            ServiceData("Call", false, Icons.Default.Call),
-            ServiceData("Video", false, Icons.Default.Person)
+            ServiceData("Chat", true, Icons.Default.Chat),
+            ServiceData("Call", true, Icons.Default.Call),
+            ServiceData("Video", true, Icons.Default.Person)
         )
     }
     val context = LocalContext.current
@@ -245,6 +285,13 @@ fun AstrologerDashboardScreen(
                 if (response.isSuccessful) {
                     val json = JSONObject(response.body?.string() ?: "{}")
                     walletBalance = json.optDouble("walletBalance", walletBalance)
+                    val available = json.optBoolean("isAvailable", isOnline)
+                    isOnline = available
+
+                    if (available) {
+                         SocketManager.init()
+                         SocketManager.registerUser(sessionId)
+                    }
                 }
 
                 SocketManager.getMyWithdrawals { list ->
@@ -258,26 +305,25 @@ fun AstrologerDashboardScreen(
 
     // Fetch latest balance on load
     LaunchedEffect(Unit) {
-        refreshBalanceAndHistory()
-        // Update Toggle States from Server
-        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            try {
-                val client = okhttp3.OkHttpClient()
-                val request = okhttp3.Request.Builder()
-                    .url("https://astro5star.com/api/user/${sessionId}")
-                    .build()
-                val response = client.newCall(request).execute()
-                if(response.isSuccessful) {
-                    val json = JSONObject(response.body?.string() ?: "{}")
-                    val chatOn = json.optBoolean("isChatOnline", false)
-                    val callOn = json.optBoolean("isAudioOnline", false)
-                    val videoOn = json.optBoolean("isVideoOnline", false)
-                    services[0] = services[0].copy(isEnabled = chatOn)
-                    services[1] = services[1].copy(isEnabled = callOn)
-                    services[2] = services[2].copy(isEnabled = videoOn)
-                }
-            } catch(e: Exception) {}
+        // Daily Progress Logic
+        val sdf = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+        val currentDate = sdf.format(Date())
+        val lastDate = tokenManager.getLastDate()
+
+        if (currentDate != lastDate) {
+            // New Day! Reset and set initial increment
+            todayProgress = 5
+            tokenManager.setLastDate(currentDate)
+        } else {
+            // Same Day! Increment progress (e.g., +5% per open)
+            if (todayProgress < 100) {
+                todayProgress += 5
+            }
         }
+        tokenManager.setDailyProgress(todayProgress)
+
+        refreshBalanceAndHistory()
+        // Availability and Status are fetched from DB in refreshBalanceAndHistory()
     }
 
     if (showWithdrawDialog) {
@@ -346,24 +392,92 @@ fun AstrologerDashboardScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val colors = CosmicAppTheme.colors
-                // Avatar
+                // Skeuomorphic Avatar
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(56.dp)
                         .clip(CircleShape)
-                        .background(colors.cardBg)
-                        .border(1.dp, colors.accent, CircleShape),
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(Color.White, colors.cardBg),
+                                center = Offset(20f, 20f)
+                            )
+                        )
+                        .border(
+                           BorderStroke(
+                               2.dp,
+                               Brush.linearGradient(
+                                   colors = listOf(Color.White.copy(alpha = 0.9f), colors.accent.copy(alpha = 0.4f))
+                               )
+                           ),
+                           CircleShape
+                        )
+                        .shadow(4.dp, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(sessionName.take(1), color = colors.accent, fontWeight = FontWeight.Bold)
+                    Text(
+                        sessionName.take(1),
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp
+                    )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(sessionName, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.textPrimary)
-                    Text("ID: $sessionId", fontSize = 12.sp, color = colors.textSecondary)
+                    Text(
+                        sessionName,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp,
+                        color = Color.White,
+                        style = androidx.compose.ui.text.TextStyle(
+                            shadow = androidx.compose.ui.graphics.Shadow(
+                                color = Color.Black.copy(alpha = 0.3f),
+                                offset = Offset(2f, 2f),
+                                blurRadius = 4f
+                            )
+                        )
+                    )
+                    // ID Removed as requested
                 }
-                IconButton(onClick = {}) { Icon(Icons.Default.Notifications, null, tint = colors.accent) }
-                IconButton(onClick = onLogout) { Icon(Icons.Default.ExitToApp, null, tint = Color.White) }
+                IconButton(
+                    onClick = {},
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.1f))
+                        .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape)
+                ) {
+                    Icon(Icons.Default.Notifications, null, tint = Color.White)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(
+                    onClick = onLogout,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.1f))
+                        .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape)
+                ) {
+                    Icon(Icons.Default.ExitToApp, null, tint = Color.White)
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // Master Online/Offline Toggle
+                Switch(
+                    checked = isOnline,
+                    onCheckedChange = { checked ->
+                        isOnline = checked
+                        onToggleOnline(checked)
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = Color(0xFF4CAF50), // Green for online
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = Color.Red.copy(alpha = 0.5f) // Red for offline
+                    ),
+                    modifier = Modifier.scale(0.8f)
+                )
             }
         }
     ) { padding ->
@@ -378,48 +492,91 @@ fun AstrologerDashboardScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Emergency Banner
+            // 1. Emergency Banner (Skeuomorphic)
             Card(
                 colors = CardDefaults.cardColors(containerColor = colors.headerStart),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth(),
-                border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.5f))
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(16.dp)),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Online for Emergency!", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text("Boost your earnings with emergency sessions.", color = Color.White.copy(alpha=0.9f), fontSize = 12.sp)
+                Column(
+                    modifier = Modifier
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(colors.headerStart, colors.headerEnd.copy(alpha = 0.8f))
+                            )
+                        )
+                        .padding(20.dp)
+                ) {
+                    Text("Online for Emergency!", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                    Text("Boost your earnings with emergency sessions.", color = Color.White.copy(alpha=0.9f), fontSize = 13.sp)
                 }
             }
 
-            // 2. Earnings Card
+            // 2. Earnings Card (Skeuomorphic)
             Card(
                 colors = CardDefaults.cardColors(containerColor = colors.cardBg),
-                shape = CosmicShapes.CardShape,
-                modifier = Modifier.fillMaxWidth(),
-                border = BorderStroke(1.dp, colors.cardStroke),
-                elevation = CardDefaults.cardElevation(8.dp)
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(12.dp, RoundedCornerShape(24.dp), spotColor = colors.accent.copy(alpha = 0.2f)),
+                border = BorderStroke(
+                    2.dp,
+                    Brush.linearGradient(
+                        colors = listOf(Color.White, colors.cardStroke.copy(alpha = 0.3f))
+                    )
+                )
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text("Total Earnings", color = colors.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(16.dp))
+                Column(
+                    modifier = Modifier
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(Color(0xFFFFFFFF), Color(0xFFE1F5FE), Color(0xFFB3E5FC)),
+                                start = Offset(0f, 0f),
+                                end = Offset.Infinite
+                            )
+                        )
+                        .padding(24.dp)
+                ) {
+                    Text("Total Earnings", color = colors.textSecondary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Display Dynamic Balance
+                        // Display Dynamic Balance with Depth
                         Text(
                             text = "₹${String.format("%.2f", walletBalance)}",
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                            color = colors.accent
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = colors.accent,
+                            style = androidx.compose.ui.text.TextStyle(
+                                shadow = androidx.compose.ui.graphics.Shadow(
+                                    color = colors.accent.copy(alpha = 0.2f),
+                                    offset = Offset(2f, 2f),
+                                    blurRadius = 8f
+                                )
+                            )
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         Button(
                             onClick = { showWithdrawDialog = true },
                             colors = ButtonDefaults.buttonColors(containerColor = colors.accent),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 6.dp,
+                                pressedElevation = 2.dp
+                            ),
+                            modifier = Modifier.border(
+                                1.dp,
+                                Brush.linearGradient(listOf(Color.White.copy(alpha = 0.5f), Color.Transparent)),
+                                RoundedCornerShape(12.dp)
+                            )
                         ) {
-                            Text("Withdraw", color = colors.bgStart, fontWeight = FontWeight.Bold)
+                            Text("Withdraw", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Min. ₹500 to Withdraw", color = colors.textSecondary, fontSize = 11.sp)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Divider(color = colors.cardStroke.copy(alpha = 0.1f))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Min. ₹500 to Withdraw", color = colors.textSecondary.copy(alpha = 0.6f), fontSize = 11.sp, fontWeight = FontWeight.Light)
                 }
             }
 
@@ -471,31 +628,47 @@ fun AstrologerDashboardScreen(
                 }
             }
 
-            // 3. Today's Progress
+            // 3. Today's Progress (Skeuomorphic)
             Card(
                 colors = CardDefaults.cardColors(containerColor = colors.cardBg),
-                shape = CosmicShapes.CardShape,
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(2.dp),
-                border = BorderStroke(1.dp, colors.cardStroke)
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(20.dp)),
+                border = BorderStroke(1.dp, colors.cardStroke.copy(alpha = 0.2f))
             ) {
                 Row(
-                   modifier = Modifier.padding(16.dp),
+                   modifier = Modifier
+                       .background(
+                           Brush.verticalGradient(
+                               colors = listOf(Color.White, colors.cardBg)
+                           )
+                       )
+                       .padding(20.dp),
                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Today's Progress", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.textPrimary)
-                        Text("0 hours left to complete target", fontSize = 12.sp, color = colors.textSecondary)
+                        Text("Today's Progress", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = colors.textPrimary)
+                        val totalHours = 12.0
+                        val completedHours = (todayProgress / 100.0) * totalHours
+                        Text("$todayProgress% completed (${String.format("%.1f", completedHours)} hours)", fontSize = 12.sp, color = colors.textSecondary)
                     }
                     Box(contentAlignment = Alignment.Center) {
-                         CircularProgressIndicator(progress = 0f, trackColor = colors.bgEnd, color = colors.accent, modifier = Modifier.size(50.dp))
-                         Text("0m", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                         CircularProgressIndicator(
+                             progress = todayProgress / 100f,
+                             trackColor = colors.bgEnd,
+                             color = colors.accent,
+                             modifier = Modifier.size(54.dp),
+                             strokeWidth = 6.dp
+                         )
+                         Text("$todayProgress%", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = colors.textPrimary)
                     }
                 }
             }
 
-            // 3b. Service Availability Toggles
-            ServiceToggleRow(sessionId, services)
+            // 3b. Global Availability Toggle
+            AvailabilityCard(sessionId, isOnline) { checked ->
+                isOnline = checked
+                onToggleOnline(checked)
+            }
 
             // 4. Action Grid - Custom Row-based Layout to work inside verticalScroll
             val actions = listOf(
@@ -516,11 +689,16 @@ fun AstrologerDashboardScreen(
                         rowItems.forEach { (label, icon) ->
                              Card(
                                  colors = CardDefaults.cardColors(containerColor = colors.cardBg),
-                                 shape = RoundedCornerShape(12.dp),
-                                 elevation = CardDefaults.cardElevation(2.dp),
-                                 border = BorderStroke(1.dp, colors.cardStroke),
+                                 shape = RoundedCornerShape(20.dp),
                                  modifier = Modifier
-                                     .weight(1f) // Distribute width equally
+                                     .weight(1f)
+                                     .aspectRatio(1f)
+                                     .shadow(6.dp, RoundedCornerShape(20.dp))
+                                     .border(
+                                         1.dp,
+                                         Brush.linearGradient(listOf(Color.White, Color.Transparent)),
+                                         RoundedCornerShape(20.dp)
+                                     )
                                      .clickable {
                                          when (label) {
                                              "Call" -> showRecordingsDialog(context)
@@ -530,19 +708,37 @@ fun AstrologerDashboardScreen(
                                          }
                                      }
                              ) {
-
                                  Column(
-                                     modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                                     horizontalAlignment = Alignment.CenterHorizontally
+                                     modifier = Modifier
+                                         .fillMaxSize()
+                                         .background(
+                                             Brush.linearGradient(
+                                                 colors = listOf(Color.White, Color(0xFFF0F7FF)),
+                                                 start = Offset(0f, 0f),
+                                                 end = Offset(100f, 100f)
+                                             )
+                                         )
+                                         .padding(12.dp),
+                                     horizontalAlignment = Alignment.CenterHorizontally,
+                                     verticalArrangement = Arrangement.Center
                                  ) {
                                      Box(
-                                         modifier = Modifier.size(40.dp).background(colors.bgEnd, CircleShape),
+                                         modifier = Modifier
+                                             .size(44.dp)
+                                             .shadow(4.dp, CircleShape)
+                                             .background(
+                                                 Brush.radialGradient(
+                                                     colors = listOf(Color.White, colors.bgEnd),
+                                                     center = Offset(15f, 15f)
+                                                 ),
+                                                 CircleShape
+                                             ),
                                          contentAlignment = Alignment.Center
                                      ) {
-                                         Icon(icon, null, tint = colors.accent)
+                                         Icon(icon, null, tint = colors.accent, modifier = Modifier.size(24.dp))
                                      }
-                                     Spacer(modifier = Modifier.height(8.dp))
-                                     Text(label, fontSize = 12.sp, color = colors.textPrimary)
+                                     Spacer(modifier = Modifier.height(10.dp))
+                                     Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
                                  }
                              }
                         }
@@ -567,65 +763,53 @@ fun AstrologerDashboardScreen(
 }
 
 @Composable
-fun ServiceToggleRow(userId: String, services: SnapshotStateList<ServiceData>) {
+@Composable
+fun AvailabilityCard(userId: String, isOnline: Boolean, onToggle: (Boolean) -> Unit) {
+    val colors = CosmicAppTheme.colors
     Card(
-        colors = CardDefaults.cardColors(containerColor = CosmicColors.CardBg),
-        shape = CosmicShapes.CardShape,
-        modifier = Modifier.fillMaxWidth(),
-        border = BorderStroke(1.dp, CosmicColors.CardStroke),
-        elevation = CardDefaults.cardElevation(2.dp)
+        colors = CardDefaults.cardColors(containerColor = colors.cardBg),
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(24.dp)),
+        border = BorderStroke(1.dp, colors.cardStroke.copy(alpha = 0.2f))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Service Availability", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = CosmicColors.TextPrimary)
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                services.forEachIndexed { index, service ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(
-                            modifier = Modifier
-                                .size(50.dp)
-                                .border(
-                                    width = 2.dp,
-                                    color = if (service.isEnabled) CosmicColors.GoldAccent else CosmicColors.BgEnd,
-                                    shape = CircleShape
-                                )
-                                .background(
-                                    color = if (service.isEnabled) CosmicColors.GoldAccent.copy(alpha = 0.1f) else Color.Transparent,
-                                    shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = service.icon,
-                                contentDescription = service.name,
-                                tint = if (service.isEnabled) CosmicColors.GoldAccent else Color.Gray
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(service.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = CosmicColors.TextPrimary)
-                        Switch(
-                            checked = service.isEnabled,
-                            onCheckedChange = { isChecked ->
-                                // Update State Immediately
-                                services[index] = service.copy(isEnabled = isChecked)
-                                // Send Update to Server
-                                SocketManager.updateServiceStatus(userId, service.name.lowercase(), isChecked)
-                            },
-                            enabled = true,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = CosmicColors.GoldAccent,
-                                checkedTrackColor = CosmicColors.BgEnd,
-                                uncheckedThumbColor = Color.Gray,
-                                uncheckedTrackColor = CosmicColors.BgStart
-                            ),
-                            modifier = Modifier.scale(0.8f).height(30.dp)
-                        )
-                    }
-                }
+        Row(
+            modifier = Modifier
+                .background(
+                    Brush.linearGradient(
+                        colors = if (isOnline)
+                            listOf(Color(0xFFE8F5E9), Color(0xFFC8E6C9), Color(0xFFA5D6A7)) // Vibrant Green Liquid
+                            else listOf(Color(0xFFFFEBEE), Color(0xFFFFCDD2), Color(0xFFEF9A9A)), // Vibrant Red Liquid
+                        start = Offset(0f, 0f),
+                        end = Offset.Infinite
+                    )
+                )
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    if (isOnline) "You are ONLINE" else "You are OFFLINE",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 18.sp,
+                    color = if (isOnline) Color(0xFF2E7D32) else Color(0xFFC62828)
+                )
+                Text(
+                    if (isOnline) "Visible to clients for calls/chat" else "Tap toggle to start accepting calls",
+                    fontSize = 13.sp,
+                    color = colors.textSecondary
+                )
             }
+            Switch(
+                checked = isOnline,
+                onCheckedChange = { onToggle(it) },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = Color(0xFF4CAF50),
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color.Red.copy(alpha = 0.5f)
+                ),
+                modifier = Modifier.scale(1.2f)
+            )
         }
     }
 }

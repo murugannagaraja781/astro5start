@@ -566,6 +566,7 @@ app.get('/api/user/:userId', async (req, res) => {
       role: user.role,
       walletBalance: user.walletBalance,
       isOnline: user.isOnline,
+      isAvailable: user.isAvailable, // Phase 2: Reliable Calling
       totalEarnings: user.totalEarnings || 0,
       image: user.image
     });
@@ -1515,27 +1516,18 @@ io.on('connection', (socket) => {
           // Current logic uses userSockets.get(userId) to target, so updating the map is sufficient.
         }
 
-        // If astro, handle reconnection status restoration
+        // If astro, broadcast status
         if (user.role === 'astrologer') {
-          // Cancel pending offline timeout (Status)
+          // Cancel pending offline timeout (if any - though we will remove the timeout logic)
           if (offlineTimeouts.has(userId)) {
             clearTimeout(offlineTimeouts.get(userId));
             offlineTimeouts.delete(userId);
-            console.log(`[Status] Cancelled pending offline for ${user.name} (reconnected)`);
           }
 
-          // Restore saved status if available
-          const saved = savedAstroStatus.get(userId);
-          if (saved && Date.now() - saved.timestamp < OFFLINE_GRACE_PERIOD * 2) {
-            user.isChatOnline = saved.chat;
-            user.isAudioOnline = saved.audio;
-            user.isVideoOnline = saved.video;
-            user.isOnline = saved.chat || saved.audio || saved.video;
-            user.save().then(() => {
-              console.log(`[Status] Restored ${user.name} status: chat=${saved.chat}, audio=${saved.audio}, video=${saved.video}`);
-              broadcastAstroUpdate();
-            });
-            savedAstroStatus.delete(userId);
+          // Re-sync online status if isAvailable is true
+          if (user.isAvailable) {
+            user.isOnline = true;
+            user.save().then(() => broadcastAstroUpdate());
           } else {
             broadcastAstroUpdate();
           }
@@ -1631,9 +1623,8 @@ io.on('connection', (socket) => {
       let user = await User.findOne({ userId });
       if (user) {
         Object.assign(user, update);
-        // Recalculate global online status
-        user.isOnline = user.isChatOnline || user.isAudioOnline || user.isVideoOnline;
-        user.isAvailable = user.isOnline;
+        // Manual Toggle Rule: isAvailable is the master status
+        user.isOnline = user.isAvailable;
         user.lastSeen = new Date();
         await user.save();
 
@@ -1757,10 +1748,8 @@ io.on('connection', (socket) => {
         return cb({ ok: false, error: 'User not found' });
       }
 
-      // Check if astrologer is available (NOT socket-based!)
-      // Use isAvailable (manual toggle) OR check lastSeen within grace period
-      const isRecentlyActive = toUser.lastSeen && (Date.now() - new Date(toUser.lastSeen).getTime() < OFFLINE_GRACE_PERIOD);
-      const isAvailable = toUser.isAvailable || (toUser.isOnline && isRecentlyActive);
+      // Check if astrologer is available (MANUAL ONLY)
+      const isAvailable = toUser.isAvailable === true;
 
       // ALLOW CALL even if offline -> Logic will fall back to FCM below
       // if (!isAvailable) {
@@ -1864,6 +1853,21 @@ io.on('connection', (socket) => {
 
       console.log(`Session request: ${sessionId} (${type})`);
       cb({ ok: true, sessionId });
+
+      // --- MISSED CALL TIMEOUT (25s) ---
+      setTimeout(async () => {
+        const s = activeSessions.get(sessionId);
+        if (s && s.status === 'ringing') {
+          console.log(`[Session] Ringing timeout for ${sessionId}. Marking as MISSED.`);
+          io.to(fromUserId).emit('session-ended', { sessionId, reason: 'no_answer' });
+          io.to(toUserId).emit('session-ended', { sessionId, reason: 'missed' });
+
+          userActiveSession.delete(fromUserId);
+          userActiveSession.delete(toUserId);
+          activeSessions.delete(sessionId);
+          await Session.updateOne({ sessionId }, { status: 'missed', endTime: Date.now() }).catch(() => { });
+        }
+      }, 25000);
     } catch (err) {
       console.error('request-session error', err);
       cb({ ok: false, error: 'Internal error' });
@@ -2859,50 +2863,8 @@ io.on('connection', (socket) => {
         const user = await User.findOne({ userId });
         if (user && user.role === 'astrologer') {
           // Save current status before potential offline
-          savedAstroStatus.set(userId, {
-            chat: user.isChatOnline,
-            audio: user.isAudioOnline,
-            video: user.isVideoOnline,
-            timestamp: Date.now()
-          });
+          return; // Manual Toggle Rule: Skip offline marking
 
-          console.log(`[Status] Astrologer ${user.name} disconnected - starting ${OFFLINE_GRACE_PERIOD / 1000}s grace period`);
-
-          // Clear any existing timeout
-          if (offlineTimeouts.has(userId)) {
-            clearTimeout(offlineTimeouts.get(userId));
-          }
-
-          // Set new timeout - only mark offline if still disconnected after grace period
-          const timeoutId = setTimeout(async () => {
-            try {
-              // Check if user reconnected
-              if (!userSockets.has(userId)) {
-                const astro = await User.findOne({ userId });
-                if (astro && astro.role === 'astrologer') {
-                  const anyServiceOnline = astro.isChatOnline || astro.isAudioOnline || astro.isVideoOnline;
-                  if (!anyServiceOnline) {
-                    astro.isOnline = false;
-                    await astro.save();
-                    broadcastAstroUpdate();
-                    console.log(`[Status] Astrologer ${astro.name} marked offline after grace period (all toggles off)`);
-                  } else {
-                    astro.isOnline = true; // Stay ONLINE for clients if toggles are still on
-                    await astro.save();
-                    console.log(`[Status] Astrologer ${astro.name} remains ONLINE due to active toggles after disconnect`);
-                  }
-                }
-                savedAstroStatus.delete(userId);
-              } else {
-                console.log(`[Status] Astrologer ${userId} reconnected before grace period ended`);
-              }
-              offlineTimeouts.delete(userId);
-            } catch (err) {
-              console.error('[Status] Grace period timeout error:', err);
-            }
-          }, OFFLINE_GRACE_PERIOD);
-
-          offlineTimeouts.set(userId, timeoutId);
         }
       } catch (e) { console.error('Disconnect DB error', e); }
 
@@ -2961,17 +2923,22 @@ app.post('/api/astrologer/online', async (req, res) => {
   try {
     const update = {
       isAvailable: available,
+      isOnline: available, // Sync Master
+      isChatOnline: available,
+      isAudioOnline: available,
+      isVideoOnline: available,
       lastSeen: new Date()
     };
 
-    if (available) {
-      update.availabilityExpiresAt = new Date(Date.now() + 1000 * 60 * 60); // 1 Hour TTL
-    }
     if (fcmToken) {
       update.fcmToken = fcmToken;
     }
 
     await User.updateOne({ userId }, update);
+
+    // Broadcast update to real-time clients
+    const astros = await User.find({ role: 'astrologer' });
+    io.emit('astrologer-update', astros);
     res.json({ ok: true });
   } catch (e) {
     console.error("Online Toggle Error:", e);
@@ -2988,11 +2955,6 @@ app.post('/api/call/initiate', async (req, res) => {
     // A. Check Availability (DB Source of Truth)
     const astro = await User.findOne({ userId: receiverId });
 
-    // Safety: Auto-expire offline if TTL passed
-    if (astro.availabilityExpiresAt && new Date() > astro.availabilityExpiresAt) {
-      astro.isAvailable = false;
-      await astro.save();
-    }
 
     if (!astro || !astro.isAvailable) {
       return res.json({ ok: false, error: 'Astrologer is Offline', code: 'OFFLINE' });
@@ -3475,9 +3437,8 @@ app.post('/api/payment/callback', async (req, res) => {
         const txnId = merchantTransactionId || '';
         const amount = payment.amount || '';
 
-        // Intent URL with S.browser=1 fallback (Chrome will stay in browser if app not installed)
-        const webFallback = encodeURIComponent('https://astro5star.com/?payment=success');
-        const intentUrl = `intent://payment-success?status=success&txnId=${txnId}#Intent;scheme=astro5;package=com.astro5star.app;S.browser_fallback_url=${webFallback};end`;
+        // Intent URL WITHOUT browser fallback to website (force app or stay on this page)
+        const intentUrl = `intent://payment-success?status=success&txnId=${txnId}#Intent;scheme=astro5;package=com.astro5star.app;end`;
         const customSchemeUrl = `astro5://payment-success?status=success&txnId=${txnId}`;
 
         const html = `
@@ -3588,7 +3549,7 @@ app.post('/api/payment/callback', async (req, res) => {
                   });
 
                   // Auto-trigger on page load
-                  setTimeout(openApp, 100);
+                  setTimeout(openApp, 500);
                 </script>
               </body>
             </html>
@@ -3610,7 +3571,7 @@ app.post('/api/payment/callback', async (req, res) => {
       }
 
       if (req.query.isApp === 'true') {
-        // Android Intent URL format for Chrome
+        // Android Intent URL format for Chrome (No Web Fallback)
         const intentUrl = `intent://payment-failed?status=failed#Intent;scheme=astro5;package=com.astro5star.app;end`;
         const fallbackUrl = `astro5://payment-failed?status=failed`;
 

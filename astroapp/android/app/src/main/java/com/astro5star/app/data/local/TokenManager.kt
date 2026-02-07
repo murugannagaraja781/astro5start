@@ -47,4 +47,21 @@ class TokenManager(context: Context) {
         val updated = session.copy(walletBalance = balance)
         saveUserSession(updated)
     }
+
+    // Daily Progress Management
+    fun getDailyProgress(): Int {
+        return sharedPreferences.getInt("daily_progress", 0)
+    }
+
+    fun setDailyProgress(value: Int) {
+        sharedPreferences.edit().putInt("daily_progress", value).apply()
+    }
+
+    fun getLastDate(): String {
+        return sharedPreferences.getString("last_progress_date", "") ?: ""
+    }
+
+    fun setLastDate(date: String) {
+        sharedPreferences.edit().putString("last_progress_date", date).apply()
+    }
 }

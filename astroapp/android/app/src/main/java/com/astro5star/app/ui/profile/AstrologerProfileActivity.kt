@@ -182,10 +182,25 @@ fun AstrologerProfileScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().offset(y = (-10).dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                // Background for name to make it white
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(peacockTeal, Color(0xFF00332E))
+                            )
+                        )
+                        .shadow(4.dp, RoundedCornerShape(16.dp))
+                        .padding(12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                }
 
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top=4.dp)) {
                     Text("★★★★★", color = Color(0xFFFFC107))
