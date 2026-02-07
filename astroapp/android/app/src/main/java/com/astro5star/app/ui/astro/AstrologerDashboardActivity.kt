@@ -246,6 +246,34 @@ class AstrologerDashboardActivity : ComponentActivity() {
     }
 }
 
+// Helper function to update individual service status
+suspend fun updateServiceStatus(userId: String, service: String, enabled: Boolean) {
+    try {
+        val client = okhttp3.OkHttpClient()
+        val body = okhttp3.RequestBody.create(
+            "application/json".toMediaType(),
+            org.json.JSONObject().apply {
+                put("userId", userId)
+                put("service", service)
+                put("enabled", enabled)
+            }.toString()
+        )
+        val request = okhttp3.Request.Builder()
+            .url("https://astro5star.com/api/astrologer/service-toggle")
+            .post(body)
+            .build()
+        client.newCall(request).execute()
+
+        // Manage socket based on service status
+        if (enabled) {
+            com.astro5star.app.data.remote.SocketManager.init()
+            com.astro5star.app.data.remote.SocketManager.registerUser(userId)
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+
 @Composable
 fun AstrologerDashboardScreen(
     sessionName: String,
@@ -256,7 +284,11 @@ fun AstrologerDashboardScreen(
     onToggleOnline: (Boolean) -> Unit
 ) {
     var walletBalance by remember { mutableDoubleStateOf(initialWallet) }
-    var isOnline by remember { mutableStateOf(false) } // This will be our 'isAvailable' state
+
+    // Separate service states
+    var isChatOnline by remember { mutableStateOf(false) }
+    var isAudioOnline by remember { mutableStateOf(false) }
+    var isVideoOnline by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     // NEW: Local Today's Progress Logic
@@ -288,10 +320,14 @@ fun AstrologerDashboardScreen(
                 if (response.isSuccessful) {
                     val json = JSONObject(response.body?.string() ?: "{}")
                     walletBalance = json.optDouble("walletBalance", walletBalance)
-                    val available = json.optBoolean("isAvailable", isOnline)
-                    isOnline = available
 
-                    if (available) {
+                    // Sync individual service states
+                    isChatOnline = json.optBoolean("isChatOnline", false)
+                    isAudioOnline = json.optBoolean("isAudioOnline", false)
+                    isVideoOnline = json.optBoolean("isVideoOnline", false)
+
+                    // Reconnect socket if any service is online
+                    if (isChatOnline || isAudioOnline || isVideoOnline) {
                          SocketManager.init()
                          SocketManager.registerUser(sessionId)
                     }
@@ -667,11 +703,30 @@ fun AstrologerDashboardScreen(
                 }
             }
 
-            // 3b. Global Availability Toggle
-            AvailabilityCard(sessionId, isOnline) { checked ->
-                isOnline = checked
-                onToggleOnline(checked)
-            }
+            // 3b. Service Toggles (Separate for Chat, Audio, Video)
+            ServiceTogglesCard(
+                isChatOnline = isChatOnline,
+                isAudioOnline = isAudioOnline,
+                isVideoOnline = isVideoOnline,
+                onChatToggle = { enabled ->
+                    isChatOnline = enabled
+                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        updateServiceStatus(sessionId, "chat", enabled)
+                    }
+                },
+                onAudioToggle = { enabled ->
+                    isAudioOnline = enabled
+                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        updateServiceStatus(sessionId, "audio", enabled)
+                    }
+                },
+                onVideoToggle = { enabled ->
+                    isVideoOnline = enabled
+                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        updateServiceStatus(sessionId, "video", enabled)
+                    }
+                }
+            )
 
             // 4. Action Grid - Custom Row-based Layout to work inside verticalScroll
             val actions = listOf(
@@ -766,48 +821,112 @@ fun AstrologerDashboardScreen(
 }
 
 @Composable
-fun AvailabilityCard(userId: String, isOnline: Boolean, onToggle: (Boolean) -> Unit) {
+fun ServiceTogglesCard(
+    isChatOnline: Boolean,
+    isAudioOnline: Boolean,
+    isVideoOnline: Boolean,
+    onChatToggle: (Boolean) -> Unit,
+    onAudioToggle: (Boolean) -> Unit,
+    onVideoToggle: (Boolean) -> Unit
+) {
     val colors = CosmicAppTheme.colors
     Card(
         colors = CardDefaults.cardColors(containerColor = colors.cardBg),
-        shape = RoundedCornerShape(20.dp),
-        modifier = Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(20.dp)),
-        border = BorderStroke(1.dp, colors.cardStroke.copy(alpha = 0.2f))
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(16.dp)),
+        border = BorderStroke(1.dp, colors.cardStroke.copy(alpha = 0.15f))
     ) {
-        Row(
-            modifier = Modifier
-                .background(
-                    if (isOnline) Color(0xFF1B5E20).copy(alpha = 0.15f)
-                    else Color(0xFFB71C1C).copy(alpha = 0.12f)
-                )
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    if (isOnline) "You are ONLINE" else "You are OFFLINE",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = if (isOnline) Color(0xFF2E7D32) else Color(0xFFC62828)
-                )
-                Text(
-                    if (isOnline) "Accepting calls & chat" else "Turn on to accept clients",
-                    fontSize = 13.sp,
-                    color = colors.textSecondary
-                )
-            }
-            Switch(
-                checked = isOnline,
-                onCheckedChange = { onToggle(it) },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = Color(0xFF4CAF50),
-                    uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = Color(0xFFE57373)
-                ),
-                modifier = Modifier.scale(1.1f)
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Service Availability",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = colors.textPrimary
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Chat Toggle
+            ServiceToggleRow(
+                label = "Chat",
+                icon = Icons.Default.Chat,
+                isEnabled = isChatOnline,
+                onToggle = onChatToggle
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Audio Call Toggle
+            ServiceToggleRow(
+                label = "Audio Call",
+                icon = Icons.Default.Call,
+                isEnabled = isAudioOnline,
+                onToggle = onAudioToggle
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Video Call Toggle
+            ServiceToggleRow(
+                label = "Video Call",
+                icon = Icons.Default.Person,
+                isEnabled = isVideoOnline,
+                onToggle = onVideoToggle
             )
         }
+    }
+}
+
+@Composable
+fun ServiceToggleRow(
+    label: String,
+    icon: ImageVector,
+    isEnabled: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    val colors = CosmicAppTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                if (isEnabled) Color(0xFF4CAF50).copy(alpha = 0.08f)
+                else Color.Gray.copy(alpha = 0.05f),
+                RoundedCornerShape(12.dp)
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            icon,
+            contentDescription = label,
+            tint = if (isEnabled) Color(0xFF4CAF50) else Color.Gray,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            label,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium,
+            color = colors.textPrimary,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            if (isEnabled) "ON" else "OFF",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (isEnabled) Color(0xFF4CAF50) else Color.Gray
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Switch(
+            checked = isEnabled,
+            onCheckedChange = { onToggle(it) },
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = Color(0xFF4CAF50),
+                uncheckedThumbColor = Color.White,
+                uncheckedTrackColor = Color.Gray.copy(alpha = 0.4f)
+            ),
+            modifier = Modifier.scale(0.9f)
+        )
     }
 }
 

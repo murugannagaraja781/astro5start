@@ -2946,6 +2946,49 @@ app.post('/api/astrologer/online', async (req, res) => {
   }
 });
 
+// 1b. Individual Service Toggle (Chat / Audio / Video)
+app.post('/api/astrologer/service-toggle', async (req, res) => {
+  const { userId, service, enabled } = req.body;
+  if (!userId || !service) return res.json({ ok: false, error: 'Missing params' });
+
+  try {
+    const update = { lastSeen: new Date() };
+
+    // Update specific service
+    if (service === 'chat') {
+      update.isChatOnline = enabled;
+    } else if (service === 'audio') {
+      update.isAudioOnline = enabled;
+    } else if (service === 'video') {
+      update.isVideoOnline = enabled;
+    }
+
+    // Also update isAvailable and isOnline if any service is enabled
+    const user = await User.findOne({ userId });
+    if (user) {
+      const chatOn = service === 'chat' ? enabled : user.isChatOnline;
+      const audioOn = service === 'audio' ? enabled : user.isAudioOnline;
+      const videoOn = service === 'video' ? enabled : user.isVideoOnline;
+
+      // isAvailable = true if ANY service is online
+      update.isAvailable = chatOn || audioOn || videoOn;
+      update.isOnline = chatOn || audioOn || videoOn;
+    }
+
+    await User.updateOne({ userId }, update);
+
+    // Broadcast update
+    const astros = await User.find({ role: 'astrologer' });
+    io.emit('astrologer-update', astros);
+
+    console.log(`[Service Toggle] ${userId}: ${service} = ${enabled}`);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("Service Toggle Error:", e);
+    res.json({ ok: false });
+  }
+});
+
 // 2. Initiate Call (User -> Astrologer)
 app.post('/api/call/initiate', async (req, res) => {
   const { callerId, receiverId } = req.body;
