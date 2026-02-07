@@ -283,7 +283,7 @@ fun AstrologerDashboardScreen(
                     Text("ID: $sessionId", fontSize = 12.sp, color = colors.textSecondary)
                 }
                 IconButton(onClick = {}) { Icon(Icons.Default.Notifications, null, tint = colors.accent) }
-                IconButton(onClick = onLogout) { Icon(Icons.Default.ExitToApp, null, tint = colors.accent) }
+                IconButton(onClick = onLogout) { Icon(Icons.Default.ExitToApp, null, tint = Color.White) }
             }
         }
     ) { padding ->
@@ -397,6 +397,9 @@ fun AstrologerDashboardScreen(
                                          if (label == "Profile") {
                                              context.startActivity(Intent(context, com.astro5star.app.ui.settings.SettingsActivity::class.java))
                                          }
+                                         if (label == "History") {
+                                             context.startActivity(Intent(context, com.astro5star.app.ui.astro.AstrologerHistoryActivity::class.java))
+                                         }
                                          // Mock other actions
                                          if (label == "Earnings") {
                                              // Re-fetch logic or show detailed view
@@ -404,6 +407,7 @@ fun AstrologerDashboardScreen(
                                          }
                                      }
                              ) {
+
                                  Column(
                                      modifier = Modifier.padding(16.dp).fillMaxWidth(),
                                      horizontalAlignment = Alignment.CenterHorizontally

@@ -589,6 +589,39 @@ app.get('/api/astrology/astrologers', async (req, res) => {
   }
 });
 
+// --- Get Astrologer Session History ---
+app.get('/api/astrology/history/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    // Find sessions where this user was the astrologer
+    // We check both astrologerId and toUserId for compatibility
+    const sessions = await Session.find({
+      $or: [
+        { astrologerId: userId },
+        { toUserId: userId, type: { $in: ['audio', 'video', 'chat'] } }
+      ],
+      status: 'ended'
+    })
+      .sort({ actualBillingStart: -1, startTime: -1 })
+      .limit(50)
+      .lean();
+
+    const populatedSessions = await Promise.all(sessions.map(async (s) => {
+      const cId = s.clientId || s.fromUserId;
+      const client = await User.findOne({ userId: cId }).select('name').lean();
+      return {
+        ...s,
+        clientName: client ? client.name : 'Unknown Client'
+      };
+    }));
+
+    res.json({ ok: true, sessions: populatedSessions });
+  } catch (err) {
+    console.error('History API error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // --- Register Device (FCM Token) ---
 app.post('/register', async (req, res) => {
   try {

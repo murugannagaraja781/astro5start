@@ -114,18 +114,17 @@ class IncomingCallActivity : ComponentActivity() {
     }
 
     override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent) // Corrected nullability
+        super.onNewIntent(intent)
         intent?.let {
             setIntent(it)
             processIntent(it)
-            // Refresh content via Re-composition if needed, but simple setContent update works or force recreation
-            // For now, assume state update isn't complex, we just setContent again to be sure
-             setContent {
+            // Refresh content via Re-composition
+            setContent {
                 CosmicAppTheme {
                     IncomingCallScreen(
                         callerName = callerName,
                         callerId = if (callerId == "Unknown" && callId.isNotEmpty()) "Room: $callId" else "Calling from: $callerId",
-                         callType = callType,
+                        callType = callType,
                         onAccept = { onCallAccepted() },
                         onReject = { onCallRejected() }
                     )

@@ -118,7 +118,7 @@ class CallForegroundService : Service() {
             .setAutoCancel(false)
             .build()
 
-        startServiceInternal(notification)
+        startServiceInternal(notification, isMicRequired = false)
 
         return START_NOT_STICKY
     }
@@ -197,16 +197,22 @@ class CallForegroundService : Service() {
             .setOngoing(true)
             .build()
 
-        startServiceInternal(notification)
+        startServiceInternal(notification, isMicRequired = true)
     }
 
-    private fun startServiceInternal(notification: Notification) {
+    private fun startServiceInternal(notification: Notification, isMicRequired: Boolean = false) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-            } else {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL
+            var type = ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL
+
+            // On Android 14+, MICROPHONE type requires permission.
+            // We only add it for active calls if permission is GRANTED.
+            if (isMicRequired && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                val hasMic = androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                if (hasMic) {
+                    type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                }
             }
+
             startForeground(
                 NOTIFICATION_ID,
                 notification,

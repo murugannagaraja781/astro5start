@@ -81,6 +81,7 @@ class ChatActivity : ComponentActivity() {
                      Toast.makeText(this, "Details Updated", Toast.LENGTH_SHORT).show()
                      SocketManager.getSocket()?.emit("client-birth-chart", JSONObject().apply {
                          put("sessionId", sessionId)
+                         put("toUserId", toUserId)
                          put("birthData", newData)
                      })
                  } catch (e: Exception) { e.printStackTrace() }
@@ -138,8 +139,11 @@ class ChatActivity : ComponentActivity() {
                 if (updatedData != null) {
                     runOnUiThread {
                         clientBirthData = updatedData
-                        if (TokenManager(this).getUserSession()?.role == "astrologer") {
-                            Toast.makeText(this, "Client updated their birth details", Toast.LENGTH_SHORT).show()
+                        val myRole = TokenManager(this@ChatActivity).getUserSession()?.role
+                        if (myRole == "client") {
+                            Toast.makeText(this@ChatActivity, "Astrologer updated your birth details", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this@ChatActivity, "Client updated their birth details", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -341,9 +345,7 @@ fun ChatScreen(
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back", tint = Color.White) } },
                 actions = {
                     Text(sessionDuration, color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end=8.dp))
-                    if (isAstrologer) {
-                       IconButton(onClick = onEditIntake) { Icon(Icons.Default.Edit, "Intake", tint = Color.White) }
-                    }
+                    IconButton(onClick = onEditIntake) { Icon(Icons.Default.Edit, "Intake", tint = Color.White) }
                     TextButton(onClick = onEndChat) { Text("End", color = Color.Red, fontWeight = FontWeight.Bold) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -372,7 +374,7 @@ fun ChatScreen(
 
                          val payload = JSONObject().apply {
                             put("toUserId", toUserId)
-                            put("sessionId", sessionId)
+                          put("toUserId", toUserId)
                             put("messageId", UUID.randomUUID().toString())
                             put("timestamp", System.currentTimeMillis())
                             put("content", JSONObject().put("text", finalText))

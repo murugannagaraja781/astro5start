@@ -37,6 +37,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import android.media.MediaRecorder
+import android.os.Build
+import java.io.File
+import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.material.icons.filled.Stop
 import com.astro5star.app.R
 import com.astro5star.app.data.remote.SocketManager
 import com.astro5star.app.data.local.TokenManager
@@ -87,6 +92,9 @@ class CallActivity : ComponentActivity() {
     private var isSpeakerOnState by mutableStateOf(false) // For audio toggle
     private var isEditingIntake by mutableStateOf(false) // Track when edit form is open
     private var remainingTime by mutableStateOf("") // Available time from wallet
+    private var isRecordingState by mutableStateOf(false)
+    private var mediaRecorder: MediaRecorder? = null
+    private var audioFile: File? = null
 
     // Helper state for formatted time
     private val formattedDuration: String
@@ -114,6 +122,7 @@ class CallActivity : ComponentActivity() {
                      Toast.makeText(this, "Details Updated", Toast.LENGTH_SHORT).show()
                      SocketManager.getSocket()?.emit("client-birth-chart", JSONObject().apply {
                          put("sessionId", sessionId)
+                         put("toUserId", partnerId)
                          put("birthData", newData)
                      })
                  } catch (e: Exception) { e.printStackTrace() }
@@ -218,7 +227,9 @@ class CallActivity : ComponentActivity() {
                     onToggleSpeaker = { toggleSpeaker() },
                     onEndCall = { endCall() },
                     onEditIntake = { openEditIntake() },
-                    onShowRasi = { showRasiChart() }
+                    onShowRasi = { showRasiChart() },
+                    isRecording = isRecordingState,
+                    onToggleRecording = { toggleRecording() }
                 )
             }
         }
@@ -333,6 +344,58 @@ class CallActivity : ComponentActivity() {
             intent.putExtra("targetUserId", partnerId)
         }
         editIntakeLauncher.launch(intent)
+    }
+
+    private fun toggleRecording() {
+        if (isRecordingState) {
+            stopRecording()
+        } else {
+            startRecording()
+        }
+    }
+
+    private fun startRecording() {
+        try {
+            val dir = File(getExternalFilesDir(null), "Recordings")
+            if (!dir.exists()) dir.mkdirs()
+            audioFile = File(dir, "Rec_${sessionId}_${System.currentTimeMillis()}.mp3")
+
+            mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                MediaRecorder(this)
+            } else {
+                MediaRecorder()
+            }
+
+            mediaRecorder?.apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setOutputFile(audioFile?.absolutePath)
+                prepare()
+                start()
+            }
+            isRecordingState = true
+            Toast.makeText(this, "Recording started", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.e(TAG, "Recording failed", e)
+            Toast.makeText(this, "Recording failed: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun stopRecording() {
+        try {
+            mediaRecorder?.apply {
+                stop()
+                release()
+            }
+            mediaRecorder = null
+            isRecordingState = false
+            Toast.makeText(this, "Saved to ${audioFile?.name}", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Log.e(TAG, "Stop recording failed", e)
+            isRecordingState = false
+            mediaRecorder = null
+        }
     }
 
     private fun startBackgroundService() {
@@ -667,14 +730,19 @@ class CallActivity : ComponentActivity() {
 
         SocketManager.getSocket()?.on("client-birth-chart") { args ->
             try {
-                 val data = args[0] as JSONObject
-                 val bData = data.optJSONObject("birthData")
-                 if (bData != null) {
-                     clientBirthData = bData
-                     runOnUiThread {
-                         Toast.makeText(this@CallActivity, "Client updated their birth details", Toast.LENGTH_SHORT).show()
-                     }
-                 }
+                val data = args[0] as JSONObject
+                val bData = data.optJSONObject("birthData")
+                if (bData != null) {
+                    clientBirthData = bData
+                    runOnUiThread {
+                        val myRole = TokenManager(this@CallActivity).getUserSession()?.role
+                        if (myRole == "client") {
+                            Toast.makeText(this@CallActivity, "Astrologer updated your birth details", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this@CallActivity, "Client updated their birth details", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
             } catch (e: Exception) { e.printStackTrace() }
         }
 
@@ -906,10 +974,11 @@ fun CallScreen(
     remainingTime: String,
     onToggleMic: () -> Unit,
     onToggleCamera: () -> Unit,
-    onToggleSpeaker: () -> Unit,
     onEndCall: () -> Unit,
     onEditIntake: () -> Unit,
-    onShowRasi: () -> Unit
+    onShowRasi: () -> Unit,
+    isRecording: Boolean = false,
+    onToggleRecording: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -1045,6 +1114,14 @@ fun CallScreen(
                         .background(Color(0xFFFF5252), CircleShape)
                 ) {
                     Icon(Icons.Default.CallEnd, "End", tint = Color.White, modifier = Modifier.size(32.dp))
+                }
+
+                if (role == "astrologer") {
+                    ControlBtn(
+                        onClick = onToggleRecording,
+                        icon = if (isRecording) Icons.Default.Stop else Icons.Default.FiberManualRecord,
+                        active = isRecording
+                    )
                 }
 
                 ControlBtn(onClick = onToggleMic, icon = if (!isMuted) Icons.Default.Mic else Icons.Default.MicOff, active = !isMuted)
