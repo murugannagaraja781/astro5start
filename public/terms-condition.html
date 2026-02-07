@@ -38,15 +38,20 @@
             font-weight: 600;
         }
 
-        .term-item {
-            margin-bottom: 20px;
+        h2 {
+            color: var(--primary);
+            font-size: 1.2rem;
+            margin-top: 25px;
+            border-bottom: 2px solid #E5E7EB;
+            padding-bottom: 10px;
         }
 
-        .term-title {
-            font-weight: 600;
-            color: #111827;
-            display: block;
-            margin-bottom: 5px;
+        ol {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 15px;
         }
 
         .footer {
@@ -55,44 +60,30 @@
             font-size: 0.8rem;
             color: #6B7280;
         }
+
+        strong {
+            color: var(--primary);
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
         <h1>🌙 Terms & Conditions</h1>
-        <p style="text-align:center; color:#6B7280; margin-bottom:30px;">By accessing and using Astro5Star services, you
-            agree to the following terms:</p>
+        <p>By accessing and using Astro5Star services, you agree to the following terms:</p>
 
-        <div class="term-item">
-            <span class="term-title">1. No Guarantees</span>
-            Astrology is a guiding tool. We do not guarantee specific outcomes from any consultation or report.
-        </div>
-
-        <div class="term-item">
-            <span class="term-title">2. User Responsibility</span>
-            All consultations are accessed at the user’s own discretion and risk.
-        </div>
-
-        <div class="term-item">
-            <span class="term-title">3. Refunds</span>
-            Refunds are discretionary and depend on service quality audits.
-        </div>
-
-        <div class="term-item">
-            <span class="term-title">4. Intellectual Property</span>
-            All content, logos, and materials on Astro5Star are owned by us and cannot be copied without permission.
-        </div>
-
-        <div class="term-item">
-            <span class="term-title">5. Service Availability</span>
-            We reserve the right to modify, suspend, or discontinue any service without prior notice.
-        </div>
-
-        <div class="term-item">
-            <span class="term-title">6. Disputes</span>
-            Any disputes are subject to applicable laws and jurisdiction.
-        </div>
+        <ol>
+            <li><strong>No Guarantees</strong> – Astrology is a guiding tool. We do not guarantee specific outcomes from
+                any consultation or report.</li>
+            <li><strong>User Responsibility</strong> – All consultations are accessed at the user’s own discretion and
+                risk.</li>
+            <li><strong>Refunds</strong> – Refunds are discretionary and depend on service quality audits.</li>
+            <li><strong>Intellectual Property</strong> – All content, logos, and materials on Astro5Star are owned by us
+                and cannot be copied without permission.</li>
+            <li><strong>Service Availability</strong> – We reserve the right to modify, suspend, or discontinue any
+                service without prior notice.</li>
+            <li><strong>Disputes</strong> – Any disputes are subject to applicable laws and jurisdiction.</li>
+        </ol>
 
         <div class="footer">&copy; 2024 Astro5Star. All rights reserved.</div>
     </div>

@@ -3,17 +3,17 @@
 # Astro5Star Server Total Backup Dispatcher
 # This script is designed to run on your PRODUCTION SERVER.
 
-PROJECT_DIR="/home/ubuntu/astro5start" # Change this if your path is different
-SCRIPTS_DIR="$PROJECT_DIR/scripts"
+# Set the base directory absolutely
+BASE_DIR="/var/www/astro5start"
+JS_BACKUP_SCRIPT="$BASE_DIR/scripts/backup.js"
 
 echo "==========================================="
 echo "   Astro5Star Server Backup Initializing   "
 echo "==========================================="
 
-# 1. Self-Installation Check (Optional/Convenience)
+# 1. Self-Installation Check
 if ! command -v rclone &> /dev/null; then
     echo "[!] Rclone not found. Attempting to install..."
-    # Check if we are on Ubuntu/Debian
     if command -v apt-get &> /dev/null; then
         sudo apt-get update && sudo apt-get install rclone -y
     else
@@ -23,15 +23,22 @@ if ! command -v rclone &> /dev/null; then
 fi
 
 if ! command -v mongodump &> /dev/null; then
-    echo "[!] mongodump not found. Please install MongoDB Tools on this server."
-    echo "    (sudo apt install mongodb-database-tools)"
-    exit 1
+    echo "[!] mongodump not found. Please install MongoDB Tools."
+    echo "    (sudo apt install mongodb-database-tools -y)"
+    # Attempt to install it if possible
+    sudo apt-get update && sudo apt-get install mongodb-database-tools -y
 fi
 
 # 2. Run the Node.js Backup Logic
 echo "[+] Starting Node.js Backup Engine..."
-cd "$PROJECT_DIR"
-node scripts/backup.js
+if [ -f "$JS_BACKUP_SCRIPT" ]; then
+    node "$JS_BACKUP_SCRIPT"
+else
+    echo "!! ERROR: Backup script not found at $JS_BACKUP_SCRIPT"
+    echo "Current directory: $(pwd)"
+    ls -l "$BASE_DIR/scripts"
+    exit 1
+fi
 
 # 3. Check for Success
 if [ $? -eq 0 ]; then

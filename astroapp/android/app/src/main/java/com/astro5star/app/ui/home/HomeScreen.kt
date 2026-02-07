@@ -435,15 +435,91 @@ fun HomeScreen(
                             )
                         }
                     }
+
+                    // 7. Policy & Support Footer (Stronger Play Store Support)
+                    if (selectedTab == 0) {
+                        item { SupportAndPoliciesSection() }
+                    }
                 }
             }
         }
     }
 }
 
+@Composable
+fun SupportAndPoliciesSection() {
+    val context = LocalContext.current
+    val baseUrl = "https://astro5star.com" // Update to your actual domain
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Policies & Support",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = Color.White
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            PolicyLink("Return Policy", "$baseUrl/return-policy.html", context)
+            PolicyLink("Shipping Policy", "$baseUrl/shipping-policy.html", context)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            PolicyLink("Refund Policy", "$baseUrl/refund-cancellation-policy.html", context)
+            PolicyLink("Terms & Conditions", "$baseUrl/terms-condition.html", context)
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            text = "Need Help? info@astro5star.com",
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.Gray
+        )
+        Text(
+            text = "© 2024 Astro5Star. All Rights Reserved.",
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.Gray.copy(alpha=0.6f)
+        )
+    }
+}
+
+@Composable
+fun PolicyLink(label: String, url: String, context: android.content.Context) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelMedium.copy(
+            textDecoration = TextDecoration.Underline,
+            fontWeight = FontWeight.Medium
+        ),
+        color = PeacockGreen,
+        modifier = Modifier.clickable {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Cannot open link", Toast.LENGTH_SHORT).show()
+            }
+        }
+    )
+}
+
 // --- 1. DRAWER ---
 @Composable
 fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit) {
+    val context = LocalContext.current
     ModalDrawerSheet(
         drawerContainerColor = Color(0xFFF8F9FA), // Light Color (User Request)
         drawerContentColor = Color.DarkGray
@@ -485,7 +561,7 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit) {
         Spacer(modifier = Modifier.height(8.dp))
 
         // Drawer Items
-        val items = listOf("Home", "Profile", "Settings", "Logout")
+        val items = listOf("Home", "Profile", "Terms & Conditions", "Privacy Policy", "Settings", "Logout")
         items.forEach { item ->
             NavigationDrawerItem(
                 label = {
@@ -496,7 +572,19 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit) {
                     )
                 },
                 selected = false,
-                onClick = { onItemClick(item) },
+                onClick = {
+                    when (item) {
+                        "Terms & Conditions" -> {
+                            onClose()
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://astro5star.com/terms-condition.html")))
+                        }
+                        "Privacy Policy" -> {
+                            onClose()
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://astro5star.com/privacy-policy.html")))
+                        }
+                        else -> onItemClick(item)
+                    }
+                },
                 colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
             )
         }
@@ -1072,7 +1160,7 @@ fun TopServicesSection() {
                     "Free\nServices" -> {
                         android.app.AlertDialog.Builder(context)
                             .setTitle("Contact Us")
-                            .setMessage("For free services, contact us at: +91 93635 77777")
+                            .setMessage("For free services, contact us at: info@astro5star.com")
                             .setPositiveButton("OK", null)
                             .show()
                     }

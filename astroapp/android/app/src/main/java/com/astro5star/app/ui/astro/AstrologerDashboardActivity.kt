@@ -3,6 +3,8 @@ package com.astro5star.app.ui.astro
 import android.content.Intent
 import android.media.MediaPlayer
 import java.io.File
+import android.net.Uri
+import androidx.core.content.FileProvider
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -520,7 +522,7 @@ fun showRecordingsDialog(context: android.content.Context) {
     builder.setTitle("Recent Recordings")
     builder.setItems(fileNames.toTypedArray()) { _, which ->
         val file = files[which]
-        playRecording(context, file)
+        showFileOptions(context, file)
     }
     builder.setNegativeButton("Cancel", null)
     builder.show()
@@ -544,5 +546,45 @@ fun playRecording(context: android.content.Context, file: File) {
         }
     } catch (e: Exception) {
         Toast.makeText(context, "Playback failed: ${e.message}", Toast.LENGTH_SHORT).show()
+    }
+}
+
+fun showFileOptions(context: android.content.Context, file: File) {
+    val builder = android.app.AlertDialog.Builder(context)
+    builder.setTitle("Options: ${file.name}")
+    val options = arrayOf("Play Recording", "Open in File Manager / Other App", "Share Recording")
+    builder.setItems(options) { _, which ->
+        when (which) {
+            0 -> playRecording(context, file)
+            1 -> openFileInExplorer(context, file)
+            2 -> shareRecording(context, file)
+        }
+    }
+    builder.setNegativeButton("Back", null)
+    builder.show()
+}
+
+fun openFileInExplorer(context: android.content.Context, file: File) {
+    try {
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.setDataAndType(uri, "audio/*")
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Toast.makeText(context, "No app found to open this file. Path: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+    }
+}
+
+fun shareRecording(context: android.content.Context, file: File) {
+    try {
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val intent = Intent(Intent.ACTION_SEND)
+        intent.type = "audio/*"
+        intent.putExtra(Intent.EXTRA_STREAM, uri)
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        context.startActivity(Intent.createChooser(intent, "Share Recording"))
+    } catch (e: Exception) {
+        Toast.makeText(context, "Share failed: ${e.message}", Toast.LENGTH_SHORT).show()
     }
 }

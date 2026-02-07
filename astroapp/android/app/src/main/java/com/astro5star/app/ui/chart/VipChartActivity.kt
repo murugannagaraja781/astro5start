@@ -268,13 +268,29 @@ fun SouthIndianGridEnhanced(planets: List<Planet>, ascSign: String, title: Strin
             val cellW = w / 4
             val cellH = h / 4
 
-            // Perimeter internal lines
+            // Vertical lines
             for (i in 1..3) {
-                drawLine(TraditionalRed, Offset(i * cellW, 0f), Offset(i * cellW, h), strokeWidth = 1.dp.toPx())
-                drawLine(TraditionalRed, Offset(0f, i * cellH), Offset(w, i * cellH), strokeWidth = 1.dp.toPx())
+                if (i == 2) {
+                    // Skip center 2x2
+                    drawLine(TraditionalRed, Offset(i * cellW, 0f), Offset(i * cellW, cellH), strokeWidth = 1.dp.toPx())
+                    drawLine(TraditionalRed, Offset(i * cellW, 3 * cellH), Offset(i * cellW, h), strokeWidth = 1.dp.toPx())
+                } else {
+                    drawLine(TraditionalRed, Offset(i * cellW, 0f), Offset(i * cellW, h), strokeWidth = 1.dp.toPx())
+                }
             }
 
-            // Central Border (Thicker)
+            // Horizontal lines
+            for (i in 1..3) {
+                if (i == 2) {
+                    // Skip center 2x2
+                    drawLine(TraditionalRed, Offset(0f, i * cellH), Offset(cellW, i * cellH), strokeWidth = 1.dp.toPx())
+                    drawLine(TraditionalRed, Offset(3 * cellW, i * cellH), Offset(w, i * cellH), strokeWidth = 1.dp.toPx())
+                } else {
+                    drawLine(TraditionalRed, Offset(0f, i * cellH), Offset(w, i * cellH), strokeWidth = 1.dp.toPx())
+                }
+            }
+
+            // Central Area Decor (Pillar-like / Unified Center)
             val centralPadding = 2.dp.toPx()
             val rectPath = Path().apply {
                 moveTo(cellW + centralPadding, cellH + centralPadding)
@@ -283,7 +299,15 @@ fun SouthIndianGridEnhanced(planets: List<Planet>, ascSign: String, title: Strin
                 lineTo(cellW + centralPadding, 3 * cellH - centralPadding)
                 close()
             }
-            drawPath(rectPath, TraditionalRed, style = Stroke(width = 2.dp.toPx()))
+
+            // Draw a subtle background for the center "pillar" area
+            drawPath(
+                path = rectPath,
+                brush = Brush.verticalGradient(listOf(Color(0xFFFFF9C4).copy(alpha = 0.5f), Color(0xFFFBC02D).copy(alpha = 0.1f)))
+            )
+
+            // Central Border (Thicker)
+            drawPath(rectPath, TraditionalRed, style = Stroke(width = 2.4.dp.toPx()))
         }
 
         // Contents

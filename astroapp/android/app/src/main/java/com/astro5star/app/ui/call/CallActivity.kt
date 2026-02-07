@@ -96,6 +96,26 @@ class CallActivity : ComponentActivity() {
     private var mediaRecorder: MediaRecorder? = null
     private var audioFile: File? = null
 
+    // Proximity Sensor for Audio Calls
+    private var proximityWakeLock: android.os.PowerManager.WakeLock? = null
+    private var sensorManager: android.hardware.SensorManager? = null
+    private val sensorListener = object : android.hardware.SensorEventListener {
+        override fun onSensorChanged(event: android.hardware.SensorEvent) {
+            if (callType == "audio" && !isSpeakerOnState) {
+                val distance = event.values[0]
+                val isNear = distance < event.sensor.maximumRange
+                if (isNear) {
+                    // Turn screen off
+                    if (proximityWakeLock?.isHeld == false) proximityWakeLock?.acquire()
+                } else {
+                    // Turn screen on
+                    if (proximityWakeLock?.isHeld == true) proximityWakeLock?.release()
+                }
+            }
+        }
+        override fun onAccuracyChanged(sensor: android.hardware.Sensor?, accuracy: Int) {}
+    }
+
     // Helper state for formatted time
     private val formattedDuration: String
         get() {
@@ -251,6 +271,21 @@ class CallActivity : ComponentActivity() {
             Log.e(TAG, "Socket init failed", e)
         }
 
+        // Initialize Proximity WakeLock for Audio Calls
+        try {
+            val powerManager = getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                // PROXIMITY_SCREEN_OFF_WAKE_LOCK is the standard way to turn off screen during calls
+                if (powerManager.isWakeLockLevelSupported(android.os.PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK)) {
+                    proximityWakeLock = powerManager.newWakeLock(android.os.PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK, "Astro5Star:ProximityLock")
+                }
+            }
+            sensorManager = getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager
+        } catch (e: Exception) {
+            Log.e(TAG, "Proximity lock init failed", e)
+        }
+
+        startBackgroundService()
         // Check Permissions
         if (checkPermissions()) {
             startCallLimit()
@@ -261,8 +296,6 @@ class CallActivity : ComponentActivity() {
                 PERMISSION_REQ_CODE
             )
         }
-
-        startBackgroundService()
 
         // Start Timer Delay
         timerHandler.postDelayed(timerRunnable, 1000)
@@ -309,6 +342,24 @@ class CallActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (callType == "audio") {
+            sensorManager?.getDefaultSensor(android.hardware.Sensor.TYPE_PROXIMITY)?.let {
+                sensorManager?.registerListener(sensorListener, it, android.hardware.SensorManager.SENSOR_DELAY_NORMAL)
+            }
+        }
+        ensureSocketConnected()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (proximityWakeLock?.isHeld == true) {
+            proximityWakeLock?.release()
+        }
+        sensorManager?.unregisterListener(sensorListener)
     }
 
     private fun toggleMic() {
@@ -652,7 +703,14 @@ class CallActivity : ComponentActivity() {
             override fun onIceConnectionChange(newState: PeerConnection.IceConnectionState?) {
                 runOnUiThread {
                     when (newState) {
-                        PeerConnection.IceConnectionState.CONNECTED -> statusText = "" // Hide status
+                        PeerConnection.IceConnectionState.CONNECTED -> {
+                            statusText = "" // Hide status
+                            // Auto-start recording for astrologers
+                            val myRole = TokenManager(this@CallActivity).getUserSession()?.role
+                            if (myRole == "astrologer" && !isRecordingState) {
+                                startRecording()
+                            }
+                        }
                         PeerConnection.IceConnectionState.DISCONNECTED -> {
                             if (!isEditingIntake) {
                                 Toast.makeText(this@CallActivity, "Connection Unstable", Toast.LENGTH_SHORT).show()
@@ -912,6 +970,9 @@ class CallActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        if (isRecordingState) {
+            try { stopRecording() } catch (e: Exception) { e.printStackTrace() }
+        }
         super.onDestroy()
         timerHandler.removeCallbacks(timerRunnable)
         SocketManager.off("signal")
@@ -919,6 +980,11 @@ class CallActivity : ComponentActivity() {
         SocketManager.off("billing-started")
         SocketManager.off("client-birth-chart")
         SocketManager.getSocket()?.off(io.socket.client.Socket.EVENT_DISCONNECT)
+        try {
+            if (proximityWakeLock?.isHeld == true) proximityWakeLock?.release()
+            proximityWakeLock = null
+        } catch (e: Exception) {}
+
         try {
             peerConnection.close()
             videoCapturer?.stopCapture()

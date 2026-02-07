@@ -1746,6 +1746,8 @@
     <div class="footer-links">
       <a href="https://astro5star.com/terms-condition" target="_blank">Terms</a>
       <span class="sep">|</span>
+      <a href="https://astro5star.com/privacy-policy" target="_blank">Privacy</a>
+      <span class="sep">|</span>
       <a href="https://astro5star.com/refund-cancellation-policy" target="_blank">Refunds</a>
       <span class="sep">|</span>
       <a href="https://astro5star.com/shipping-policy" target="_blank">Shipping</a>
@@ -1844,7 +1846,7 @@
               <img src="images/academy_icon.png" alt="Academy">
               <span>Astro Academy</span>
             </div>
-            <div class="service-item-card" onclick="alert('For free services, please contact: +91 93635 77777')">
+            <div class="service-item-card" onclick="alert('For free services, please contact: info@astro5star.com')">
               <img src="images/free_services_icon.png" alt="Free">
               <span>Free Services</span>
             </div>
@@ -5783,6 +5785,9 @@
 
            <div class="admin-actions">
               <button class="btn-admin btn-wallet" onclick="adminWallet('${u.userId}')"><i class="fas fa-plus"></i> Wallet</button>
+              <button class="btn-admin btn-role" onclick="adminRole('${u.userId}', '${u.role}')" title="Change Role">
+                <i class="fas fa-user-tag"></i> Role
+              </button>
               <button class="btn-admin btn-role" onclick="openAdminEditUser('${u.userId}')"><i class="fas fa-edit"></i> Edit</button>
 
               <button class="btn-admin btn-block" onclick="adminBan('${u.userId}', ${!u.isBanned})" style="background:${u.isBanned ? '#DC2626' : '#eee'}; color:${u.isBanned ? 'white' : '#666'};">
@@ -5797,9 +5802,9 @@
     window.adminWallet = (uid) => {
       const amt = prompt("Enter amount to ADD (e.g., 100):");
       if (amt) {
-        socket.emit('admin-add-money', { userId: uid, amount: parseInt(amt) }, (res) => {
+        socket.emit('admin-add-wallet', { userId: uid, amount: parseInt(amt) }, (res) => {
           alert(res.msg || (res.ok ? 'Success' : 'Failed'));
-          loadAdminDash(); // Refresh
+          refreshAdminData();
         });
       }
     };
@@ -5896,9 +5901,24 @@
     const originalNavAdmin = window.navAdmin;
 
 
+    function refreshAdminData() {
+      socket.emit('get-all-users', (res) => {
+        if (res.ok) {
+          adminUsersCache = res.users;
+          // Find current active tab and refresh it
+          const activeTab = document.querySelector('.admin-nav-item.active');
+          if (activeTab) {
+            const tabId = activeTab.id.replace('anav-', '');
+            navAdmin(tabId);
+          }
+        }
+      });
+    }
+
     let roleChangeTargetId = null;
 
     window.adminRole = (uid, currentRole) => {
+      roleChangeTargetId = uid;
       document.getElementById('adminRoleSelect').value = currentRole;
       document.getElementById('screen-admin-role-modal').classList.remove('hidden');
     };

@@ -1001,17 +1001,11 @@ app.post('/api/verify-otp', async (req, res) => {
   }
 
   // --- Normal User Verification ---
-  // --- Normal User Verification ---
-  // Allow 1234 as universal test OTP
-  if (otp === '1234') {
-    // Proceed to find/create user
-  } else {
-    const entry = otpStore.get(phone);
-    if (!entry) return res.json({ ok: false, error: 'No OTP requested' });
-    if (Date.now() > entry.expires) return res.json({ ok: false, error: 'Expired' });
-    if (entry.otp !== otp) return res.json({ ok: false, error: 'Invalid OTP' });
-    otpStore.delete(phone);
-  }
+  const entry = otpStore.get(phone);
+  if (!entry) return res.json({ ok: false, error: 'No OTP requested' });
+  if (Date.now() > entry.expires) return res.json({ ok: false, error: 'Expired' });
+  if (entry.otp !== otp) return res.json({ ok: false, error: 'Invalid OTP' });
+  otpStore.delete(phone);
 
   try {
     let user = await User.findOne({ phone });

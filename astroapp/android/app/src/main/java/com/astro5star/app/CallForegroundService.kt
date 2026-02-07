@@ -132,20 +132,24 @@ class CallForegroundService : Service() {
                 "Astro5Star:CallWakeLock"
             ).apply {
                 setReferenceCounted(false)
-                acquire(60 * 60 * 1000L) // 1 hour max (safety limit)
+                acquire(2 * 60 * 60 * 1000L) // 2 hours max
             }
             Log.d(TAG, "WakeLock acquired")
 
             // WiFi Lock - Keep WiFi connection active
             val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-            wifiLock = wifiManager.createWifiLock(
-                WifiManager.WIFI_MODE_FULL_HIGH_PERF,
-                "Astro5Star:CallWifiLock"
-            ).apply {
+            val lockType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+            } else {
+                @Suppress("DEPRECATION")
+                WifiManager.WIFI_MODE_FULL_HIGH_PERF
+            }
+
+            wifiLock = wifiManager.createWifiLock(lockType, "Astro5Star:CallWifiLock").apply {
                 setReferenceCounted(false)
                 acquire()
             }
-            Log.d(TAG, "WifiLock acquired")
+            Log.d(TAG, "WifiLock acquired with type: $lockType")
         } catch (e: Exception) {
             Log.e(TAG, "Error acquiring WakeLocks", e)
         }
@@ -175,7 +179,7 @@ class CallForegroundService : Service() {
 
     private fun startActiveCallForeground(partnerName: String) {
         val notificationIntent = Intent(this, com.astro5star.app.ui.call.CallActivity::class.java).apply {
-             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP // Don't recreate activity
+             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
 
         val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -192,9 +196,11 @@ class CallForegroundService : Service() {
             .setContentTitle("📞 Call in Progress")
             .setContentText("Speaking with $partnerName")
             .setSmallIcon(android.R.drawable.ic_menu_call)
-            .setPriority(NotificationCompat.PRIORITY_LOW) // Less intrusive
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
+            .setCategory(NotificationCompat.CATEGORY_CALL)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
 
         startServiceInternal(notification, isMicRequired = true)
@@ -204,20 +210,18 @@ class CallForegroundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             var type = ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL
 
-            // On Android 14+, MICROPHONE type requires permission.
-            // We only add it for active calls if permission is GRANTED.
-            if (isMicRequired && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                val hasMic = androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                if (hasMic) {
-                    type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-                }
+            if (isMicRequired && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // For Android 11+, we can add MICROPHONE type
+                type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
             }
 
-            startForeground(
-                NOTIFICATION_ID,
-                notification,
-                type
-            )
+            try {
+                startForeground(NOTIFICATION_ID, notification, type)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error starting foreground service with type $type", e)
+                // Fallback to basic start if it fails
+                startForeground(NOTIFICATION_ID, notification)
+            }
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
