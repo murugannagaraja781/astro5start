@@ -164,6 +164,8 @@ class CallActivity : ComponentActivity() {
         outState.putBoolean("isEditingIntake", isEditingIntake)
         outState.putString("clientBirthData", clientBirthData?.toString())
         outState.putInt("callDurationSeconds", callDurationSeconds)
+        outState.putString("sessionId", sessionId)
+        outState.putString("partnerId", partnerId)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -176,6 +178,8 @@ class CallActivity : ComponentActivity() {
                 clientBirthData = JSONObject(birthDataStr)
             }
             callDurationSeconds = savedInstanceState.getInt("callDurationSeconds")
+            sessionId = savedInstanceState.getString("sessionId")
+            partnerId = savedInstanceState.getString("partnerId")
         }
 
         // Initialize WebRTC Views Programmatically
@@ -358,7 +362,8 @@ class CallActivity : ComponentActivity() {
         try {
             val dir = File(getExternalFilesDir(null), "Recordings")
             if (!dir.exists()) dir.mkdirs()
-            audioFile = File(dir, "Rec_${sessionId}_${System.currentTimeMillis()}.mp3")
+            val safeSessionId = sessionId ?: "unknown_session"
+            audioFile = File(dir, "Rec_${safeSessionId}_${System.currentTimeMillis()}.mp3")
 
             mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 MediaRecorder(this)
@@ -370,7 +375,7 @@ class CallActivity : ComponentActivity() {
                 setAudioSource(MediaRecorder.AudioSource.MIC)
                 setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                 setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                setOutputFile(audioFile?.absolutePath)
+                setOutputFile(audioFile?.absolutePath ?: throw Exception("Failed to create file path"))
                 prepare()
                 start()
             }
