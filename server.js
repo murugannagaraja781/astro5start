@@ -1207,9 +1207,6 @@ async function endSessionRecord(sessionId) {
   }
 
   // Notify with Summary
-  const s1 = userSockets.get(s.clientId);
-  const s2 = userSockets.get(s.astrologerId);
-
   const payload = {
     reason: 'ended',
     summary: {
@@ -1219,8 +1216,8 @@ async function endSessionRecord(sessionId) {
     }
   };
 
-  if (s1) io.to(s1).emit('session-ended', payload);
-  if (s2) io.to(s2).emit('session-ended', payload);
+  if (s.clientId) io.to(s.clientId).emit('session-ended', payload);
+  if (s.astrologerId) io.to(s.astrologerId).emit('session-ended', payload);
 }
 
 // --- Phase 3: Billing Helper ---
@@ -2882,14 +2879,11 @@ io.on('connection', (socket) => {
             endSessionRecord(sid);
 
             if (otherUserId) {
-              const targetSocketId = userSockets.get(otherUserId);
-              if (targetSocketId) {
-                // Notify other user that partner dropped
-                io.to(targetSocketId).emit('session-ended', {
-                  sessionId: sid,
-                  reason: 'partner_disconnected'
-                });
-              }
+              // Notify other user that partner dropped
+              io.to(otherUserId).emit('session-ended', {
+                sessionId: sid,
+                reason: 'partner_disconnected'
+              });
             }
           }
         }, SESSION_GRACE_PERIOD);

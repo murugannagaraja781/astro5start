@@ -160,6 +160,7 @@ fun IntakeScreen(
     // Time
     var hour by remember { mutableStateOf("") }
     var minute by remember { mutableStateOf("") }
+    var amPm by remember { mutableStateOf("AM") } // AM or PM
     var unknownTime by remember { mutableStateOf(false) }
 
     // Place
@@ -191,6 +192,7 @@ fun IntakeScreen(
     var pYear by remember { mutableStateOf("") }
     var pHour by remember { mutableStateOf("") }
     var pMinute by remember { mutableStateOf("") }
+    var pAmPm by remember { mutableStateOf("AM") }
 
     // Logic State
     var isWaiting by remember { mutableStateOf(false) }
@@ -401,33 +403,72 @@ fun IntakeScreen(
         }
     }
 
+    fun validateInput(
+        d: String, m: String, y: String, h: String, min: String,
+        label: String
+    ): Boolean {
+        val dayInt = d.toIntOrNull() ?: 0
+        val monthInt = m.toIntOrNull() ?: 0
+        val yearInt = y.toIntOrNull() ?: 0
+        val hourInt = h.toIntOrNull() ?: -1
+        val minuteInt = min.toIntOrNull() ?: -1
+
+        if (dayInt < 1 || dayInt > 31) {
+            Toast.makeText(context, "$label: Invalid Day (1-31)", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        if (monthInt < 1 || monthInt > 12) {
+            Toast.makeText(context, "$label: Invalid Month (1-12)", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        if (yearInt < 1900 || yearInt > 2100) {
+            Toast.makeText(context, "$label: Invalid Year (1900-2100)", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        if (hourInt < 1 || hourInt > 12) {
+            Toast.makeText(context, "$label: Invalid Hour (1-12)", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        if (minuteInt < 0 || minuteInt > 59) {
+            Toast.makeText(context, "$label: Invalid Minute (0-59)", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        return true
+    }
+
+    fun convertTo24Hour(hStr: String, amPm: String): Int {
+        val h = hStr.toIntOrNull() ?: 0
+        return if (amPm == "PM" && h < 12) h + 12
+        else if (amPm == "AM" && h == 12) 0
+        else h
+    }
+
     fun submit() {
         if (name.isBlank() || cityName.isBlank() || day.isBlank() || month.isBlank() || year.isBlank()) {
             Toast.makeText(context, "Please fill required fields", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // Validation for Match - Partner details required
-        if (callType == "match") {
-            // Force true if it's a match call
-            includePartner = true
+        if (!validateInput(day, month, year, hour, minute, "Personal DOB")) return
 
+        val hour24 = convertTo24Hour(hour, amPm)
+        val pHour24 = convertTo24Hour(pHour, pAmPm)
+
+        // Validation for Match - Partner details required
+        if (callType == "match" || includePartner) {
             if (pName.isBlank()) {
-                Toast.makeText(context, "Partner name required / துணைவர் பெயர் தேவை", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Partner name required", Toast.LENGTH_SHORT).show()
                 return
             }
-            if (pDay.isBlank() || pMonth.isBlank() || pYear.isBlank()) {
-                Toast.makeText(context, "Partner DOB required / துணைவர் பிறந்த தேதி தேவை", Toast.LENGTH_SHORT).show()
-                return
-            }
+            if (!validateInput(pDay, pMonth, pYear, pHour, pMinute, "Partner DOB")) return
             if (pCityName.isBlank()) {
-                Toast.makeText(context, "Partner place required / துணைவர் ஊர் தேவை", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Partner place required", Toast.LENGTH_SHORT).show()
                 return
             }
         }
 
-        val finalTimezone = computeTimezoneOffsetHours(timezoneId, day, month, year, hour, minute) ?: timezone ?: 5.5
-        val finalPartnerTimezone = computeTimezoneOffsetHours(pTimezoneId, pDay, pMonth, pYear, pHour, pMinute) ?: pTz ?: 5.5
+        val finalTimezone = computeTimezoneOffsetHours(timezoneId, day, month, year, hour24.toString(), minute) ?: timezone ?: 5.5
+        val finalPartnerTimezone = computeTimezoneOffsetHours(pTimezoneId, pDay, pMonth, pYear, pHour24.toString(), pMinute) ?: pTz ?: 5.5
 
         // Save Defaults
         val prefs = context.getSharedPreferences("AstroIntakeDefaults", Context.MODE_PRIVATE)
@@ -483,7 +524,7 @@ fun IntakeScreen(
             put("day", day.toIntOrNull() ?: 0)
             put("month", month.toIntOrNull() ?: 0)
             put("year", year.toIntOrNull() ?: 0)
-            put("hour", hour.toIntOrNull() ?: 0)
+            put("hour", hour24)
             put("minute", minute.toIntOrNull() ?: 0)
             put("city", placeName)
             put("state", stateName)
@@ -593,9 +634,15 @@ fun IntakeScreen(
 
                 Text("Time of Birth", fontWeight = FontWeight.Bold)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(value = hour, onValueChange = { if(it.length <=2) hour=it }, label = { Text("HH") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                    Text(":")
-                    OutlinedTextField(value = minute, onValueChange = { if(it.length <=2) minute=it }, label = { Text("MM") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                    OutlinedTextField(value = hour, onValueChange = { if(it.length <=2) hour=it }, label = { Text("Hour (1-12)") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                    Text(":", fontWeight = FontWeight.Bold)
+                    OutlinedTextField(value = minute, onValueChange = { if(it.length <=2) minute=it }, label = { Text("Min") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+
+                    // AM/PM Switcher
+                    Row(modifier = Modifier.weight(1.5f).clip(RoundedCornerShape(8.dp)).background(Color.LightGray.copy(alpha=0.3f))) {
+                        Text("AM", modifier = Modifier.weight(1f).clickable { amPm = "AM" }.background(if(amPm=="AM") Color(0xFF6200EE) else Color.Transparent).padding(8.dp), textAlign = TextAlign.Center, color = if(amPm=="AM") Color.White else Color.Black)
+                        Text("PM", modifier = Modifier.weight(1f).clickable { amPm = "PM" }.background(if(amPm=="PM") Color(0xFF6200EE) else Color.Transparent).padding(8.dp), textAlign = TextAlign.Center, color = if(amPm=="PM") Color.White else Color.Black)
+                    }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = unknownTime, onCheckedChange = { unknownTime = it })
@@ -702,9 +749,15 @@ fun IntakeScreen(
                                 OutlinedTextField(value = pYear, onValueChange = { if(it.length <=4) pYear=it }, label = { Text("YYYY") }, modifier = Modifier.weight(1.5f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                             }
                              Text("Partner Time")
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedTextField(value = pHour, onValueChange = { if(it.length <=2) pHour=it }, label = { Text("HH") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                                OutlinedTextField(value = pMinute, onValueChange = { if(it.length <=2) pMinute=it }, label = { Text("MM") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedTextField(value = pHour, onValueChange = { if(it.length <=2) pHour=it }, label = { Text("Hour") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                                Text(":", fontWeight = FontWeight.Bold)
+                                OutlinedTextField(value = pMinute, onValueChange = { if(it.length <=2) pMinute=it }, label = { Text("Min") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+
+                                Row(modifier = Modifier.weight(1.5f).clip(RoundedCornerShape(8.dp)).background(Color.LightGray.copy(alpha=0.3f))) {
+                                    Text("AM", modifier = Modifier.weight(1f).clickable { pAmPm = "AM" }.background(if(pAmPm=="AM") Color(0xFF6200EE) else Color.Transparent).padding(8.dp), textAlign = TextAlign.Center, color = if(pAmPm=="AM") Color.White else Color.Black)
+                                    Text("PM", modifier = Modifier.weight(1f).clickable { pAmPm = "PM" }.background(if(pAmPm=="PM") Color(0xFF6200EE) else Color.Transparent).padding(8.dp), textAlign = TextAlign.Center, color = if(pAmPm=="PM") Color.White else Color.Black)
+                                }
                             }
                             Text("Partner Place of Birth", fontWeight = FontWeight.Bold)
                             OutlinedTextField(
