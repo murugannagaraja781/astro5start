@@ -3482,141 +3482,21 @@ app.post('/api/payment/callback', async (req, res) => {
         }
       }
 
-      // Determine Redirect URL
-      let targetUrl = '';
-      if (req.query.isApp === 'true') {
-        targetUrl = `astro5://payment-success?status=success`;
-      } else {
-        targetUrl = `https://astro5star.com/wallet?status=success`;
-      }
-
-      // Render HTML for App Deep Link (Using Android Intent URL for Chrome)
       if (req.query.isApp === 'true') {
         const txnId = merchantTransactionId || '';
-        const amount = payment.amount || '';
-
-        // Intent URL WITHOUT browser fallback to website (force app or stay on this page)
-        const intentUrl = `intent://payment-success?status=success&txnId=${txnId}#Intent;scheme=astro5;package=com.astro5star.app;end`;
-        const customSchemeUrl = `astro5://payment-success?status=success&txnId=${txnId}`;
-
-        const html = `
-            <!DOCTYPE html>
-            <html>
-              <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <meta http-equiv="refresh" content="3;url=${customSchemeUrl}">
-                <title>Payment Successful</title>
-                <style>
-                  * { box-sizing: border-box; }
-                  body {
-                    display:flex; flex-direction:column; align-items:center; justify-content:center;
-                    min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,sans-serif;
-                    background:linear-gradient(135deg, #f0f9f4 0%, #d1fae5 100%);
-                    margin:0; padding:20px; text-align:center;
-                  }
-                  .card { background:white; border-radius:20px; padding:40px 30px; box-shadow:0 10px 40px rgba(0,0,0,0.1); max-width:350px; width:100%; }
-                  .success-icon { width:80px; height:80px; background:#10B981; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; }
-                  .success-icon svg { width:40px; height:40px; fill:white; }
-                  h1 { color:#047857; margin:0 0 10px; font-size:1.5rem; }
-                  .amount { font-size:2rem; font-weight:bold; color:#059669; margin:15px 0; }
-                  p { color:#666; margin:10px 0; font-size:0.95rem; }
-                  .btn {
-                    display:block; width:100%; padding:16px; background:linear-gradient(135deg,#059669,#047857);
-                    color:white; text-decoration:none; border-radius:12px; font-weight:bold;
-                    font-size:1.1rem; margin-top:25px; border:none; cursor:pointer;
-                    box-shadow: 0 4px 15px rgba(4,120,87,0.3);
-                  }
-                  .btn:active { transform:scale(0.98); }
-                  .status { font-size:0.85rem; color:#9CA3AF; margin-top:15px; }
-                  .loading { display:inline-block; width:16px; height:16px; border:2px solid #ccc; border-top-color:#047857; border-radius:50%; animation:spin 1s linear infinite; margin-right:8px; vertical-align:middle; }
-                  @keyframes spin { to { transform:rotate(360deg); } }
-                  .pulse { animation: pulse 1.5s ease-in-out infinite; }
-                  @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.02);} }
-              </style>
-              </head>
-              <body>
-                <div class="card">
-                  <div class="success-icon">
-                    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-                  </div>
-                  <h1>Success!</h1>
-                  <div class="amount">₹${amount}</div>
-                  <p>Redirecting to app...</p>
-                  <button class="btn pulse" id="openAppBtn" onclick="openApp()">
-                    Return to Home
-                  </button>
-                  <div class="status" id="status">Closing browser...</div>
-                </div>
-
-                <script>
-                  function openApp() {
-                    // Try Intent first (Chrome/Android - highly reliable)
-                    window.location.href = "${intentUrl}";
-
-                    // Direct Deep Link Fallback (WebView)
-                    setTimeout(function() {
-                      window.location.href = "${customSchemeUrl}";
-                    }, 50);
-                  }
-
-                  // Auto-trigger immediately
-                  openApp();
-                </script>
-              </body>
-            </html>
-          `;
-        return res.send(html);
+        return res.redirect(`/payment-success?amount=${payment.amount || ''}&txnId=${txnId}`);
       }
-      return res.redirect(targetUrl);
+      return res.redirect(`/wallet?status=success&amount=${payment.amount}`);
 
     } else {
       // Failure Handling
       payment.status = 'failed';
       await payment.save();
 
-      let targetUrl = '';
       if (req.query.isApp === 'true') {
-        targetUrl = `astro5://payment-failed?status=failed`;
-      } else {
-        targetUrl = `https://astro5star.com/wallet?status=failure`;
+        return res.redirect('/payment-failed');
       }
-
-      if (req.query.isApp === 'true') {
-        // Android Intent URL format for Chrome (No Web Fallback)
-        const intentUrl = `intent://payment-failed?status=failed#Intent;scheme=astro5;package=com.astro5star.app;end`;
-        const fallbackUrl = `astro5://payment-failed?status=failed`;
-
-        const html = `
-            <!DOCTYPE html>
-            <html>
-              <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Payment Failed</title>
-                <style>
-                  body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#fef2f2; margin:0; padding:20px; text-align:center; }
-                  .fail-icon { font-size:80px; color:#EF4444; margin-bottom:20px; }
-                  h1 { color:#DC2626; margin:0 0 10px; }
-                  p { color:#666; margin:10px 0; }
-                  .btn { display:inline-block; padding:15px 40px; background:#6B7280; color:white; text-decoration:none; border-radius:8px; font-weight:bold; margin-top:20px; font-size:16px; }
-                </style>
-              </head>
-              <body>
-                <div class="fail-icon">✗</div>
-                <h1>Failed</h1>
-                <p>Transaction declined.</p>
-                <a href="${intentUrl}" class="btn">Return to Home</a>
-                <script>
-                  window.location.href = "${intentUrl}";
-                  setTimeout(function() { window.location.href = "${fallbackUrl}"; }, 50);
-                </script>
-              </body>
-            </html>
-          `;
-        return res.send(html);
-      }
-      return res.redirect(targetUrl);
+      return res.redirect(`/wallet?status=failure`);
     }
 
   } catch (e) {
