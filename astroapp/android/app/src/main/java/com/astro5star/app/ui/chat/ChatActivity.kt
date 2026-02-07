@@ -124,7 +124,8 @@ class ChatActivity : ComponentActivity() {
                     isAstrologer = TokenManager(this).getUserSession()?.role == "astrologer",
                     toUserId = toUserId,
                     sessionId = sessionId,
-                    remainingTime = remainingTime
+                    remainingTime = remainingTime,
+                    clientBirthData = clientBirthData
                 )
             }
         }
@@ -308,7 +309,8 @@ fun ChatScreen(
     isAstrologer: Boolean,
     toUserId: String?,
     sessionId: String?,
-    remainingTime: String
+    remainingTime: String,
+    clientBirthData: JSONObject? = null
 ) {
     val messages by viewModel.history.observeAsState(emptyList())
     val isTyping by viewModel.typingStatus.observeAsState(false)
@@ -384,7 +386,8 @@ fun ChatScreen(
                          viewModel.sendStopTyping(toUserId)
                     }
                 },
-                onViewChart = if (isAstrologer) onViewChart else null
+                onViewChart = if (isAstrologer) onViewChart else null,
+                clientBirthData = clientBirthData
             )
         }
     ) { padding ->
@@ -565,7 +568,8 @@ fun ChatInputBar(
     onTextChange: (String) -> Unit,
     onCancelReply: () -> Unit,
     onSend: () -> Unit,
-    onViewChart: (() -> Unit)?
+    onViewChart: (() -> Unit)?,
+    clientBirthData: JSONObject? = null
 ) {
     Surface(color = Color.White, shadowElevation = 8.dp) {
         Column {
@@ -586,8 +590,22 @@ fun ChatInputBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (onViewChart != null) {
+                    val isReady = clientBirthData != null
                     IconButton(onClick = onViewChart) {
-                        Icon(painterResource(id = R.drawable.ic_chart), contentDescription = "Chart", tint = Color.Gray)
+                        if (isReady) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_chart),
+                                contentDescription = "Chart",
+                                tint = Color(0xFF4CAF50) // Green when ready
+                            )
+                        } else {
+                            // Spin icon replacement - Use Refresh as a placeholder for "loading/pending"
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = "Waiting for data",
+                                tint = Color.Gray
+                            )
+                        }
                     }
                 }
                 OutlinedTextField(

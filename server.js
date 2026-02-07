@@ -2063,15 +2063,7 @@ io.on('connection', (socket) => {
       if (!fromUserId || !sessionId) return;
 
       const session = activeSessions.get(sessionId);
-      if (session) {
-        // Find partner
-        const partnerId = session.users.find(u => u !== fromUserId);
-        // Emit to Room (userId) - works even after reconnect
-        io.to(partnerId).emit('session-ended', {
-          sessionId,
-          reason: 'partner_ended'
-        });
-      }
+      // No need to emit here, endSessionRecord handles it for both parties
 
       endSessionRecord(sessionId);
       console.log(`[Session] Ended by ${fromUserId}: ${sessionId}`);

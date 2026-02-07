@@ -984,7 +984,7 @@ fun CallScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF0F2F5)) // Light Gray/White base for Neumorphism
+            .background(Color(0xFFF0F2F5)) // Light Gray/White base
     ) {
         // Remote View Layer (Full Screen)
         if (callType == "video") {
@@ -996,7 +996,7 @@ fun CallScreen(
             // Audio Call UI Placeholder
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                  Icon(
-                     painter = painterResource(id = R.drawable.ic_person_placeholder), // Ensure this exists or fallback
+                     painter = painterResource(id = R.drawable.ic_person_placeholder),
                      contentDescription = "User",
                      tint = Color.Gray,
                      modifier = Modifier.size(120.dp)
@@ -1004,15 +1004,13 @@ fun CallScreen(
             }
         }
 
-        // Watermark removed - moved to Top Card
-
-        // Top Info Bar Area (Neumorphic Card)
+        // Top Info Bar Area
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
                 .padding(top = 24.dp)
-                .height(100.dp)
+                .height(110.dp)
                 .shadow(8.dp, RoundedCornerShape(24.dp))
                 .background(Color.White, RoundedCornerShape(24.dp))
         )
@@ -1020,13 +1018,13 @@ fun CallScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 50.dp, start = 32.dp, end = 32.dp),
+                .padding(top = 40.dp, start = 32.dp, end = 32.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = partnerName,
-                    color = Color(0xFF2E7D32), // Dark Green
+                    color = Color(0xFF2E7D32),
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
@@ -1047,7 +1045,7 @@ fun CallScreen(
                 if (statusText.isNotEmpty()) {
                       Text(
                         text = statusText,
-                        color = Color(0xFF4CAF50), // Standard Green
+                        color = Color(0xFF4CAF50),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -1055,14 +1053,15 @@ fun CallScreen(
             }
         }
 
-        // Local Video (PIP) - Only for Video Call
+        // Local Video (PIP)
         if (callType == "video") {
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(end = 16.dp, bottom = 120.dp) // adjusted for controls
-                    .size(width = 120.dp, height = 160.dp)
+                    .padding(end = 16.dp, bottom = 150.dp)
+                    .size(width = 100.dp, height = 140.dp)
                     .clip(RoundedCornerShape(16.dp))
+                    .border(2.dp, Color.White, RoundedCornerShape(16.dp))
                     .background(Color.DarkGray)
             ) {
                 AndroidView(
@@ -1072,77 +1071,91 @@ fun CallScreen(
             }
         }
 
-        // Bottom Controls Container (Neumorphic)
+        // Bottom Controls Container (Grid)
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(24.dp)
+                .padding(16.dp)
                 .fillMaxWidth()
-                .height(100.dp)
-                .shadow(12.dp, RoundedCornerShape(32.dp))
+                .shadow(16.dp, RoundedCornerShape(32.dp))
                 .background(Color.White, RoundedCornerShape(32.dp))
-                .padding(horizontal = 16.dp),
+                .padding(20.dp),
             contentAlignment = Alignment.Center
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Left Actions
-                if (role == "astrologer") {
-                    ControlBtn(onClick = onShowRasi, icon = android.R.drawable.ic_menu_gallery, active = true)
-                }
-
-                if (callType == "video") {
-                    ControlBtn(onClick = onToggleCamera, icon = if (isVideoEnabled) Icons.Default.Videocam else Icons.Default.VideocamOff, active = isVideoEnabled)
-                }
-
-                ControlBtn(onClick = onToggleSpeaker, icon = if (isSpeakerOn) Icons.Default.VolumeUp else Icons.Default.VolumeOff, active = isSpeakerOn)
-
-                // Main Action (End Call)
-                IconButton(
-                    onClick = onEndCall,
-                    modifier = Modifier
-                        .size(64.dp)
-                        .shadow(8.dp, CircleShape)
-                        .background(Color(0xFFFF5252), CircleShape)
+                // Media Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.CallEnd, "End", tint = Color.White, modifier = Modifier.size(32.dp))
+                    ControlBtnItem(onClick = onToggleMic, icon = if (!isMuted) Icons.Default.Mic else Icons.Default.MicOff, label = "Mute", active = !isMuted)
+                    if (callType == "video") {
+                        ControlBtnItem(onClick = onToggleCamera, icon = if (isVideoEnabled) Icons.Default.Videocam else Icons.Default.VideocamOff, label = "Video", active = isVideoEnabled)
+                    }
+                    ControlBtnItem(onClick = onToggleSpeaker, icon = if (isSpeakerOn) Icons.Default.VolumeUp else Icons.Default.VolumeOff, label = "Speaker", active = isSpeakerOn)
                 }
 
-                // Right Actions
-                ControlBtn(onClick = onToggleMic, icon = if (!isMuted) Icons.Default.Mic else Icons.Default.MicOff, active = !isMuted)
+                // Actions Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (role == "astrologer") {
+                        ControlBtnItem(onClick = onShowRasi, icon = android.R.drawable.ic_menu_gallery, label = "Chart", active = true)
+                    } else {
+                        Spacer(modifier = Modifier.size(48.dp))
+                    }
 
-                if (role == "astrologer") {
-                    ControlBtn(
-                        onClick = onToggleRecording,
-                        icon = if (isRecording) Icons.Default.Stop else Icons.Default.FiberManualRecord,
-                        active = isRecording
-                    )
+                    // End Call
+                    IconButton(
+                        onClick = onEndCall,
+                        modifier = Modifier
+                            .size(64.dp)
+                            .shadow(8.dp, CircleShape)
+                            .background(Color(0xFFFF5252), CircleShape)
+                    ) {
+                        Icon(Icons.Default.CallEnd, "End", tint = Color.White, modifier = Modifier.size(32.dp))
+                    }
+
+                    if (role == "astrologer") {
+                        ControlBtnItem(
+                            onClick = onToggleRecording,
+                            icon = if (isRecording) Icons.Default.Stop else Icons.Default.FiberManualRecord,
+                            label = if (isRecording) "Stop" else "REC",
+                            active = isRecording
+                        )
+                    } else {
+                        ControlBtnItem(onClick = onEditIntake, icon = Icons.Default.Edit, label = "Edit", active = false)
+                    }
                 }
-
-                ControlBtn(onClick = onEditIntake, icon = Icons.Default.Edit, active = false)
             }
         }
     }
 }
 
 @Composable
-fun ControlBtn(onClick: () -> Unit, icon: Any, active: Boolean) {
-    val bgColor = if (active) Color(0xFFE8F5E9) else Color(0xFFF5F5F5)
-    val tintColor = if (active) Color(0xFF4CAF50) else Color.Gray
+fun ControlBtnItem(onClick: () -> Unit, icon: Any, label: String, active: Boolean) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        val bgColor = if (active) Color(0xFFE8F5E9) else Color(0xFFF5F5F5)
+        val tintColor = if (active) Color(0xFF4CAF50) else Color.Gray
 
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier
-            .size(48.dp)
-            .shadow(if (active) 2.dp else 4.dp, CircleShape)
-            .background(bgColor, CircleShape)
-    ) {
-        when (icon) {
-            is ImageVector -> Icon(icon, null, tint = tintColor)
-            is Int -> Icon(painterResource(icon), null, tint = tintColor)
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier
+                .size(48.dp)
+                .shadow(if (active) 2.dp else 4.dp, CircleShape)
+                .background(bgColor, CircleShape)
+        ) {
+            when (icon) {
+                is ImageVector -> Icon(icon, null, tint = tintColor)
+                is Int -> Icon(painterResource(icon), null, tint = tintColor)
+            }
         }
+        Text(text = label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
     }
 }
