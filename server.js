@@ -178,7 +178,7 @@ app.get('/wallet', (req, res) => {
       <body>
         <h3>Payment ${status === 'success' ? 'Successful' : 'Completed'}</h3>
         <p>Redirecting you back to the app...</p>
-        <a href="${deepLink}" class="btn">Return to App</a>
+        <a href="${deepLink}" class="btn">Return to Home</a>
         <script>
           // Auto Redirect
           setTimeout(() => { window.location.href = "${intentUrl}"; }, 500);
@@ -3544,7 +3544,7 @@ app.post('/api/payment/callback', async (req, res) => {
                   <div class="amount">₹${amount}</div>
                   <p>Redirecting to app...</p>
                   <button class="btn pulse" id="openAppBtn" onclick="openApp()">
-                    Return to App
+                    Return to Home
                   </button>
                   <div class="status" id="status">Closing browser...</div>
                 </div>
@@ -3606,7 +3606,7 @@ app.post('/api/payment/callback', async (req, res) => {
                 <div class="fail-icon">✗</div>
                 <h1>Failed</h1>
                 <p>Transaction declined.</p>
-                <a href="${intentUrl}" class="btn">Back to App</a>
+                <a href="${intentUrl}" class="btn">Return to Home</a>
                 <script>
                   window.location.href = "${intentUrl}";
                   setTimeout(function() { window.location.href = "${fallbackUrl}"; }, 50);
@@ -3623,6 +3623,74 @@ app.post('/api/payment/callback', async (req, res) => {
     console.error("Callback Error:", e);
     return res.redirect('/?status=error');
   }
+});
+
+// --- 3. Public Status Pages ---
+app.get('/payment-success', (req, res) => {
+  const { amount, txnId } = req.query;
+  const intentUrl = `intent://payment-success?status=success&txnId=${txnId}#Intent;scheme=astro5;package=com.astro5star.app;end`;
+  const customSchemeUrl = `astro5://payment-success?status=success&txnId=${txnId}`;
+
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Success</title>
+        <style>
+          body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#f0fdf4; margin:0; text-align:center; }
+          .card { background:white; padding:40px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.1); width:320px; }
+          .icon { font-size:60px; color:#22c55e; margin-bottom:20px; }
+          .btn { display:block; padding:15px; background:#16a34a; color:white; text-decoration:none; border-radius:10px; font-weight:bold; margin-top:20px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="icon">✓</div>
+          <h2>Success!</h2>
+          <p>₹${amount || '--'}</p>
+          <a href="${intentUrl}" class="btn">Return to Home</a>
+          <script>
+             function openApp() { window.location.href = "${intentUrl}"; setTimeout(() => { window.location.href = "${customSchemeUrl}"; }, 100); }
+             openApp();
+          </script>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
+app.get('/payment-failed', (req, res) => {
+  const intentUrl = `intent://payment-failed?status=failed#Intent;scheme=astro5;package=com.astro5star.app;end`;
+  const customSchemeUrl = `astro5://payment-failed?status=failed`;
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Failed</title>
+        <style>
+          body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#fef2f2; margin:0; text-align:center; }
+          .card { background:white; padding:40px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.1); width:320px; }
+          .icon { font-size:60px; color:#ef4444; margin-bottom:20px; }
+          .btn { display:block; padding:15px; background:#b91c1c; color:white; text-decoration:none; border-radius:10px; font-weight:bold; margin-top:20px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="icon">✗</div>
+          <h2>Failed</h2>
+          <a href="${intentUrl}" class="btn">Return to Home</a>
+          <script>
+             function openApp() { window.location.href = "${intentUrl}"; setTimeout(() => { window.location.href = "${customSchemeUrl}"; }, 100); }
+             openApp();
+          </script>
+        </div>
+      </body>
+    </html>
+  `);
 });
 
 // 3. Payment History API
