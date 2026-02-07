@@ -275,15 +275,22 @@ app.post('/upload', upload.single('file'), (req, res) => {
   // ... (keeping upload logic if valid) ...
   return res.json({ ok: true, url: req.file ? '/uploads/' + req.file.filename : '' });
 });
-const MONGO_URI = 'mongodb+srv://murugannagaraja781_db_user:NewLife2025@cluster0.tp2gekn.mongodb.net/astrofive';
-mongoose.connect(MONGO_URI)
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb+srv://murugannagaraja781_db_user:NewLife2025@cluster0.tp2gekn.mongodb.net/astrofive';
+mongoose.connect(MONGO_URI, {
+  serverSelectionTimeoutMS: 5000 // Timeout after 5s instead of 10s
+})
   .then(() => {
     console.log('✅ MongoDB Connected');
     if (process.env.NODE_ENV !== 'test') {
       seedDatabase();
     }
   })
-  .catch(err => console.error('MongoDB Error:', err));
+  .catch(err => {
+    console.error('❌ MongoDB Error:', err.message);
+    if (err.message.includes('IP that isn\'t whitelisted')) {
+      console.error('👉 ACTION NEEDED: Login to MongoDB Atlas and whitelist your server IP: 0.0.0.0/0 (for debugging) or your specific server IP.');
+    }
+  });
 
 // Schemas
 const UserSchema = new mongoose.Schema({

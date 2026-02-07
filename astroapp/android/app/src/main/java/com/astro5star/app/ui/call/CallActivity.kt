@@ -974,6 +974,7 @@ fun CallScreen(
     remainingTime: String,
     onToggleMic: () -> Unit,
     onToggleCamera: () -> Unit,
+    onToggleSpeaker: () -> Unit,
     onEndCall: () -> Unit,
     onEditIntake: () -> Unit,
     onShowRasi: () -> Unit,
