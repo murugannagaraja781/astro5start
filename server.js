@@ -341,6 +341,7 @@ const UserSchema = new mongoose.Schema({
   },
   // Phase 2: Reliable Calling Fields
   isAvailable: { type: Boolean, default: false }, // Explicit Online Toggle
+  isBusy: { type: Boolean, default: false }, // Currently in session
   availabilityExpiresAt: Date, // Safety timeout
   fcmToken: String, // Push Notification Token
   lastSeen: { type: Date, default: Date.now }
@@ -598,6 +599,7 @@ app.get('/api/astrology/astrologers', async (req, res) => {
       isVideoOnline: a.isVideoOnline || false,
       experience: a.experience || 0,
       isVerified: a.isVerified || false,
+      isBusy: a.isBusy || false,
       image: a.image || '',
       walletBalance: a.walletBalance // Optional
     }));
@@ -1142,6 +1144,11 @@ function startSessionRecord(sessionId, type, u1, u2) {
   });
   userActiveSession.set(u1, sessionId);
   userActiveSession.set(u2, sessionId);
+
+  // Mark astrologer as busy
+  User.updateMany({ userId: { $in: [u1, u2] }, role: 'astrologer' }, { isBusy: true })
+    .then(() => broadcastAstroUpdate())
+    .catch(e => console.error('Error marking busy:', e));
 }
 
 
@@ -1223,6 +1230,11 @@ async function endSessionRecord(sessionId) {
 
   if (s.clientId) io.to(s.clientId).emit('session-ended', payload);
   if (s.astrologerId) io.to(s.astrologerId).emit('session-ended', payload);
+
+  // Mark astrologer as NOT busy (Wait for DB update before broadcast)
+  User.updateMany({ userId: { $in: s.users }, role: 'astrologer' }, { isBusy: false })
+    .then(() => broadcastAstroUpdate())
+    .catch(e => console.error('Error clearing busy:', e));
 }
 
 // --- Phase 3: Billing Helper ---
@@ -3524,84 +3536,32 @@ app.post('/api/payment/callback', async (req, res) => {
               </style>
               </head>
               <body>
-                <script>
-                  alert("DEBUG INFO:\\n\\nStatus: ${code}\\nisSuccess: ${isSuccess}\\nAmount: ₹${payment.amount}\\nPayment ID: ${payment._id}\\nUser ID: ${payment.userId}\\nWallet Credited: ✅");
-                </script>
                 <div class="card">
                   <div class="success-icon">
                     <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
                   </div>
-                  <h1>Payment Successful!</h1>
+                  <h1>Success!</h1>
                   <div class="amount">₹${amount}</div>
-                  <p>Your wallet has been credited</p>
+                  <p>Redirecting to app...</p>
                   <button class="btn pulse" id="openAppBtn" onclick="openApp()">
-                    Open Astro5 App
+                    Return to App
                   </button>
-                  <div class="status" id="status"><span class="loading"></span>Opening app...</div>
+                  <div class="status" id="status">Closing browser...</div>
                 </div>
 
-                <!-- Hidden iframe for deep link (most reliable method) -->
-                <iframe id="deepLinkFrame" style="display:none;"></iframe>
-
                 <script>
-                  var appOpened = false;
-                  var attempts = 0;
-
                   function openApp() {
-                    if (appOpened) return;
-                    attempts++;
+                    // Try Intent first (Chrome/Android - highly reliable)
+                    window.location.href = "${intentUrl}";
 
-                    document.getElementById('status').innerHTML = '<span class="loading"></span>Attempt ' + attempts + '...';
-
-                    // Method 1: Intent URL (Chrome specific)
-                    try {
-                      window.location.href = "${intentUrl}";
-                    } catch(e) {}
-
-                    // Method 2: Hidden iframe fallback after 300ms
+                    // Direct Deep Link Fallback (WebView)
                     setTimeout(function() {
-                      if (appOpened) return;
-                      try {
-                        document.getElementById('deepLinkFrame').src = "${customSchemeUrl}";
-                      } catch(e) {}
-                    }, 300);
-
-                    // Method 3: Direct custom scheme after 800ms
-                    setTimeout(function() {
-                      if (appOpened) return;
-                      try {
-                        window.location.href = "${customSchemeUrl}";
-                      } catch(e) {}
-                    }, 800);
-
-                    // Check if we're still here after 2 seconds
-                    setTimeout(function() {
-                      if (!appOpened) {
-                        document.getElementById('status').innerHTML = 'Tap the button to open app';
-                        document.getElementById('openAppBtn').classList.add('pulse');
-                      }
-                    }, 2000);
+                      window.location.href = "${customSchemeUrl}";
+                    }, 50);
                   }
 
-                  // Detect if user leaves page (app opened)
-                  document.addEventListener('visibilitychange', function() {
-                    if (document.hidden) {
-                      appOpened = true;
-                    }
-                  });
-
-                  window.addEventListener('blur', function() {
-                    appOpened = true;
-                  });
-
-                  // Auto-trigger on page load - faster for WebView
-                  setTimeout(openApp, 100);
-
-                  // For Android WebView: trigger immediate navigation
-                  // WebView's shouldOverrideUrlLoading will catch this
-                  setTimeout(function() {
-                    window.location.href = "${customSchemeUrl}";
-                  }, 200);
+                  // Auto-trigger immediately
+                  openApp();
                 </script>
               </body>
             </html>
@@ -3644,15 +3604,12 @@ app.post('/api/payment/callback', async (req, res) => {
               </head>
               <body>
                 <div class="fail-icon">✗</div>
-                <h1>Payment Failed</h1>
-                <p>Please try again.</p>
-                <p style="font-size:14px; color:#999;">Tap the button if not redirected automatically</p>
-                <a href="${intentUrl}" class="btn">Return to App</a>
+                <h1>Failed</h1>
+                <p>Transaction declined.</p>
+                <a href="${intentUrl}" class="btn">Back to App</a>
                 <script>
                   window.location.href = "${intentUrl}";
-                  setTimeout(function() {
-                    window.location.href = "${fallbackUrl}";
-                  }, 1000);
+                  setTimeout(function() { window.location.href = "${fallbackUrl}"; }, 50);
                 </script>
               </body>
             </html>
