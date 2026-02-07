@@ -814,9 +814,10 @@ fun AstrologerCard(
                  Spacer(modifier = Modifier.height(12.dp))
 
                  Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                     if (showChat) AstrologerActionButton("Chat", Icons.Rounded.Chat, astro.isChatOnline, AquaBlue, { onChatClick(astro) })
-                     if (showVideo) AstrologerActionButton("Video", Icons.Rounded.VideoCall, astro.isVideoOnline, PriceRed, { onCallClick(astro, "Video") }, Modifier.padding(start=4.dp))
-                     if (showCall) AstrologerActionButton("Call", Icons.Rounded.Call, astro.isAudioOnline, PeacockGreen, { onCallClick(astro, "Audio") }, Modifier.padding(start=4.dp))
+                     // Only show buttons for services the astrologer has enabled
+                     if (showChat && astro.isChatOnline) AstrologerActionButton("Chat", Icons.Rounded.Chat, !astro.isBusy, AquaBlue, { onChatClick(astro) })
+                     if (showVideo && astro.isVideoOnline) AstrologerActionButton("Video", Icons.Rounded.VideoCall, !astro.isBusy, PriceRed, { onCallClick(astro, "Video") }, Modifier.padding(start=4.dp))
+                     if (showCall && astro.isAudioOnline) AstrologerActionButton("Call", Icons.Rounded.Call, !astro.isBusy, PeacockGreen, { onCallClick(astro, "Audio") }, Modifier.padding(start=4.dp))
                  }
              }
         }

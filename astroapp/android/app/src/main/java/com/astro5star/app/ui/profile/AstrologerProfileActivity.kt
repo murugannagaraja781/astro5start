@@ -240,32 +240,36 @@ fun AstrologerProfileScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Chat Button (AquaBlue like Home)
-                    ActionButton(
-                        icon = Icons.Default.Chat,
-                        label = "Chat",
-                        color = Color(0xFF00BCD4),
-                        isEnabled = isChatOnline,
-                        onClick = { onAction("chat") }
-                    )
+                    // Only show buttons for services the astrologer has enabled
+                    if (isChatOnline) {
+                        ActionButton(
+                            icon = Icons.Default.Chat,
+                            label = "Chat",
+                            color = Color(0xFF00BCD4),
+                            isEnabled = true,
+                            onClick = { onAction("chat") }
+                        )
+                    }
 
-                    // Audio Call Button (PeacockGreen like Home)
-                    ActionButton(
-                        icon = Icons.Default.Call,
-                        label = "Call",
-                        color = Color(0xFF00796B),
-                        isEnabled = isAudioOnline,
-                        onClick = { onAction("audio") }
-                    )
+                    if (isAudioOnline) {
+                        ActionButton(
+                            icon = Icons.Default.Call,
+                            label = "Call",
+                            color = Color(0xFF00796B),
+                            isEnabled = true,
+                            onClick = { onAction("audio") }
+                        )
+                    }
 
-                    // Video Call Button (PriceRed like Home)
-                    ActionButton(
-                        icon = androidx.compose.material.icons.Icons.Rounded.VideoCall,
-                        label = "Video",
-                        color = Color(0xFFD32F2F),
-                        isEnabled = isVideoOnline,
-                        onClick = { onAction("video") }
-                    )
+                    if (isVideoOnline) {
+                        ActionButton(
+                            icon = androidx.compose.material.icons.Icons.Rounded.VideoCall,
+                            label = "Video",
+                            color = Color(0xFFD32F2F),
+                            isEnabled = true,
+                            onClick = { onAction("video") }
+                        )
+                    }
                 }
 
                 // Reviews Section Placeholder

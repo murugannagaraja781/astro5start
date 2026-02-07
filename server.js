@@ -566,7 +566,10 @@ app.get('/api/user/:userId', async (req, res) => {
       role: user.role,
       walletBalance: user.walletBalance,
       isOnline: user.isOnline,
-      isAvailable: user.isAvailable, // Phase 2: Reliable Calling
+      isAvailable: user.isAvailable,
+      isChatOnline: user.isChatOnline || false,
+      isAudioOnline: user.isAudioOnline || false,
+      isVideoOnline: user.isVideoOnline || false,
       totalEarnings: user.totalEarnings || 0,
       image: user.image
     });

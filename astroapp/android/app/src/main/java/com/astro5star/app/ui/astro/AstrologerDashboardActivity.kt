@@ -87,8 +87,7 @@ class AstrologerDashboardActivity : ComponentActivity() {
                         sessionId = session?.userId ?: "ID: ????",
                         initialWallet = session?.walletBalance ?: 0.0,
                         onLogout = { performLogout() },
-                        onWithdraw = { showWithdrawDialog() },
-                        onToggleOnline = { isOnline -> updateOnlineStatus(isOnline) }
+                        onWithdraw = { showWithdrawDialog() }
                     )
                 }
             }
@@ -108,43 +107,7 @@ class AstrologerDashboardActivity : ComponentActivity() {
     // For brevity of the artifact, I will assume View logic is migrated to ViewModels or kept simple here.
     // I will implement the UI primarily.
 
-    private fun updateOnlineStatus(isOnline: Boolean) {
-        val session = tokenManager.getUserSession()
-        if (session != null) {
-            val data = JSONObject().apply {
-                put("userId", session.userId)
-                put("isOnline", isOnline)
-            }
-            SocketManager.getSocket()?.emit("update-status", data)
 
-            // Sync with DB Reliable API as well
-            lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                try {
-                    val client = okhttp3.OkHttpClient()
-                    val body = okhttp3.RequestBody.create(
-                        "application/json".toMediaType(),
-                        JSONObject().apply {
-                            put("userId", session.userId)
-                            put("available", isOnline)
-                        }.toString()
-                    )
-                    val request = okhttp3.Request.Builder()
-                        .url("https://astro5star.com/api/astrologer/online")
-                        .post(body)
-                        .build()
-                    client.newCall(request).execute()
-
-                    if (!isOnline) {
-                        SocketManager.disconnect()
-                    } else {
-                        SocketManager.init()
-                        SocketManager.registerUser(session.userId ?: "")
-                    }
-                } catch (e: Exception) { e.printStackTrace() }
-            }
-        }
-        Toast.makeText(this, if(isOnline) "You are now ONLINE" else "You are now OFFLINE", Toast.LENGTH_SHORT).show()
-    }
 
     private fun showWithdrawDialog() {
          // Compose Dialog or Standard Dialog
@@ -280,8 +243,7 @@ fun AstrologerDashboardScreen(
     sessionId: String,
     initialWallet: Double,
     onLogout: () -> Unit,
-    onWithdraw: () -> Unit,
-    onToggleOnline: (Boolean) -> Unit
+    onWithdraw: () -> Unit
 ) {
     var walletBalance by remember { mutableDoubleStateOf(initialWallet) }
 
@@ -321,10 +283,16 @@ fun AstrologerDashboardScreen(
                     val json = JSONObject(response.body?.string() ?: "{}")
                     walletBalance = json.optDouble("walletBalance", walletBalance)
 
-                    // Sync individual service states
-                    isChatOnline = json.optBoolean("isChatOnline", false)
-                    isAudioOnline = json.optBoolean("isAudioOnline", false)
-                    isVideoOnline = json.optBoolean("isVideoOnline", false)
+                    // Sync individual service states from DB
+                    val chatFromDb = json.optBoolean("isChatOnline", false)
+                    val audioFromDb = json.optBoolean("isAudioOnline", false)
+                    val videoFromDb = json.optBoolean("isVideoOnline", false)
+
+                    android.util.Log.d("AstroDashboard", "Sync from DB: Chat=$chatFromDb, Audio=$audioFromDb, Video=$videoFromDb")
+
+                    isChatOnline = chatFromDb
+                    isAudioOnline = audioFromDb
+                    isVideoOnline = videoFromDb
 
                     // Reconnect socket if any service is online
                     if (isChatOnline || isAudioOnline || isVideoOnline) {
@@ -499,24 +467,6 @@ fun AstrologerDashboardScreen(
                 ) {
                     Icon(Icons.Default.ExitToApp, null, tint = Color.White)
                 }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // Master Online/Offline Toggle
-                Switch(
-                    checked = isOnline,
-                    onCheckedChange = { checked ->
-                        isOnline = checked
-                        onToggleOnline(checked)
-                    },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = Color(0xFF4CAF50), // Green for online
-                        uncheckedThumbColor = Color.White,
-                        uncheckedTrackColor = Color.Red.copy(alpha = 0.5f) // Red for offline
-                    ),
-                    modifier = Modifier.scale(0.8f)
-                )
             }
         }
     ) { padding ->
@@ -761,7 +711,7 @@ fun AstrologerDashboardScreen(
                                          when (label) {
                                              "Call" -> showRecordingsDialog(context)
                                              "Profile" -> context.startActivity(Intent(context, com.astro5star.app.ui.settings.SettingsActivity::class.java))
-                                             "Consult History" -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.AstrologerHistoryActivity::class.java))
+                                             "History" -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.AstrologerHistoryActivity::class.java))
                                              "Earnings" -> Toast.makeText(context, "Fetching Data...", Toast.LENGTH_SHORT).show()
                                          }
                                      }
