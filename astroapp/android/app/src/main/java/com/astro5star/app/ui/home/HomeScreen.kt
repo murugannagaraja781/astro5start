@@ -242,6 +242,7 @@ fun HomeScreen(
     onDrawerItemClick: (String) -> Unit = {},
     isGuest: Boolean = false // New Param
 ) {
+    val context = LocalContext.current
     val listState = rememberLazyListState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -625,9 +626,10 @@ fun AstrologerCard(
     onCallClick: (Astrologer, String) -> Unit,
     selectedTab: Int
 ) {
-    val canChat = astro.isChatOnline && (selectedTab == 0 || selectedTab == 1)
-    val canVideo = astro.isVideoOnline && (selectedTab == 0 || selectedTab == 2)
-    val canCall = astro.isAudioOnline && (selectedTab == 0 || selectedTab == 3)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val showChat = (selectedTab == 0 || selectedTab == 1)
+    val showVideo = (selectedTab == 0 || selectedTab == 2)
+    val showCall = (selectedTab == 0 || selectedTab == 3)
 
     // ONLINE ANIMATION (Pulse Border)
     val infiniteTransition = rememberInfiniteTransition(label = "OnlinePulse")
@@ -650,7 +652,21 @@ fun AstrologerCard(
                 elevation = if (astro.isOnline) 8.dp else 2.dp,
                 shape = RoundedCornerShape(16.dp),
                 spotColor = if (astro.isOnline) PeacockGreen else Color.Black
-            ),
+            )
+            .clickable {
+                val intent = Intent(context, com.astro5star.app.ui.profile.AstrologerProfileActivity::class.java).apply {
+                    putExtra("astro_name", astro.name)
+                    putExtra("astro_exp", astro.experience.toString())
+                    putExtra("astro_skills", if(astro.skills.isNotEmpty()) astro.skills.joinToString(", ") else "Vedic, Tarot")
+                    putExtra("astro_id", astro.userId)
+                    putExtra("is_chat_online", astro.isChatOnline)
+                    putExtra("is_audio_online", astro.isAudioOnline)
+                    putExtra("is_video_online", astro.isVideoOnline)
+                    putExtra("astro_image", astro.image)
+                    putExtra("astro_price", astro.price)
+                }
+                context.startActivity(intent)
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), // Handled by shadow modifier
@@ -710,9 +726,9 @@ fun AstrologerCard(
                  Spacer(modifier = Modifier.height(12.dp))
 
                  Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                     if (canChat) AstrologerActionButton("Chat", Icons.Rounded.Chat, true, AquaBlue, { onChatClick(astro) })
-                     if (canVideo) AstrologerActionButton("Video", Icons.Rounded.VideoCall, true, PriceRed, { onCallClick(astro, "Video") }, Modifier.padding(start=4.dp))
-                     if (canCall) AstrologerActionButton("Call", Icons.Rounded.Call, true, PeacockGreen, { onCallClick(astro, "Audio") }, Modifier.padding(start=4.dp))
+                     if (showChat) AstrologerActionButton("Chat", Icons.Rounded.Chat, astro.isChatOnline, AquaBlue, { onChatClick(astro) })
+                     if (showVideo) AstrologerActionButton("Video", Icons.Rounded.VideoCall, astro.isVideoOnline, PriceRed, { onCallClick(astro, "Video") }, Modifier.padding(start=4.dp))
+                     if (showCall) AstrologerActionButton("Call", Icons.Rounded.Call, astro.isAudioOnline, PeacockGreen, { onCallClick(astro, "Audio") }, Modifier.padding(start=4.dp))
                  }
              }
         }
@@ -911,7 +927,7 @@ fun AstrologerActionButton(
 
     Button(
         onClick = onClick,
-        enabled = active,
+        enabled = true,
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor,

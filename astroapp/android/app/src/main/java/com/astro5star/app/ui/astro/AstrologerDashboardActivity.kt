@@ -1,6 +1,8 @@
 package com.astro5star.app.ui.astro
 
 import android.content.Intent
+import android.media.MediaPlayer
+import java.io.File
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -394,16 +396,11 @@ fun AstrologerDashboardScreen(
                                  modifier = Modifier
                                      .weight(1f) // Distribute width equally
                                      .clickable {
-                                         if (label == "Profile") {
-                                             context.startActivity(Intent(context, com.astro5star.app.ui.settings.SettingsActivity::class.java))
-                                         }
-                                         if (label == "History") {
-                                             context.startActivity(Intent(context, com.astro5star.app.ui.astro.AstrologerHistoryActivity::class.java))
-                                         }
-                                         // Mock other actions
-                                         if (label == "Earnings") {
-                                             // Re-fetch logic or show detailed view
-                                             Toast.makeText(context, "Fetching Data...", Toast.LENGTH_SHORT).show()
+                                         when (label) {
+                                             "Call" -> showRecordingsDialog(context)
+                                             "Profile" -> context.startActivity(Intent(context, com.astro5star.app.ui.settings.SettingsActivity::class.java))
+                                             "History" -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.AstrologerHistoryActivity::class.java))
+                                             "Earnings" -> Toast.makeText(context, "Fetching Data...", Toast.LENGTH_SHORT).show()
                                          }
                                      }
                              ) {
@@ -508,3 +505,44 @@ fun ServiceToggleRow(userId: String, services: SnapshotStateList<ServiceData>) {
 }
 
 data class ServiceData(val name: String, val isEnabled: Boolean, val icon: ImageVector)
+
+fun showRecordingsDialog(context: android.content.Context) {
+    val dir = File(context.getExternalFilesDir(null), "Recordings")
+    if (!dir.exists() || dir.listFiles()?.isEmpty() == true) {
+        Toast.makeText(context, "No recordings found", Toast.LENGTH_SHORT).show()
+        return
+    }
+
+    val files = dir.listFiles()?.sortedByDescending { it.lastModified() } ?: emptyList()
+    val fileNames = files.map { it.name }
+
+    val builder = android.app.AlertDialog.Builder(context)
+    builder.setTitle("Recent Recordings")
+    builder.setItems(fileNames.toTypedArray()) { _, which ->
+        val file = files[which]
+        playRecording(context, file)
+    }
+    builder.setNegativeButton("Cancel", null)
+    builder.show()
+}
+
+private var mediaPlayer: MediaPlayer? = null
+
+fun playRecording(context: android.content.Context, file: File) {
+    try {
+        mediaPlayer?.release()
+        mediaPlayer = MediaPlayer().apply {
+            setDataSource(file.absolutePath)
+            prepare()
+            start()
+        }
+        Toast.makeText(context, "Playing: ${file.name}", Toast.LENGTH_SHORT).show()
+
+        mediaPlayer?.setOnCompletionListener {
+            it.release()
+            mediaPlayer = null
+        }
+    } catch (e: Exception) {
+        Toast.makeText(context, "Playback failed: ${e.message}", Toast.LENGTH_SHORT).show()
+    }
+}

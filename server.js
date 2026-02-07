@@ -275,12 +275,12 @@ app.post('/upload', upload.single('file'), (req, res) => {
   // ... (keeping upload logic if valid) ...
   return res.json({ ok: true, url: req.file ? '/uploads/' + req.file.filename : '' });
 });
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb+srv://murugannagaraja781_db_user:NewLife2025@cluster0.tp2gekn.mongodb.net/astrofive';
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/astrofive';
 mongoose.connect(MONGO_URI, {
   serverSelectionTimeoutMS: 5000 // Timeout after 5s instead of 10s
 })
   .then(() => {
-    console.log('✅ MongoDB Connected');
+    console.log('✅ MongoDB Connected to:', MONGO_URI.split('@').pop().split('?')[0]);
     if (process.env.NODE_ENV !== 'test') {
       seedDatabase();
     }

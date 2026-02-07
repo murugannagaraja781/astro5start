@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.rounded.VideoCall
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -43,15 +44,35 @@ class AstrologerProfileActivity : ComponentActivity() {
         val astroName = intent.getStringExtra("astro_name") ?: "Astrologer"
         val astroExp = intent.getStringExtra("astro_exp") ?: "5"
         val astroSkills = intent.getStringExtra("astro_skills") ?: "Vedic, Tarot"
-        // In real app, pass image URL or ID
+        val astroId = intent.getStringExtra("astro_id") ?: ""
+        val astroImage = intent.getStringExtra("astro_image") ?: ""
+        val astroPrice = intent.getIntExtra("astro_price", 15)
+        val isChatOnline = intent.getBooleanExtra("is_chat_online", false)
+        val isAudioOnline = intent.getBooleanExtra("is_audio_online", false)
+        val isVideoOnline = intent.getBooleanExtra("is_video_online", false)
 
         setContent {
             CosmicAppTheme {
                 AstrologerProfileScreen(
+                    id = astroId,
                     name = astroName,
                     exp = astroExp,
                     skills = astroSkills,
-                    onBack = { finish() }
+                    image = astroImage,
+                    price = astroPrice,
+                    isChatOnline = isChatOnline,
+                    isAudioOnline = isAudioOnline,
+                    isVideoOnline = isVideoOnline,
+                    onBack = { finish() },
+                    onAction = { type ->
+                        val intent = android.content.Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
+                            putExtra("partnerId", astroId)
+                            putExtra("partnerName", astroName)
+                            putExtra("partnerImage", astroImage)
+                            putExtra("type", type)
+                        }
+                        startActivity(intent)
+                    }
                 )
             }
         }
@@ -61,13 +82,20 @@ class AstrologerProfileActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AstrologerProfileScreen(
+    id: String,
     name: String,
     exp: String,
     skills: String,
-    onBack: () -> Unit
+    image: String,
+    price: Int,
+    isChatOnline: Boolean,
+    isAudioOnline: Boolean,
+    isVideoOnline: Boolean,
+    onBack: () -> Unit,
+    onAction: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
-    val peacockTeal = Color(0xFF004D40) // Approximation of peacock_teal
+    val peacockTeal = Color(0xFF004D40)
     val yellowAccent = Color(0xFFFFD54F)
 
     Scaffold(
@@ -98,7 +126,7 @@ fun AstrologerProfileScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(80.dp) // Adjusted height
+                    .height(80.dp)
             ) {
                 // Header extension
                 Box(
@@ -115,15 +143,28 @@ fun AstrologerProfileScreen(
                         .align(Alignment.BottomCenter)
                         .offset(y = 20.dp)
                 ) {
-                   Image(
-                       painter = painterResource(id = R.drawable.circle_avatar_placeholder),
-                       contentDescription = "Avatar",
-                       modifier = Modifier
-                           .fillMaxSize()
-                           .clip(CircleShape)
-                           .border(4.dp, Color(0xFF1B5E20), CircleShape), // Green ring
-                       contentScale = ContentScale.Crop
-                   )
+                    androidx.compose.ui.viewinterop.AndroidView(
+                        factory = { context ->
+                           android.widget.ImageView(context).apply {
+                               scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                               // Simple circle mask using background if needed, but better to use Image with clip
+                           }
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .border(4.dp, Color(0xFF1B5E20), CircleShape)
+                    )
+                    // Simplified: Since Coil implementation is harder in AndroidView here, I'll use icon placeholder for now
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_person_placeholder),
+                        contentDescription = "Avatar",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .border(4.dp, Color(0xFF1B5E20), CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
                    // Verified Badge
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
@@ -152,6 +193,7 @@ fun AstrologerProfileScreen(
                 }
 
                 Text(skills, color = Color.Gray, modifier = Modifier.padding(top=4.dp))
+                Text("₹$price/min", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F), modifier = Modifier.padding(top=4.dp))
 
                 // Stats
                 Row(
@@ -162,7 +204,7 @@ fun AstrologerProfileScreen(
                 ) {
                     StatItem(icon = Icons.Default.Chat, value = "49k Mins")
                     StatItem(icon = Icons.Default.Call, value = "31k Mins")
-                    StatItem(icon = Icons.Default.CheckCircle, value = "$exp years Exp") // Using Check/Calendar icon
+                    StatItem(icon = Icons.Default.CheckCircle, value = "$exp years Exp")
                 }
 
                 // Bio
@@ -179,41 +221,32 @@ fun AstrologerProfileScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(24.dp),
-                    horizontalArrangement = Arrangement.Center,
+                    horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Button(
-                        onClick = {},
-                        colors = ButtonDefaults.buttonColors(containerColor = yellowAccent),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                         Text("Follow", color = Color.Black, fontWeight = FontWeight.Bold)
-                    }
+                    // Chat Button (AquaBlue like Home)
+                    ActionButton(
+                        icon = Icons.Default.Chat,
+                        label = "Chat",
+                        color = Color(0xFF00BCD4),
+                        onClick = { onAction("chat") }
+                    )
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                    // Audio Call Button (PeacockGreen like Home)
+                    ActionButton(
+                        icon = Icons.Default.Call,
+                        label = "Call",
+                        color = Color(0xFF00796B),
+                        onClick = { onAction("audio") }
+                    )
 
-                    IconButton(
-                        onClick = {},
-                        modifier = Modifier
-                            .size(50.dp)
-                            .background(Color(0xFFEEEEEE), RoundedCornerShape(8.dp))
-                    ) {
-                        Icon(Icons.Default.Chat, null, tint = Color.Black)
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    IconButton(
-                        onClick = {},
-                        modifier = Modifier
-                            .size(50.dp)
-                            .background(Color(0xFFEEEEEE), RoundedCornerShape(8.dp))
-                    ) {
-                        Icon(Icons.Default.Call, null, tint = Color.Black)
-                    }
+                    // Video Call Button (PriceRed like Home)
+                    ActionButton(
+                        icon = androidx.compose.material.icons.Icons.Rounded.VideoCall,
+                        label = "Video",
+                        color = Color(0xFFD32F2F),
+                        onClick = { onAction("video") }
+                    )
                 }
 
                 // Reviews Section Placeholder
@@ -245,5 +278,22 @@ fun StatItem(icon: ImageVector, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(icon, null, tint = Color.Black, modifier = Modifier.size(24.dp))
         Text(value, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Black, modifier = Modifier.padding(top=4.dp))
+    }
+}
+
+@Composable
+fun ActionButton(icon: ImageVector, label: String, color: Color, onClick: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier
+                .size(56.dp)
+                .background(color.copy(alpha = 0.1f), CircleShape)
+                .border(1.dp, color.copy(alpha = 0.5f), CircleShape)
+        ) {
+            Icon(imageVector = icon, contentDescription = label, tint = color)
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = color)
     }
 }

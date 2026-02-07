@@ -320,14 +320,8 @@ fun ChatScreen(
     var replyingTo by remember { mutableStateOf<ChatMessage?>(null) }
 
     // History Visibility State
-    var showHistory by remember { mutableStateOf(false) }
-    val entryTimestamp = remember { System.currentTimeMillis() }
-
-    // Filter messages: Show all if button clicked, otherwise only new ones (approx)
-    val displayedMessages = remember(messages, showHistory) {
-        if (showHistory) messages
-        else messages.filter { it.timestamp >= entryTimestamp }
-    }
+    // Filter messages: Show all messages by default to ensure no data loss
+    val displayedMessages = remember(messages) { messages }
 
     LaunchedEffect(displayedMessages.size) {
         if (displayedMessages.isNotEmpty()) listState.animateScrollToItem(displayedMessages.size - 1)
@@ -339,12 +333,16 @@ fun ChatScreen(
                 title = {
                     Column {
                         Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)
-                        Text("Online", fontSize = 12.sp, color = Color.White.copy(alpha=0.7f))
+                        if (remainingTime.isNotEmpty() && remainingTime != "00:00") {
+                             Text("Time: $remainingTime", fontSize = 12.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                        } else {
+                             Text("Online", fontSize = 12.sp, color = Color.White.copy(alpha=0.7f))
+                        }
                     }
                 },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back", tint = Color.White) } },
                 actions = {
-                    Text(sessionDuration, color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end=8.dp))
+                    Text(sessionDuration, color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end=12.dp))
                     IconButton(onClick = onEditIntake) { Icon(Icons.Default.Edit, "Intake", tint = Color.White) }
                     TextButton(onClick = onEndChat) { Text("End", color = Color.Red, fontWeight = FontWeight.Bold) }
                 },
@@ -396,24 +394,6 @@ fun ChatScreen(
                 .padding(padding)
                 .background(Color(0xFFF5F5F5))
         ) {
-            // Watermark for Astrologer
-            if (isAstrologer && remainingTime.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Remaining Time: $remainingTime",
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.Gray.copy(alpha = 0.15f),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        lineHeight = 40.sp
-                    )
-                }
-            }
 
             LazyColumn(
                 state = listState,
@@ -421,36 +401,8 @@ fun ChatScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Load Old Chat Button (Modernized)
-                if (!showHistory && messages.any { it.timestamp < entryTimestamp }) {
-                    item {
-                        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
-                            OutlinedButton(
-                                onClick = {
-                                    showHistory = true
-                                    sessionId?.let { viewModel.loadHistory(it) } // Force re-sync from server
-                                },
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = Color(0xFF6200EE)
-                                ),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF6200EE).copy(alpha = 0.5f)),
-                                shape = RoundedCornerShape(20.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Load Previous Messages", fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-                    }
-                }
 
-                if (displayedMessages.isEmpty() && !showHistory && messages.isNotEmpty()) {
-                     // If we have messages but they are hidden, show nothing or just the button above
-                } else if (displayedMessages.isEmpty()) {
+                if (displayedMessages.isEmpty()) {
                     item {
                         Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
                              Text(

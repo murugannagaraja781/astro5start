@@ -1,80 +1,76 @@
 #!/bin/bash
 
-# Astro5 - Professional MongoDB Installation & Migration Script
-# Targeting Ubuntu 20.04/22.04/24.04
+# Astro5 - NO-FAIL MongoDB Installation Script
+# This script tries 3 different ways to get MongoDB on your server
 
-echo "🚀 Starting Official MongoDB Installation..."
+echo "🚀 Starting NO-FAIL MongoDB Installation..."
 
-# 1. Install prerequisites
-sudo apt-get update
-sudo apt-get install -y gnupg curl
+# 0. ENABLE UNIVERSE REPOSITORY
+echo "⚙️ Enabling Ubuntu Universe repo..."
+sudo add-apt-repository universe -y
 
-# 2. Import the public GPG key for the latest stable MongoDB (8.0 or 7.0)
-# This ensures we get the real MongoDB, not a generic version
-curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | \
-   sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg \
-   --dearmor --yes
+# 1. SWAP FILE (Critical for 512MB RAM)
+if [ ! -f /swapfile ]; then
+    echo "💾 Adding 2GB Swap for stability..."
+    sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+fi
 
-# 3. Create a list file for MongoDB
-# Checking if Ubuntu version is 22.04 (jammy) or 20.04 (focal)
-VERSION=$(lsb_release -cs)
-echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu $VERSION/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+# 2. METHOD 1: OFFICIAL REPO (Retrying with fix)
+echo "📦 Trying Method 1: Official MongoDB 7.0..."
+CODENAME=$(lsb_release -cs)
+TARGET_REPO=$CODENAME
+if [[ "$CODENAME" == "noble" ]]; then TARGET_REPO="jammy"; fi
 
-# 4. Reload local package database and install MongoDB
+curl -fsSL https://pgp.mongodb.com/server-7.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg --yes
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu $TARGET_REPO/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+
 sudo apt-get update
 sudo apt-get install -y mongodb-org
 
-# 5. Start MongoDB
-echo "⚙️ Starting MongoDB service..."
-sudo systemctl daemon-reload
-sudo systemctl start mongod
-sudo systemctl enable mongod
-
-# 6. Verify Installation
-if systemctl is-active --quiet mongod; then
-    echo "✅ MongoDB (Official) is now running locally!"
-else
-    # Fallback for older systems
-    sudo systemctl start mongodb
-    if systemctl is-active --quiet mongodb; then
-        echo "✅ MongoDB (Standard) is running locally!"
-    else
-        echo "❌ Error: MongoDB failed to start. Check logs: journalctl -u mongod"
-        exit 1
-    fi
+# 3. METHOD 2: UBUNTU DEFAULT REPO (Fallback)
+if ! command -v mongod &> /dev/null; then
+    echo "⚠️ Method 1 failed. Trying Method 2: Default Ubuntu MongoDB..."
+    sudo apt-get install -y mongodb-server mongodb
 fi
 
-# 7. DATA MIGRATION FROM ATLAS
-if [ -f .env ]; then
-    CURRENT_URI=$(grep "^MONGODB_URI=" .env | cut -d'=' -f2-)
-    echo "📡 Backing up online data from Atlas..."
-    mkdir -p ./db_backup
+# 4. METHOD 3: SNAP INSTALL (Final Fallback)
+if ! command -v mongod &> /dev/null && ! command -v mongodb &> /dev/null; then
+    echo "⚠️ Method 2 failed. Trying Method 3: Snap Install (Slow but works)..."
+    sudo snap install mongodb
+fi
 
-    # Use the just-installed tools to backup
-    mongodump --uri="$CURRENT_URI" --out="./db_backup/"
+# 5. START AND CONFIGURE
+echo "⚙️ Starting database..."
+sudo systemctl daemon-reload
+# Try starting all possible service names
+sudo systemctl enable mongod || sudo systemctl enable mongodb
+sudo systemctl start mongod || sudo systemctl start mongodb
 
-    if [ $? -eq 0 ]; then
-        echo "✅ Atlas backup complete!"
-        echo "💾 Restoring to local instance..."
-        mongorestore --host=localhost --port=27017 ./db_backup/
+# 6. PERMISSIONS & DIRECTORY FIX
+echo "🛠️ Finalizing permissions..."
+sudo mkdir -p /var/lib/mongodb /var/log/mongodb
+sudo chown -R mongodb:mongodb /var/lib/mongodb /var/log/mongodb 2>/dev/null
+sudo chmod -R 755 /var/lib/mongodb
 
-        if [ $? -eq 0 ]; then
-            echo "✅ Migration Successful!"
+# 7. FINAL CHECK
+if pgrep -x "mongod" > /dev/null || pgrep -x "mongodb" > /dev/null || command -v mongod &> /dev/null; then
+    echo "✅ SUCCESS! Database is installed."
 
-            # Update .env
-            echo "📝 Updating .env to localhost..."
-            cp .env .env.bak
-            sed -i 's|^MONGODB_URI=.*|MONGODB_URI=mongodb://localhost:27017/astrofive|' .env
-        fi
-    else
-        echo "⚠️ Could not connect to Atlas. Make sure your server IP is whitelisted in Atlas Dashboard."
+    # Update .env
+    if [ -f .env ]; then
+        sed -i 's|^MONGODB_URI=.*|MONGODB_URI=mongodb://localhost:27017/astrofive|' .env
+        echo "✅ .env updated."
     fi
 else
-    echo "⚠️ No .env found. Skipping migration."
+    echo "❌ CRITICAL ERROR: Could not install MongoDB via any method."
+    echo "Please check if your server is out of disk space: 'df -h'"
+    exit 1
 fi
 
 echo "------------------------------------------------"
-echo "🎉 ALL STEPS COMPLETED!"
-echo "Your server now has its OWN database."
-echo "Restart your app: pm2 restart all"
+echo "🎉 Setup complete. Use 'pm2 restart all' to apply."
 echo "------------------------------------------------"

@@ -1004,24 +1004,7 @@ fun CallScreen(
             }
         }
 
-        // Watermark for Astrologer - Remaining Time (RED)
-        if (role == "astrologer" && remainingTime.isNotEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Remaining Time: $remainingTime",
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.Red.copy(alpha = 0.3f),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    lineHeight = 40.sp
-                )
-            }
-        }
+        // Watermark removed - moved to Top Card
 
         // Top Info Bar Area (Neumorphic Card)
         Box(
@@ -1052,6 +1035,15 @@ fun CallScreen(
                     color = Color.Gray,
                     fontSize = 14.sp
                 )
+                if (remainingTime.isNotEmpty() && remainingTime != "00:00") {
+                      Text(
+                        text = "Time: $remainingTime",
+                        color = Color.Red,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
                 if (statusText.isNotEmpty()) {
                       Text(
                         text = statusText,
@@ -1094,9 +1086,10 @@ fun CallScreen(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Left Actions
                 if (role == "astrologer") {
                     ControlBtn(onClick = onShowRasi, icon = android.R.drawable.ic_menu_gallery, active = true)
                 }
@@ -1107,6 +1100,7 @@ fun CallScreen(
 
                 ControlBtn(onClick = onToggleSpeaker, icon = if (isSpeakerOn) Icons.Default.VolumeUp else Icons.Default.VolumeOff, active = isSpeakerOn)
 
+                // Main Action (End Call)
                 IconButton(
                     onClick = onEndCall,
                     modifier = Modifier
@@ -1117,6 +1111,9 @@ fun CallScreen(
                     Icon(Icons.Default.CallEnd, "End", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
 
+                // Right Actions
+                ControlBtn(onClick = onToggleMic, icon = if (!isMuted) Icons.Default.Mic else Icons.Default.MicOff, active = !isMuted)
+
                 if (role == "astrologer") {
                     ControlBtn(
                         onClick = onToggleRecording,
@@ -1124,8 +1121,6 @@ fun CallScreen(
                         active = isRecording
                     )
                 }
-
-                ControlBtn(onClick = onToggleMic, icon = if (!isMuted) Icons.Default.Mic else Icons.Default.MicOff, active = !isMuted)
 
                 ControlBtn(onClick = onEditIntake, icon = Icons.Default.Edit, active = false)
             }
