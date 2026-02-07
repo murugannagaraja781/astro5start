@@ -2226,7 +2226,7 @@
           <div class="grid-icon"><i class="fas fa-star"></i></div> Reviews
         </div>
         <div class="grid-item" onclick="showHistory()" style="cursor: pointer;">
-          <div class="grid-icon"><i class="fas fa-clock"></i></div> History
+          <div class="grid-icon"><i class="fas fa-clock"></i></div> Consult History
         </div>
         <div class="grid-item" onclick="showProfile()" style="cursor: pointer;">
           <div class="grid-icon"><i class="fas fa-user"></i></div> Profile
@@ -3343,7 +3343,7 @@
       style="background: white; width: 90%; max-width: 400px; height: 80%; border-radius: 20px; display: flex; flex-direction: column; overflow: hidden;">
       <div
         style="padding: 15px; background: var(--bg-body); font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
-        <span>Chat History</span>
+        <span>Consultation History</span>
         <button onclick="document.getElementById('screen-history').classList.add('hidden')"
           style="background: none; border: none; font-size: 1.2rem;"><i class="fas fa-times"></i></button>
       </div>
@@ -4756,18 +4756,32 @@
         list.innerHTML = '';
         res.sessions.forEach(s => {
           const date = new Date(s.startTime).toLocaleString();
-          const dura = s.duration ? Math.round(s.duration / 1000) + 's' : 'Ongoing/Failed';
+
+          // Format duration as M min S sec
+          let duraText = 'Ongoing/Failed';
+          if (s.duration) {
+            const totalSec = Math.floor(s.duration / 1000);
+            const m = Math.floor(totalSec / 60);
+            const s_left = totalSec % 60;
+            duraText = m > 0 ? `${m}m ${s_left}s` : `${s_left}s`;
+          }
+
           const isMe = s.fromUserId === state.me.userId;
           const otherId = isMe ? s.toUserId : s.fromUserId;
 
           const item = document.createElement('div');
-          item.style.cssText = 'background: #f9f9f9; padding: 10px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid #FFD700;';
+          item.style.cssText = 'background: #f9f9f9; padding: 12px; margin-bottom: 12px; border-radius: 12px; border-left: 5px solid #FFD700; box-shadow: 0 2px 5px rgba(0,0,0,0.05);';
           item.innerHTML = `
-            <div style="font-weight:bold; font-size:0.9rem;">${s.type.toUpperCase()}</div>
-            <div style="font-size:0.8rem; color:#555;">ID: ${otherId ? otherId.slice(0, 6) : 'Unknown'}</div>
-            <div style="font-size:0.75rem; color:#999; display:flex; justify-content:space-between; margin-top:5px;">
-              <span>${date}</span>
-              <span>${dura}</span>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <div>
+                <div style="font-weight:bold; font-size:1rem; color:#111827;">${s.type.toUpperCase()}</div>
+                <div style="font-size:0.8rem; color:#6B7280; margin-top: 2px;">Partner ID: ${otherId ? otherId.slice(0, 6) : 'Unknown'}</div>
+              </div>
+              <div style="font-size:0.75rem; color:#9BA3AF; text-align: right;">${date}</div>
+            </div>
+            <div style="font-size:0.9rem; color:#059669; font-weight: 600; padding-top: 5px; border-top: 1px solid #EEE; display: flex; align-items: center; gap: 6px;">
+              <i class="fas fa-history" style="font-size: 0.8rem;"></i>
+              <span>Consultation Time: ${duraText}</span>
             </div>
           `;
           list.appendChild(item);

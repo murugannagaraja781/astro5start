@@ -73,8 +73,8 @@ fun HistoryScreen(userId: String, onBack: () -> Unit) {
                                     id = obj.optString("sessionId"),
                                     clientName = obj.optString("clientName", "Unknown"),
                                     type = obj.optString("type", "call"),
-                                    startTime = obj.optLong("actualBillingStart", 0),
-                                    endTime = obj.optLong("sessionEndAt", 0),
+                                    startTime = if (obj.has("actualBillingStart")) obj.optLong("actualBillingStart") else obj.optLong("startTime", 0),
+                                    endTime = if (obj.has("sessionEndAt")) obj.optLong("sessionEndAt") else obj.optLong("endTime", 0),
                                     duration = obj.optInt("duration", 0),
                                     earned = obj.optDouble("totalEarned", 0.0)
                                 )
@@ -195,10 +195,12 @@ fun HistoryCard(item: SessionHistoryItem) {
                     Text(startTimeStr, fontSize = 14.sp, color = colors.textPrimary)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("Duration", fontSize = 12.sp, color = colors.textSecondary)
-                    val mins = item.duration / 60
-                    val secs = item.duration % 60
-                    Text("${mins}m ${secs}s", fontSize = 14.sp, color = colors.textPrimary)
+                    Text("Consultation Time", fontSize = 12.sp, color = colors.textSecondary)
+                    val totalSec = item.duration / 1000
+                    val mins = totalSec / 60
+                    val secs = totalSec % 60
+                    val duraText = if (mins > 0) "${mins}m ${secs}s" else "${secs}s"
+                    Text(duraText, fontSize = 14.sp, color = Color(0xFF039BE5), fontWeight = FontWeight.SemiBold)
                 }
             }
         }

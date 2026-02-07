@@ -379,7 +379,7 @@ fun AstrologerDashboardScreen(
                 "Chat" to Icons.Default.Chat,
                 "Earnings" to Icons.Default.MonetizationOn,
                 "Reviews" to Icons.Default.Star,
-                "History" to Icons.Default.History,
+                "Consult History" to Icons.Default.History,
                 "Profile" to Icons.Default.Person
             )
 
@@ -401,7 +401,7 @@ fun AstrologerDashboardScreen(
                                          when (label) {
                                              "Call" -> showRecordingsDialog(context)
                                              "Profile" -> context.startActivity(Intent(context, com.astro5star.app.ui.settings.SettingsActivity::class.java))
-                                             "History" -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.AstrologerHistoryActivity::class.java))
+                                             "Consult History" -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.AstrologerHistoryActivity::class.java))
                                              "Earnings" -> Toast.makeText(context, "Fetching Data...", Toast.LENGTH_SHORT).show()
                                          }
                                      }
