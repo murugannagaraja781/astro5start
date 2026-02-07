@@ -5423,9 +5423,9 @@
         renderAdminAstros(astros);
         loadAdminWithdrawals(); // Phase 15
       } else if (tab === 'users') {
-        // Filter Clients from Cache
-        const clients = adminUsersCache.filter(u => u.role !== 'astrologer' && u.role !== 'superadmin');
-        renderAdminClients(clients);
+        // Show all users (Clients & Astrologers) in User Management list
+        const allUsers = adminUsersCache.filter(u => u.role !== 'superadmin');
+        renderAdminClients(allUsers);
       } else if (tab === 'academy') {
         fetchAcademyVideosAdmin();
       }
@@ -5771,14 +5771,8 @@
       list.forEach(u => {
         const div = document.createElement('div');
         div.className = 'admin-user-card';
+
         const isAstro = u.role === 'astrologer';
-        const roleColor = isAstro ? '#ECFDF5' : '#EFF6FF';
-        const roleTextColor = isAstro ? '#059669' : '#1E3A8A';
-        const roleBorder = isAstro ? '2px solid #F59E0B' : '1px solid #E5E7EB';
-
-        div.style.border = roleBorder;
-
-        // Verification Statuses
         const isVerified = u.isVerified || false;
         const isDocs = u.isDocumentVerified || false;
 
@@ -5789,8 +5783,11 @@
                  ${u.name}
                  ${isVerified ? '<i class="fas fa-check-circle" style="color:#3B82F6;"></i>' : ''}
                </div>
-               <div style="font-size:0.8rem; color:#9ca3af; margin-top:2px;">${u.phone} • ${u.role.toUpperCase()}</div>
-               ${isAstro && isDocs ? '<div style="font-size:0.7rem; color:#059669;"><i class="fas fa-file-contract"></i> Docs Verified</div>' : ''}
+               <div style="font-size:0.8rem; color:#9ca3af; margin-top:2px;">${u.phone} • ID: ${u.userId.slice(0, 6)}...</div>
+               <div style="margin-top:5px;">
+                  <span class="user-pill" style="background:${isAstro ? '#fef3c7' : '#EFF6FF'}; color:${isAstro ? '#d97706' : '#1E3A8A'}; font-weight:bold; font-size:0.7rem; padding:2px 8px; border-radius:10px;">${u.role.toUpperCase()}</span>
+                  ${isAstro && isDocs ? '<span style="font-size:0.7rem; color:#059669; margin-left:5px;"><i class="fas fa-file-contract"></i> Docs</span>' : ''}
+               </div>
              </div>
              <div style="text-align:right;">
                <div style="font-weight:700; color:#059669; font-size:1.1rem;">₹${u.walletBalance || 0}</div>
@@ -5798,13 +5795,16 @@
            </div>
 
            <div class="admin-actions">
-              <button class="btn-admin btn-wallet" onclick="adminWallet('${u.userId}')"><i class="fas fa-plus"></i> Wallet</button>
-              <button class="btn-admin btn-role" onclick="adminRole('${u.userId}', '${u.role}')" title="Change Role">
+              <button class="btn-admin btn-wallet" onclick="adminWallet('${u.userId}')" title="Add Funds">
+                <i class="fas fa-plus"></i> Wallet
+              </button>
+              <button class="btn-admin btn-role" onclick="adminRole('${u.userId}', '${u.role}')" title="Change User Role">
                 <i class="fas fa-user-tag"></i> Role
               </button>
-              <button class="btn-admin btn-role" onclick="openAdminEditUser('${u.userId}')"><i class="fas fa-edit"></i> Edit</button>
-
-              <button class="btn-admin btn-block" onclick="adminBan('${u.userId}', ${!u.isBanned})" style="background:${u.isBanned ? '#DC2626' : '#eee'}; color:${u.isBanned ? 'white' : '#666'};">
+              <button class="btn-admin btn-role" style="background:#6366F1;" onclick="openAdminEditUser('${u.userId}')" title="Edit Profile">
+                <i class="fas fa-edit"></i> Edit
+              </button>
+              <button class="btn-admin btn-block" onclick="adminBan('${u.userId}', ${!u.isBanned})" style="background:${u.isBanned ? '#EF4444' : '#eee'}; color:${u.isBanned ? 'white' : '#666'};">
                 <i class="fas fa-ban"></i>
               </button>
             </div>

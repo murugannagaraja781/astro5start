@@ -2815,13 +2815,17 @@ io.on('connection', (socket) => {
               if (!userSockets.has(userId)) {
                 const astro = await User.findOne({ userId });
                 if (astro && astro.role === 'astrologer') {
-                  astro.isOnline = false;
-                  astro.isChatOnline = false;
-                  astro.isAudioOnline = false;
-                  astro.isVideoOnline = false;
-                  await astro.save();
-                  broadcastAstroUpdate();
-                  console.log(`[Status] Astrologer ${astro.name} marked offline after grace period`);
+                  const anyServiceOnline = astro.isChatOnline || astro.isAudioOnline || astro.isVideoOnline;
+                  if (!anyServiceOnline) {
+                    astro.isOnline = false;
+                    await astro.save();
+                    broadcastAstroUpdate();
+                    console.log(`[Status] Astrologer ${astro.name} marked offline after grace period (all toggles off)`);
+                  } else {
+                    astro.isOnline = true; // Stay ONLINE for clients if toggles are still on
+                    await astro.save();
+                    console.log(`[Status] Astrologer ${astro.name} remains ONLINE due to active toggles after disconnect`);
+                  }
                 }
                 savedAstroStatus.delete(userId);
               } else {
