@@ -274,6 +274,37 @@ object SocketManager {
         })
     }
 
+    fun requestWithdrawal(amount: Double, callback: ((JSONObject?) -> Unit)? = null) {
+        val payload = JSONObject().apply {
+            put("amount", amount)
+        }
+        socket?.emit("request-withdrawal", payload, Ack { args ->
+            if (args != null && args.isNotEmpty()) {
+                callback?.invoke(args[0] as? JSONObject)
+            } else {
+                callback?.invoke(null)
+            }
+        })
+    }
+
+    fun getMyWithdrawals(callback: ((List<JSONObject>) -> Unit)) {
+        socket?.emit("get-my-withdrawals", null, Ack { args ->
+            val list = mutableListOf<JSONObject>()
+            if (args != null && args.isNotEmpty()) {
+                val response = args[0] as? JSONObject
+                if (response?.optBoolean("ok") == true) {
+                    val arr = response.optJSONArray("withdrawals")
+                    if (arr != null) {
+                        for (i in 0 until arr.length()) {
+                            list.add(arr.getJSONObject(i))
+                        }
+                    }
+                }
+            }
+            callback(list)
+        })
+    }
+
     fun disconnect() {
         socket?.disconnect()
         socket = null

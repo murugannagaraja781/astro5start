@@ -148,6 +148,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));  // Serve static files
 
+// Policy Page Routes
+app.get('/privacy-policy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'privacy-policy.html')));
+app.get('/terms-condition', (req, res) => res.sendFile(path.join(__dirname, 'public', 'terms-condition.html')));
+app.get('/refund-cancellation-policy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'refund-cancellation-policy.html')));
+app.get('/return-policy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'return-policy.html')));
+app.get('/shipping-policy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'shipping-policy.html')));
+
 // Fallback Wallet Route for App Users who get redirected to /wallet
 app.get('/wallet', (req, res) => {
   const status = req.query.status || 'unknown';

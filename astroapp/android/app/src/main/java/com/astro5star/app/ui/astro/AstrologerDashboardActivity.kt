@@ -228,35 +228,111 @@ fun AstrologerDashboardScreen(
     }
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
 
-    // Fetch latest balance on load
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+    var showWithdrawDialog by remember { mutableStateOf(false) }
+    var withdrawAmount by remember { mutableStateOf("") }
+    var withdrawalHistory by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+
+    fun refreshBalanceAndHistory() {
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
-                // Determine API URL based on context/config, using hardcoded for now matching other files
                 val client = okhttp3.OkHttpClient()
                 val request = okhttp3.Request.Builder()
-                    .url("https://astro5star.com/api/user/${sessionId}") // Assuming ID is userId
+                    .url("https://astro5star.com/api/user/${sessionId}")
                     .build()
                 val response = client.newCall(request).execute()
                 if (response.isSuccessful) {
-                    val json = org.json.JSONObject(response.body?.string() ?: "{}")
-                    val fetchedBalance = json.optDouble("walletBalance", initialWallet)
-                    walletBalance = fetchedBalance
+                    val json = JSONObject(response.body?.string() ?: "{}")
+                    walletBalance = json.optDouble("walletBalance", walletBalance)
+                }
 
-                    // Update Toggle States from Server
-                    val chatOn = json.optBoolean("isChatOnline", false)
-                    val callOn = json.optBoolean("isAudioOnline", false)
-                    val videoOn = json.optBoolean("isVideoOnline", false)
-
-                    services[0] = services[0].copy(isEnabled = chatOn)
-                    services[1] = services[1].copy(isEnabled = callOn)
-                    services[2] = services[2].copy(isEnabled = videoOn)
+                SocketManager.getMyWithdrawals { list ->
+                    withdrawalHistory = list
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
+    }
+
+    // Fetch latest balance on load
+    LaunchedEffect(Unit) {
+        refreshBalanceAndHistory()
+        // Update Toggle States from Server
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val client = okhttp3.OkHttpClient()
+                val request = okhttp3.Request.Builder()
+                    .url("https://astro5star.com/api/user/${sessionId}")
+                    .build()
+                val response = client.newCall(request).execute()
+                if(response.isSuccessful) {
+                    val json = JSONObject(response.body?.string() ?: "{}")
+                    val chatOn = json.optBoolean("isChatOnline", false)
+                    val callOn = json.optBoolean("isAudioOnline", false)
+                    val videoOn = json.optBoolean("isVideoOnline", false)
+                    services[0] = services[0].copy(isEnabled = chatOn)
+                    services[1] = services[1].copy(isEnabled = callOn)
+                    services[2] = services[2].copy(isEnabled = videoOn)
+                }
+            } catch(e: Exception) {}
+        }
+    }
+
+    if (showWithdrawDialog) {
+        AlertDialog(
+            onDismissRequest = { showWithdrawDialog = false },
+            title = { Text("Request Withdrawal", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("Available Balance: ₹${String.format("%.2f", walletBalance)}", color = CosmicColors.GoldAccent, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = withdrawAmount,
+                        onValueChange = { if (it.all { char -> char.isDigit() }) withdrawAmount = it },
+                        label = { Text("Enter Amount") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text("Min. ₹500 required", fontSize = 11.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val amt = withdrawAmount.toDoubleOrNull() ?: 0.0
+                        if (amt < 500) {
+                            Toast.makeText(context, "Minimum withdrawal is ₹500", Toast.LENGTH_SHORT).show()
+                        } else if (amt > walletBalance) {
+                            Toast.makeText(context, "Insufficient balance", Toast.LENGTH_SHORT).show()
+                        } else {
+                            SocketManager.requestWithdrawal(amt) { res ->
+                                scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                                    if (res?.optBoolean("ok") == true) {
+                                        Toast.makeText(context, "Withdrawal Requested Successfully", Toast.LENGTH_LONG).show()
+                                        showWithdrawDialog = false
+                                        withdrawAmount = ""
+                                        refreshBalanceAndHistory()
+                                    } else {
+                                        val err = res?.optString("error", "Error requesting withdrawal") ?: "Error"
+                                        Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = CosmicColors.GoldAccent)
+                ) {
+                    Text("Request", color = Color.Black)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWithdrawDialog = false }) {
+                    Text("Cancel", color = Color.Gray)
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -335,7 +411,7 @@ fun AstrologerDashboardScreen(
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         Button(
-                            onClick = onWithdraw,
+                            onClick = { showWithdrawDialog = true },
                             colors = ButtonDefaults.buttonColors(containerColor = colors.accent),
                             shape = RoundedCornerShape(8.dp)
                         ) {
@@ -344,6 +420,54 @@ fun AstrologerDashboardScreen(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Min. ₹500 to Withdraw", color = colors.textSecondary, fontSize = 11.sp)
+                }
+            }
+
+            // 2b. Recent Withdrawal History
+            if (withdrawalHistory.isNotEmpty()) {
+                Text(
+                    "Recent Withdrawal Status",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = colors.accent,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    withdrawalHistory.take(5).forEach { item ->
+                        val status = item.optString("status", "pending")
+                        val amount = item.optDouble("amount", 0.0)
+                        val date = item.optString("requestedAt", "").take(10)
+
+                        val statusColor = when(status.lowercase()) {
+                            "approved" -> Color(0xFF4CAF50)
+                            "rejected" -> Color.Red
+                            else -> Color(0xFFFFC107)
+                        }
+
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = colors.cardBg),
+                            modifier = Modifier.fillMaxWidth(),
+                            border = BorderStroke(0.5.dp, colors.cardStroke)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("₹$amount", fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                                    Text(date, fontSize = 10.sp, color = colors.textSecondary)
+                                }
+                                Text(
+                                    status.uppercase(),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = statusColor
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
