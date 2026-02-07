@@ -264,6 +264,16 @@ object SocketManager {
         socket?.off("incoming-session")
     }
 
+    fun updateProfile(updates: JSONObject, callback: ((JSONObject?) -> Unit)? = null) {
+        socket?.emit("update-profile", updates, Ack { args ->
+            if (args != null && args.isNotEmpty()) {
+                callback?.invoke(args[0] as? JSONObject)
+            } else {
+                callback?.invoke(null)
+            }
+        })
+    }
+
     fun disconnect() {
         socket?.disconnect()
         socket = null

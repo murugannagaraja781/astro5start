@@ -128,8 +128,7 @@ class HomeActivity : AppCompatActivity() {
                                 startActivity(Intent(this, com.astro5star.app.ui.settings.SettingsActivity::class.java))
                             }
                             "Profile" -> {
-                                // Optional: Handle Profile navigation if UserProfileActivity exists
-                                // Toast.makeText(context, "Profile Coming Soon", Toast.LENGTH_SHORT).show()
+                                startActivity(Intent(this, com.astro5star.app.ui.profile.UserProfileActivity::class.java))
                             }
                             else -> {
                                 // Handle Navigation

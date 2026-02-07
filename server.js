@@ -2554,6 +2554,7 @@ io.on('connection', (socket) => {
       // Update allowed fields
       if (updates.name) user.name = updates.name;
       if (updates.price) user.price = parseInt(updates.price);
+      if (updates.image) user.image = updates.image;
       if (typeof updates.isVerified === 'boolean') user.isVerified = updates.isVerified;
       if (updates.documentStatus) {
         user.documentStatus = updates.documentStatus;
@@ -2576,7 +2577,19 @@ io.on('connection', (socket) => {
   socket.on('admin-update-role', async (data, cb) => {
     if (!await checkAdmin(socket.id)) return cb({ ok: false });
     try {
-      await User.updateOne({ userId: data.userId }, { role: data.role });
+      const updates = { role: data.role };
+      if (data.role === 'astrologer') {
+        updates.walletBalance = 0;
+      }
+      await User.updateOne({ userId: data.userId }, updates);
+
+      // Notify user of role/wallet change if online
+      const sId = userSockets.get(data.userId);
+      if (sId) {
+        if (data.role === 'astrologer') io.to(sId).emit('wallet-update', { balance: 0 });
+        io.to(sId).emit('app-notification', { text: `Your role has been updated to ${data.role}!` });
+      }
+
       cb({ ok: true });
     } catch (e) { cb({ ok: false }); }
   });
@@ -2692,12 +2705,19 @@ io.on('connection', (socket) => {
       const u = await User.findOne({ userId });
       if (!u || u.walletBalance < amount) return cb({ ok: false, error: 'Insufficient Balance' });
 
+      // DEDUCT IMMEDIATELY
+      u.walletBalance -= amount;
+      await u.save();
+
       const w = await Withdrawal.create({
         astroId: userId,
         amount,
         status: 'pending',
         requestedAt: Date.now()
       });
+
+      // Emit wallet update to self
+      io.to(socket.id).emit('wallet-update', { balance: u.walletBalance });
 
       // Notify Super Admins
       io.to('superadmin').emit('admin-notification', {
@@ -2706,7 +2726,7 @@ io.on('connection', (socket) => {
         data: { withdrawalId: w._id, astroName: u.name, amount }
       });
 
-      cb({ ok: true });
+      cb({ ok: true, balance: u.walletBalance });
     } catch (e) {
       console.error(e);
       cb({ ok: false, error: 'Error' });
@@ -2714,6 +2734,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('approve-withdrawal', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
     try {
       const { withdrawalId } = data;
       const w = await Withdrawal.findById(withdrawalId);
@@ -2722,11 +2743,7 @@ io.on('connection', (socket) => {
       const u = await User.findOne({ userId: w.astroId });
       if (!u) return cb({ ok: false, error: 'User not found' });
 
-      if (u.walletBalance < w.amount) return cb({ ok: false, error: 'User Insufficient Balance' });
-
-      // Deduct
-      u.walletBalance -= w.amount;
-      await u.save();
+      // Balance already deducted at request time
 
       // Update Request
       w.status = 'approved';
@@ -2736,7 +2753,6 @@ io.on('connection', (socket) => {
       // Notify Astro
       const sId = userSockets.get(u.userId);
       if (sId) {
-        io.to(sId).emit('wallet-update', { balance: u.walletBalance });
         io.to(sId).emit('app-notification', { text: `✅ Your withdrawal of ₹${w.amount} is approved!` });
       }
 
@@ -2744,6 +2760,37 @@ io.on('connection', (socket) => {
     } catch (e) {
       console.error(e);
       cb({ ok: false, error: 'Error' });
+    }
+  });
+
+  socket.on('reject-withdrawal', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    try {
+      const { withdrawalId } = data;
+      const w = await Withdrawal.findById(withdrawalId);
+      if (!w || w.status !== 'pending') return cb({ ok: false, error: 'Invalid Request' });
+
+      const u = await User.findOne({ userId: w.astroId });
+      if (u) {
+        // REFUND
+        u.walletBalance += w.amount;
+        await u.save();
+
+        const sId = userSockets.get(u.userId);
+        if (sId) {
+          io.to(sId).emit('wallet-update', { balance: u.walletBalance });
+          io.to(sId).emit('app-notification', { text: `❌ Your withdrawal of ₹${w.amount} was rejected. Money refunded.` });
+        }
+      }
+
+      w.status = 'rejected';
+      w.processedAt = Date.now();
+      await w.save();
+
+      cb({ ok: true });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false });
     }
   });
 
@@ -2759,6 +2806,17 @@ io.on('connection', (socket) => {
     } catch (e) {
       console.error(e);
       if (typeof cb === 'function') cb({ ok: false, list: [] });
+    }
+  });
+
+  socket.on('get-my-withdrawals', async (cb) => {
+    const userId = socketToUser.get(socket.id);
+    if (!userId) return;
+    try {
+      const list = await Withdrawal.find({ astroId: userId }).sort({ requestedAt: -1 }).limit(10);
+      if (typeof cb === 'function') cb({ ok: true, list });
+    } catch (e) {
+      if (typeof cb === 'function') cb({ ok: false });
     }
   });
 

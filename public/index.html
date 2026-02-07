@@ -2183,22 +2183,28 @@
             ₹<span id="astroLifetimeDisplay">0.00</span>
           </div>
 
+          <div style="margin-top: 10px; font-size: 0.85rem; opacity: 0.9;">
+            Withdrawable: <span style="font-weight: bold;">₹<span id="astroWalletDisplay">0.00</span></span>
+          </div>
+
           <button id="btnShowEarnings" onclick="toggleEarnings()"
-            style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 6px 15px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; margin-top: 5px; transition: all 0.2s;">
-            <i class="fas fa-eye"></i> View Earnings
+            style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 6px 15px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; margin-top: 10px; transition: all 0.2s;">
+            <i class="fas fa-eye"></i> View Lifetime Earnings
           </button>
-          <!-- Removed Wallet Balance secondary line -->
           <div style="font-size: 0.75rem; opacity: 0.8; margin-top:2px;">Min. ₹500 to Withdraw</div>
         </div>
-        <div>
+        <div style="text-align: right;">
           <button id="btnAstroWithdraw" onclick="astroRequestWithdrawal()"
             style="background: white; color: #059669; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 0.8rem; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
             Withdraw
           </button>
         </div>
       </div>
-      <div id="astroPendingWithdrawals" style="margin: 10px 15px; font-size: 0.8rem; color: #666; display: none;">
-        <!-- Pending status here -->
+      <div id="astroPendingWithdrawals"
+        style="margin: 10px 15px; padding: 10px; background: #fff; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: none;">
+        <div style="font-weight: bold; font-size: 0.85rem; margin-bottom: 8px; color: #374151;">Recent Withdrawal Status
+        </div>
+        <div id="astroWithdrawList" style="display: flex; flex-direction: column; gap: 8px;"></div>
       </div>
 
       <div class="progress-card">
@@ -2565,6 +2571,16 @@
         style="background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 12px; position:relative;">
         <h3 style="margin-top:0; color:#1e3a8a;">Edit Profile</h3>
         <input type="hidden" id="adminEditUserId">
+
+        <div style="text-align:center; margin-bottom:15px;">
+          <img id="adminEditAvatar" src=""
+            style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid #ddd; margin-bottom:10px;">
+          <br>
+          <input type="file" id="adminFileAvatar" style="display:none" onchange="uploadAvatar(this, true)">
+          <button onclick="document.getElementById('adminFileAvatar').click()"
+            style="padding:5px 10px; font-size:0.8rem; border-radius:5px; border:1px solid #ddd; background:white;">Change
+            Photo</button>
+        </div>
 
         <div style="margin-bottom:15px;">
           <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:5px;">Display Name</label>
@@ -4433,6 +4449,7 @@
 
     window.showProfile = function () {
       document.getElementById('screen-profile').classList.remove('hidden');
+      tempAvatarUrl = ''; // Reset for new session
 
       const user = state.me;
       if (!user) return;
@@ -4457,12 +4474,18 @@
       }
     };
 
+    let tempAvatarUrl = '';
+
     window.saveProfile = function () {
       const update = {};
 
       if (state.me.role === 'astrologer') {
         update.price = document.getElementById('editPrice').value;
         update.experience = document.getElementById('editExp').value;
+      }
+
+      if (tempAvatarUrl) {
+        update.image = tempAvatarUrl;
       }
 
       update.birthDetails = {
@@ -4622,6 +4645,9 @@
 
       // Initialize Wallet Display
       document.getElementById('astroLifetimeDisplay').innerText = Number(user.totalEarnings || 0).toFixed(2);
+      document.getElementById('astroWalletDisplay').innerText = Number(user.walletBalance || 0).toFixed(2);
+
+      loadAstroWithdrawals();
 
       // Update Dynamic Prices
       const rate = user.price || 20;
@@ -4647,9 +4673,17 @@
           state.me.totalEarnings = data.totalEarnings;
         }
 
-        // Update stored wallet balance (internal state)
+        // Update withrawable wallet balance
         if (data.balance !== undefined) {
           state.me.walletBalance = data.balance;
+          const el = document.getElementById('astroWalletDisplay');
+          if (el) el.innerText = Number(data.balance).toFixed(2);
+        }
+
+        if (data.walletBalance !== undefined) {
+          state.me.walletBalance = data.walletBalance;
+          const el = document.getElementById('astroWalletDisplay');
+          if (el) el.innerText = Number(data.walletBalance).toFixed(2);
         }
         saveSession(state.me);
       });
@@ -4685,7 +4719,7 @@
     }
 
     // Profile Logic
-    let tempAvatarUrl = '';
+    // Profile Logic
 
     function showProfile() {
       const u = state.me;
@@ -4696,7 +4730,7 @@
       document.getElementById('screen-profile').classList.remove('hidden');
     }
 
-    async function uploadAvatar(input) {
+    async function uploadAvatar(input, isAdmin = false) {
       if (!input.files[0]) return;
       const formData = new FormData();
       formData.append('file', input.files[0]);
@@ -4709,7 +4743,8 @@
         const res = await fetch('/upload', { method: 'POST', body: formData }).then(r => r.json());
         if (res.ok) {
           tempAvatarUrl = res.url;
-          document.getElementById('editAvatar').src = res.url;
+          const targetImgId = isAdmin ? 'adminEditAvatar' : 'editAvatar';
+          document.getElementById(targetImgId).src = res.url;
           btn.textContent = 'Uploaded';
           setTimeout(() => btn.textContent = 'Change Photo', 2000);
         } else {
@@ -5659,6 +5694,8 @@
 
       document.getElementById('adminEditUserId').value = u.userId;
       document.getElementById('adminEditName').value = u.name;
+      document.getElementById('adminEditAvatar').src = u.image || `https://ui-avatars.com/api/?name=${u.name}&background=random`;
+      tempAvatarUrl = ''; // Reset for new edit session
 
       const astroFields = document.getElementById('adminEditAstroFields');
       if (u.role === 'astrologer') {
@@ -5689,6 +5726,10 @@
         updates.price = document.getElementById('adminEditPrice').value;
         updates.isVerified = document.getElementById('adminEditVerified').checked;
         updates.documentStatus = document.getElementById('adminEditDocStatus').value;
+      }
+
+      if (tempAvatarUrl) {
+        updates.image = tempAvatarUrl;
       }
 
       socket.emit('admin-update-user-details', { userId: uid, updates }, (res) => {
@@ -5838,8 +5879,8 @@
 
     // Astrologer Request
     window.astroRequestWithdrawal = () => {
-      // We can get current balance from UI or cache
-      const balance = parseInt(document.getElementById('astroWalletDisplay')?.innerText || '0');
+      // Use the live state instead of just UI text
+      const balance = state.me.walletBalance || 0;
       if (balance < 500) {
         alert("Minimum wallet balance of ₹500 is required to request withdrawal.");
         return;
@@ -5859,17 +5900,48 @@
       }
 
       // Confirm
-      if (!confirm(`Request withdrawal of ₹${amount}?`)) return;
+      if (!confirm(`Request withdrawal of ₹${amount}? Your wallet balance will be reduced immediately.`)) return;
 
       socket.emit('request-withdrawal', { amount }, (res) => {
         if (res.ok) {
-          alert("Request Sent! Pending Admin Approval.");
+          alert("Request Sent! Money deducted. Pending Admin Approval.");
+          loadAstroWithdrawals(); // Refresh self list
         } else {
           alert(res.error || "Failed");
         }
-        // Update UI if needed, but balance doesn't change yet
       });
     };
+
+    function loadAstroWithdrawals() {
+      socket.emit('get-my-withdrawals', (res) => {
+        const container = document.getElementById('astroWithdrawList');
+        const section = document.getElementById('astroPendingWithdrawals');
+        if (!container || !section) return;
+
+        if (res.ok && res.list && res.list.length > 0) {
+          section.style.display = 'block';
+          container.innerHTML = res.list.map(w => {
+            let statusColor = '#f59e0b'; // pending
+            if (w.status === 'approved') statusColor = '#059669';
+            if (w.status === 'rejected') statusColor = '#dc2626';
+
+            return `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid #f3f4f6;">
+                <div>
+                  <div style="font-weight:bold; font-size:0.9rem;">₹${w.amount}</div>
+                  <div style="font-size:0.7rem; color:#9ca3af;">${new Date(w.requestedAt).toLocaleDateString()}</div>
+                </div>
+                <div style="font-size:0.75rem; font-weight:bold; color:${statusColor}; text-transform:uppercase;">
+                  ${w.status}
+                </div>
+              </div>
+            `;
+          }).join('');
+        } else {
+          section.style.display = 'none';
+        }
+      });
+    }
 
     // Admin: Load Pending Withdrawals
     function loadAdminWithdrawals() {
@@ -5884,20 +5956,25 @@
           res.list.filter(x => x.status === 'pending').forEach(w => {
             const div = document.createElement('div');
             div.className = 'admin-card';
-            div.style.borderLeft = '4px solid #DC2626';
+            div.style.borderLeft = '4px solid #F59E0B';
             div.innerHTML = `
                       <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div>
                            <div style="font-weight:bold; color:#111;">${w.astroName}</div>
-                           <div style="font-size:0.8rem; color:#666;">${w.astroPhone}</div>
-                           <div style="font-size:0.75rem; color:#999;">${new Date(w.requestedAt).toLocaleDateString()}</div>
+                           <div style="font-size:0.75rem; color:#999;">${new Date(w.requestedAt).toLocaleString()}</div>
                         </div>
                         <div style="text-align:right;">
-                           <div style="font-size:1.2rem; font-weight:bold; color:#DC2626;">₹${w.amount}</div>
-                           <button onclick="adminApproveWithdrawal('${w._id}')"
-                             style="margin-top:5px; background: #059669; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
-                             Approve
-                           </button>
+                           <div style="font-size:1.2rem; font-weight:bold; color:#DC2626; margin-bottom:5px;">₹${w.amount}</div>
+                           <div style="display:flex; gap:5px;">
+                             <button onclick="adminApproveWithdrawal('${w._id}')"
+                               style="background: #059669; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
+                               Approve
+                             </button>
+                             <button onclick="adminRejectWithdrawal('${w._id}')"
+                               style="background: #DC2626; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
+                               Reject
+                             </button>
+                           </div>
                         </div>
                       </div >
               `;
@@ -5910,12 +5987,25 @@
     }
 
     window.adminApproveWithdrawal = (wid) => {
-      if (!confirm("Approve this withdrawal? Funds will be deducted from Astrologer's wallet now.")) return;
+      if (!confirm("Approve this withdrawal? Amount was already deducted from Astrologer's wallet.")) return;
       socket.emit('approve-withdrawal', { withdrawalId: wid }, (res) => {
         if (res.ok) {
-          alert("Withdrawal Approved & Funds Deducted.");
+          alert("Withdrawal Approved.");
           loadAdminWithdrawals(); // Refresh list
-          navAdmin('payouts'); // Refresh astro list too
+          refreshAdminData();
+        } else {
+          alert("Error: " + (res.msg || 'Failed'));
+        }
+      });
+    };
+
+    window.adminRejectWithdrawal = (wid) => {
+      if (!confirm("Reject this withdrawal? Funds will be REFUNDED to Astrologer's wallet.")) return;
+      socket.emit('reject-withdrawal', { withdrawalId: wid }, (res) => {
+        if (res.ok) {
+          alert("Withdrawal Rejected & Funds Refunded.");
+          loadAdminWithdrawals(); // Refresh list
+          refreshAdminData();
         } else {
           alert("Error: " + (res.msg || 'Failed'));
         }
