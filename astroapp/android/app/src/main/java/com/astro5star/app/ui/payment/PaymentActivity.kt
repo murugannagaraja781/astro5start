@@ -131,13 +131,72 @@ class PaymentActivity : AppCompatActivity() {
             webViewClient = object : android.webkit.WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, request: android.webkit.WebResourceRequest?): Boolean {
                     val url = request?.url.toString()
+                    Log.d(TAG, "WebView URL: $url")
+
+                    // Detect astro5:// deep link (payment success/fail) and auto-redirect
+                    if (url.startsWith("astro5://payment-success") || url.startsWith("astro5://payment-failed")) {
+                        Log.d(TAG, "Payment Complete! Redirecting to PaymentStatusActivity")
+                        val intent = Intent(this@PaymentActivity, com.astro5star.app.ui.wallet.PaymentStatusActivity::class.java)
+                        intent.data = android.net.Uri.parse(url)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        startActivity(intent)
+                        finish() // Close PaymentActivity
+                        return true
+                    }
+
+                    // Detect intent:// scheme and auto-redirect
+                    if (url.startsWith("intent://payment-success") || url.startsWith("intent://payment-failed")) {
+                        Log.d(TAG, "Intent scheme detected, parsing...")
+                        try {
+                            val parsedIntent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+                            if (parsedIntent != null) {
+                                // Extract data and redirect to PaymentStatusActivity
+                                val status = if (url.contains("payment-success")) "success" else "failed"
+                                val redirectIntent = Intent(this@PaymentActivity, com.astro5star.app.ui.wallet.PaymentStatusActivity::class.java)
+                                redirectIntent.data = android.net.Uri.parse("astro5://payment-$status?status=$status")
+                                redirectIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                startActivity(redirectIntent)
+                                finish()
+                                return true
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Intent parse error", e)
+                        }
+                    }
+
                     return handleDeepLink(url)
                 }
 
                 override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
                     super.onPageFinished(view, url)
+                    Log.d(TAG, "Page finished: $url")
+
+                    // Auto-detect if the callback page has loaded (backup detection)
                     if (url != null && url.contains("/api/payment/callback")) {
-                         // Success callback from server logic
+                        // Page loaded with callback - check if success message is shown
+                        // The server HTML should trigger the deep link, but as backup we inject JS
+                        view?.evaluateJavascript(
+                            "(function() { " +
+                            "  var links = document.querySelectorAll('a');" +
+                            "  for(var i=0; i<links.length; i++) {" +
+                            "    var href = links[i].href;" +
+                            "    if(href && href.startsWith('astro5://')) {" +
+                            "      return href;" +
+                            "    }" +
+                            "  }" +
+                            "  return null;" +
+                            "})()"
+                        ) { result ->
+                            if (result != null && result != "null" && result.contains("astro5://")) {
+                                val cleanUrl = result.replace("\"", "")
+                                Log.d(TAG, "Found deep link in page: $cleanUrl")
+                                val intent = Intent(this@PaymentActivity, com.astro5star.app.ui.wallet.PaymentStatusActivity::class.java)
+                                intent.data = android.net.Uri.parse(cleanUrl)
+                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                startActivity(intent)
+                                finish()
+                            }
+                        }
                     }
                 }
             }

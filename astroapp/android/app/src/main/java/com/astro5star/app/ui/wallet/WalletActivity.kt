@@ -174,11 +174,11 @@ fun WalletScreen(
     var amountInput by remember { mutableStateOf("") }
 
     val glassShape = RoundedCornerShape(22.dp)
-    val glassSurface = Color.White.copy(alpha = 0.12f)
-    val glassBorder = Color.White.copy(alpha = 0.35f)
-    val glowPrimary = Color(0xFF6BE6FF).copy(alpha = 0.35f)
-    val glowSecondary = Color(0xFF9B7BFF).copy(alpha = 0.28f)
-    val glowAccent = Color(0xFFFFD27A).copy(alpha = 0.25f)
+    val glassSurface = Color(0xFF1E3A5F).copy(alpha = 0.85f) // Premium dark blue
+    val glassBorder = Color(0xFF4DC9FF).copy(alpha = 0.6f) // Bright cyan border
+    val glowPrimary = Color(0xFF00D9FF).copy(alpha = 0.5f) // Bright cyan glow
+    val glowSecondary = Color(0xFFFF6B9D).copy(alpha = 0.4f) // Pink accent
+    val glowAccent = Color(0xFFFFC107).copy(alpha = 0.45f) // Gold accent - inviting for payment
 
     Box(
         modifier = Modifier
@@ -348,7 +348,10 @@ fun WalletScreen(
                         Button(
                             onClick = {
                                 val amt = amountInput.toIntOrNull() ?: 0
-                                onAddMoney(amt)
+                                if (amt >= 1) {
+                                    onAddMoney(amt)
+                                    amountInput = "" // Clear field after submit
+                                }
                             },
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.18f)),

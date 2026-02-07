@@ -53,7 +53,8 @@ class PaymentStatusActivity : ComponentActivity() {
                     isSuccess = isSuccess,
                     txnId = txnId,
                     onGoHome = {
-                        val intent = Intent(this, MainActivity::class.java)
+                        // Navigate to Wallet page after payment success
+                        val intent = Intent(this, WalletActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                         startActivity(intent)
                         finish()

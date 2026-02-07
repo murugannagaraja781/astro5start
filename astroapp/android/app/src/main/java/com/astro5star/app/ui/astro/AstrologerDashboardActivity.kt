@@ -41,6 +41,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -52,6 +54,7 @@ import com.astro5star.app.data.remote.SocketManager
 import com.astro5star.app.ui.guest.GuestDashboardActivity
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import okhttp3.MediaType.Companion.toMediaType
 
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -119,7 +122,7 @@ class AstrologerDashboardActivity : ComponentActivity() {
                 try {
                     val client = okhttp3.OkHttpClient()
                     val body = okhttp3.RequestBody.create(
-                        okhttp3.MediaType.get("application/json"),
+                        "application/json".toMediaType(),
                         JSONObject().apply {
                             put("userId", session.userId)
                             put("available", isOnline)
@@ -135,7 +138,7 @@ class AstrologerDashboardActivity : ComponentActivity() {
                         SocketManager.disconnect()
                     } else {
                         SocketManager.init()
-                        SocketManager.registerUser(session.userId)
+                        SocketManager.registerUser(session.userId ?: "")
                     }
                 } catch (e: Exception) { e.printStackTrace() }
             }
@@ -255,6 +258,7 @@ fun AstrologerDashboardScreen(
     var walletBalance by remember { mutableDoubleStateOf(initialWallet) }
     var isOnline by remember { mutableStateOf(false) } // This will be our 'isAvailable' state
 
+    val context = LocalContext.current
     // NEW: Local Today's Progress Logic
     val tokenManager = remember { TokenManager(context) }
     var todayProgress by remember { mutableIntStateOf(tokenManager.getDailyProgress()) }
@@ -266,7 +270,6 @@ fun AstrologerDashboardScreen(
             ServiceData("Video", true, Icons.Default.Person)
         )
     }
-    val context = LocalContext.current
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
 
@@ -676,7 +679,7 @@ fun AstrologerDashboardScreen(
                 "Chat" to Icons.Default.Chat,
                 "Earnings" to Icons.Default.MonetizationOn,
                 "Reviews" to Icons.Default.Star,
-                "Consult History" to Icons.Default.History,
+                "History" to Icons.Default.History,
                 "Profile" to Icons.Default.Person
             )
 
@@ -763,25 +766,19 @@ fun AstrologerDashboardScreen(
 }
 
 @Composable
-@Composable
 fun AvailabilityCard(userId: String, isOnline: Boolean, onToggle: (Boolean) -> Unit) {
     val colors = CosmicAppTheme.colors
     Card(
         colors = CardDefaults.cardColors(containerColor = colors.cardBg),
-        shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(20.dp)),
         border = BorderStroke(1.dp, colors.cardStroke.copy(alpha = 0.2f))
     ) {
         Row(
             modifier = Modifier
                 .background(
-                    Brush.linearGradient(
-                        colors = if (isOnline)
-                            listOf(Color(0xFFE8F5E9), Color(0xFFC8E6C9), Color(0xFFA5D6A7)) // Vibrant Green Liquid
-                            else listOf(Color(0xFFFFEBEE), Color(0xFFFFCDD2), Color(0xFFEF9A9A)), // Vibrant Red Liquid
-                        start = Offset(0f, 0f),
-                        end = Offset.Infinite
-                    )
+                    if (isOnline) Color(0xFF1B5E20).copy(alpha = 0.15f)
+                    else Color(0xFFB71C1C).copy(alpha = 0.12f)
                 )
                 .padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -789,12 +786,12 @@ fun AvailabilityCard(userId: String, isOnline: Boolean, onToggle: (Boolean) -> U
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     if (isOnline) "You are ONLINE" else "You are OFFLINE",
-                    fontWeight = FontWeight.ExtraBold,
+                    fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     color = if (isOnline) Color(0xFF2E7D32) else Color(0xFFC62828)
                 )
                 Text(
-                    if (isOnline) "Visible to clients for calls/chat" else "Tap toggle to start accepting calls",
+                    if (isOnline) "Accepting calls & chat" else "Turn on to accept clients",
                     fontSize = 13.sp,
                     color = colors.textSecondary
                 )
@@ -806,9 +803,9 @@ fun AvailabilityCard(userId: String, isOnline: Boolean, onToggle: (Boolean) -> U
                     checkedThumbColor = Color.White,
                     checkedTrackColor = Color(0xFF4CAF50),
                     uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = Color.Red.copy(alpha = 0.5f)
+                    uncheckedTrackColor = Color(0xFFE57373)
                 ),
-                modifier = Modifier.scale(1.2f)
+                modifier = Modifier.scale(1.1f)
             )
         }
     }

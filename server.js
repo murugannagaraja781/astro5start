@@ -3548,8 +3548,14 @@ app.post('/api/payment/callback', async (req, res) => {
                     appOpened = true;
                   });
 
-                  // Auto-trigger on page load
-                  setTimeout(openApp, 500);
+                  // Auto-trigger on page load - faster for WebView
+                  setTimeout(openApp, 100);
+
+                  // For Android WebView: trigger immediate navigation
+                  // WebView's shouldOverrideUrlLoading will catch this
+                  setTimeout(function() {
+                    window.location.href = "${customSchemeUrl}";
+                  }, 200);
                 </script>
               </body>
             </html>
