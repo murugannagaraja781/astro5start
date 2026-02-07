@@ -3207,6 +3207,15 @@
           style="margin:0 0 15px 0; color:#1F2937; font-size:1.3rem; font-weight:700; display:flex; align-items:center; gap:8px;">
           <i class="fas fa-users" style="color:#1e3a8a;"></i> Customer List
         </h2>
+        <div style="margin-bottom: 15px; position: sticky; top: 0; background: #f9fafb; z-index: 10; padding: 5px 0;">
+          <div style="position: relative;">
+            <i class="fas fa-search"
+              style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af;"></i>
+            <input type="text" id="adminUserSearch" oninput="searchAdminUsers()"
+              placeholder="Search by name, phone or ID..."
+              style="width: 100%; padding: 10px 10px 10px 35px; border-radius: 10px; border: 1px solid #e5e7eb; font-size: 0.9rem; outline: none; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+          </div>
+        </div>
         <div id="adminClientList" style="display:flex; flex-direction:column; gap:12px;">
           <!-- Populated via JS -->
         </div>
@@ -5423,6 +5432,8 @@
         renderAdminAstros(astros);
         loadAdminWithdrawals(); // Phase 15
       } else if (tab === 'users') {
+        const searchInput = document.getElementById('adminUserSearch');
+        if (searchInput) searchInput.value = '';
         // Show all users (Clients & Astrologers) in User Management list
         const allUsers = adminUsersCache.filter(u => u.role !== 'superadmin');
         renderAdminClients(allUsers);
@@ -5959,6 +5970,17 @@
           else alert('Failed');
         });
       }
+    };
+
+    window.searchAdminUsers = () => {
+      const query = document.getElementById('adminUserSearch').value.toLowerCase();
+      const filtered = adminUsersCache.filter(u =>
+        u.role !== 'superadmin' &&
+        ((u.name && u.name.toLowerCase().includes(query)) ||
+          (u.phone && u.phone.includes(query)) ||
+          (u.userId && u.userId.toLowerCase().includes(query)))
+      );
+      renderAdminClients(filtered);
     };
 
     // Admin: Verify Users (Blue Tick / Docs)
