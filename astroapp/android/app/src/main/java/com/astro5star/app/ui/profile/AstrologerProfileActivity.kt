@@ -229,6 +229,7 @@ fun AstrologerProfileScreen(
                         icon = Icons.Default.Chat,
                         label = "Chat",
                         color = Color(0xFF00BCD4),
+                        isEnabled = isChatOnline,
                         onClick = { onAction("chat") }
                     )
 
@@ -237,6 +238,7 @@ fun AstrologerProfileScreen(
                         icon = Icons.Default.Call,
                         label = "Call",
                         color = Color(0xFF00796B),
+                        isEnabled = isAudioOnline,
                         onClick = { onAction("audio") }
                     )
 
@@ -245,6 +247,7 @@ fun AstrologerProfileScreen(
                         icon = androidx.compose.material.icons.Icons.Rounded.VideoCall,
                         label = "Video",
                         color = Color(0xFFD32F2F),
+                        isEnabled = isVideoOnline,
                         onClick = { onAction("video") }
                     )
                 }
@@ -282,18 +285,20 @@ fun StatItem(icon: ImageVector, value: String) {
 }
 
 @Composable
-fun ActionButton(icon: ImageVector, label: String, color: Color, onClick: () -> Unit) {
+fun ActionButton(icon: ImageVector, label: String, color: Color, isEnabled: Boolean, onClick: () -> Unit) {
+    val finalColor = if (isEnabled) color else Color.Gray
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         IconButton(
             onClick = onClick,
+            enabled = isEnabled,
             modifier = Modifier
                 .size(56.dp)
-                .background(color.copy(alpha = 0.1f), CircleShape)
-                .border(1.dp, color.copy(alpha = 0.5f), CircleShape)
+                .background(finalColor.copy(alpha = 0.1f), CircleShape)
+                .border(1.dp, finalColor.copy(alpha = 0.5f), CircleShape)
         ) {
-            Icon(imageVector = icon, contentDescription = label, tint = color)
+            Icon(imageVector = icon, contentDescription = label, tint = finalColor)
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = color)
+        Text(text = label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = finalColor)
     }
 }

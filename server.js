@@ -426,11 +426,13 @@ const Payment = mongoose.model('Payment', PaymentSchema);
 
 
 const ChatMessageSchema = new mongoose.Schema({
+  messageId: { type: String, unique: true },
   sessionId: String,
   fromUserId: String,
   toUserId: String,
   text: String,
   type: { type: String, default: 'text' }, // text, system
+  timestamp: { type: Number, default: Date.now },
   createdAt: { type: Date, default: Date.now }
 });
 const ChatMessage = mongoose.model('ChatMessage', ChatMessageSchema);
@@ -1817,20 +1819,16 @@ io.on('connection', (socket) => {
       userActiveSession.set(toUserId, sessionId);
 
       // Try socket notification (might fail if in background - that's OK!)
-      const targetSocketId = userSockets.get(toUserId);
       let socketSent = false;
-
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('incoming-session', {
-          sessionId,
-          fromUserId,
-          callerName: fromUser?.name || 'Client',  // FIX: Add caller name for display
-          type,
-          birthData: birthData || null
-        });
-        socketSent = true;
-        console.log(`[Session] Socket notification sent to ${toUserId}`);
-      }
+      io.to(toUserId).emit('incoming-session', {
+        sessionId,
+        fromUserId,
+        callerName: fromUser?.name || 'Client',  // FIX: Add caller name for display
+        type,
+        birthData: birthData || null
+      });
+      socketSent = true;
+      console.log(`[Session] Socket notification sent to room: ${toUserId}`);
 
       // IMPROVED: Send FCM Push Notification as BACKUP (even if socket sent)
       // This ensures the call reaches the user if socket message is missed/dropped
@@ -1980,26 +1978,23 @@ io.on('connection', (socket) => {
 
         if (accept) {
           // Notify caller that call was accepted
-          if (targetSocketId) {
-            io.to(targetSocketId).emit('session-answered', {
-              sessionId,
-              fromUserId: astrologerId,
-              type: callType || dbSession.type,
-              accept: true
-            });
-          }
+          io.to(fromUserId).emit('session-answered', {
+            sessionId,
+            fromUserId: astrologerId,
+            type: callType || dbSession.type,
+            accept: true
+          });
 
           console.log(`[Native] Call accepted - Session: ${sessionId}, From: ${fromUserId}, To: ${astrologerId}`);
           if (typeof cb === 'function') cb({ ok: true, fromUserId });
         } else {
           // Call rejected
-          if (targetSocketId) {
-            io.to(targetSocketId).emit('session-answered', {
-              sessionId,
-              fromUserId: astrologerId,
-              accept: false
-            });
-          }
+          io.to(fromUserId).emit('session-answered', {
+            sessionId,
+            fromUserId: astrologerId,
+            type: callType || dbSession.type,
+            accept: false
+          });
           endSessionRecord(sessionId);
           console.log(`[Native] Call rejected - Session: ${sessionId}`);
           if (typeof cb === 'function') cb({ ok: true });
@@ -2101,6 +2096,7 @@ io.on('connection', (socket) => {
 
       // Save to DB (Async)
       ChatMessage.create({
+        messageId,
         sessionId,
         fromUserId,
         toUserId,
@@ -2482,11 +2478,8 @@ io.on('connection', (socket) => {
       const fromUserId = socketToUser.get(socket.id);
       if (!fromUserId || !toUserId) return cb({ ok: false, error: 'Invalid data' });
 
-      const targetSocketId = userSockets.get(toUserId);
-      if (!targetSocketId) return cb({ ok: false, error: 'Astrologer offline' });
-
       // Send birth chart data to astrologer
-      io.to(targetSocketId).emit('client-birth-chart', {
+      io.to(toUserId).emit('client-birth-chart', {
         fromUserId,
         birthData
       });

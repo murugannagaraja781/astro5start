@@ -45,7 +45,7 @@ class ChatActivity : ComponentActivity() {
     private val viewModel: ChatViewModel by viewModels()
     private var toUserId: String? = null
     private var sessionId: String? = null
-    private var clientBirthData: JSONObject? = null
+    private var clientBirthData by mutableStateOf<JSONObject?>(null)
     private var sessionDuration by mutableStateOf("00:00")
     private var remainingTime by mutableStateOf("")
     private var chatDurationSeconds = 0
@@ -372,7 +372,7 @@ fun ChatScreen(
 
                          val payload = JSONObject().apply {
                             put("toUserId", toUserId)
-                          put("toUserId", toUserId)
+                            put("sessionId", sessionId)
                             put("messageId", UUID.randomUUID().toString())
                             put("timestamp", System.currentTimeMillis())
                             put("content", JSONObject().put("text", finalText))

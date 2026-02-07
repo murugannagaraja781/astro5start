@@ -920,23 +920,23 @@ fun AstrologerActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // User Request: "red color boder chat bue clor border call green color border"
+    val finalColor = if (active) borderColor else Color.Gray
     val containerColor = Color.White
-    val contentColor = borderColor // Text/Icon matches border
-    val borderStroke = androidx.compose.foundation.BorderStroke(1.dp, borderColor)
+    val contentColor = finalColor
+    val borderStroke = androidx.compose.foundation.BorderStroke(1.dp, finalColor)
 
     Button(
         onClick = onClick,
-        enabled = true,
+        enabled = active,
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor,
-            disabledContainerColor = Color.Gray.copy(alpha = 0.1f),
+            disabledContainerColor = containerColor,
             disabledContentColor = Color.Gray
         ),
         border = borderStroke,
         shape = RoundedCornerShape(50),
-        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp), // Thinner padding for 3 buttons
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
         modifier = modifier.height(32.dp)
     ) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
