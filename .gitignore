@@ -1,81 +1,53 @@
-# Dependencies
-node_modules/
-package-lock.json
-.env.example
-uploads/
+# Gradle and Android
+**/build/
+**/.gradle/
+**/.gradle-local/
+**/.gradle_home/
+**/.gradle_temp_build/
+**/.gradle_home_tar/
+gradle-app.setting
+!gradle-wrapper.jar
 
-# Environment files
-.env
-.env.local
-.env.*.local
+# Keystore files
+*.jks
+*.keystore
+!debug.keystore
 
-# Firebase Service Account (NEVER commit!)
+# Local configuration files
+local.properties
+google-services.json
 
-
-# Logs
-logs/
-*.log
-npm-debug.log*
-
-# OS files
+# iOS/macOS artifacts (since building on mac)
 .DS_Store
-Thumbs.db
+*.dylib
+*.lock
+*.jnilib
 
-# IDE
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+
+# Logs and temporary files
+*.log
+uploads/
+test.txt
+a
+a.sh
+au.sh
+audodeployee.sh
+autodeploy.sh
+BACKUP_SETUP_GUIDE.md
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Code editor settings
 .idea/
 .vscode/
 *.swp
 *.swo
-
-# Build outputsaa
-dist/
-build/
-
-# Temporary files
-tmp/
-temp/
-*.tmp
-
-# Test coverage
-coverage/
-
-# Mobile native builds (if any)
-astroapp/android/.gradle/
-astroapp/android/app/build/
-astroapp/android/build/
-astrofivestar-mobile-native/ios/Pods/
-astrofivestar-mobile-native/ios/Pods/
-*.apk
-*.aab
-*.ipa
-
-# GitHub Action Keys
-
-
-# Ignore local gradle cache
-astroapp/android/.gradle_local/
-
-# Security Keys & Secrets (CRITICAL)
-firebase-service-account.json
-github_action_key
-github_action_key.pub
-astroapp/android/keystore.properties
-**/*.jks
-**/*.keystore
-
-# Local Configuration
-local.properties
-astroapp/android/local.properties
-# Local Cache & Temp
-.gradle_home/
-local_tmp/
-.gradle-local/
-
-1firebase-service-account.json
-firebase-service-account.json
-astroapp/android/.gradle_home/wrapper/dists/gradle-8.12-bin/cetblhg4pflnnks72fxwobvgv/gradle-8.12-bin.zip.part
-firebase-service-account.json
-firebase-service-account.json
-firebase-service-account.json
-astroapp/android/app/src/main/assets/csc.db
-astroapp/android/.gradle_home/wrapper/dists/gradle-8.12-bin/cetblhg4pflnnks72fxwobvgv/gradle-8.12-bin.zip.part

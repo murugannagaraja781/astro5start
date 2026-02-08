@@ -36,14 +36,18 @@ const FCM_PROJECT_ID = 'astro5star-d487c';
 let fcmAuth = null;
 
 // Global Helper for Astrologer Updates
-async function broadcastAstroUpdate() {
+// Global Helper for Astrologer Updates - Defined as constant to prevent ReferenceErrors
+const broadcastAstroUpdate = async () => {
   try {
+    if (typeof User === 'undefined' || !User) return;
     const astros = await User.find({ role: 'astrologer' });
-    io.emit('astrologer-update', astros);
+    if (typeof io !== 'undefined' && io) {
+      io.emit('astrologer-update', astros);
+    }
   } catch (e) {
     console.error('Broadcast Error:', e);
   }
-}
+};
 
 // Initialize FCM v1 Auth
 function initFcmAuth() {
@@ -1782,15 +1786,22 @@ io.on('connection', (socket) => {
       const { toUserId, type, birthData } = data || {};
       const fromUserId = socketToUser.get(socket.id);
 
-      if (!fromUserId) return cb({ ok: false, error: 'Not registered' });
-      if (!toUserId || !type) return cb({ ok: false, error: 'Missing fields' });
+      if (!fromUserId) {
+        if (typeof cb === 'function') cb({ ok: false, error: 'Not registered' });
+        return;
+      }
+      if (!toUserId || !type) {
+        if (typeof cb === 'function') cb({ ok: false, error: 'Missing fields' });
+        return;
+      }
 
       // Get target user from DB
       const toUser = await User.findOne({ userId: toUserId });
       const fromUser = await User.findOne({ userId: fromUserId });
 
       if (!toUser) {
-        return cb({ ok: false, error: 'User not found' });
+        if (typeof cb === 'function') cb({ ok: false, error: 'User not found' });
+        return;
       }
 
       // Check if astrologer is available (MANUAL ONLY)
@@ -2515,7 +2526,10 @@ io.on('connection', (socket) => {
     try {
       const { toUserId, birthData } = data || {};
       const fromUserId = socketToUser.get(socket.id);
-      if (!fromUserId || !toUserId) return cb && cb({ ok: false, error: 'Invalid data' });
+      if (!fromUserId || !toUserId) {
+        if (typeof cb === 'function') cb({ ok: false, error: 'Invalid data' });
+        return;
+      }
 
       // Send birth chart data to astrologer
       io.to(toUserId).emit('client-birth-chart', {
@@ -3402,324 +3416,334 @@ app.post('/api/payment/create', async (req, res) => {
 });
 // (Syntax cleanup - leftovers removed)
 
-// 2. Callback (Webhook)
-  // Redundant callback logic removed (consolidated in enterprise flow)
+// 2. Legacy Callback (Redirects to new flow)
+app.all('/api/payment/callback', (req, res) => {
+  console.log('[LEGACY CALLBACK HIT] /api/payment/callback - Redirecting');
+  // Forward everything to the new callback handler
+  req.url = '/api/phonepe/callback';
+  app.handle(req, res);
+});
 
-  // 3. Payment History API
-  app.get('/api/payment/history/:userId', async (req, res) => {
-    try {
-      const { userId } = req.params;
-      if (!userId) return res.status(400).json({ error: 'UserId required' });
-
-      // Fetch last 20 transactions
-      const transactions = await Payment.find({ userId })
-        .sort({ createdAt: -1 })
-        .limit(20)
-        .lean();
-
-      res.json({ ok: true, data: transactions });
-    } catch (e) {
-      console.error("Payment History Error:", e);
-      res.status(500).json({ ok: false, error: 'Internal Server Error' });
-    }
-  });
-
-  // ===== PhonePe SDK API (Native App Payment) =====
-
-  // PhonePe SDK Init
-  app.post('/api/phonepe/init', async (req, res) => {
-    try {
-      const { userId, amount } = req.body;
-      if (!userId || !amount) return res.status(400).json({ ok: false, error: 'Missing params' });
-
-      const user = await User.findOne({ userId });
-      if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
-
-      const merchantTransactionId = "APP_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
-      const userMobile = (user.phone || "9999999999").replace(/[^0-9]/g, '').slice(-10);
-
-      // Create record
-      await Payment.create({
-        transactionId: merchantTransactionId,
-        merchantTransactionId,
-        userId,
-        amount,
-        status: 'INITIATED',
-        isApp: true
-      });
-
-      const payload = {
-        merchantId: PHONEPE_MERCHANT_ID,
-        merchantTransactionId,
-        merchantUserId: userId.replace(/[^a-z0-9]/gi, ''),
-        amount: amount * 100,
-        callbackUrl: `https://astro5star.com/api/phonepe/callback`,
-        mobileNumber: userMobile,
-        paymentInstrument: { type: "PAY_PAGE" }
-      };
-
-      const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-      const checksum = crypto.createHash('sha256').update(base64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY).digest('hex') + "###" + PHONEPE_SALT_INDEX;
-
-      const response = await fetch(`${PHONEPE_HOST_URL}/pg/v1/pay`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-VERIFY': checksum, 'accept': 'application/json' },
-        body: JSON.stringify({ request: base64Payload })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        res.json({ ok: true, transactionId: merchantTransactionId, data: data.data });
-      } else {
-        res.json({ ok: false, error: data.message });
-      }
-    } catch (e) {
-      console.error("PhonePe Init Error:", e);
-      res.status(500).json({ ok: false, error: 'Internal Server Error' });
-    }
-  });
-
-  // PhonePe Signing for Native Android
-  app.post('/api/phonepe/sign', async (req, res) => {
-    try {
-      const { userId, amount } = req.body;
-      const user = await User.findOne({ userId });
-      const merchantTransactionId = "SDK_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
-
-      await Payment.create({ transactionId: merchantTransactionId, merchantTransactionId, userId, amount, status: 'INITIATED', isApp: true });
-
-      const payload = {
-        merchantId: PHONEPE_MERCHANT_ID,
-        merchantTransactionId,
-        merchantUserId: userId.replace(/[^a-z0-9]/gi, ''),
-        amount: amount * 100,
-        callbackUrl: "https://astro5star.com/api/phonepe/callback",
-        mobileNumber: (user?.phone || "9999999999").replace(/[^0-9]/g, '').slice(-10),
-        paymentInstrument: { type: "PAY_PAGE" }
-      };
-
-      const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-      const checksum = crypto.createHash('sha256').update(base64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY).digest('hex') + "###" + PHONEPE_SALT_INDEX;
-
-      res.json({ ok: true, payload: base64Payload, checksum, transactionId: merchantTransactionId });
-    } catch (e) {
-      res.status(500).json({ ok: false, error: 'Signing failed' });
-    }
-  });
-
-  /**
-   * Enterprise Status Check API
-   * This is the ONLY legitimate way for the app to confirm payment.
-   */
-  app.get('/api/phonepe/status/:transactionId', async (req, res) => {
-    try {
-      const { transactionId } = req.params;
-      const payment = await Payment.findOne({ $or: [{ transactionId }, { merchantTransactionId: transactionId }] });
-
-      if (!payment) return res.status(404).json({ ok: false, error: 'Payment not found' });
-
-      // 1. If already SUCCESS in DB (from Webhook), return instantly
-      if (payment.status === 'SUCCESS') {
-        const user = await User.findOne({ userId: payment.userId });
-        return res.json({ ok: true, status: 'SUCCESS', walletBalance: user?.walletBalance || 0 });
-      }
-
-      // 2. Otherwise, Poll PhonePe API for latest status
-      const status = await syncPaymentWithGateway(payment.transactionId);
-
-      if (status === 'SUCCESS') {
-        const user = await User.findOne({ userId: payment.userId });
-        return res.json({ ok: true, status: 'SUCCESS', walletBalance: user?.walletBalance || 0 });
-      }
-
-      res.json({ ok: true, status: status === 'PAYMENT_PENDING' ? 'PENDING' : 'FAILED' });
-    } catch (e) {
-      res.status(500).json({ ok: false, error: 'Status check failed' });
-    }
-  });
-
-  /**
-   * Enterprise Secure Webhook
-   * Verifies signature, amount, and updates ledger transactionally.
-   */
-  app.post('/api/phonepe/callback', async (req, res) => {
-    try {
-      const xVerify = req.headers['x-verify'];
-      const base64Response = req.body.response;
-
-      if (!base64Response || !xVerify) return res.status(400).send('Invalid');
-
-      // SHA256(base64Body + SALT_KEY) + "###" + SALT_INDEX
-      const expectedChecksum = crypto.createHash('sha256').update(base64Response + PHONEPE_SALT_KEY).digest('hex') + "###" + PHONEPE_SALT_INDEX;
-
-      if (xVerify !== expectedChecksum) {
-        console.error('[CALLBACK] SECURITY BREACH: Signature mismatch!');
-        return res.status(401).send('Forbidden');
-      }
-
-      const decoded = JSON.parse(Buffer.from(base64Response, 'base64').toString('utf-8'));
-      const { code, merchantTransactionId, data } = decoded;
-      const gatewayCode = code || (data && data.code);
-      const mTxnId = merchantTransactionId || (data && data.merchantTransactionId);
-
-      const payment = await Payment.findOne({ transactionId: mTxnId });
-      if (!payment) {
-        console.error('[CALLBACK] Payment not found:', mTxnId);
-        return res.status(200).send('OK');
-      }
-
-      if (gatewayCode === 'PAYMENT_SUCCESS') {
-        await processVerifiedPayment(payment, decoded);
-      } else {
-        if (payment.status === 'INITIATED') {
-          payment.status = 'FAILED';
-          payment.rawResponse = decoded;
-          await payment.save();
-        }
-      }
-
-      res.status(200).send('OK');
-    } catch (e) {
-      console.error("Callback Error:", e);
-      res.status(200).send('OK');
-    }
-  });
-
-  // ============================================================================
-  // MOBILE APP SPECIFIC ENDPOINTS (from mobileapp/server/server.js)
-  // ============================================================================
-
-  /**
-   * Register user's FCM token
-   * POST /register
-   */
-  // [DEPRECATED] - Use the MongoDB /register endpoint at line 524
-  // app.post('/register', (req, res) => {
-  //   const { userId, fcmToken } = req.body;
-  //   if (!userId || typeof userId !== 'string' || !fcmToken || typeof fcmToken !== 'string') {
-  //     return res.status(400).json({ success: false, error: 'Invalid input' });
-  //   }
-  //   mobileTokenStore.set(userId, fcmToken);
-  //   console.log(`[Mobile] Registered: ${userId} → ${fcmToken.substring(0, 20)}...`);
-  //   res.json({ success: true, message: `User ${userId} registered successfully` });
-  // });
-
-  /**
-   * List all registered users (for debugging)
-   * GET /users
-   */
-  app.get('/users', (req, res) => {
-    const users = [];
-    mobileTokenStore.forEach((token, userId) => {
-      users.push({ userId, tokenPreview: `${token.substring(0, 15)}...` });
-    });
-    res.json({ count: users.length, users });
-  });
-
-  /**
-   * Unregister a user
-   * DELETE /unregister/:userId
-   */
-  app.delete('/unregister/:userId', (req, res) => {
+// 3. Payment History API
+app.get('/api/payment/history/:userId', async (req, res) => {
+  try {
     const { userId } = req.params;
-    if (mobileTokenStore.has(userId)) {
-      mobileTokenStore.delete(userId);
-      res.json({ success: true, message: `User ${userId} unregistered` });
-    } else {
-      res.status(404).json({ success: false, error: 'User not found' });
-    }
-  });
+    if (!userId) return res.status(400).json({ error: 'UserId required' });
 
-  /**
-   * Initiate a call to a user
-   * POST /call
-   */
-  app.post('/call', async (req, res) => {
-    const { callerId, calleeId, callerName } = req.body;
+    // Fetch last 20 transactions
+    const transactions = await Payment.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean();
 
-    if (!callerId || !calleeId) {
-      return res.status(400).json({ success: false, error: 'Missing callerId or calleeId' });
-    }
+    res.json({ ok: true, data: transactions });
+  } catch (e) {
+    console.error("Payment History Error:", e);
+    res.status(500).json({ ok: false, error: 'Internal Server Error' });
+  }
+});
 
-    // Check if Firebase is initialized
-    // Check if Firebase is initialized
-    if (!callApp) {
-      console.error('[Mobile] Call App Firebase NOT initialized. Check firebase-service-account.json');
-      return res.status(503).json({
-        success: false,
-        error: 'Push notification service unavailable (Server Config Error)',
-        details: global.callAppInitError || 'Unknown initialization error' // Exposed for debugging
-      });
-    }
+// ===== PhonePe SDK API (Native App Payment) =====
 
-    // UPDATED: Look up from MongoDB (User collection)
-    // const fcmToken = mobileTokenStore.get(calleeId);
-    const user = await User.findOne({ userId: calleeId });
-    const fcmToken = user ? user.fcmToken : null;
+// PhonePe SDK Init
+app.post('/api/phonepe/init', async (req, res) => {
+  try {
+    const { userId, amount } = req.body;
+    if (!userId || !amount) return res.status(400).json({ ok: false, error: 'Missing params' });
 
-    if (!fcmToken) {
-      return res.status(404).json({ success: false, error: 'User not online/registered' });
-    }
+    const user = await User.findOne({ userId });
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
 
-    const callId = `call_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const merchantTransactionId = "APP_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    const userMobile = (user.phone || "9999999999").replace(/[^0-9]/g, '').slice(-10);
 
-    const message = {
-      token: fcmToken,
-      data: {
-        type: 'INCOMING_CALL',
-        callId: callId,
-        callerId: callerId,
-        callerName: callerName || callerId,
-        timestamp: Date.now().toString()
-      },
-      android: {
-        priority: 'high',
-        directBootOk: true
-      }
+    // Create record
+    await Payment.create({
+      transactionId: merchantTransactionId,
+      merchantTransactionId,
+      userId,
+      amount,
+      status: 'INITIATED',
+      isApp: true
+    });
+
+    const payload = {
+      merchantId: PHONEPE_MERCHANT_ID,
+      merchantTransactionId,
+      merchantUserId: userId.replace(/[^a-z0-9]/gi, ''),
+      amount: amount * 100,
+      callbackUrl: `https://astro5star.com/api/phonepe/callback`,
+      mobileNumber: userMobile,
+      paymentInstrument: { type: "PAY_PAGE" }
     };
 
-    console.log(`[Mobile] Sending call: ${callerId} → ${calleeId} (callId: ${callId})`);
+    const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
+    const checksum = crypto.createHash('sha256').update(base64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY).digest('hex') + "###" + PHONEPE_SALT_INDEX;
 
-    try {
-      const response = await callApp.messaging().send(message);
-      console.log(`[Mobile] Call notification sent: ${response}`);
-      res.json({ success: true, callId, message: 'Call sent' });
-    } catch (error) {
-      console.error('[Mobile] FCM Error:', error.message);
-      if (error.code === 'messaging/invalid-registration-token' ||
-        error.code === 'messaging/registration-token-not-registered') {
-        // Remove invalid token from DB
-        await User.updateOne({ userId: calleeId }, { $unset: { fcmToken: 1 } });
-        console.log(`[Mobile] Invalid token removed for user ${calleeId}`);
-      }
-      // Return 500 only for actual sending errors, not config errors
-      res.status(500).json({ success: false, error: error.message });
+    const response = await fetch(`${PHONEPE_HOST_URL}/pg/v1/pay`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-VERIFY': checksum, 'accept': 'application/json' },
+      body: JSON.stringify({ request: base64Payload })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      res.json({ ok: true, transactionId: merchantTransactionId, data: data.data });
+    } else {
+      res.json({ ok: false, error: data.message });
     }
+  } catch (e) {
+    console.error("PhonePe Init Error:", e);
+    res.status(500).json({ ok: false, error: 'Internal Server Error' });
+  }
+});
+
+// PhonePe Signing for Native Android
+app.post('/api/phonepe/sign', async (req, res) => {
+  try {
+    const { userId, amount } = req.body;
+    const user = await User.findOne({ userId });
+    const merchantTransactionId = "SDK_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+
+    await Payment.create({ transactionId: merchantTransactionId, merchantTransactionId, userId, amount, status: 'INITIATED', isApp: true });
+
+    const payload = {
+      merchantId: PHONEPE_MERCHANT_ID,
+      merchantTransactionId,
+      merchantUserId: userId.replace(/[^a-z0-9]/gi, ''),
+      amount: amount * 100,
+      callbackUrl: "https://astro5star.com/api/phonepe/callback",
+      mobileNumber: (user?.phone || "9999999999").replace(/[^0-9]/g, '').slice(-10),
+      paymentInstrument: { type: "PAY_PAGE" }
+    };
+
+    const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
+    const checksum = crypto.createHash('sha256').update(base64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY).digest('hex') + "###" + PHONEPE_SALT_INDEX;
+
+    res.json({ ok: true, payload: base64Payload, checksum, transactionId: merchantTransactionId });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: 'Signing failed' });
+  }
+});
+
+/**
+ * Enterprise Status Check API
+ * This is the ONLY legitimate way for the app to confirm payment.
+ */
+app.get('/api/phonepe/status/:transactionId', async (req, res) => {
+  try {
+    const { transactionId } = req.params;
+    const payment = await Payment.findOne({ $or: [{ transactionId }, { merchantTransactionId: transactionId }] });
+
+    if (!payment) return res.status(404).json({ ok: false, error: 'Payment not found' });
+
+    // 1. If already SUCCESS in DB (from Webhook), return instantly
+    if (payment.status === 'SUCCESS') {
+      const user = await User.findOne({ userId: payment.userId });
+      return res.json({ ok: true, status: 'SUCCESS', walletBalance: user?.walletBalance || 0 });
+    }
+
+    // 2. Otherwise, Poll PhonePe API for latest status
+    const status = await syncPaymentWithGateway(payment.transactionId);
+
+    if (status === 'SUCCESS') {
+      const user = await User.findOne({ userId: payment.userId });
+      return res.json({ ok: true, status: 'SUCCESS', walletBalance: user?.walletBalance || 0 });
+    }
+
+    res.json({ ok: true, status: status === 'PAYMENT_PENDING' ? 'PENDING' : 'FAILED' });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: 'Status check failed' });
+  }
+});
+
+/**
+ * Enterprise Secure Webhook
+ * Verifies signature, amount, and updates ledger transactionally.
+ */
+app.post('/api/phonepe/callback', async (req, res) => {
+  try {
+    const xVerify = req.headers['x-verify'];
+    const base64Response = req.body.response;
+
+    if (!base64Response || !xVerify) return res.status(400).send('Invalid');
+
+    // SHA256(base64Body + SALT_KEY) + "###" + SALT_INDEX
+    const expectedChecksum = crypto.createHash('sha256').update(base64Response + PHONEPE_SALT_KEY).digest('hex') + "###" + PHONEPE_SALT_INDEX;
+
+    if (xVerify !== expectedChecksum) {
+      console.error('[CALLBACK] SECURITY BREACH: Signature mismatch!');
+      return res.status(401).send('Forbidden');
+    }
+
+    const decoded = JSON.parse(Buffer.from(base64Response, 'base64').toString('utf-8'));
+    const { code, merchantTransactionId, transactionId, data } = decoded;
+    const gatewayCode = code || (data && data.code);
+    const mTxnId = merchantTransactionId || transactionId || (data && (data.merchantTransactionId || data.transactionId));
+
+    if (!mTxnId) {
+      console.error('[CALLBACK] No transaction ID found in response:', decoded);
+      return res.status(200).send('OK');
+    }
+
+    const payment = await Payment.findOne({ $or: [{ transactionId: mTxnId }, { merchantTransactionId: mTxnId }] });
+    if (!payment) {
+      console.error('[CALLBACK] Payment not found:', mTxnId);
+      return res.status(200).send('OK');
+    }
+
+    if (gatewayCode === 'PAYMENT_SUCCESS') {
+      await processVerifiedPayment(payment, decoded);
+    } else {
+      if (payment.status === 'INITIATED') {
+        payment.status = 'FAILED';
+        payment.rawResponse = decoded;
+        await payment.save();
+      }
+    }
+
+    res.status(200).send('OK');
+  } catch (e) {
+    console.error("Callback Error:", e);
+    res.status(200).send('OK');
+  }
+});
+
+// ============================================================================
+// MOBILE APP SPECIFIC ENDPOINTS (from mobileapp/server/server.js)
+// ============================================================================
+
+/**
+ * Register user's FCM token
+ * POST /register
+ */
+// [DEPRECATED] - Use the MongoDB /register endpoint at line 524
+// app.post('/register', (req, res) => {
+//   const { userId, fcmToken } = req.body;
+//   if (!userId || typeof userId !== 'string' || !fcmToken || typeof fcmToken !== 'string') {
+//     return res.status(400).json({ success: false, error: 'Invalid input' });
+//   }
+//   mobileTokenStore.set(userId, fcmToken);
+//   console.log(`[Mobile] Registered: ${userId} → ${fcmToken.substring(0, 20)}...`);
+//   res.json({ success: true, message: `User ${userId} registered successfully` });
+// });
+
+/**
+ * List all registered users (for debugging)
+ * GET /users
+ */
+app.get('/users', (req, res) => {
+  const users = [];
+  mobileTokenStore.forEach((token, userId) => {
+    users.push({ userId, tokenPreview: `${token.substring(0, 15)}...` });
   });
+  res.json({ count: users.length, users });
+});
 
-  const PORT = process.env.PORT || 3000;
+/**
+ * Unregister a user
+ * DELETE /unregister/:userId
+ */
+app.delete('/unregister/:userId', (req, res) => {
+  const { userId } = req.params;
+  if (mobileTokenStore.has(userId)) {
+    mobileTokenStore.delete(userId);
+    res.json({ success: true, message: `User ${userId} unregistered` });
+  } else {
+    res.status(404).json({ success: false, error: 'User not found' });
+  }
+});
 
-  if (require.main === module) {
-    server.listen(PORT, () => {
-      console.log(`Server running on http://0.0.0.0:${PORT}`);
+/**
+ * Initiate a call to a user
+ * POST /call
+ */
+app.post('/call', async (req, res) => {
+  const { callerId, calleeId, callerName } = req.body;
+
+  if (!callerId || !calleeId) {
+    return res.status(400).json({ success: false, error: 'Missing callerId or calleeId' });
+  }
+
+  // Check if Firebase is initialized
+  // Check if Firebase is initialized
+  if (!callApp) {
+    console.error('[Mobile] Call App Firebase NOT initialized. Check firebase-service-account.json');
+    return res.status(503).json({
+      success: false,
+      error: 'Push notification service unavailable (Server Config Error)',
+      details: global.callAppInitError || 'Unknown initialization error' // Exposed for debugging
     });
   }
 
-  // Graceful shutdown - prevents port stuck issues
-  process.on('SIGTERM', () => {
-    console.log('SIGTERM received, shutting down gracefully...');
-    server.close(() => {
-      console.log('Server closed');
-      process.exit(0);
-    });
-  });
+  // UPDATED: Look up from MongoDB (User collection)
+  // const fcmToken = mobileTokenStore.get(calleeId);
+  const user = await User.findOne({ userId: calleeId });
+  const fcmToken = user ? user.fcmToken : null;
 
-  process.on('SIGINT', () => {
-    console.log('SIGINT received, shutting down gracefully...');
-    server.close(() => {
-      console.log('Server closed');
-      process.exit(0);
-    });
-  });
+  if (!fcmToken) {
+    return res.status(404).json({ success: false, error: 'User not online/registered' });
+  }
 
-  module.exports = { app, server, sendFcmV1Push };
+  const callId = `call_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+  const message = {
+    token: fcmToken,
+    data: {
+      type: 'INCOMING_CALL',
+      callId: callId,
+      callerId: callerId,
+      callerName: callerName || callerId,
+      timestamp: Date.now().toString()
+    },
+    android: {
+      priority: 'high',
+      directBootOk: true
+    }
+  };
+
+  console.log(`[Mobile] Sending call: ${callerId} → ${calleeId} (callId: ${callId})`);
+
+  try {
+    const response = await callApp.messaging().send(message);
+    console.log(`[Mobile] Call notification sent: ${response}`);
+    res.json({ success: true, callId, message: 'Call sent' });
+  } catch (error) {
+    console.error('[Mobile] FCM Error:', error.message);
+    if (error.code === 'messaging/invalid-registration-token' ||
+      error.code === 'messaging/registration-token-not-registered') {
+      // Remove invalid token from DB
+      await User.updateOne({ userId: calleeId }, { $unset: { fcmToken: 1 } });
+      console.log(`[Mobile] Invalid token removed for user ${calleeId}`);
+    }
+    // Return 500 only for actual sending errors, not config errors
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+  });
+}
+
+// Graceful shutdown - prevents port stuck issues
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+module.exports = { app, server, sendFcmV1Push };
