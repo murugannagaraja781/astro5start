@@ -430,40 +430,31 @@
                 document.getElementById('errorContainer').style.display = 'none';
                 const statusEl = document.getElementById('statusMessage');
                 statusEl.className = 'status-message success';
-                statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Payment Successful! Returning to Home...';
+                statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Payment Successful!';
                 statusEl.style.display = 'block';
                 document.querySelector('.payment-header').style.display = 'none';
                 document.querySelector('.user-info').style.display = 'none';
                 document.querySelector('.amount-display').style.display = 'none';
                 document.getElementById('payBtn').style.display = 'none';
 
-                // Auto Redirect to App
-                setTimeout(() => {
-                    const isApp = true; // We can improve detection if needed, but for now we assume this flow is mostly app
-                    // Try to open App Scheme
+                // Immediate Close via Bridge
+                if (window.AndroidBridge && typeof window.AndroidBridge.onPaymentComplete === 'function') {
+                    window.AndroidBridge.onPaymentComplete('success');
+                } else {
+                    // Fallback for browser testing
                     window.location.href = "astro5://payment-success";
-
-                    // Fallback "Return to App" button
-                    const btn = document.createElement('button');
-                    btn.className = 'pay-btn';
-                    btn.style.marginTop = '20px';
-                    btn.innerHTML = 'Return to Home';
-                    btn.onclick = () => window.location.href = "astro5://payment-success";
-                    document.getElementById('paymentContainer').appendChild(btn);
-
-                }, 2000);
+                }
 
             } else if (status === 'fail' || status === 'failure' || status === 'failed') {
-                showError('Payment Failed', 'Your payment could not be completed. Please try again.');
+                showError('Payment Failed', 'Your payment could not be completed.');
 
-                // Add "Try Again" / "Return to Home"
-                setTimeout(() => {
-                    const btn = document.createElement('button');
-                    btn.className = 'retry-btn';
-                    btn.innerText = 'Return to Home';
-                    btn.onclick = () => window.location.href = "astro5://payment-failed";
-                    document.getElementById('errorContainer').appendChild(btn);
-                }, 1000);
+                // Immediate Close via Bridge
+                if (window.AndroidBridge && typeof window.AndroidBridge.onPaymentComplete === 'function') {
+                    window.AndroidBridge.onPaymentComplete('failed');
+                } else {
+                    // Fallback for browser testing
+                    window.location.href = "astro5://payment-failed";
+                }
             }
         }
 

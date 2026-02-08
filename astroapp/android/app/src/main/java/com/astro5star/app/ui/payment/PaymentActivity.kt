@@ -95,6 +95,9 @@ class PaymentActivity : AppCompatActivity() {
             )
             visibility = android.view.View.GONE // Hidden by default
 
+            // Add JavaScript Bridge
+            addJavascriptInterface(AndroidBridge(), "AndroidBridge")
+
             webChromeClient = object : android.webkit.WebChromeClient() {
                 // Intercept window.open calls (Popups) from Payment Gateway
                 override fun onCreateWindow(
@@ -144,38 +147,15 @@ class PaymentActivity : AppCompatActivity() {
                         return true
                     }
 
-                    // Safety Net: Catch status in URL if app-specific redirects fail
-                    if (url.contains("status=success") || url.contains("status=failure") || url.contains("status=failed")) {
-                        Log.d(TAG, "Payment Status detected in URL: $url")
-                        val uri = android.net.Uri.parse(url)
-                        val status = if (url.contains("success")) "success" else "failed"
-                        val txnId = uri.getQueryParameter("txnId") ?: ""
-                        val redirectIntent = Intent(this@PaymentActivity, com.astro5star.app.ui.wallet.PaymentStatusActivity::class.java)
-                        redirectIntent.data = android.net.Uri.parse("astro5://payment-$status?status=$status&txnId=$txnId")
-                        redirectIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                        startActivity(redirectIntent)
-                        finish()
+                    // Catch standard PhonePe success/failure callbacks
+                    if (url.contains("payment-success") || url.contains("status=success")) {
+                        handlePaymentResult("success")
                         return true
                     }
 
-                    // Detect intent:// scheme and auto-redirect
-                    if (url.startsWith("intent://payment-success") || url.startsWith("intent://payment-failed")) {
-                        Log.d(TAG, "Intent scheme detected, parsing...")
-                        try {
-                            val parsedIntent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
-                            if (parsedIntent != null) {
-                                // Extract data and redirect to PaymentStatusActivity
-                                val status = if (url.contains("payment-success")) "success" else "failed"
-                                val redirectIntent = Intent(this@PaymentActivity, com.astro5star.app.ui.wallet.PaymentStatusActivity::class.java)
-                                redirectIntent.data = android.net.Uri.parse("astro5://payment-$status?status=$status")
-                                redirectIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                                startActivity(redirectIntent)
-                                finish()
-                                return true
-                            }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Intent parse error", e)
-                        }
+                    if (url.contains("payment-failed") || url.contains("status=failure") || url.contains("status=failed")) {
+                        handlePaymentResult("failed")
+                        return true
                     }
 
                     return handleDeepLink(url)
@@ -186,30 +166,12 @@ class PaymentActivity : AppCompatActivity() {
                     Log.d(TAG, "Page finished: $url")
 
                     // Auto-detect if the callback page has loaded (backup detection)
-                    if (url != null && url.contains("/api/payment/callback")) {
-                        // Page loaded with callback - check if success message is shown
-                        // The server HTML should trigger the deep link, but as backup we inject JS
-                        view?.evaluateJavascript(
-                            "(function() { " +
-                            "  var links = document.querySelectorAll('a');" +
-                            "  for(var i=0; i<links.length; i++) {" +
-                            "    var href = links[i].href;" +
-                            "    if(href && href.startsWith('astro5://')) {" +
-                            "      return href;" +
-                            "    }" +
-                            "  }" +
-                            "  return null;" +
-                            "})()"
-                        ) { result ->
-                            if (result != null && result != "null" && result.contains("astro5://")) {
-                                val cleanUrl = result.replace("\"", "")
-                                Log.d(TAG, "Found deep link in page: $cleanUrl")
-                                val intent = Intent(this@PaymentActivity, com.astro5star.app.ui.wallet.PaymentStatusActivity::class.java)
-                                intent.data = android.net.Uri.parse(cleanUrl)
-                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                                startActivity(intent)
-                                finish()
-                            }
+                    if (url != null && (url.contains("/api/payment/callback") || url.contains("/payment-status"))) {
+                        // Check if it's a success or failure
+                        if (url.contains("status=success") || url.contains("payment-success")) {
+                            handlePaymentResult("success")
+                        } else if (url.contains("status=failure") || url.contains("status=failed") || url.contains("payment-failed")) {
+                            handlePaymentResult("failed")
                         }
                     }
                 }
@@ -400,6 +362,29 @@ class PaymentActivity : AppCompatActivity() {
     private fun handleDeepLink(url: String): Boolean {
         Log.d(TAG, "DeepLink Check: $url")
 
+        // Handle payment success - close WebView and return to home
+        if (url.startsWith("astro5://payment-success") || url.contains("/wallet?status=success")) {
+            runOnUiThread {
+                webView.visibility = android.view.View.GONE
+                statusText.text = "Payment Successful!"
+                statusText.setTextColor(Color.GREEN)
+                statusText.visibility = android.view.View.VISIBLE
+
+                Toast.makeText(this@PaymentActivity, "Payment Successful! Returning to Home...", Toast.LENGTH_SHORT).show()
+
+                // Close activity and return to home
+                lifecycleScope.launch {
+                    delay(1500)
+                    // Navigate to home activity
+                    val intent = Intent(this@PaymentActivity, com.astro5star.app.ui.home.HomeActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    startActivity(intent)
+                    finish()
+                }
+            }
+            return true
+        }
+
         if (url.startsWith("astro5://payment-failed") || url.contains("/wallet?status=failure")) {
              showError("Payment Failed")
              return true
@@ -501,5 +486,21 @@ class PaymentActivity : AppCompatActivity() {
                  showError("Verification Network Error")
              }
          }
+    }
+
+    /**
+     * JavaScript Interface for communication from WebView
+     */
+    inner class AndroidBridge {
+        @android.webkit.JavascriptInterface
+        fun onPaymentComplete(status: String) {
+            Log.d(TAG, "JS Bridge: Payment Complete with status: $status")
+            handlePaymentResult(status)
+        }
+    }
+
+    private fun handlePaymentResult(status: String) {
+        Log.d(TAG, "Handling Result: $status. Closing activity.")
+        finish()
     }
 }

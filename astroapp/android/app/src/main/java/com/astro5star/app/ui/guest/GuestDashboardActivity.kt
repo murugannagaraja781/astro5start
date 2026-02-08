@@ -3,6 +3,7 @@ package com.astro5star.app.ui.guest
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.*
@@ -225,5 +226,30 @@ class GuestDashboardActivity : AppCompatActivity() {
              isVerified = json.optBoolean("isVerified", false),
              walletBalance = json.optDouble("walletBalance", 0.0)
          )
+    }
+
+    private fun handleServiceClick(serviceName: String) {
+        when (serviceName.replace("\n", " ")) {
+            "Free  horoscope" -> {
+                val intent = Intent(this, com.astro5star.app.ui.horoscope.FreeHoroscopeActivity::class.java)
+                startActivity(intent)
+            }
+            "Horoscope Match" -> {
+                redirectToLogin()
+            }
+            "Daily Horoscope" -> {
+                val intent = Intent(this, com.astro5star.app.ui.rasipalan.RasipalanActivity::class.java)
+                startActivity(intent)
+            }
+            "Astro Academy" -> {
+                Toast.makeText(this, "Astro Academy - Basic content available!", Toast.LENGTH_SHORT).show()
+            }
+            "Free  Star Services" -> {
+                Toast.makeText(this, "Free Star Services - Available for guests!", Toast.LENGTH_SHORT).show()
+            }
+            else -> {
+                Toast.makeText(this, "$serviceName clicked", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 }

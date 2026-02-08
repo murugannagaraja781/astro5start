@@ -240,6 +240,7 @@ fun HomeScreen(
     onRasiClick: (ComposeRasiItem) -> Unit,
     onLogoutClick: () -> Unit,
     onDrawerItemClick: (String) -> Unit = {},
+    onServiceClick: (String) -> Unit = {},
     isGuest: Boolean = false // New Param
 ) {
     val context = LocalContext.current
@@ -1139,9 +1140,7 @@ fun TopServicesSection() {
             ServiceItem(name, icon) {
                 when(name) {
                     "Free\nHoroscope" -> {
-                        val intent = Intent(context, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
-                            putExtra("type", "free_horoscope")
-                        }
+                        val intent = Intent(context, com.astro5star.app.ui.horoscope.FreeHoroscopeActivity::class.java)
                         context.startActivity(intent)
                     }
                     "Horoscope\nMatch" -> {

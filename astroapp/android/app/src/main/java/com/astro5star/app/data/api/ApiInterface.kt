@@ -65,4 +65,7 @@ interface ApiInterface {
 
     @retrofit2.http.GET("https://astro5star.com/api/horoscope/rasi-palan")
     suspend fun getRasipalan(): Response<List<com.astro5star.app.data.model.RasipalanItem>>
+
+    @POST("api/horoscope/generate-chart")
+    suspend fun generateRasiChart(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
 }

@@ -3,6 +3,7 @@ package com.astro5star.app.ui.home
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.*
@@ -135,6 +136,9 @@ class HomeActivity : AppCompatActivity() {
                                 // Toast.makeText(context, "$item Clicked", Toast.LENGTH_SHORT).show()
                             }
                         }
+                    },
+                    onServiceClick = { serviceName ->
+                        handleServiceClick(serviceName)
                     }
                 )
             }
@@ -397,6 +401,31 @@ class HomeActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         // SocketManager.disconnect() - kept same
+    }
+
+    private fun handleServiceClick(serviceName: String) {
+        when (serviceName.replace("\n", " ")) {
+            "Free  horoscope" -> {
+                val intent = Intent(this, com.astro5star.app.ui.horoscope.FreeHoroscopeActivity::class.java)
+                startActivity(intent)
+            }
+            "Horoscope Match" -> {
+                Toast.makeText(this, "Horoscope Match - Coming Soon!", Toast.LENGTH_SHORT).show()
+            }
+            "Daily Horoscope" -> {
+                val intent = Intent(this, com.astro5star.app.ui.rasipalan.RasipalanActivity::class.java)
+                startActivity(intent)
+            }
+            "Astro Academy" -> {
+                Toast.makeText(this, "Astro Academy - Coming Soon!", Toast.LENGTH_SHORT).show()
+            }
+            "Free  Star Services" -> {
+                Toast.makeText(this, "Free Star Services - Coming Soon!", Toast.LENGTH_SHORT).show()
+            }
+            else -> {
+                Toast.makeText(this, "$serviceName clicked", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 }
 

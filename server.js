@@ -198,10 +198,12 @@ app.get('/shipping-policy', (req, res) => res.sendFile(path.join(__dirname, 'pub
 // Routes
 const rasiEngRouter = require("./routes/rasiEng");
 const rasipalanRouter = require("./routes/rasipalan");
+const freeHoroscopeRouter = require("./routes/freeHoroscope");
 
 app.use("/api/rasi-eng", rasiEngRouter);
 app.use("/api/rasipalan", rasipalanRouter);
 app.use("/api/horoscope/rasi-palan", rasipalanRouter); // Android App specific path
+app.use("/api/horoscope", freeHoroscopeRouter); // Free horoscope chart generation
 
 // FCM Test Endpoint - Verify Firebase is working
 app.get('/api/test-fcm', async (req, res) => {
