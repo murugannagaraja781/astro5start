@@ -136,14 +136,13 @@ class PaymentActivity : AppCompatActivity() {
                     val url = request?.url.toString()
                     Log.d(TAG, "WebView URL: $url")
 
-                    // Detect astro5:// deep link (payment success/fail) and auto-redirect
-                    if (url.startsWith("astro5://payment-success") || url.startsWith("astro5://payment-failed")) {
-                        Log.d(TAG, "Payment Complete! Redirecting to PaymentStatusActivity")
-                        val intent = Intent(this@PaymentActivity, com.astro5star.app.ui.wallet.PaymentStatusActivity::class.java)
-                        intent.data = android.net.Uri.parse(url)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                        startActivity(intent)
-                        finish() // Close PaymentActivity
+                    // Detect astro5:// deep link (payment success/fail) and close immediately
+                    if (url.startsWith("astro5://payment-success")) {
+                        handlePaymentResult("success")
+                        return true
+                    }
+                    if (url.startsWith("astro5://payment-failed")) {
+                        handlePaymentResult("failed")
                         return true
                     }
 
@@ -274,18 +273,8 @@ class PaymentActivity : AppCompatActivity() {
                      val response = ApiClient.api.checkPaymentStatus(txnId)
                      if (response.isSuccessful && response.body()?.get("ok")?.asBoolean == true) {
                          val status = response.body()?.get("status")?.asString
-                         if (status == "success") {
-                            statusText.text = "Payment Successful!"
-                            statusText.setTextColor(Color.GREEN)
-                            statusText.visibility = android.view.View.VISIBLE
-                            webView.visibility = android.view.View.GONE
-
-                             Toast.makeText(this@PaymentActivity, "Payment Successful!", Toast.LENGTH_LONG).show()
-                             delay(1500)
-                             finish()
-                             return@launch
-                         } else if (status == "failed") {
-                             showError("Payment Failed")
+                         if (status == "success" || status == "failed") {
+                             handlePaymentResult(status ?: "unknown")
                              return@launch
                          }
                      }
@@ -362,32 +351,14 @@ class PaymentActivity : AppCompatActivity() {
     private fun handleDeepLink(url: String): Boolean {
         Log.d(TAG, "DeepLink Check: $url")
 
-        // Handle payment success - close WebView and return to home
         if (url.startsWith("astro5://payment-success") || url.contains("/wallet?status=success")) {
-            runOnUiThread {
-                webView.visibility = android.view.View.GONE
-                statusText.text = "Payment Successful!"
-                statusText.setTextColor(Color.GREEN)
-                statusText.visibility = android.view.View.VISIBLE
-
-                Toast.makeText(this@PaymentActivity, "Payment Successful! Returning to Home...", Toast.LENGTH_SHORT).show()
-
-                // Close activity and return to home
-                lifecycleScope.launch {
-                    delay(1500)
-                    // Navigate to home activity
-                    val intent = Intent(this@PaymentActivity, com.astro5star.app.ui.home.HomeActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                    startActivity(intent)
-                    finish()
-                }
-            }
+            handlePaymentResult("success")
             return true
         }
 
         if (url.startsWith("astro5://payment-failed") || url.contains("/wallet?status=failure")) {
-             showError("Payment Failed")
-             return true
+            handlePaymentResult("failed")
+            return true
         }
         if (url.contains("/api/payment/callback?isApp=true")) {
              return false
@@ -468,13 +439,8 @@ class PaymentActivity : AppCompatActivity() {
                  val response = ApiClient.api.checkPaymentStatus(txnId)
                  if (response.isSuccessful && response.body()?.get("ok")?.asBoolean == true) {
                      val status = response.body()?.get("status")?.asString
-                     if (status == "success") {
-                         statusText.text = "Payment Successful!"
-                         statusText.setTextColor(Color.GREEN)
-                         Toast.makeText(this@PaymentActivity, "Payment Successful!", Toast.LENGTH_LONG).show()
-                         // Delay to show success message
-                         delay(1500)
-                         finish()
+                     if (status == "success" || status == "failed") {
+                         handlePaymentResult(status ?: "unknown")
                      } else {
                          showError("Payment Pending or Failed.\nStatus: $status")
                      }
