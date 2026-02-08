@@ -1823,6 +1823,129 @@
       <!-- Section: Home -->
       <div id="section-home">
 
+        <!-- Dynamic Home Slider -->
+        <div id="homeSliderContainer" class="home-slider-container">
+          <div id="homeSliderWrapper" class="home-slider-wrapper">
+            <!-- Slides injected here -->
+            <div class="slider-loading">
+              <i class="fas fa-circle-notch fa-spin"></i>
+            </div>
+          </div>
+          <div id="homeSliderDots" class="home-slider-dots">
+            <!-- Dots injected here -->
+          </div>
+        </div>
+
+        <style>
+          .home-slider-container {
+            width: 100%;
+            height: 180px;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            background: #f3f4f6;
+          }
+
+          .home-slider-wrapper {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.5s ease-in-out;
+          }
+
+          .home-slide {
+            min-width: 100%;
+            height: 100%;
+            flex-shrink: 0;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+          }
+
+          .home-slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 100%);
+            z-index: 1;
+          }
+
+          .slide-content {
+            position: relative;
+            z-index: 2;
+            color: white;
+            max-width: 70%;
+          }
+
+          .slide-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+          }
+
+          .slide-subtitle {
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            opacity: 0.9;
+          }
+
+          .slide-cta {
+            display: inline-block;
+            background: white;
+            color: #333;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+          }
+
+          .home-slider-dots {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 6px;
+            z-index: 3;
+          }
+
+          .slider-dot {
+            width: 8px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+          }
+
+          .slider-dot.active {
+            background: white;
+            width: 20px;
+            border-radius: 4px;
+          }
+
+          .slider-loading {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+          }
+        </style>
+
         <!-- Premium Services Grid -->
         <div class="services-grid-container"
           style="margin-bottom: 25px; overflow-x: auto; -webkit-overflow-scrolling: touch;">
@@ -3263,6 +3386,52 @@
         </div>
       </div>
 
+      <!-- Tab 5: Slider Management -->
+      <div id="admin-sect-slider" class="admin-tab-section hidden">
+        <div class="dashboard-header">
+          <h2 class="dashboard-title">
+            <i class="fas fa-images"></i> App Slider
+          </h2>
+        </div>
+
+        <div class="admin-card">
+          <div class="admin-user-header">
+            <span style="font-weight:bold; color:#1f2937;">Manage Banners</span>
+            <button onclick="fetchAdminBanners()" style="background:none; border:none; color:#3b82f6; cursor:pointer;">
+              <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+          </div>
+
+          <!-- Add New Banner Form -->
+          <div
+            style="background:#f9fafb; padding:15px; border-radius:8px; margin-bottom:20px; border:1px solid #e5e7eb;">
+            <div style="font-weight:600; margin-bottom:10px; color:#374151;">Add New Banner</div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <input type="text" id="bannerTitle" class="app-input" placeholder="Title (e.g. Premium Consultation)"
+                style="padding:10px;">
+              <input type="text" id="bannerSubtitle" class="app-input" placeholder="Subtitle (e.g. 50% Off Today)"
+                style="padding:10px;">
+              <input type="text" id="bannerImageUrl" class="app-input" placeholder="Image URL (https://...)"
+                style="padding:10px;">
+              <div style="display:flex; gap:10px;">
+                <input type="text" id="bannerCta" class="app-input" placeholder="CTA Button Text"
+                  style="padding:10px; flex:1;">
+                <input type="number" id="bannerOrder" class="app-input" placeholder="Order (0,1,2...)"
+                  style="padding:10px; width:80px;">
+              </div>
+              <button class="cosmic-btn" style="margin-top:5px; padding:10px;" onclick="addBanner()">
+                <i class="fas fa-plus-circle"></i> Add Banner
+              </button>
+            </div>
+          </div>
+
+          <!-- Banner List -->
+          <div id="adminBannerList" style="display:flex; flex-direction:column; gap:10px;">
+            <div style="text-align:center; padding:20px; color:#6b7280;">Loading banners...</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Admin Footer (Static) -->
       <div class="admin-footer">
         <div class="admin-footer-content">
@@ -3321,6 +3490,10 @@
       <div class="admin-nav-item" id="anav-academy" onclick="navAdmin('academy')">
         <i class="fas fa-graduation-cap"></i>
         <span>Academy</span>
+      </div>
+      <div class="admin-nav-item" id="anav-slider" onclick="navAdmin('slider')">
+        <i class="fas fa-images"></i>
+        <span>Slider</span>
       </div>
     </div>
   </div>
@@ -4379,6 +4552,98 @@
           showLowBalanceAlert(data.balance);
         }
       });
+
+      // Load Home Slider
+      loadHomeBanners();
+    }
+
+    // --- Dynamic Home Slider Logic ---
+    let homeSliderInterval;
+    async function loadHomeBanners() {
+      const wrapper = document.getElementById('homeSliderWrapper');
+      if (!wrapper) return;
+
+      try {
+        const res = await fetch('/api/home/banners');
+        const data = await res.json();
+        if (data.ok) {
+          renderHomeSlider(data.data || []);
+        } else {
+          // Keep loading or show placeholder?
+          renderHomeSlider([]); // Fallback handled in render
+        }
+      } catch (e) {
+        console.error("Slider Error", e);
+        renderHomeSlider([]);
+      }
+    }
+
+    function renderHomeSlider(banners) {
+      const wrapper = document.getElementById('homeSliderWrapper');
+      const dotsCont = document.getElementById('homeSliderDots');
+      if (!wrapper) return;
+
+      if (banners.length === 0) {
+        // Fallback or Empty State
+        wrapper.innerHTML = `
+          <div class="home-slide" style="background-image: url('https://via.placeholder.com/600x300/1e3a8a/FFFFFF?text=Welcome+to+Astro5');">
+            <div class="slide-content">
+               <div class="slide-title">Welcome to Astro5</div>
+               <div class="slide-subtitle">Connect with top astrologers instantly.</div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Render Slides
+      wrapper.innerHTML = banners.map(b => `
+         <div class="home-slide" style="background-image: url('${b.imageUrl}');">
+            <div class="slide-content">
+               <div class="slide-title" style="${!b.title ? 'display:none' : ''}">${b.title}</div>
+               <div class="slide-subtitle" style="${!b.subtitle ? 'display:none' : ''}">${b.subtitle}</div>
+               ${b.ctaText ? `<div class="slide-cta" onclick="handleBannerClick('${b._id}')">${b.ctaText} <i class="fas fa-arrow-right" style="font-size:0.7rem; margin-left:4px;"></i></div>` : ''}
+            </div>
+         </div>
+      `).join('');
+
+      // Render Dots
+      if (dotsCont) {
+        dotsCont.innerHTML = banners.map((_, i) => `
+          <div class="slider-dot ${i === 0 ? 'active' : ''}" onclick="goToSlide(${i})"></div>
+        `).join('');
+      }
+
+      // Init Auto Scroll
+      startSliderAutoScroll(banners.length);
+    }
+
+    let currentSlide = 0;
+    function goToSlide(index) {
+      const wrapper = document.getElementById('homeSliderWrapper');
+      const dots = document.querySelectorAll('.slider-dot');
+      if (!wrapper) return;
+
+      currentSlide = index;
+      wrapper.style.transform = `translateX(-${index * 100}%)`;
+
+      dots.forEach((d, i) => d.classList.toggle('active', i === index));
+    }
+
+    function startSliderAutoScroll(count) {
+      if (homeSliderInterval) clearInterval(homeSliderInterval);
+      if (count <= 1) return;
+
+      homeSliderInterval = setInterval(() => {
+        let next = currentSlide + 1;
+        if (next >= count) next = 0;
+        goToSlide(next);
+      }, 5000); // 5 Seconds
+    }
+
+    function handleBannerClick(id) {
+      // Logic to handle clicks (e.g. open specific page, or just scroll to astro list)
+      document.getElementById('astroList').scrollIntoView({ behavior: 'smooth' });
     }
 
     function updateHomeTime() {
@@ -5474,6 +5739,8 @@
         renderAdminClients(allUsers);
       } else if (tab === 'academy') {
         fetchAcademyVideosAdmin();
+      } else if (tab === 'slider') {
+        fetchAdminBanners();
       }
     };
 
@@ -5612,6 +5879,97 @@
           fetchAcademyVideosAdmin();
         }
       } catch (err) { alert('Error deleting video'); }
+    }
+
+    // --- Admin Slider Logic ---
+    async function fetchAdminBanners() {
+      const list = document.getElementById('adminBannerList');
+      if (!list) return;
+      list.innerHTML = '<div style="text-align:center; padding:20px; color:#6b7280;"><i class="fas fa-circle-notch fa-spin"></i> Loading...</div>';
+
+      try {
+        const res = await fetch('/api/admin/banners');
+        const data = await res.json();
+        if (data.ok) {
+          renderAdminBanners(data.banners);
+        } else {
+          list.innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444;">Failed to load banners.</div>';
+        }
+      } catch (err) {
+        console.error(err);
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444;">Network Error.</div>';
+      }
+    }
+
+    function renderAdminBanners(banners) {
+      const list = document.getElementById('adminBannerList');
+      if (!list) return;
+
+      if (!banners || banners.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:#6b7280;">No banners found. Add one above.</div>';
+        return;
+      }
+
+      list.innerHTML = banners.map(b => `
+        <div style="background:white; padding:15px; border-radius:10px; border:1px solid #eee; display:flex; gap:15px; align-items:center;">
+          <img src="${b.imageUrl}" style="width:80px; height:45px; object-fit:cover; border-radius:6px; background:#f3f4f6;">
+          <div style="flex:1;">
+            <div style="font-weight:bold; color:#1f2937;">${b.title || 'No Title'} <span style="font-weight:normal; font-size:0.8rem; color:#6b7280;">(Order: ${b.order})</span></div>
+            <div style="font-size:0.8rem; color:#6b7280;">${b.subtitle || ''}</div>
+          </div>
+          <div style="text-align:right;">
+             <button class="btn-admin btn-delete" style="padding:6px 12px;" onclick="deleteBanner('${b._id}')">
+               <i class="fas fa-trash"></i>
+             </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function addBanner() {
+      const title = document.getElementById('bannerTitle').value;
+      const subtitle = document.getElementById('bannerSubtitle').value;
+      const imageUrl = document.getElementById('bannerImageUrl').value;
+      const ctaText = document.getElementById('bannerCta').value;
+      const order = document.getElementById('bannerOrder').value;
+
+      if (!imageUrl) return alert('Image URL is required');
+
+      const payload = {
+        title, subtitle, imageUrl, ctaText,
+        order: parseInt(order || 0),
+        isActive: true
+      };
+
+      try {
+        const res = await fetch('/api/admin/banners', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.ok) {
+          alert('Banner Added!');
+          // Clear inputs
+          document.getElementById('bannerTitle').value = '';
+          document.getElementById('bannerSubtitle').value = '';
+          document.getElementById('bannerImageUrl').value = '';
+          document.getElementById('bannerCta').value = '';
+          fetchAdminBanners();
+        } else {
+          alert('Error: ' + data.error);
+        }
+      } catch (err) { alert('Network Error'); }
+    }
+
+    async function deleteBanner(id) {
+      if (!confirm('Delete this banner?')) return;
+      try {
+        const res = await fetch('/api/admin/banners/' + id, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.ok) fetchAdminBanners();
+        else alert('Failed to delete');
+      } catch (e) { alert('Network Error'); }
     }
 
     function loadAdminLedgerStats() {

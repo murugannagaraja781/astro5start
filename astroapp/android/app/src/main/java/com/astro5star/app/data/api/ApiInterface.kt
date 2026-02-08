@@ -40,6 +40,9 @@ interface ApiInterface {
     @POST("api/city-timezone")
     suspend fun getCityTimezone(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
 
+    @retrofit2.http.GET("api/home/banners")
+    suspend fun getBanners(): Response<com.astro5star.app.data.model.BannerResponse>
+
     @POST("api/charts/birth-chart")
     suspend fun getBirthChart(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
 

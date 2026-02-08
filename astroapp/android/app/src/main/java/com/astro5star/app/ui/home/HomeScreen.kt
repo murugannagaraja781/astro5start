@@ -66,26 +66,35 @@ import com.astro5star.app.ui.theme.CosmicAppTheme
 import com.astro5star.app.ui.theme.CosmicGradients
 import com.astro5star.app.ui.theme.CosmicColors
 import com.astro5star.app.ui.theme.CosmicShapes
+import coil.compose.AsyncImage
+import com.astro5star.app.data.api.ApiClient
+import com.astro5star.app.data.model.Banner
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun BannerSection() {
-    val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { 3 })
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun BannerSection(banners: List<Banner>) {
+    if (banners.isEmpty()) return
 
-    // Auto-scroll
+    val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { banners.size })
+
+    // Auto-scroll logic
     LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(4000)
-            val nextPage = (pagerState.currentPage + 1) % pagerState.pageCount
-            pagerState.animateScrollToPage(nextPage)
+            kotlinx.coroutines.delay(5000) // 5 seconds
+            if (banners.isNotEmpty()) {
+                val nextPage = (pagerState.currentPage + 1) % banners.size
+                pagerState.animateScrollToPage(nextPage)
+            }
         }
     }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(bottom = 24.dp) // Generous spacing
+        modifier = Modifier.padding(bottom = 24.dp)
     ) {
         HorizontalPager(
             state = pagerState,
@@ -93,15 +102,17 @@ fun BannerSection() {
             pageSpacing = 0.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp) // Taller banner
+                .height(200.dp)
         ) { page ->
              val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
              val scale by animateFloatAsState(targetValue = if (pageOffset == 0f) 1f else 0.9f, label = "scale")
              val alpha by animateFloatAsState(targetValue = if (pageOffset == 0f) 1f else 0.6f, label = "alpha")
 
+             val banner = banners[page]
+
             Card(
                 shape = RoundedCornerShape(18.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, PeacockGreen.copy(alpha = 0.3f)),
                 modifier = Modifier
                     .graphicsLayer {
@@ -112,61 +123,65 @@ fun BannerSection() {
                     .fillMaxSize()
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Soft Nebula Gradients
-                    val gradient = when(page) {
-                        0 -> Brush.horizontalGradient(listOf(PeacockTeal, PeacockGreen)) // Cosmic Blue -> Nebula
-                        1 -> Brush.linearGradient(listOf(RoyalMidnightBlue, PeacockTeal))
-                        else -> Brush.horizontalGradient(listOf(PeacockGreen, RoyalMidnightBlue))
-                    }
+                    // 1. Dynamic Background Image
+                    AsyncImage(
+                        model = banner.imageUrl,
+                        contentDescription = banner.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
 
+                    // 2. Gradient Overlay for Readability
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(gradient)
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color.Black.copy(alpha = 0.8f), Color.Transparent)
+                                )
+                            )
                     )
 
-                    // Overlay Texture (Particles/Stars simulation could go here)
-
-                    // Content
+                    // 3. Content Text
                     Column(
                         modifier = Modifier
                             .align(Alignment.CenterStart)
                             .padding(24.dp)
+                            .fillMaxWidth(0.7f) // Limit width so text doesn't span full image
                     ) {
-                        Text(
-                            text = when(page) {
-                                0 -> "Premium\nConsultation"
-                                1 -> "Vedic\nRemedies"
-                                else -> "Gemstone\nGuide"
-                            },
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                            color = PeacockGreen,
-                            lineHeight = 32.sp
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                         Text(
-                            text = when(page) {
-                                0 -> "50% Off Today"
-                                1 -> "Peace and Prosperity"
-                                else -> "Know your Gemstone"
-                            },
-                            style = MaterialTheme.typography.titleMedium,
-                            color = SoftIvory.copy(alpha=0.9f)
-                        )
-                         Spacer(modifier = Modifier.height(16.dp))
+                        if (!banner.title.isNullOrEmpty()) {
+                            Text(
+                                text = banner.title,
+                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White,
+                                lineHeight = 30.sp
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                        }
 
-                         // CTA Pill
-                         Box(
-                             modifier = Modifier
-                                 .background(PeacockGreen, RoundedCornerShape(50))
-                                 .padding(horizontal = 16.dp, vertical = 6.dp)
-                         ) {
-                             Text(
-                                 text = "Learn More",
-                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                 color = RoyalMidnightBlue
-                             )
-                         }
+                        if (!banner.subtitle.isNullOrEmpty()) {
+                            Text(
+                                text = banner.subtitle,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha=0.9f)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        // CTA Pill
+                        if (!banner.ctaText.isNullOrEmpty()) {
+                             Box(
+                                 modifier = Modifier
+                                     .background(PeacockGreen, RoundedCornerShape(50))
+                                     .padding(horizontal = 16.dp, vertical = 8.dp)
+                             ) {
+                                 Text(
+                                     text = banner.ctaText,
+                                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                     color = RoyalMidnightBlue
+                                 )
+                             }
+                        }
                     }
                 }
             }
@@ -179,7 +194,7 @@ fun BannerSection() {
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth()
         ) {
-            repeat(3) { iteration ->
+            repeat(banners.size) { iteration ->
                 val color = if (pagerState.currentPage == iteration) PeacockGreen else PeacockGreen.copy(alpha = 0.2f)
                 val width by animateDpAsState(targetValue = if (pagerState.currentPage == iteration) 24.dp else 8.dp, label = "dotWidth")
 
@@ -251,6 +266,21 @@ fun HomeScreen(
     var selectedFilter by remember { mutableStateOf("All") }
     // Language State (Default Tamil)
     var isTamil by rememberSaveable { mutableStateOf(true) }
+
+    // Banners State
+    var banners by remember { mutableStateOf<List<Banner>>(emptyList()) }
+
+    // Fetch Banners
+    LaunchedEffect(Unit) {
+        try {
+            val response = ApiClient.api.getBanners()
+            if (response.isSuccessful && response.body()?.ok == true) {
+                banners = response.body()!!.banners
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 
     // Logic to filter astrologers based on selection
     val filteredAstros = remember(selectedFilter, astrologers) {
@@ -372,7 +402,7 @@ fun HomeScreen(
 
                     // 2. Banner (Only on Home)
                     if (selectedTab == 0) {
-                        item { BannerSection() }
+                        item { BannerSection(banners) }
                     }
 
                     // 3. Rasi Grid Section (Only on Home)

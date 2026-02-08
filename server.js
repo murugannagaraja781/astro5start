@@ -520,6 +520,17 @@ const AcademyVideoSchema = new mongoose.Schema({
 });
 const AcademyVideo = mongoose.model('AcademyVideo', AcademyVideoSchema);
 
+const BannerSchema = new mongoose.Schema({
+  imageUrl: { type: String, required: true },
+  title: String,
+  subtitle: String,
+  ctaText: { type: String, default: 'Learn More' },
+  order: { type: Number, default: 0 },
+  isActive: { type: Boolean, default: true },
+  createdAt: { type: Date, default: Date.now }
+});
+const Banner = mongoose.model('Banner', BannerSchema);
+
 // Account Deletion Request Schema
 const AccountDeletionRequestSchema = new mongoose.Schema({
   requestId: { type: String, unique: true },
@@ -813,16 +824,68 @@ app.get('/api/academy/videos', async (req, res) => {
   }
 });
 
-// Home Banners API (5 Dummy Images)
-app.get('/api/home/banners', (req, res) => {
-  const banners = [
-    { id: 1, imageUrl: "https://via.placeholder.com/600x300/1B5E20/FFFFFF?text=Astro+Premium", title: "Premium Consultation" },
-    { id: 2, imageUrl: "https://via.placeholder.com/600x300/43A047/FFFFFF?text=Love+Match", title: "Find Your Soulmate" },
-    { id: 3, imageUrl: "https://via.placeholder.com/600x300/66BB6A/FFFFFF?text=Career+Growth", title: "Career Guidance" },
-    { id: 4, imageUrl: "https://via.placeholder.com/600x300/81C784/FFFFFF?text=Gemstones", title: "Lucky Gemstones" },
-    { id: 5, imageUrl: "https://via.placeholder.com/600x300/A5D6A7/FFFFFF?text=Daily+Pooja", title: "Daily Rituals" }
-  ];
-  res.json({ ok: true, data: banners });
+// --- Banner APIs (Admin & App) ---
+
+// Get Active Banners (Public)
+app.get('/api/home/banners', async (req, res) => {
+  try {
+    const banners = await Banner.find({ isActive: true }).sort({ order: 1 });
+    // Fallback if no banners in DB
+    if (banners.length === 0) {
+      return res.json({
+        ok: true,
+        data: [
+          { id: '1', imageUrl: "https://via.placeholder.com/600x300/1B5E20/FFFFFF?text=Astro+Premium", title: "Premium Consultation", subtitle: "50% Off Today", ctaText: "Book Now" },
+          { id: '2', imageUrl: "https://via.placeholder.com/600x300/43A047/FFFFFF?text=Love+Match", title: "Find Your Soulmate", subtitle: "Vedic Compatibility", ctaText: "Check Match" },
+          { id: '3', imageUrl: "https://via.placeholder.com/600x300/66BB6A/FFFFFF?text=Career+Growth", title: "Career Guidance", subtitle: "Success Ahead", ctaText: "View Path" }
+        ]
+      });
+    }
+    res.json({ ok: true, data: banners });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin: Get All Banners
+app.get('/api/admin/banners', async (req, res) => {
+  try {
+    const banners = await Banner.find().sort({ order: 1 });
+    res.json({ ok: true, banners });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin: Create Banner
+app.post('/api/admin/banners', async (req, res) => {
+  try {
+    const banner = new Banner(req.body);
+    await banner.save();
+    res.json({ ok: true, banner });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin: Update Banner
+app.put('/api/admin/banners/:id', async (req, res) => {
+  try {
+    const banner = await Banner.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json({ ok: true, banner });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin: Delete Banner
+app.delete('/api/admin/banners/:id', async (req, res) => {
+  try {
+    await Banner.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // 12 Rasi Horoscope API

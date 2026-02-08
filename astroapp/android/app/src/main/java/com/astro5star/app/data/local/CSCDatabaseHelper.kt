@@ -34,24 +34,78 @@ class CSCDatabaseHelper(private val context: Context) : SQLiteOpenHelper(context
             try {
                 copyDBFile()
             } catch (e: IOException) {
+                android.util.Log.e("CSCDatabaseHelper", "Error copying database: ${e.message}")
                 e.printStackTrace()
+                // Create empty tables as fallback
+                createEmptyTables()
             }
         }
     }
 
     @Throws(IOException::class)
     private fun copyDBFile() {
-        val mInput: InputStream = context.assets.open(DB_NAME)
-        val outFile = File(DB_PATH + DB_NAME)
-        val mOutput: OutputStream = FileOutputStream(outFile)
-        val mBuffer = ByteArray(1024)
-        var mLength: Int
-        while (mInput.read(mBuffer).also { mLength = it } > 0) {
-            mOutput.write(mBuffer, 0, mLength)
+        try {
+            val mInput: InputStream = context.assets.open(DB_NAME)
+            val outFile = File(DB_PATH + DB_NAME)
+            val mOutput: OutputStream = FileOutputStream(outFile)
+            val mBuffer = ByteArray(1024)
+            var mLength: Int
+            while (mInput.read(mBuffer).also { mLength = it } > 0) {
+                mOutput.write(mBuffer, 0, mLength)
+            }
+            mOutput.flush()
+            mOutput.close()
+            mInput.close()
+        } catch (e: Exception) {
+            android.util.Log.e("CSCDatabaseHelper", "Database file not found in assets, using fallback data")
+            throw IOException("Database file not found: $DB_NAME")
         }
-        mOutput.flush()
-        mOutput.close()
-        mInput.close()
+    }
+
+    private fun createEmptyTables() {
+        val db = this.writableDatabase
+        try {
+            // Create tables with basic structure
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS countries (
+                    id TEXT PRIMARY KEY,
+                    name TEXT,
+                    iso2 TEXT
+                )
+            """)
+
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS states (
+                    id TEXT PRIMARY KEY,
+                    name TEXT,
+                    country_id TEXT
+                )
+            """)
+
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS cities (
+                    id TEXT PRIMARY KEY,
+                    name TEXT,
+                    state_id TEXT,
+                    latitude TEXT,
+                    longitude TEXT,
+                    timezone TEXT
+                )
+            """)
+
+            // Insert default data for India
+            db.execSQL("INSERT OR IGNORE INTO countries VALUES ('101', 'India', 'IN')")
+            db.execSQL("INSERT OR IGNORE INTO states VALUES ('4035', 'Tamil Nadu', '101')")
+            db.execSQL("INSERT OR IGNORE INTO cities VALUES ('133647', 'Chennai', '4035', '13.0827', '80.2707', 'Asia/Kolkata')")
+            db.execSQL("INSERT OR IGNORE INTO cities VALUES ('133648', 'Coimbatore', '4035', '11.0168', '76.9558', 'Asia/Kolkata')")
+            db.execSQL("INSERT OR IGNORE INTO cities VALUES ('133649', 'Madurai', '4035', '9.9252', '78.1198', 'Asia/Kolkata')")
+
+            android.util.Log.i("CSCDatabaseHelper", "Created fallback database with default data")
+        } catch (e: Exception) {
+            android.util.Log.e("CSCDatabaseHelper", "Error creating fallback tables: ${e.message}")
+        } finally {
+            db.close()
+        }
     }
 
     override fun onCreate(db: SQLiteDatabase?) {}
@@ -59,71 +113,86 @@ class CSCDatabaseHelper(private val context: Context) : SQLiteOpenHelper(context
 
     fun getCountries(): List<Map<String, String>> {
         val list = mutableListOf<Map<String, String>>()
-        val db = this.readableDatabase
-        val cursor = db.rawQuery("SELECT * FROM countries ORDER BY name", null)
         try {
-            if (cursor.moveToFirst()) {
-                do {
-                    val map = mutableMapOf<String, String>()
-                    map["id"] = cursor.getString(cursor.getColumnIndexOrThrow("id"))
-                    map["name"] = cursor.getString(cursor.getColumnIndexOrThrow("name"))
-                    map["iso2"] = cursor.getString(cursor.getColumnIndexOrThrow("iso2"))
-                    list.add(map)
-                } while (cursor.moveToNext())
+            val db = this.readableDatabase
+            val cursor = db.rawQuery("SELECT * FROM countries ORDER BY name", null)
+            try {
+                if (cursor.moveToFirst()) {
+                    do {
+                        val map = mutableMapOf<String, String>()
+                        map["id"] = cursor.getString(cursor.getColumnIndexOrThrow("id"))
+                        map["name"] = cursor.getString(cursor.getColumnIndexOrThrow("name"))
+                        map["iso2"] = cursor.getString(cursor.getColumnIndexOrThrow("iso2"))
+                        list.add(map)
+                    } while (cursor.moveToNext())
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("CSCDatabaseHelper", "Error reading countries: ${e.message}")
+                e.printStackTrace()
             }
-        } catch (e: Exception) { e.printStackTrace() }
-        finally { cursor.close() }
+            finally { cursor.close() }
+        } catch (e: Exception) {
+            android.util.Log.e("CSCDatabaseHelper", "Database error: ${e.message}")
+        }
         return list
     }
 
     fun getStates(countryId: String): List<Map<String, String>> {
         val list = mutableListOf<Map<String, String>>()
-        val db = this.readableDatabase
-        val cursor = db.rawQuery("SELECT * FROM states WHERE country_id = ? ORDER BY name", arrayOf(countryId))
         try {
-            if (cursor.moveToFirst()) {
-                do {
-                    val map = mutableMapOf<String, String>()
-                    map["id"] = cursor.getString(cursor.getColumnIndexOrThrow("id"))
-                    map["name"] = cursor.getString(cursor.getColumnIndexOrThrow("name"))
-                    list.add(map)
-                } while (cursor.moveToNext())
+            val db = this.readableDatabase
+            val cursor = db.rawQuery("SELECT * FROM states WHERE country_id = ? ORDER BY name", arrayOf(countryId))
+            try {
+                if (cursor.moveToFirst()) {
+                    do {
+                        val map = mutableMapOf<String, String>()
+                        map["id"] = cursor.getString(cursor.getColumnIndexOrThrow("id"))
+                        map["name"] = cursor.getString(cursor.getColumnIndexOrThrow("name"))
+                        list.add(map)
+                    } while (cursor.moveToNext())
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("CSCDatabaseHelper", "Error reading states: ${e.message}")
+                e.printStackTrace()
             }
-        } catch (e: Exception) { e.printStackTrace() }
-        finally { cursor.close() }
+            finally { cursor.close() }
+        } catch (e: Exception) {
+            android.util.Log.e("CSCDatabaseHelper", "Database error: ${e.message}")
+        }
         return list
     }
 
     fun getCities(stateId: String): List<Map<String, String>> {
         val list = mutableListOf<Map<String, String>>()
-        val db = this.readableDatabase
-        val cursor = db.rawQuery("SELECT * FROM cities WHERE state_id = ? ORDER BY name", arrayOf(stateId))
         try {
-            if (cursor.moveToFirst()) {
-                do {
-                    val map = mutableMapOf<String, String>()
-                    map["id"] = cursor.getString(cursor.getColumnIndexOrThrow("id"))
-                    map["name"] = cursor.getString(cursor.getColumnIndexOrThrow("name"))
-                    map["latitude"] = cursor.getString(cursor.getColumnIndexOrThrow("latitude"))
-                    map["longitude"] = cursor.getString(cursor.getColumnIndexOrThrow("longitude"))
-                    // Assuming 'timezone' column exists per user request 'use get timezone also'
-                    // If not, we iterate column names to be safe or try/catch column check
-                    // For now, assume it's there or try to fetch it if available.
-                    // Let's check columns safely for timezone
-                    val tzIndex = cursor.getColumnIndex("timezone")
-                    if (tzIndex != -1) {
-                        map["timezone"] = cursor.getString(tzIndex) ?: ""
-                    }
-                    else {
-                        // Fallback column check? Many csc.db versions use 'wikiDataId' etc, but standard ones might not have timezone directly in cities.
-                        // However, user specifically asked "Select contry and select cstate and city use get timezone also this db".
-                        // Use safe check.
-                    }
-                    list.add(map)
-                } while (cursor.moveToNext())
+            val db = this.readableDatabase
+            val cursor = db.rawQuery("SELECT * FROM cities WHERE state_id = ? ORDER BY name", arrayOf(stateId))
+            try {
+                if (cursor.moveToFirst()) {
+                    do {
+                        val map = mutableMapOf<String, String>()
+                        map["id"] = cursor.getString(cursor.getColumnIndexOrThrow("id"))
+                        map["name"] = cursor.getString(cursor.getColumnIndexOrThrow("name"))
+                        map["latitude"] = cursor.getString(cursor.getColumnIndexOrThrow("latitude"))
+                        map["longitude"] = cursor.getString(cursor.getColumnIndexOrThrow("longitude"))
+                        // Safely get timezone if column exists
+                        val tzIndex = cursor.getColumnIndex("timezone")
+                        if (tzIndex != -1) {
+                            map["timezone"] = cursor.getString(tzIndex) ?: "Asia/Kolkata"
+                        } else {
+                            map["timezone"] = "Asia/Kolkata" // Default timezone
+                        }
+                        list.add(map)
+                    } while (cursor.moveToNext())
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("CSCDatabaseHelper", "Error reading cities: ${e.message}")
+                e.printStackTrace()
             }
-        } catch (e: Exception) { e.printStackTrace() }
-        finally { cursor.close() }
+            finally { cursor.close() }
+        } catch (e: Exception) {
+            android.util.Log.e("CSCDatabaseHelper", "Database error: ${e.message}")
+        }
         return list
     }
 }
