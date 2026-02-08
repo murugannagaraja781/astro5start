@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Delete Account - Astro 5 Star</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 40px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #ff6b00;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            color: #333;
+            margin-top: 30px;
+        }
+
+        p {
+            line-height: 1.6;
+            color: #555;
+        }
+
+        ul {
+            line-height: 1.8;
+            color: #555;
+        }
+
+        button {
+            background: #ff6b00;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #777;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .footer a {
+            color: #ff6b00;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Astro 5 Star - Account Deletion Request</h1>
+
+        <div class="success-message" id="successMessage">
+            Your account deletion request has been submitted successfully. Our team will process it within 24-48 hours.
+        </div>
+
+        <div class="error-message" id="errorMessage">
+            Failed to submit request. Please try again or contact support.
+        </div>
+
+        <p>You can request deletion of your Astro 5 Star account and associated data using this page.</p>
+
+        <p><b>What happens after deletion:</b></p>
+        <ul>
+            <li>Your account will be permanently deleted</li>
+            <li>Your wallet data will be removed</li>
+            <li>Your astrology history will be removed</li>
+            <li>Your consultation records will be deleted</li>
+            <li>This action cannot be reversed</li>
+        </ul>
+
+        <h3>Request Account Deletion</h3>
+        <form id="deleteForm">
+            <label>Email or Phone Number</label>
+            <input type="text" id="userIdentifier" name="user_identifier" required
+                placeholder="Enter your email or phone number">
+            <br><br>
+            <label>Reason for Deletion (Optional)</label>
+            <input type="text" id="reason" name="reason" placeholder="Tell us why you're leaving (optional)">
+            <br><br>
+            <button type="submit">Request Account Deletion</button>
+        </form>
+
+        <div class="footer">
+            <p>
+                <b>Developer:</b> Astro 5 Star Team<br>
+                <b>Contact:</b> support@astro5star.com
+            </p>
+            <p>
+                <a href="https://astro5star.com/privacy-policy.html">Privacy Policy</a> |
+                <a href="https://astro5star.com/terms-condition.html">Terms & Conditions</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('deleteForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const userIdentifier = document.getElementById('userIdentifier').value;
+            const reason = document.getElementById('reason').value;
+            const successMsg = document.getElementById('successMessage');
+            const errorMsg = document.getElementById('errorMessage');
+
+            // Hide previous messages
+            successMsg.style.display = 'none';
+            errorMsg.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/delete-account-request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_identifier: userIdentifier,
+                        reason: reason
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    successMsg.style.display = 'block';
+                    document.getElementById('deleteForm').reset();
+                    // Scroll to top to show message
+                    window.scrollTo(0, 0);
+                } else {
+                    errorMsg.textContent = data.error || 'Failed to submit request. Please try again.';
+                    errorMsg.style.display = 'block';
+                    window.scrollTo(0, 0);
+                }
+            } catch (error) {
+                errorMsg.textContent = 'Network error. Please check your connection and try again.';
+                errorMsg.style.display = 'block';
+                window.scrollTo(0, 0);
+            }
+        });
+    </script>
+</body>
+
+</html>

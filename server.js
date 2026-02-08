@@ -520,6 +520,20 @@ const AcademyVideoSchema = new mongoose.Schema({
 });
 const AcademyVideo = mongoose.model('AcademyVideo', AcademyVideoSchema);
 
+// Account Deletion Request Schema
+const AccountDeletionRequestSchema = new mongoose.Schema({
+  requestId: { type: String, unique: true },
+  userIdentifier: { type: String, required: true }, // Email or Phone
+  userId: String, // If found in database
+  reason: String,
+  status: { type: String, default: 'pending' }, // pending, approved, rejected, completed
+  requestedAt: { type: Date, default: Date.now },
+  processedAt: Date,
+  processedBy: String, // Admin userId who processed it
+  notes: String // Admin notes
+});
+const AccountDeletionRequest = mongoose.model('AccountDeletionRequest', AccountDeletionRequestSchema);
+
 
 // ===== Seed Data =====
 async function seedDatabase() {
@@ -1193,6 +1207,163 @@ app.post('/api/verify-otp', async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ ok: false, error: 'DB Error' });
+  }
+});
+
+// ===== ACCOUNT DELETION REQUEST API =====
+app.post('/api/delete-account-request', async (req, res) => {
+  try {
+    const { user_identifier, reason } = req.body;
+
+    if (!user_identifier) {
+      return res.json({ ok: false, error: 'Email or phone number is required' });
+    }
+
+    // Check if user exists in database
+    let user = null;
+    let userId = null;
+
+    // Try to find by phone
+    if (/^\d+$/.test(user_identifier)) {
+      user = await User.findOne({ phone: user_identifier });
+    } else {
+      // Try to find by email (if email field exists in your schema)
+      user = await User.findOne({ email: user_identifier });
+    }
+
+    if (user) {
+      userId = user.userId;
+    }
+
+    // Check if there's already a pending request
+    const existingRequest = await AccountDeletionRequest.findOne({
+      userIdentifier: user_identifier,
+      status: 'pending'
+    });
+
+    if (existingRequest) {
+      return res.json({
+        ok: false,
+        error: 'A deletion request for this account is already pending'
+      });
+    }
+
+    // Create deletion request
+    const requestId = crypto.randomUUID();
+    const deletionRequest = await AccountDeletionRequest.create({
+      requestId,
+      userIdentifier: user_identifier,
+      userId: userId,
+      reason: reason || 'No reason provided',
+      status: 'pending',
+      requestedAt: new Date()
+    });
+
+    console.log(`[Account Deletion] Request created: ${requestId} for ${user_identifier}`);
+
+    res.json({
+      ok: true,
+      message: 'Account deletion request submitted successfully',
+      requestId: requestId
+    });
+
+  } catch (error) {
+    console.error('[Account Deletion] Error:', error);
+    res.status(500).json({ ok: false, error: 'Failed to submit deletion request' });
+  }
+});
+
+// ===== ADMIN: GET ACCOUNT DELETION REQUESTS =====
+app.get('/api/admin/deletion-requests', async (req, res) => {
+  try {
+    const { status } = req.query;
+
+    const query = status ? { status } : {};
+    const requests = await AccountDeletionRequest.find(query)
+      .sort({ requestedAt: -1 })
+      .limit(100);
+
+    res.json({ ok: true, requests });
+  } catch (error) {
+    console.error('[Admin] Error fetching deletion requests:', error);
+    res.status(500).json({ ok: false, error: 'Failed to fetch requests' });
+  }
+});
+
+// ===== ADMIN: PROCESS ACCOUNT DELETION REQUEST =====
+app.post('/api/admin/process-deletion', async (req, res) => {
+  try {
+    const { requestId, action, adminUserId, notes } = req.body;
+    // action: 'approve' or 'reject'
+
+    if (!requestId || !action || !adminUserId) {
+      return res.json({ ok: false, error: 'Missing required fields' });
+    }
+
+    const request = await AccountDeletionRequest.findOne({ requestId });
+    if (!request) {
+      return res.json({ ok: false, error: 'Request not found' });
+    }
+
+    if (request.status !== 'pending') {
+      return res.json({ ok: false, error: 'Request already processed' });
+    }
+
+    if (action === 'approve') {
+      // Delete user account and related data
+      if (request.userId) {
+        // Delete user
+        await User.deleteOne({ userId: request.userId });
+
+        // Delete related data
+        await Session.deleteMany({
+          $or: [
+            { fromUserId: request.userId },
+            { toUserId: request.userId }
+          ]
+        });
+        await ChatMessage.deleteMany({
+          $or: [
+            { fromUserId: request.userId },
+            { toUserId: request.userId }
+          ]
+        });
+        await Payment.deleteMany({ userId: request.userId });
+        await BillingLedger.deleteMany({
+          $or: [
+            { clientId: request.userId },
+            { astrologerId: request.userId }
+          ]
+        });
+        await PairMonth.deleteMany({
+          $or: [
+            { clientId: request.userId },
+            { astrologerId: request.userId }
+          ]
+        });
+        await Withdrawal.deleteMany({ astroId: request.userId });
+
+        console.log(`[Account Deletion] User ${request.userId} and related data deleted`);
+      }
+
+      request.status = 'completed';
+    } else if (action === 'reject') {
+      request.status = 'rejected';
+    }
+
+    request.processedAt = new Date();
+    request.processedBy = adminUserId;
+    request.notes = notes || '';
+    await request.save();
+
+    res.json({
+      ok: true,
+      message: `Request ${action === 'approve' ? 'approved and account deleted' : 'rejected'}`
+    });
+
+  } catch (error) {
+    console.error('[Admin] Error processing deletion:', error);
+    res.status(500).json({ ok: false, error: 'Failed to process request' });
   }
 });
 
