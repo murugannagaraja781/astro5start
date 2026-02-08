@@ -60,6 +60,12 @@ class PaymentActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Handle Deep Link Return
+        if (intent?.data != null && intent.data?.scheme == "astro5") {
+            Log.d(TAG, "Deep Link Intent received in onCreate: ${intent.data}")
+            finish()
+        }
+
         // --- Programmatic UI ---
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -463,6 +469,14 @@ class PaymentActivity : AppCompatActivity() {
         fun onPaymentComplete(status: String) {
             Log.d(TAG, "JS Bridge: Payment Complete with status: $status")
             handlePaymentResult(status)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.data != null && intent.data?.scheme == "astro5") {
+            Log.d(TAG, "Deep Link Intent received in onNewIntent: ${intent.data}")
+            finish()
         }
     }
 

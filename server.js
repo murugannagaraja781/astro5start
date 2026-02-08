@@ -3257,8 +3257,8 @@ app.post('/api/payment/create', async (req, res) => {
         merchantTransactionId: merchantTransactionId,
         merchantUserId: cleanUserId,
         amount: amount * 100, // Amount in Paise
-        redirectUrl: redirectUrl,
-        redirectMode: "POST",
+        redirectUrl: "astro5://payment-success",
+        redirectMode: "GET", // Use GET for deep links
         callbackUrl: `https://astro5star.com/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`,
         mobileNumber: userMobile,
         paymentInstrument: {
@@ -3536,7 +3536,14 @@ app.get('/payment-success', (req, res) => {
           <p>₹${amount || '--'}</p>
           <a href="${intentUrl}" class="btn">Return to Home</a>
           <script>
-             function openApp() { window.location.href = "${intentUrl}"; setTimeout(() => { window.location.href = "${customSchemeUrl}"; }, 100); }
+             function openApp() {
+               // Try Intent first (Chrome/Android)
+               window.location.href = "${intentUrl}";
+               // Immediate Deep Link fallback
+               setTimeout(() => { window.location.href = "${customSchemeUrl}"; }, 100);
+               // Backup force link
+               setTimeout(() => { window.location.href = "astro5://payment-success"; }, 500);
+             }
              openApp();
           </script>
         </div>
