@@ -11,6 +11,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import com.astro5star.app.data.api.ApiClient
 import com.astro5star.app.data.local.TokenManager
@@ -49,6 +50,12 @@ class PaymentActivity : AppCompatActivity() {
     private lateinit var tokenManager: TokenManager
     private lateinit var statusText: TextView
     private lateinit var webView: android.webkit.WebView
+
+    private val phonePeLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ ->
+        // After PhonePe app returns, verify status
+        statusText.text = "Verifying Transaction..."
+        checkPaymentStatus()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -327,7 +334,7 @@ class PaymentActivity : AppCompatActivity() {
                         PhonePeKt.startTransaction(
                             this@PaymentActivity,
                             transactionRequest,
-                            B2B_PG_REQUEST_CODE
+                            phonePeLauncher
                         )
                     } catch (e: Exception) {
                         Log.e(TAG, "PhonePe Launch Error", e)
@@ -415,13 +422,7 @@ class PaymentActivity : AppCompatActivity() {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == B2B_PG_REQUEST_CODE) {
-             statusText.text = "Verifying Transaction..."
-             checkPaymentStatus()
-        }
-    }
+    // override fun onActivityResult... (Removed in favor of ActivityResultLauncher)
 
     private fun checkPaymentStatus() {
          val txnId = pendingTransactionId
