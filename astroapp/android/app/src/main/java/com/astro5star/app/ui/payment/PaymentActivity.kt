@@ -147,9 +147,11 @@ class PaymentActivity : AppCompatActivity() {
                     // Safety Net: Catch status in URL if app-specific redirects fail
                     if (url.contains("status=success") || url.contains("status=failure") || url.contains("status=failed")) {
                         Log.d(TAG, "Payment Status detected in URL: $url")
+                        val uri = android.net.Uri.parse(url)
                         val status = if (url.contains("success")) "success" else "failed"
+                        val txnId = uri.getQueryParameter("txnId") ?: ""
                         val redirectIntent = Intent(this@PaymentActivity, com.astro5star.app.ui.wallet.PaymentStatusActivity::class.java)
-                        redirectIntent.data = android.net.Uri.parse("astro5://payment-$status?status=$status")
+                        redirectIntent.data = android.net.Uri.parse("astro5://payment-$status?status=$status&txnId=$txnId")
                         redirectIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                         startActivity(redirectIntent)
                         finish()

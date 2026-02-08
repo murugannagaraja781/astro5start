@@ -428,7 +428,8 @@ const PaymentSchema = new mongoose.Schema({
   amount: Number, // in Rupees
   status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },
   createdAt: { type: Date, default: Date.now },
-  providerRefId: String
+  providerRefId: String,
+  isApp: { type: Boolean, default: false }
 });
 const Payment = mongoose.model('Payment', PaymentSchema);
 
@@ -3227,9 +3228,7 @@ app.post('/api/payment/create', async (req, res) => {
     const userMobile = rawPhone.replace(/[^0-9]/g, '').slice(-10);
 
     const merchantTransactionId = "MT" + Date.now() + Math.floor(Math.random() * 1000);
-    const redirectUrl = isApp
-      ? `https://astro5star.com/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`
-      : `https://astro5star.com/api/payment/callback`;
+    const redirectUrl = `https://astro5star.com/api/payment/callback`;
 
     // Create Pending Record
     await Payment.create({
@@ -3237,7 +3236,8 @@ app.post('/api/payment/create', async (req, res) => {
       merchantTransactionId,
       userId,
       amount,
-      status: 'pending'
+      status: 'pending',
+      isApp: !!isApp // Store the source
     });
 
     // PhonePe Payload
@@ -3456,6 +3456,8 @@ app.post('/api/payment/callback', async (req, res) => {
     console.log(`[WALLET DEBUG] Code: "${code}", isSuccess: ${isSuccess}, isFailed: ${isFailed}`);
     console.log(`[WALLET DEBUG] Payment found: ${payment._id}, userId: ${payment.userId}, amount: ${payment.amount}, status: ${payment.status}`);
 
+    const redirectIsApp = payment.isApp || req.query.isApp === 'true';
+
     if (isSuccess) {
       // Treat as success - credit wallet
       if (payment.status !== 'success') {
@@ -3482,7 +3484,7 @@ app.post('/api/payment/callback', async (req, res) => {
         }
       }
 
-      if (req.query.isApp === 'true') {
+      if (redirectIsApp) {
         const txnId = merchantTransactionId || '';
         return res.redirect(`/payment-success?amount=${payment.amount || ''}&txnId=${txnId}`);
       }
@@ -3493,7 +3495,7 @@ app.post('/api/payment/callback', async (req, res) => {
       payment.status = 'failed';
       await payment.save();
 
-      if (req.query.isApp === 'true') {
+      if (redirectIsApp) {
         return res.redirect('/payment-failed');
       }
       return res.redirect(`/wallet?status=failure`);
