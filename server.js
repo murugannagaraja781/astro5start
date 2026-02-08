@@ -1040,6 +1040,20 @@ app.post('/api/send-otp', (req, res) => {
     return res.json({ ok: true });
   }
 
+  // Test Astrologer Bypass (OTP: 0101)
+  if (phone === '8000000001') {
+    console.log('Test Astrologer Login Attempt - OTP: 0101');
+    otpStore.set(phone, { otp: '0101', expires: Date.now() + 300000 });
+    return res.json({ ok: true });
+  }
+
+  // Test Client Bypass (OTP: 0101)
+  if (phone === '9000000001') {
+    console.log('Test Client Login Attempt - OTP: 0101');
+    otpStore.set(phone, { otp: '0101', expires: Date.now() + 300000 });
+    return res.json({ ok: true });
+  }
+
   // Send via MSG91 for everyone else
   sendMsg91(phone, otp);
 
@@ -1065,6 +1079,68 @@ app.post('/api/verify-otp', async (req, res) => {
       });
     } else if (user.role !== 'superadmin') {
       user.role = 'superadmin';
+      await user.save();
+    }
+    return res.json({
+      ok: true,
+      userId: user.userId,
+      name: user.name,
+      role: user.role,
+      phone: user.phone,
+      walletBalance: user.walletBalance,
+      totalEarnings: user.totalEarnings || 0,
+      image: user.image
+    });
+  }
+
+  // --- Test Astrologer Account ---
+  if (phone === '8000000001' && otp === '0101') {
+    let user = await User.findOne({ phone });
+    if (!user) {
+      user = await User.create({
+        userId: crypto.randomUUID(),
+        phone,
+        name: 'Test Astrologer',
+        role: 'astrologer',
+        walletBalance: 5000,
+        totalEarnings: 0,
+        isOnline: true,
+        isAvailable: true,
+        ratePerMinute: 10
+      });
+    } else if (user.role !== 'astrologer') {
+      user.role = 'astrologer';
+      user.isOnline = true;
+      user.isAvailable = true;
+      user.ratePerMinute = user.ratePerMinute || 10;
+      await user.save();
+    }
+    return res.json({
+      ok: true,
+      userId: user.userId,
+      name: user.name,
+      role: user.role,
+      phone: user.phone,
+      walletBalance: user.walletBalance,
+      totalEarnings: user.totalEarnings || 0,
+      image: user.image,
+      ratePerMinute: user.ratePerMinute
+    });
+  }
+
+  // --- Test Client Account ---
+  if (phone === '9000000001' && otp === '0101') {
+    let user = await User.findOne({ phone });
+    if (!user) {
+      user = await User.create({
+        userId: crypto.randomUUID(),
+        phone,
+        name: 'Test Client',
+        role: 'client',
+        walletBalance: 1000
+      });
+    } else if (user.role !== 'client') {
+      user.role = 'client';
       await user.save();
     }
     return res.json({
