@@ -35,20 +35,6 @@ const fs = require('fs');
 const FCM_PROJECT_ID = 'astro5star-d487c';
 let fcmAuth = null;
 
-// Global Helper for Astrologer Updates
-// Global Helper for Astrologer Updates - Defined as constant to prevent ReferenceErrors
-const broadcastAstroUpdate = async () => {
-  try {
-    if (typeof User === 'undefined' || !User) return;
-    const astros = await User.find({ role: 'astrologer' });
-    if (typeof io !== 'undefined' && io) {
-      io.emit('astrologer-update', astros);
-    }
-  } catch (e) {
-    console.error('Broadcast Error:', e);
-  }
-};
-
 // Initialize FCM v1 Auth
 function initFcmAuth() {
   try {
@@ -437,40 +423,17 @@ const WithdrawalSchema = new mongoose.Schema({
 });
 const Withdrawal = mongoose.model('Withdrawal', WithdrawalSchema);
 
-// Upgraded Payment Schema
 const PaymentSchema = new mongoose.Schema({
-  transactionId: { type: String, unique: true }, // Internal Tracking ID
-  merchantTransactionId: String, // Gateway ID
+  transactionId: { type: String, unique: true },
+  merchantTransactionId: String, // For PhonePe callback matching
   userId: String,
   amount: Number, // in Rupees
-  status: {
-    type: String,
-    enum: ['INITIATED', 'PENDING', 'SUCCESS', 'FAILED', 'EXPIRED'],
-    default: 'INITIATED'
-  },
-  providerRefId: String, // Gateway internal reference
-  paymentMethod: String,
-  rawResponse: mongoose.Schema.Types.Mixed,
-  isApp: { type: Boolean, default: false },
+  status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },
   createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
+  providerRefId: String,
+  isApp: { type: Boolean, default: false }
 });
 const Payment = mongoose.model('Payment', PaymentSchema);
-
-// Wallet Ledger (Source of Truth)
-const WalletTransactionSchema = new mongoose.Schema({
-  txId: { type: String, unique: true },
-  userId: String,
-  amount: Number,
-  type: { type: String, enum: ['CREDIT', 'DEBIT'], required: true },
-  refType: { type: String, enum: ['PAYMENT', 'CONSULTATION', 'WITHDRAWAL', 'REFUND'], required: true },
-  refId: String,
-  balanceBefore: Number,
-  balanceAfter: Number,
-  status: { type: String, enum: ['PENDING', 'SUCCESS', 'FAILED'], default: 'SUCCESS' },
-  createdAt: { type: Date, default: Date.now }
-});
-const WalletTransaction = mongoose.model('WalletTransaction', WalletTransactionSchema);
 
 
 const ChatMessageSchema = new mongoose.Schema({
@@ -1620,6 +1583,12 @@ io.on('connection', (socket) => {
     }
   });
 
+  async function broadcastAstroUpdate() {
+    try {
+      const astros = await User.find({ role: 'astrologer' });
+      io.emit('astrologer-update', astros);
+    } catch (e) { }
+  }
 
   // --- Get Astrologers List ---
   socket.on('get-astrologers', async (cb) => {
@@ -1786,22 +1755,15 @@ io.on('connection', (socket) => {
       const { toUserId, type, birthData } = data || {};
       const fromUserId = socketToUser.get(socket.id);
 
-      if (!fromUserId) {
-        if (typeof cb === 'function') cb({ ok: false, error: 'Not registered' });
-        return;
-      }
-      if (!toUserId || !type) {
-        if (typeof cb === 'function') cb({ ok: false, error: 'Missing fields' });
-        return;
-      }
+      if (!fromUserId) return cb({ ok: false, error: 'Not registered' });
+      if (!toUserId || !type) return cb({ ok: false, error: 'Missing fields' });
 
       // Get target user from DB
       const toUser = await User.findOne({ userId: toUserId });
       const fromUser = await User.findOne({ userId: fromUserId });
 
       if (!toUser) {
-        if (typeof cb === 'function') cb({ ok: false, error: 'User not found' });
-        return;
+        return cb({ ok: false, error: 'User not found' });
       }
 
       // Check if astrologer is available (MANUAL ONLY)
@@ -2526,10 +2488,7 @@ io.on('connection', (socket) => {
     try {
       const { toUserId, birthData } = data || {};
       const fromUserId = socketToUser.get(socket.id);
-      if (!fromUserId || !toUserId) {
-        if (typeof cb === 'function') cb({ ok: false, error: 'Invalid data' });
-        return;
-      }
+      if (!fromUserId || !toUserId) return cb({ ok: false, error: 'Invalid data' });
 
       // Send birth chart data to astrologer
       io.to(toUserId).emit('client-birth-chart', {
@@ -2537,11 +2496,11 @@ io.on('connection', (socket) => {
         birthData
       });
 
-      if (typeof cb === 'function') cb({ ok: true });
+      cb({ ok: true });
       console.log(`Birth chart sent from ${fromUserId} to ${toUserId}`);
     } catch (err) {
       console.error('client-birth-chart error', err);
-      if (typeof cb === 'function') cb({ ok: false, error: err.message });
+      cb({ ok: false, error: err.message });
     }
   });
 
@@ -3123,132 +3082,6 @@ app.post('/api/call/accept', async (req, res) => {
 });
 
 
-// ==========================================
-// ENTERPRISE PAYMENT SYSTEM HELPERS
-// ==========================================
-
-/**
- * Verified and Credits Wallet using an Atomic Transaction
- * This ensures idempotency and data consistency.
- */
-async function processVerifiedPayment(payment, gatewayData) {
-  const session = await mongoose.startSession();
-  try {
-    session.startTransaction();
-
-    // 1. Re-verify Payment exists and is not already successful
-    const currentPayment = await Payment.findOne({ transactionId: payment.transactionId }).session(session);
-    if (!currentPayment) throw new Error('Payment record not found');
-
-    if (currentPayment.status === 'SUCCESS') {
-      console.log(`[PAYMENT] Already processed success for ${payment.transactionId}`);
-      await session.abortTransaction();
-      return { status: 'ALREADY_DONE' };
-    }
-
-    // 2. Fetch User
-    const user = await User.findOne({ userId: currentPayment.userId }).session(session);
-    if (!user) throw new Error('User not found');
-
-    const balanceBefore = user.walletBalance || 0;
-    const balanceAfter = balanceBefore + currentPayment.amount;
-
-    // 3. Create Ledger Entry (Primary Truth)
-    await WalletTransaction.create([{
-      txId: `WTX_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      userId: user.userId,
-      amount: currentPayment.amount,
-      type: 'CREDIT',
-      refType: 'PAYMENT',
-      refId: currentPayment.transactionId,
-      balanceBefore,
-      balanceAfter,
-      status: 'SUCCESS'
-    }], { session });
-
-    // 4. Update User Balance
-    user.walletBalance = balanceAfter;
-    await user.save({ session });
-
-    // 5. Update Payment Record
-    currentPayment.status = 'SUCCESS';
-    currentPayment.providerRefId = gatewayData.transactionId || gatewayData.data?.transactionId || currentPayment.providerRefId;
-    currentPayment.rawResponse = gatewayData;
-    currentPayment.updatedAt = new Date();
-    await currentPayment.save({ session });
-
-    await session.commitTransaction();
-    console.log(`[PAYMENT] SUCCESS: Credited ₹${currentPayment.amount} to User ${user.userId}`);
-
-    // 6. Notify Socket.IO (Realtime UX)
-    const sId = userSockets.get(user.userId);
-    if (sId) {
-      io.to(sId).emit('wallet-update', { balance: balanceAfter });
-      io.to(sId).emit('app-notification', { text: `✅ Recharge Successful! +₹${currentPayment.amount}` });
-    }
-
-    return { status: 'SUCCESS', balanceAfter };
-  } catch (err) {
-    if (session.inTransaction()) await session.abortTransaction();
-    console.error('[PAYMENT] Transaction Error:', err);
-    throw err;
-  } finally {
-    session.endSession();
-  }
-}
-
-/**
- * Poll PhonePe Status for reconciliation
- */
-async function syncPaymentWithGateway(transactionId) {
-  try {
-    const statusPath = `/pg/v1/status/${PHONEPE_MERCHANT_ID}/${transactionId}`;
-    const stringToSign = statusPath + PHONEPE_SALT_KEY;
-    const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
-    const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
-
-    const response = await fetch(`${PHONEPE_HOST_URL}${statusPath}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-VERIFY': checksum,
-        'X-MERCHANT-ID': PHONEPE_MERCHANT_ID,
-        'accept': 'application/json'
-      }
-    });
-
-    const data = await response.json();
-    if (data.success && data.code === 'PAYMENT_SUCCESS') {
-      const payment = await Payment.findOne({ transactionId });
-      if (payment) await processVerifiedPayment(payment, data);
-      return 'SUCCESS';
-    }
-    return data.code;
-  } catch (e) {
-    console.error(`[SYNC] Failed for ${transactionId}:`, e.message);
-    return 'ERROR';
-  }
-}
-
-// Start Reconciliation Cron (Every 15 mins)
-setInterval(async () => {
-  try {
-    const pendingPayments = await Payment.find({
-      status: { $in: ['INITIATED', 'PENDING'] },
-      createdAt: {
-        $gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24h
-        $lte: new Date(Date.now() - 5 * 60 * 1000)      // At least 5 mins old
-      }
-    });
-    if (pendingPayments.length > 0) {
-      console.log(`[RECON] Checking ${pendingPayments.length} pending payments...`);
-      for (const p of pendingPayments) {
-        await syncPaymentWithGateway(p.transactionId);
-      }
-    }
-  } catch (e) { console.error('[RECON] Cron Error:', e); }
-}, 15 * 60 * 1000);
-
 // ===== Payment Gateway Logic (PhonePe) =====
 // Configuration from environment variables
 // Config moved to top of file
@@ -3351,77 +3184,397 @@ app.get('/api/verify-payment-token', async (req, res) => {
   }
 });
 
-// 1. Initiate Payment
+// 1. Initiate Payment (Supports both token-based and legacy userId-based)
 app.post('/api/payment/create', async (req, res) => {
   try {
     let { amount, userId, isApp, token } = req.body;
 
-    // Token-based authentication
+    // Token-based authentication (SECURE - for browser flow)
     if (token) {
       const tokenData = paymentTokens.get(token);
-      if (!tokenData || tokenData.used) return res.json({ ok: false, error: 'Invalid or used token' });
+
+      if (!tokenData) {
+        return res.json({ ok: false, error: 'Invalid or expired token' });
+      }
+
+      // Check expiry (10 minutes)
+      const expiryTime = 10 * 60 * 1000;
+      if (Date.now() - tokenData.createdAt > expiryTime) {
+        paymentTokens.delete(token);
+        return res.json({ ok: false, error: 'Token expired' });
+      }
+
+      // Check if already used
+      if (tokenData.used) {
+        return res.json({ ok: false, error: 'Token already used' });
+      }
+
+      // Mark token as used (single-use)
       tokenData.used = true;
+
+      // Extract userId and amount from token
       userId = tokenData.userId;
       amount = tokenData.amount;
+
+      console.log(`Token Auth Payment: ${token.substring(0, 8)}... userId=${userId} amount=${amount}`);
     }
 
-    if (!amount || !userId) return res.json({ ok: false, error: 'Missing Amount or User' });
+    // Legacy check (for backward compatibility with WebView calls)
+    if (!amount || !userId) {
+      return res.json({ ok: false, error: 'Missing Amount or User' });
+    }
 
+    // Fetch User to get real mobile number
     const userObj = await User.findOne({ userId });
-    const userMobile = userObj ? (userObj.phone || "9999999999").replace(/[^0-9]/g, '').slice(-10) : "9999999999";
-    const merchantTransactionId = "WEB_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    const rawPhone = (userObj && userObj.phone) ? userObj.phone : "9999999999";
+    const userMobile = rawPhone.replace(/[^0-9]/g, '').slice(-10);
 
-    // Create Initiated Record
+    const merchantTransactionId = "MT" + Date.now() + Math.floor(Math.random() * 1000);
+    const redirectUrl = `https://astro5star.com/api/payment/callback`;
+
+    // Create Pending Record
     await Payment.create({
       transactionId: merchantTransactionId,
       merchantTransactionId,
       userId,
       amount,
-      status: 'INITIATED',
-      isApp: !!isApp
+      status: 'pending',
+      isApp: !!isApp // Store the source
     });
 
+    // PhonePe Payload
+    // FIX: Sanitize UserID (Only Alphanumeric) and Use Valid Mobile
     const cleanUserId = userId.replace(/[^a-zA-Z0-9]/g, '') || "User";
+
+    // --- NATIVE APP FLOW (Use Web Payment via External Browser) ---
+    // Native SDK has issues, so we use browser redirect which is more reliable
+    if (isApp) {
+      console.log('App Payment Request:', { userId, amount, cleanUserId });
+
+      // Use PAY_PAGE type - same as web, opens in browser
+      const appPayload = {
+        merchantId: PHONEPE_MERCHANT_ID,
+        merchantTransactionId: merchantTransactionId,
+        merchantUserId: cleanUserId,
+        amount: amount * 100, // Amount in Paise
+        redirectUrl: redirectUrl,
+        redirectMode: "POST",
+        callbackUrl: `https://astro5star.com/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`,
+        mobileNumber: userMobile,
+        paymentInstrument: {
+          type: "PAY_PAGE"
+        }
+      };
+
+      console.log('App Payload:', JSON.stringify(appPayload));
+
+      const appBase64Payload = Buffer.from(JSON.stringify(appPayload)).toString('base64');
+      const appStringToSign = appBase64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY;
+      const appSha256 = crypto.createHash('sha256').update(appStringToSign).digest('hex');
+      const appChecksum = appSha256 + "###" + PHONEPE_SALT_INDEX;
+
+      // Call PhonePe API to get payment URL
+      const appOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-VERIFY': appChecksum,
+          'accept': 'application/json'
+        },
+        body: JSON.stringify({ request: appBase64Payload })
+      };
+
+      try {
+        console.log('Calling PhonePe API for app...');
+        const appFetchRes = await fetch(`${PHONEPE_HOST_URL}/pg/v1/pay`, appOptions);
+        const appResponse = await appFetchRes.json();
+        console.log('PhonePe App Response:', JSON.stringify(appResponse));
+
+        if (appResponse.success) {
+          const payUrl = appResponse.data.instrumentResponse?.redirectInfo?.url;
+          console.log('Payment URL:', payUrl);
+
+          if (!payUrl) {
+            console.error('No payment URL in response');
+            return res.json({ ok: false, error: 'No payment URL received' });
+          }
+
+          return res.json({
+            ok: true,
+            merchantTransactionId: merchantTransactionId,
+            paymentUrl: payUrl,  // App will open this in external browser
+            useWebFlow: true
+          });
+        } else {
+          const errorMsg = appResponse.data?.message || appResponse.message || 'Payment Init Failed';
+          console.error("PhonePe App Initiation Failed:", errorMsg, JSON.stringify(appResponse));
+          return res.json({ ok: false, error: errorMsg });
+        }
+      } catch (appErr) {
+        console.error("PhonePe App Error:", appErr);
+        return res.json({ ok: false, error: 'Payment service temporarily unavailable' });
+      }
+    }
+
+    // --- WEB FLOW PAYLOAD ---
     const payload = {
       merchantId: PHONEPE_MERCHANT_ID,
-      merchantTransactionId,
+      merchantTransactionId: merchantTransactionId,
       merchantUserId: cleanUserId,
-      amount: amount * 100,
-      redirectUrl: `https://astro5star.com/api/payment/callback`,
+      amount: amount * 100, // Amount in Paise
+      redirectUrl: redirectUrl,
       redirectMode: "POST",
-      callbackUrl: `https://astro5star.com/api/phonepe/callback`,
-      mobileNumber: userMobile,
-      paymentInstrument: { type: "PAY_PAGE" }
+      callbackUrl: `https://astro5star.com/api/payment/callback`,
+      mobileNumber: "9000090000",
+      paymentInstrument: {
+        type: "PAY_PAGE"
+      }
     };
 
     const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-    const xVerify = crypto.createHash('sha256').update(base64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY).digest('hex') + "###" + PHONEPE_SALT_INDEX;
+    const stringToSign = base64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY;
+    const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
+    const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
-    const response = await fetch(`${PHONEPE_HOST_URL}/pg/v1/pay`, {
+    // --- WEB FLOW ---
+    const options = {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-VERIFY': xVerify, 'accept': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-VERIFY': checksum,
+        'accept': 'application/json'
+      },
       body: JSON.stringify({ request: base64Payload })
-    });
+    };
 
-    const data = await response.json();
-    if (data.success) {
-      res.json({ ok: true, data: data.data });
+    const fetchRes = await fetch(`${PHONEPE_HOST_URL}/pg/v1/pay`, options);
+    const response = await fetchRes.json();
+
+    if (response.success) {
+      const payUrl = response.data.instrumentResponse?.redirectInfo?.url || response.data.instrumentResponse?.intentUrl;
+      const intentUrl = response.data.instrumentResponse?.intentUrl; // Specifically for UPI_INTENT
+
+      res.json({
+        ok: true,
+        merchantTransactionId: merchantTransactionId,
+        paymentUrl: payUrl,
+        intentUrl: intentUrl // Pass this to Frontend for Deep Link
+      });
     } else {
-      res.json({ ok: false, error: data.message });
+      console.error("PhonePe Initiation Failed:", JSON.stringify(response));
+      // Return specific error from PhonePe if available
+      res.json({ ok: false, error: response.data?.message || response.message || 'Payment Init Failed' });
     }
+
   } catch (e) {
-    console.error('Payment Create Error:', e);
-    res.status(500).json({ ok: false, error: 'Initialization failed' });
+    console.error("Payment Create Error:", e);
+    res.json({ ok: false, error: 'Internal Error' });
   }
 });
-// (Syntax cleanup - leftovers removed)
 
-// 2. Legacy Callback (Redirects to new flow)
-app.all('/api/payment/callback', (req, res) => {
-  console.log('[LEGACY CALLBACK HIT] /api/payment/callback - Redirecting');
-  // Forward everything to the new callback handler
-  req.url = '/api/phonepe/callback';
-  app.handle(req, res);
+// 2. Callback (Webhook)
+app.post('/api/payment/callback', async (req, res) => {
+  console.log('=================================');
+  console.log('[CALLBACK HIT] /api/payment/callback');
+  console.log('[CALLBACK] Body:', JSON.stringify(req.body).substring(0, 200));
+  console.log('[CALLBACK] Query:', req.query);
+  console.log('=================================');
+
+  try {
+    let decoded = {};
+
+    // Case 1: Base64 Encoded JSON (S2S or App Intent)
+    if (req.body.response) {
+      decoded = JSON.parse(Buffer.from(req.body.response, 'base64').toString('utf-8'));
+    }
+    // Case 2: Direct Form POST (Web Redirect)
+    else if (req.body.code || req.body.merchantTransactionId) {
+      decoded = req.body;
+    }
+    // Case 3: GET Query Params (Fallback)
+    else if (req.query.code || req.query.merchantTransactionId) {
+      decoded = req.query;
+    }
+    else {
+      console.log('[CALLBACK ERROR] No payment data found in Body or Query');
+      // Return HTML with alert
+      console.log('[CALLBACK ERROR] No payment data found in Body or Query');
+
+      const userAgent = req.headers['user-agent'] || '';
+      const isAndroidApp = req.query.isApp === 'true' || userAgent.includes('Android') || userAgent.includes('Astro5App');
+
+      // AUTO-REDIRECT TO APP IF DETECTED (Even if isApp param is missing)
+      if (isAndroidApp) {
+        const intentUrl = `intent://payment-failed?reason=no_response#Intent;scheme=astro5;package=com.astro5star.app;end`;
+        const customScheme = `astro5://payment-failed?reason=no_response`;
+
+        return res.send(`
+          <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>body{font-family:sans-serif;text-align:center;padding:20px;}</style>
+          </head>
+          <body>
+          <h3>Redirecting...</h3>
+          <script>
+            // Try Intent first (Chrome/Android)
+            window.location.href = "${intentUrl}";
+
+            // Fallback
+            setTimeout(() => { window.location.href = "${customScheme}"; }, 800);
+          </script>
+          </body></html>
+        `);
+      }
+
+      // Web Fallback
+      return res.redirect('/wallet?status=failure&reason=no_response');
+    }
+
+    // PhonePe response format: { success, code, data: { merchantTransactionId, ... } }
+    const code = decoded.code;
+    const merchantTransactionId = decoded.data?.merchantTransactionId || decoded.merchantTransactionId || req.query.txnId; // Fallback to Query ID
+    const providerReferenceId = decoded.data?.providerReferenceId || decoded.providerReferenceId;
+
+    console.log(`Payment Callback: ${merchantTransactionId} | Status: ${code}`);
+    console.log(`[DEBUG] Full decoded response:`, JSON.stringify(decoded).substring(0, 300));
+
+    const payment = await Payment.findOne({
+      $or: [
+        { transactionId: merchantTransactionId },
+        { merchantTransactionId: merchantTransactionId }
+      ]
+    });
+    if (!payment) {
+      console.error('Payment not found for:', merchantTransactionId);
+      return res.redirect('/?status=fail&reason=not_found');
+    }
+
+
+    // Credit wallet ONLY for SUCCESS (not pending)
+    const isSuccess = code === 'PAYMENT_SUCCESS' || code === 'SUCCESS';
+    const isFailed = code === 'PAYMENT_ERROR' || code === 'PAYMENT_FAILED' || code === 'FAILURE';
+
+    console.log(`[WALLET DEBUG] Code: "${code}", isSuccess: ${isSuccess}, isFailed: ${isFailed}`);
+    console.log(`[WALLET DEBUG] Payment found: ${payment._id}, userId: ${payment.userId}, amount: ${payment.amount}, status: ${payment.status}`);
+
+    const redirectIsApp = payment.isApp || req.query.isApp === 'true';
+
+    if (isSuccess) {
+      // Treat as success - credit wallet
+      if (payment.status !== 'success') {
+        payment.status = 'success'; // Always mark as success
+        payment.providerRefId = providerReferenceId;
+        await payment.save();
+
+        // Credit Wallet
+        const user = await User.findOne({ userId: payment.userId });
+        if (user) {
+          user.walletBalance += payment.amount;
+          await user.save();
+          console.log(`✅ Wallet Credited: ${user.name} +₹${payment.amount} (PhonePe: ${code})`);
+
+          // Notify Socket if online
+          const sId = userSockets.get(user.userId);
+          if (sId) {
+            io.to(sId).emit('wallet-update', {
+              balance: user.walletBalance,
+              totalEarnings: user.totalEarnings
+            });
+            io.to(sId).emit('app-notification', { text: `✅ Recharge Successful! +₹${payment.amount}` });
+          }
+        }
+      }
+
+      if (redirectIsApp) {
+        const txnId = merchantTransactionId || '';
+        return res.redirect(`/payment-success?amount=${payment.amount || ''}&txnId=${txnId}`);
+      }
+      return res.redirect(`/wallet?status=success&amount=${payment.amount}`);
+
+    } else {
+      // Failure Handling
+      payment.status = 'failed';
+      await payment.save();
+
+      if (redirectIsApp) {
+        return res.redirect('/payment-failed');
+      }
+      return res.redirect(`/wallet?status=failure`);
+    }
+
+  } catch (e) {
+    console.error("Callback Error:", e);
+    return res.redirect('/?status=error');
+  }
+});
+
+// --- 3. Public Status Pages ---
+app.get('/payment-success', (req, res) => {
+  const { amount, txnId } = req.query;
+  const intentUrl = `intent://payment-success?status=success&txnId=${txnId}#Intent;scheme=astro5;package=com.astro5star.app;end`;
+  const customSchemeUrl = `astro5://payment-success?status=success&txnId=${txnId}`;
+
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Success</title>
+        <style>
+          body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#f0fdf4; margin:0; text-align:center; }
+          .card { background:white; padding:40px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.1); width:320px; }
+          .icon { font-size:60px; color:#22c55e; margin-bottom:20px; }
+          .btn { display:block; padding:15px; background:#16a34a; color:white; text-decoration:none; border-radius:10px; font-weight:bold; margin-top:20px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="icon">✓</div>
+          <h2>Success!</h2>
+          <p>₹${amount || '--'}</p>
+          <a href="${intentUrl}" class="btn">Return to Home</a>
+          <script>
+             function openApp() { window.location.href = "${intentUrl}"; setTimeout(() => { window.location.href = "${customSchemeUrl}"; }, 100); }
+             openApp();
+          </script>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
+app.get('/payment-failed', (req, res) => {
+  const intentUrl = `intent://payment-failed?status=failed#Intent;scheme=astro5;package=com.astro5star.app;end`;
+  const customSchemeUrl = `astro5://payment-failed?status=failed`;
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Failed</title>
+        <style>
+          body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#fef2f2; margin:0; text-align:center; }
+          .card { background:white; padding:40px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.1); width:320px; }
+          .icon { font-size:60px; color:#ef4444; margin-bottom:20px; }
+          .btn { display:block; padding:15px; background:#b91c1c; color:white; text-decoration:none; border-radius:10px; font-weight:bold; margin-top:20px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="icon">✗</div>
+          <h2>Failed</h2>
+          <a href="${intentUrl}" class="btn">Return to Home</a>
+          <script>
+             function openApp() { window.location.href = "${intentUrl}"; setTimeout(() => { window.location.href = "${customSchemeUrl}"; }, 100); }
+             openApp();
+          </script>
+        </div>
+      </body>
+    </html>
+  `);
 });
 
 // 3. Payment History API
@@ -3445,167 +3598,267 @@ app.get('/api/payment/history/:userId', async (req, res) => {
 
 // ===== PhonePe SDK API (Native App Payment) =====
 
-// PhonePe SDK Init
+// PhonePe SDK Init - For React Native PhonePe SDK
 app.post('/api/phonepe/init', async (req, res) => {
   try {
     const { userId, amount } = req.body;
-    if (!userId || !amount) return res.status(400).json({ ok: false, error: 'Missing params' });
+    if (!userId || !amount) {
+      return res.status(400).json({ ok: false, error: 'userId and amount required' });
+    }
 
+    // Fetch User
     const user = await User.findOne({ userId });
-    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
 
-    const merchantTransactionId = "APP_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
     const userMobile = (user.phone || "9999999999").replace(/[^0-9]/g, '').slice(-10);
+    const merchantTransactionId = "TXN_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    const cleanUserId = userId.replace(/[^a-zA-Z0-9]/g, '');
 
-    // Create record
+    // Create Pending Payment Record
     await Payment.create({
       transactionId: merchantTransactionId,
       merchantTransactionId,
       userId,
       amount,
-      status: 'INITIATED',
-      isApp: true
+      status: 'pending'
     });
 
+    // PhonePe Payload
     const payload = {
       merchantId: PHONEPE_MERCHANT_ID,
-      merchantTransactionId,
-      merchantUserId: userId.replace(/[^a-z0-9]/gi, ''),
-      amount: amount * 100,
+      merchantTransactionId: merchantTransactionId,
+      merchantUserId: cleanUserId,
+      amount: amount * 100, // Paise
+      redirectUrl: `https://astro5star.com/api/payment/callback?isApp=true`,
+      redirectMode: "POST",
       callbackUrl: `https://astro5star.com/api/phonepe/callback`,
       mobileNumber: userMobile,
-      paymentInstrument: { type: "PAY_PAGE" }
+      paymentInstrument: {
+        type: "PAY_PAGE"
+      }
     };
 
     const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-    const checksum = crypto.createHash('sha256').update(base64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY).digest('hex') + "###" + PHONEPE_SALT_INDEX;
+    const stringToSign = base64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY;
+    const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
+    const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
     const response = await fetch(`${PHONEPE_HOST_URL}/pg/v1/pay`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-VERIFY': checksum, 'accept': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-VERIFY': checksum,
+        'accept': 'application/json'
+      },
       body: JSON.stringify({ request: base64Payload })
     });
 
     const data = await response.json();
+    console.log('[PhonePe SDK Init]', JSON.stringify(data));
+
     if (data.success) {
-      res.json({ ok: true, transactionId: merchantTransactionId, data: data.data });
+      res.json({
+        ok: true,
+        transactionId: merchantTransactionId,
+        data: data.data
+      });
     } else {
-      res.json({ ok: false, error: data.message });
+      res.json({ ok: false, error: data.message || 'Payment initialization failed' });
     }
+
   } catch (e) {
-    console.error("PhonePe Init Error:", e);
+    console.error("PhonePe SDK Init Error:", e);
     res.status(500).json({ ok: false, error: 'Internal Server Error' });
   }
 });
 
-// PhonePe Signing for Native Android
+// NEW: Signature Endpoint for Native Android SDK
 app.post('/api/phonepe/sign', async (req, res) => {
   try {
     const { userId, amount } = req.body;
+    if (!userId || !amount) {
+      return res.status(400).json({ ok: false, error: 'userId and amount required' });
+    }
+
     const user = await User.findOne({ userId });
-    const merchantTransactionId = "SDK_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    const userMobile = user ? (user.phone || "9999999999").replace(/[^0-9]/g, '').slice(-10) : "9999999999";
+    const merchantTransactionId = "TXN_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    const cleanUserId = userId.replace(/[^a-zA-Z0-9]/g, '');
 
-    await Payment.create({ transactionId: merchantTransactionId, merchantTransactionId, userId, amount, status: 'INITIATED', isApp: true });
+    // Record intent in DB
+    await Payment.create({
+      transactionId: merchantTransactionId,
+      merchantTransactionId,
+      userId,
+      amount,
+      status: 'pending'
+    });
 
+    // Native SDK Payload
     const payload = {
       merchantId: PHONEPE_MERCHANT_ID,
-      merchantTransactionId,
-      merchantUserId: userId.replace(/[^a-z0-9]/gi, ''),
+      merchantTransactionId: merchantTransactionId,
+      merchantUserId: cleanUserId,
       amount: amount * 100,
       callbackUrl: "https://astro5star.com/api/phonepe/callback",
-      mobileNumber: (user?.phone || "9999999999").replace(/[^0-9]/g, '').slice(-10),
-      paymentInstrument: { type: "PAY_PAGE" }
+      mobileNumber: userMobile,
+      paymentInstrument: {
+        type: "PAY_PAGE"
+      }
     };
 
     const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-    const checksum = crypto.createHash('sha256').update(base64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY).digest('hex') + "###" + PHONEPE_SALT_INDEX;
+    const stringToSign = base64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY;
+    const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
+    const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
-    res.json({ ok: true, payload: base64Payload, checksum, transactionId: merchantTransactionId });
+    res.json({
+      ok: true,
+      payload: base64Payload,
+      checksum: checksum,
+      transactionId: merchantTransactionId
+    });
+
   } catch (e) {
+    console.error("PhonePe Sign Error:", e);
     res.status(500).json({ ok: false, error: 'Signing failed' });
   }
 });
 
-/**
- * Enterprise Status Check API
- * This is the ONLY legitimate way for the app to confirm payment.
- */
+// PhonePe Status Check - Verify payment after return from PhonePe
 app.get('/api/phonepe/status/:transactionId', async (req, res) => {
   try {
     const { transactionId } = req.params;
-    const payment = await Payment.findOne({ $or: [{ transactionId }, { merchantTransactionId: transactionId }] });
-
-    if (!payment) return res.status(404).json({ ok: false, error: 'Payment not found' });
-
-    // 1. If already SUCCESS in DB (from Webhook), return instantly
-    if (payment.status === 'SUCCESS') {
-      const user = await User.findOne({ userId: payment.userId });
-      return res.json({ ok: true, status: 'SUCCESS', walletBalance: user?.walletBalance || 0 });
+    if (!transactionId) {
+      return res.status(400).json({ ok: false, error: 'Transaction ID required' });
     }
 
-    // 2. Otherwise, Poll PhonePe API for latest status
-    const status = await syncPaymentWithGateway(payment.transactionId);
+    // Check DB first
+    const payment = await Payment.findOne({
+      $or: [{ transactionId }, { merchantTransactionId: transactionId }]
+    });
 
-    if (status === 'SUCCESS') {
-      const user = await User.findOne({ userId: payment.userId });
-      return res.json({ ok: true, status: 'SUCCESS', walletBalance: user?.walletBalance || 0 });
+    if (payment && payment.status === 'success') {
+      return res.json({
+        ok: true,
+        status: 'success',
+        amount: payment.amount,
+        userId: payment.userId
+      });
     }
 
-    res.json({ ok: true, status: status === 'PAYMENT_PENDING' ? 'PENDING' : 'FAILED' });
+    // Verify with PhonePe API
+    const statusPath = `/pg/v1/status/${PHONEPE_MERCHANT_ID}/${transactionId}`;
+    const stringToSign = statusPath + PHONEPE_SALT_KEY;
+    const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
+    const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
+
+    const response = await fetch(`${PHONEPE_HOST_URL}${statusPath}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-VERIFY': checksum,
+        'X-MERCHANT-ID': PHONEPE_MERCHANT_ID
+      }
+    });
+
+    const data = await response.json();
+    console.log('[PhonePe Status Check]', transactionId, data.code);
+
+    if (data.success && data.code === 'PAYMENT_SUCCESS') {
+      // Update payment record and credit wallet if not already done
+      if (payment && payment.status !== 'success') {
+        payment.status = 'success';
+        payment.providerRefId = data.data?.transactionId;
+        await payment.save();
+
+        // Credit Wallet
+        const user = await User.findOne({ userId: payment.userId });
+        if (user) {
+          user.walletBalance += payment.amount;
+          await user.save();
+          console.log(`[PhonePe] Wallet Credited: ${user.name} +₹${payment.amount}`);
+
+          // Notify via Socket
+          const sId = userSockets.get(user.userId);
+          if (sId) {
+            io.to(sId).emit('wallet-update', { balance: user.walletBalance });
+            io.to(sId).emit('app-notification', { text: `✅ Recharge Successful! +₹${payment.amount}` });
+          }
+        }
+      }
+
+      return res.json({ ok: true, status: 'success', amount: payment?.amount });
+    } else if (data.code === 'PAYMENT_PENDING') {
+      return res.json({ ok: true, status: 'pending' });
+    } else {
+      // Update as failed if exists
+      if (payment && payment.status === 'pending') {
+        payment.status = 'failed';
+        await payment.save();
+      }
+      return res.json({ ok: true, status: 'failed', error: data.message });
+    }
+
   } catch (e) {
-    res.status(500).json({ ok: false, error: 'Status check failed' });
+    console.error("PhonePe Status Error:", e);
+    res.status(500).json({ ok: false, error: 'Internal Server Error' });
   }
 });
 
-/**
- * Enterprise Secure Webhook
- * Verifies signature, amount, and updates ledger transactionally.
- */
+// PhonePe Callback (S2S Webhook)
 app.post('/api/phonepe/callback', async (req, res) => {
   try {
-    const xVerify = req.headers['x-verify'];
     const base64Response = req.body.response;
-
-    if (!base64Response || !xVerify) return res.status(400).send('Invalid');
-
-    // SHA256(base64Body + SALT_KEY) + "###" + SALT_INDEX
-    const expectedChecksum = crypto.createHash('sha256').update(base64Response + PHONEPE_SALT_KEY).digest('hex') + "###" + PHONEPE_SALT_INDEX;
-
-    if (xVerify !== expectedChecksum) {
-      console.error('[CALLBACK] SECURITY BREACH: Signature mismatch!');
-      return res.status(401).send('Forbidden');
+    if (!base64Response) {
+      return res.status(400).send('Invalid callback');
     }
 
     const decoded = JSON.parse(Buffer.from(base64Response, 'base64').toString('utf-8'));
-    const { code, merchantTransactionId, transactionId, data } = decoded;
-    const gatewayCode = code || (data && data.code);
-    const mTxnId = merchantTransactionId || transactionId || (data && (data.merchantTransactionId || data.transactionId));
+    const { code, merchantTransactionId, transactionId } = decoded;
 
-    if (!mTxnId) {
-      console.error('[CALLBACK] No transaction ID found in response:', decoded);
-      return res.status(200).send('OK');
-    }
+    console.log(`[PhonePe Callback] ${merchantTransactionId} | Status: ${code}`);
 
-    const payment = await Payment.findOne({ $or: [{ transactionId: mTxnId }, { merchantTransactionId: mTxnId }] });
+    const payment = await Payment.findOne({
+      $or: [{ transactionId: merchantTransactionId }, { merchantTransactionId }]
+    });
+
     if (!payment) {
-      console.error('[CALLBACK] Payment not found:', mTxnId);
-      return res.status(200).send('OK');
+      console.error('[PhonePe Callback] Payment not found:', merchantTransactionId);
+      return res.status(200).send('OK'); // Always return 200 to PhonePe
     }
 
-    if (gatewayCode === 'PAYMENT_SUCCESS') {
-      await processVerifiedPayment(payment, decoded);
-    } else {
-      if (payment.status === 'INITIATED') {
-        payment.status = 'FAILED';
-        payment.rawResponse = decoded;
-        await payment.save();
+    if (code === 'PAYMENT_SUCCESS' && payment.status !== 'success') {
+      payment.status = 'success';
+      payment.providerRefId = transactionId;
+      await payment.save();
+
+      // Credit Wallet
+      const user = await User.findOne({ userId: payment.userId });
+      if (user) {
+        user.walletBalance += payment.amount;
+        await user.save();
+        console.log(`[PhonePe Callback] Wallet Credited: ${user.name} +₹${payment.amount}`);
+
+        // Notify Socket if online
+        const sId = userSockets.get(user.userId);
+        if (sId) {
+          io.to(sId).emit('wallet-update', { balance: user.walletBalance });
+          io.to(sId).emit('app-notification', { text: `✅ Recharge Successful! +₹${payment.amount}` });
+        }
       }
+    } else if (code !== 'PAYMENT_SUCCESS' && payment.status === 'pending') {
+      payment.status = 'failed';
+      await payment.save();
     }
 
     res.status(200).send('OK');
+
   } catch (e) {
-    console.error("Callback Error:", e);
-    res.status(200).send('OK');
+    console.error("PhonePe Callback Error:", e);
+    res.status(200).send('OK'); // Always return 200
   }
 });
 
