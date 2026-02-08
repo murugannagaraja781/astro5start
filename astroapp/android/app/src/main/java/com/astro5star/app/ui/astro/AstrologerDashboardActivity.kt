@@ -54,6 +54,7 @@ import com.astro5star.app.data.remote.SocketManager
 import com.astro5star.app.ui.guest.GuestDashboardActivity
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import com.astro5star.app.utils.CallState
 import okhttp3.MediaType.Companion.toMediaType
 
 import androidx.compose.foundation.rememberScrollState
@@ -136,6 +137,12 @@ class AstrologerDashboardActivity : ComponentActivity() {
             val type = data.optString("type", "audio")
             val birthDataStr = data.optString("birthData", null)
 
+            // CRITICAL FIX: Prevent multiple incoming call screens if already in a call
+            if (!CallState.canReceiveCall(sessionId)) {
+                android.util.Log.d("AstrologerDashboard", "Blocking incoming call: Already active in session ${CallState.currentSessionId}")
+                return@onIncomingSession
+            }
+
             // Get caller name from database or use ID with multiple key checks
             val callerName = data.optString("callerName")
                 .takeIf { !it.isNullOrEmpty() }
@@ -146,6 +153,9 @@ class AstrologerDashboardActivity : ComponentActivity() {
                 ?: fromUserId
 
             android.util.Log.d("AstrologerDashboard", "Incoming session: $sessionId from $fromUserId type=$type")
+
+            // Mark as potential pending state
+            CallState.currentSessionId = sessionId
 
             // Launch IncomingCallActivity on main thread
             runOnUiThread {
@@ -181,6 +191,12 @@ class AstrologerDashboardActivity : ComponentActivity() {
                         ?: fromUserId
 
                     android.util.Log.d("AstrologerDashboard", "session-request received: sessionId=$sessionId, type=$type")
+
+                    // CRITICAL FIX: Guard with CallState
+                    if (!com.astro5star.app.utils.CallState.canReceiveCall(sessionId)) {
+                         android.util.Log.d("AstrologerDashboard", "Blocking session-request: Already active")
+                         return@runOnUiThread
+                    }
 
                     // Navigate to ChatActivity for chat requests
                     if (type == "chat") {

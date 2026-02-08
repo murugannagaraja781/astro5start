@@ -52,6 +52,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import com.astro5star.app.utils.CallState
 import org.json.JSONObject
 import org.webrtc.*
 import java.util.LinkedList
@@ -95,6 +96,8 @@ class CallActivity : ComponentActivity() {
     private var isRecordingState by mutableStateOf(false)
     private var mediaRecorder: MediaRecorder? = null
     private var audioFile: File? = null
+
+    private var isWebRTCInitialized = false
 
     // Proximity Sensor for Audio Calls
     private var proximityWakeLock: android.os.PowerManager.WakeLock? = null
@@ -202,6 +205,10 @@ class CallActivity : ComponentActivity() {
             partnerId = savedInstanceState.getString("partnerId")
         }
 
+        // --- GLOBAL STATE FIX: Mark call as active to prevent duplicate starts ---
+        CallState.isCallActive = true
+        CallState.currentSessionId = intent.getStringExtra("sessionId")
+
         // Initialize WebRTC Views Programmatically
         localView = SurfaceViewRenderer(this)
         remoteView = SurfaceViewRenderer(this)
@@ -253,7 +260,8 @@ class CallActivity : ComponentActivity() {
                     onEditIntake = { openEditIntake() },
                     onShowRasi = { showRasiChart() },
                     isRecording = isRecordingState,
-                    onToggleRecording = { toggleRecording() }
+                    onToggleRecording = { toggleRecording() },
+                    isReady = isWebRTCInitialized
                 )
             }
         }
@@ -285,7 +293,6 @@ class CallActivity : ComponentActivity() {
             Log.e(TAG, "Proximity lock init failed", e)
         }
 
-        startBackgroundService()
         // Check Permissions
         if (checkPermissions()) {
             startCallLimit()
@@ -593,7 +600,8 @@ class CallActivity : ComponentActivity() {
     }
 
     private fun startCallLimit() {
-        initWebRTC()
+        if (!initWebRTC()) return
+        startBackgroundService()
         setupSocketListeners()
 
         val myUserId = session?.userId
@@ -638,15 +646,24 @@ class CallActivity : ComponentActivity() {
         }
     }
 
-    private fun initWebRTC() {
-        eglBase = EglBase.create()
-        val options = PeerConnectionFactory.InitializationOptions.builder(this).createInitializationOptions()
-        PeerConnectionFactory.initialize(options)
+    private fun initWebRTC(): Boolean {
+        if (isWebRTCInitialized) return true
+        try {
+            eglBase = EglBase.create()
+            val options = PeerConnectionFactory.InitializationOptions.builder(this).createInitializationOptions()
+            PeerConnectionFactory.initialize(options)
 
-        peerConnectionFactory = PeerConnectionFactory.builder()
-            .setVideoEncoderFactory(DefaultVideoEncoderFactory(eglBase.eglBaseContext, true, true))
-            .setVideoDecoderFactory(DefaultVideoDecoderFactory(eglBase.eglBaseContext))
-            .createPeerConnectionFactory()
+            peerConnectionFactory = PeerConnectionFactory.builder()
+                .setVideoEncoderFactory(DefaultVideoEncoderFactory(eglBase.eglBaseContext, true, true))
+                .setVideoDecoderFactory(DefaultVideoDecoderFactory(eglBase.eglBaseContext))
+                .createPeerConnectionFactory()
+        } catch (t: Throwable) {
+            Log.e(TAG, "CRITICAL: WebRTC Factory init failed", t)
+            runOnUiThread {
+                Toast.makeText(this, "Camera/Audio engine failed. Please restart app.", Toast.LENGTH_LONG).show()
+            }
+            return false
+        }
 
         if (callType == "video") {
             remoteView.init(eglBase.eglBaseContext, null)
@@ -697,7 +714,7 @@ class CallActivity : ComponentActivity() {
             iceTransportsType = PeerConnection.IceTransportsType.ALL
             continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
         }
-        peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, object : PeerConnection.Observer {
+        val pc = peerConnectionFactory.createPeerConnection(rtcConfig, object : PeerConnection.Observer {
             override fun onSignalingChange(p0: PeerConnection.SignalingState?) {}
 
             override fun onIceConnectionChange(newState: PeerConnection.IceConnectionState?) {
@@ -775,10 +792,24 @@ class CallActivity : ComponentActivity() {
             override fun onRemoveStream(p0: MediaStream?) {}
             override fun onDataChannel(p0: DataChannel?) {}
             override fun onRenegotiationNeeded() {}
-        })!!
+        })
+
+        if (pc == null) {
+            Log.e(TAG, "Failed to create PeerConnection")
+            runOnUiThread {
+                Toast.makeText(this, "Failed to initialize call. Please try again.", Toast.LENGTH_LONG).show()
+            }
+            finish()
+            return false
+        }
+
+        peerConnection = pc
 
         localAudioTrack?.let { peerConnection.addTrack(it, listOf("mediaStream")) }
         localVideoTrack?.let { peerConnection.addTrack(it, listOf("mediaStream")) }
+
+        isWebRTCInitialized = true
+        return true
     }
 
     private fun setupSocketListeners() {
@@ -813,7 +844,7 @@ class CallActivity : ComponentActivity() {
             runOnUiThread {
                 statusText = "🔴 Billing Active"
                 isBillingActive = true
-                if (isInitiator) {
+                if (isInitiator && ::peerConnection.isInitialized) {
                     createOffer()
                 }
                 androidx.core.os.HandlerCompat.postDelayed(android.os.Handler(android.os.Looper.getMainLooper()), {
@@ -877,7 +908,7 @@ class CallActivity : ComponentActivity() {
         when (type) {
             "offer" -> {
                 val descriptionStr = signal.optJSONObject("sdp")?.optString("sdp") ?: signal.optString("sdp")
-                if (descriptionStr.isNotEmpty()) {
+                if (descriptionStr.isNotEmpty() && ::peerConnection.isInitialized) {
                     peerConnection.setRemoteDescription(object : SimpleSdpObserver() {
                         override fun onSetSuccess() {
                             createAnswer()
@@ -888,7 +919,7 @@ class CallActivity : ComponentActivity() {
             }
             "answer" -> {
                 val descriptionStr = signal.optJSONObject("sdp")?.optString("sdp") ?: signal.optString("sdp")
-                if (descriptionStr.isNotEmpty()) {
+                if (descriptionStr.isNotEmpty() && ::peerConnection.isInitialized) {
                     peerConnection.setRemoteDescription(object : SimpleSdpObserver() {
                         override fun onSetSuccess() {
                             drainRemoteCandidates()
@@ -902,7 +933,7 @@ class CallActivity : ComponentActivity() {
                 val sdpMLineIndex = candidateJson.optInt("sdpMLineIndex", -1)
                 val sdp = candidateJson.optString("candidate")
 
-                if (sdp.isNotEmpty() && sdpMLineIndex != -1) {
+                if (sdp.isNotEmpty() && sdpMLineIndex != -1 && ::peerConnection.isInitialized) {
                     val candidate = IceCandidate(sdpMid, sdpMLineIndex, sdp)
                     if (peerConnection.remoteDescription == null) {
                         pendingIceCandidates.add(candidate)
@@ -915,6 +946,7 @@ class CallActivity : ComponentActivity() {
     }
 
     private fun createOffer() {
+        if (!::peerConnection.isInitialized) return
         val constraints = MediaConstraints().apply {
             mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
             mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", if(callType == "video") "true" else "false"))
@@ -922,6 +954,7 @@ class CallActivity : ComponentActivity() {
 
         peerConnection.createOffer(object : SimpleSdpObserver() {
             override fun onCreateSuccess(desc: SessionDescription?) {
+                if (!::peerConnection.isInitialized) return
                 peerConnection.setLocalDescription(SimpleSdpObserver(), desc)
                 val signalData = JSONObject().apply {
                     put("type", "offer")
@@ -969,6 +1002,14 @@ class CallActivity : ComponentActivity() {
         finish()
     }
 
+    override fun finish() {
+        // Ensure state is cleared even if finished via system back or other means
+        CallState.isCallActive = false
+        CallState.currentSessionId = null
+        stopBackgroundService()
+        super.finish()
+    }
+
     override fun onDestroy() {
         if (isRecordingState) {
             try { stopRecording() } catch (e: Exception) { e.printStackTrace() }
@@ -986,13 +1027,17 @@ class CallActivity : ComponentActivity() {
         } catch (e: Exception) {}
 
         try {
-            peerConnection.close()
+            if (::peerConnection.isInitialized) peerConnection.close()
             videoCapturer?.stopCapture()
-            localView.release()
-            remoteView.release()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error destroying", e)
+            videoCapturer?.dispose()
+            if (::localView.isInitialized) localView.release()
+            if (::remoteView.isInitialized) remoteView.release()
+            if (::peerConnectionFactory.isInitialized) peerConnectionFactory.dispose()
+            if (::eglBase.isInitialized) eglBase.release()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Error destroying WebRTC resources", e)
         }
+        stopBackgroundService()
     }
 
     private fun createCameraCapturer(enumerator: CameraEnumerator): VideoCapturer? {
@@ -1050,7 +1095,8 @@ fun CallScreen(
     onEditIntake: () -> Unit,
     onShowRasi: () -> Unit,
     isRecording: Boolean = false,
-    onToggleRecording: () -> Unit = {}
+    onToggleRecording: () -> Unit = {},
+    isReady: Boolean = false
 ) {
     Box(
         modifier = Modifier
@@ -1058,11 +1104,16 @@ fun CallScreen(
             .background(Color(0xFFF0F2F5)) // Light Gray/White base
     ) {
         // Remote View Layer (Full Screen)
-        if (callType == "video") {
+        if (callType == "video" && isReady) {
             AndroidView(
                 factory = { remoteRenderer },
                 modifier = Modifier.fillMaxSize()
             )
+        } else if (callType == "video" && !isReady) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color(0xFF8E24AA))
+                Text("Initializing Camera...", color = Color.Gray, modifier = Modifier.padding(top = 80.dp))
+            }
         } else {
             // Audio Call UI Placeholder
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -1104,7 +1155,7 @@ fun CallScreen(
                     color = Color.Gray,
                     fontSize = 14.sp
                 )
-                if (remainingTime.isNotEmpty() && remainingTime != "00:00") {
+                if (role == "astrologer" && remainingTime.isNotEmpty() && remainingTime != "00:00") {
                       Text(
                         text = "Time: $remainingTime",
                         color = Color.Red,
@@ -1135,10 +1186,12 @@ fun CallScreen(
                     .border(2.dp, Color.White, RoundedCornerShape(16.dp))
                     .background(Color.DarkGray)
             ) {
-                AndroidView(
-                    factory = { localRenderer },
-                    modifier = Modifier.fillMaxSize()
-                )
+                if (isReady) {
+                    AndroidView(
+                        factory = { localRenderer },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
 

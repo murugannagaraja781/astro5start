@@ -95,6 +95,10 @@ class ChatActivity : ComponentActivity() {
         com.astro5star.app.data.remote.SocketManager.init()
         com.astro5star.app.data.remote.SocketManager.ensureConnection()
         handleIntent(intent)
+
+        // --- GLOBAL STATE FIX: Mark chat as active to prevent incoming calls during session ---
+        com.astro5star.app.utils.CallState.isCallActive = true
+        com.astro5star.app.utils.CallState.currentSessionId = sessionId
         setContent {
             CosmicAppTheme {
                 ChatScreen(
@@ -289,6 +293,13 @@ class ChatActivity : ComponentActivity() {
         // We no longer stop listeners here to allow background reception while multi-tasking
     }
 
+    override fun finish() {
+        // Reset CallState
+        com.astro5star.app.utils.CallState.isCallActive = false
+        com.astro5star.app.utils.CallState.currentSessionId = null
+        super.finish()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         timerHandler.removeCallbacks(timerRunnable)
@@ -335,7 +346,7 @@ fun ChatScreen(
                 title = {
                     Column {
                         Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)
-                        if (remainingTime.isNotEmpty() && remainingTime != "00:00") {
+                        if (isAstrologer && remainingTime.isNotEmpty() && remainingTime != "00:00") {
                              Text("Time: $remainingTime", fontSize = 12.sp, color = Color.Red, fontWeight = FontWeight.Bold)
                         } else {
                              Text("Online", fontSize = 12.sp, color = Color.White.copy(alpha=0.7f))

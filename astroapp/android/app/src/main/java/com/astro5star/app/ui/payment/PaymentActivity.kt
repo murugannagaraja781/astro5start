@@ -86,8 +86,8 @@ class PaymentActivity : AppCompatActivity() {
             settings.domStorageEnabled = true
             settings.javaScriptCanOpenWindowsAutomatically = true
             settings.setSupportMultipleWindows(true)
-            // Spoof Chrome User-Agent to ensure Gateway shows all UPI Options (GPay, PhonePe, etc.)
-            settings.userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+            // Spoof Chrome User-Agent + Marker to ensure Gateway works and App is detected
+            settings.userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 AstroApp"
 
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -141,6 +141,18 @@ class PaymentActivity : AppCompatActivity() {
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                         startActivity(intent)
                         finish() // Close PaymentActivity
+                        return true
+                    }
+
+                    // Safety Net: Catch status in URL if app-specific redirects fail
+                    if (url.contains("status=success") || url.contains("status=failure") || url.contains("status=failed")) {
+                        Log.d(TAG, "Payment Status detected in URL: $url")
+                        val status = if (url.contains("success")) "success" else "failed"
+                        val redirectIntent = Intent(this@PaymentActivity, com.astro5star.app.ui.wallet.PaymentStatusActivity::class.java)
+                        redirectIntent.data = android.net.Uri.parse("astro5://payment-$status?status=$status")
+                        redirectIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        startActivity(redirectIntent)
+                        finish()
                         return true
                     }
 

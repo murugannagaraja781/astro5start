@@ -138,7 +138,7 @@ fun PaymentStatusScreen(
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
-                Text("Back to Home", fontSize = 16.sp, color = Color.White)
+                Text("Return to Home", fontSize = 16.sp, color = Color.White)
             }
         }
     }

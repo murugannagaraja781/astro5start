@@ -43,6 +43,7 @@ import androidx.core.content.ContextCompat
 import com.astro5star.app.ui.theme.CosmicAppTheme
 import kotlinx.coroutines.delay
 import com.astro5star.app.data.remote.SocketManager
+import com.astro5star.app.utils.CallState
 
 /**
  * IncomingCallActivity - Full-screen incoming call UI
@@ -88,6 +89,14 @@ class IncomingCallActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         processIntent(intent)
+
+        // CRITICAL FIX: If already in a call, ignore new incoming intent to avoid crash
+        if (!CallState.canReceiveCall(callId)) {
+            Log.w(TAG, "Already in an active call, rejecting new session: $callId")
+            finish()
+            return
+        }
+
         setupWindowFlags()
 
         startCallForegroundService()
@@ -252,10 +261,10 @@ class IncomingCallActivity : ComponentActivity() {
         }
         startActivity(intent)
 
-        // Stop foreground service
-        stopService(Intent(this, CallForegroundService::class.java))
-        shouldStopServiceOnDestroy = false
+        // --- FIX: Do NOT stop service here. Let CallActivity take over ---
+        // stopService(Intent(this, CallForegroundService::class.java))
 
+        shouldStopServiceOnDestroy = false
         finish()
     }
 
