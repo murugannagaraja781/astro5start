@@ -285,21 +285,84 @@ app.post('/upload', upload.single('file'), (req, res) => {
   return res.json({ ok: true, url: req.file ? '/uploads/' + req.file.filename : '' });
 });
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/astrofive';
-mongoose.connect(MONGO_URI, {
-  serverSelectionTimeoutMS: 5000 // Timeout after 5s instead of 10s
-})
-  .then(() => {
+
+// Helper function to check if MongoDB is connected
+const isMongoConnected = () => {
+  return mongoose.connection.readyState === 1;
+};
+
+// Helper function for safe database operations
+const safeDbOperation = async (operation, fallbackValue = null) => {
+  if (!isMongoConnected()) {
+    console.warn('⚠️  MongoDB not connected, skipping database operation');
+    return fallbackValue;
+  }
+  try {
+    return await operation();
+  } catch (err) {
+    console.error('Database operation error:', err.message);
+    return fallbackValue;
+  }
+};
+
+// MongoDB Connection with retry logic
+const connectDB = async (retries = 5) => {
+  try {
+    await mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+      maxPoolSize: 10,
+      minPoolSize: 2
+    });
     console.log('✅ MongoDB Connected to:', MONGO_URI.split('@').pop().split('?')[0]);
     if (process.env.NODE_ENV !== 'test') {
       seedDatabase();
     }
-  })
-  .catch(err => {
-    console.error('❌ MongoDB Error:', err.message);
-    if (err.message.includes('IP that isn\'t whitelisted')) {
-      console.error('👉 ACTION NEEDED: Login to MongoDB Atlas and whitelist your server IP: 0.0.0.0/0 (for debugging) or your specific server IP.');
+  } catch (err) {
+    console.error('❌ MongoDB Connection Error:', err.message);
+
+    if (err.message.includes('IP that isn\'t whitelisted') || err.message.includes('IP whitelist')) {
+      console.error('👉 ACTION NEEDED: Login to MongoDB Atlas and whitelist your server IP');
+      console.error('   Go to: Network Access → Add IP Address → Allow Access from Anywhere (0.0.0.0/0)');
     }
-  });
+
+    if (retries > 0) {
+      console.log(`🔄 Retrying MongoDB connection... (${retries} attempts left)`);
+      setTimeout(() => connectDB(retries - 1), 5000);
+    } else {
+      console.error('❌ MongoDB connection failed after all retries');
+      console.error('⚠️  Server will continue without database (some features may not work)');
+    }
+  }
+};
+
+// Handle MongoDB connection events
+mongoose.connection.on('connected', () => {
+  console.log('📡 Mongoose connected to MongoDB');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('❌ Mongoose connection error:', err.message);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('📴 Mongoose disconnected from MongoDB');
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  try {
+    await mongoose.connection.close();
+    console.log('MongoDB connection closed through app termination');
+    process.exit(0);
+  } catch (err) {
+    console.error('Error closing MongoDB connection:', err);
+    process.exit(1);
+  }
+});
+
+// Start connection
+connectDB();
 
 // Schemas
 const UserSchema = new mongoose.Schema({
