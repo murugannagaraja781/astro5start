@@ -35,6 +35,16 @@ const fs = require('fs');
 const FCM_PROJECT_ID = 'astro5star-d487c';
 let fcmAuth = null;
 
+// Global Helper for Astrologer Updates
+async function broadcastAstroUpdate() {
+  try {
+    const astros = await User.find({ role: 'astrologer' });
+    io.emit('astrologer-update', astros);
+  } catch (e) {
+    console.error('Broadcast Error:', e);
+  }
+}
+
 // Initialize FCM v1 Auth
 function initFcmAuth() {
   try {
@@ -1583,12 +1593,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  async function broadcastAstroUpdate() {
-    try {
-      const astros = await User.find({ role: 'astrologer' });
-      io.emit('astrologer-update', astros);
-    } catch (e) { }
-  }
 
   // --- Get Astrologers List ---
   socket.on('get-astrologers', async (cb) => {
@@ -2488,7 +2492,7 @@ io.on('connection', (socket) => {
     try {
       const { toUserId, birthData } = data || {};
       const fromUserId = socketToUser.get(socket.id);
-      if (!fromUserId || !toUserId) return cb({ ok: false, error: 'Invalid data' });
+      if (!fromUserId || !toUserId) return cb && cb({ ok: false, error: 'Invalid data' });
 
       // Send birth chart data to astrologer
       io.to(toUserId).emit('client-birth-chart', {
@@ -2496,11 +2500,11 @@ io.on('connection', (socket) => {
         birthData
       });
 
-      cb({ ok: true });
+      if (typeof cb === 'function') cb({ ok: true });
       console.log(`Birth chart sent from ${fromUserId} to ${toUserId}`);
     } catch (err) {
       console.error('client-birth-chart error', err);
-      cb({ ok: false, error: err.message });
+      if (typeof cb === 'function') cb({ ok: false, error: err.message });
     }
   });
 
@@ -3536,7 +3540,13 @@ app.get('/payment-success', (req, res) => {
           <p>₹${amount || '--'}</p>
           <a href="${intentUrl}" class="btn">Return to Home</a>
           <script>
-             function openApp() { window.location.href = "${intentUrl}"; setTimeout(() => { window.location.href = "${customSchemeUrl}"; }, 100); }
+             function openApp() {
+               if (window.AndroidBridge && typeof window.AndroidBridge.onPaymentComplete === 'function') {
+                 window.AndroidBridge.onPaymentComplete('success');
+               }
+               window.location.href = "${intentUrl}";
+               setTimeout(() => { window.location.href = "${customSchemeUrl}"; }, 100);
+             }
              openApp();
           </script>
         </div>
@@ -3568,7 +3578,13 @@ app.get('/payment-failed', (req, res) => {
           <h2>Failed</h2>
           <a href="${intentUrl}" class="btn">Return to Home</a>
           <script>
-             function openApp() { window.location.href = "${intentUrl}"; setTimeout(() => { window.location.href = "${customSchemeUrl}"; }, 100); }
+             function openApp() {
+               if (window.AndroidBridge && typeof window.AndroidBridge.onPaymentComplete === 'function') {
+                 window.AndroidBridge.onPaymentComplete('failed');
+               }
+               window.location.href = "${intentUrl}";
+               setTimeout(() => { window.location.href = "${customSchemeUrl}"; }, 100);
+             }
              openApp();
           </script>
         </div>
