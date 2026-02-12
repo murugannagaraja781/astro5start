@@ -58,6 +58,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.astro5star.app.utils.Localization
 import com.astro5star.app.data.model.Astrologer
+import com.astro5star.app.data.model.Banner
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import com.astro5star.app.R
@@ -610,7 +611,7 @@ fun HomeScreen(
 
                     }
 
-                    // 5. Filter Bar (Only for Listing Tabs)
+                    // 5. Filter Bar (Only for Listing Tabs 1, 2, 3)
                     if (selectedTab != 0 && selectedTab != 4) {
                         item {
                             FilterBar(
@@ -621,8 +622,7 @@ fun HomeScreen(
                         }
                     }
 
-
-                    } else if (selectedTab == 4) {
+                    if (selectedTab == 4) {
                         // 6b. History List
                         if (isHistoryLoading) {
                             item {
@@ -642,8 +642,8 @@ fun HomeScreen(
                             }
                         }
                     } else {
-                        items(filteredAstros) { astro -> // Use Filtered List
-                            // Pass selectedTab to control button visibility
+                        // 6a. Main Astrologer List (Tabs 0, 1, 2, 3)
+                        items(filteredAstros) { astro ->
                             AstrologerCard(
                                 astro = astro,
                                 onChatClick = { selectedAstro -> checkBalanceAndProceed { onChatClick(selectedAstro) } },
