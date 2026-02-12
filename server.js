@@ -506,7 +506,10 @@ const PaymentSchema = new mongoose.Schema({
   transactionId: { type: String, unique: true },
   merchantTransactionId: String, // For PhonePe callback matching
   userId: String,
-  amount: Number, // in Rupees
+  amount: Number, // Total amount paid (including GST)
+  baseAmount: Number, // Original recharge amount
+  gstAmount: Number, // GST @ 18%
+  withGst: { type: Boolean, default: false },
   status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },
   createdAt: { type: Date, default: Date.now },
   providerRefId: String,
@@ -3621,13 +3624,20 @@ app.post('/api/payment/token', async (req, res) => {
       return res.json({ ok: false, error: 'User not found' });
     }
 
+    // GST Calculation (18%)
+    const baseAmount = parseFloat(amount);
+    const gstAmount = baseAmount * 0.18;
+    const totalAmount = baseAmount + gstAmount;
+
     // Generate secure token
     const token = crypto.randomBytes(32).toString('hex');
 
     // Store token mapping
     paymentTokens.set(token, {
       userId: userId,
-      amount: amount,
+      baseAmount: baseAmount,
+      gstAmount: gstAmount,
+      amount: totalAmount, // Total to be paid
       createdAt: Date.now(),
       used: false,
       userName: user.name,
@@ -3674,7 +3684,9 @@ app.get('/api/verify-payment-token', async (req, res) => {
     // Valid token - return payment details (but NOT the userId for security)
     res.json({
       valid: true,
-      amount: tokenData.amount,
+      amount: tokenData.amount, // Total
+      baseAmount: tokenData.baseAmount,
+      gstAmount: tokenData.gstAmount,
       userName: tokenData.userName,
       expiresIn: Math.floor((expiryTime - (Date.now() - tokenData.createdAt)) / 1000) // seconds
     });
@@ -3688,7 +3700,8 @@ app.get('/api/verify-payment-token', async (req, res) => {
 // 1. Initiate Payment (Supports both token-based and legacy userId-based)
 app.post('/api/payment/create', async (req, res) => {
   try {
-    let { amount, userId, isApp, token } = req.body;
+    let { userId, amount, isApp, token } = req.body;
+    let baseAmount = 0, gstAmount = 0;
 
     // Token-based authentication (SECURE - for browser flow)
     if (token) {
@@ -3715,10 +3728,18 @@ app.post('/api/payment/create', async (req, res) => {
 
       // Extract userId and amount from token
       userId = tokenData.userId;
-      amount = tokenData.amount;
+      amount = tokenData.amount; // Total
+      baseAmount = tokenData.baseAmount || amount;
+      gstAmount = tokenData.gstAmount || 0;
 
-      console.log(`Token Auth Payment: ${token.substring(0, 8)}... userId=${userId} amount=${amount}`);
+      console.log(`Token Auth Payment: ${token.substring(0, 8)}... userId=${userId} amount=${amount} (Base: ${baseAmount}, GST: ${gstAmount})`);
+    } else {
+      // Legacy or direct call - calculate GST if not provided
+      baseAmount = parseFloat(amount);
+      gstAmount = baseAmount * 0.18;
+      amount = baseAmount + gstAmount; // Total
     }
+
 
     // Legacy check (for backward compatibility with WebView calls)
     if (!amount || !userId) {
@@ -3738,8 +3759,11 @@ app.post('/api/payment/create', async (req, res) => {
       transactionId: merchantTransactionId,
       merchantTransactionId,
       userId,
-      amount,
+      amount, // Total
+      baseAmount,
+      gstAmount,
       status: 'pending',
+      withGst: true,
       isApp: !!isApp // Store the source
     });
 
@@ -3971,9 +3995,12 @@ app.post('/api/payment/callback', async (req, res) => {
         // Credit Wallet
         const user = await User.findOne({ userId: payment.userId });
         if (user) {
-          user.walletBalance += payment.amount;
+          // Rule: If GST was added, credit ONLY the baseAmount to the user's wallet
+          const creditAmount = payment.withGst ? (payment.baseAmount || payment.amount) : payment.amount;
+
+          user.walletBalance += creditAmount;
           await user.save();
-          console.log(`✅ Wallet Credited: ${user.name} +₹${payment.amount} (PhonePe: ${code})`);
+          console.log(`✅ Wallet Credited: ${user.name} +₹${creditAmount} (PhonePe: ${code}, Total Paid: ₹${payment.amount})`);
 
           // Notify Socket if online
           const sId = userSockets.get(user.userId);
@@ -3982,7 +4009,7 @@ app.post('/api/payment/callback', async (req, res) => {
               balance: user.walletBalance,
               totalEarnings: user.totalEarnings
             });
-            io.to(sId).emit('app-notification', { text: `✅ Recharge Successful! +₹${payment.amount}` });
+            io.to(sId).emit('app-notification', { text: `✅ Recharge Successful! +₹${creditAmount}` });
           }
         }
       }
@@ -4285,15 +4312,16 @@ app.get('/api/phonepe/status/:transactionId', async (req, res) => {
         // Credit Wallet
         const user = await User.findOne({ userId: payment.userId });
         if (user) {
-          user.walletBalance += payment.amount;
+          const creditAmount = payment.withGst ? (payment.baseAmount || payment.amount) : payment.amount;
+          user.walletBalance += creditAmount;
           await user.save();
-          console.log(`[PhonePe] Wallet Credited: ${user.name} +₹${payment.amount}`);
+          console.log(`[PhonePe] Wallet Credited: ${user.name} +₹${creditAmount} (Total Paid: ₹${payment.amount})`);
 
           // Notify via Socket
           const sId = userSockets.get(user.userId);
           if (sId) {
             io.to(sId).emit('wallet-update', { balance: user.walletBalance });
-            io.to(sId).emit('app-notification', { text: `✅ Recharge Successful! +₹${payment.amount}` });
+            io.to(sId).emit('app-notification', { text: `✅ Recharge Successful! +₹${creditAmount}` });
           }
         }
       }
@@ -4346,15 +4374,16 @@ app.post('/api/phonepe/callback', async (req, res) => {
       // Credit Wallet
       const user = await User.findOne({ userId: payment.userId });
       if (user) {
-        user.walletBalance += payment.amount;
+        const creditAmount = payment.withGst ? (payment.baseAmount || payment.amount) : payment.amount;
+        user.walletBalance += creditAmount;
         await user.save();
-        console.log(`[PhonePe Callback] Wallet Credited: ${user.name} +₹${payment.amount}`);
+        console.log(`[PhonePe Callback] Wallet Credited: ${user.name} +₹${creditAmount} (Total Paid: ₹${payment.amount})`);
 
         // Notify Socket if online
         const sId = userSockets.get(user.userId);
         if (sId) {
           io.to(sId).emit('wallet-update', { balance: user.walletBalance });
-          io.to(sId).emit('app-notification', { text: `✅ Recharge Successful! +₹${payment.amount}` });
+          io.to(sId).emit('app-notification', { text: `✅ Recharge Successful! +₹${creditAmount}` });
         }
       }
     } else if (code !== 'PAYMENT_SUCCESS' && payment.status === 'pending') {
