@@ -74,8 +74,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
 fun BannerSection(banners: List<Banner>) {
     if (banners.isEmpty()) return
 

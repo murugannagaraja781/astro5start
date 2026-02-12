@@ -20,6 +20,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.AutoFixHigh
 import com.astro5star.app.ui.theme.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -594,7 +596,11 @@ fun IntakeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(CosmicAppTheme.backgroundBrush)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF1B5E20), Color(0xFF2ECC71), Color(0xFF69F0AE))
+                )
+            )
     ) {
         Scaffold(
             containerColor = Color.Transparent,
@@ -1162,59 +1168,148 @@ fun IntakeScreen(
                     Spacer(Modifier.height(32.dp))
                 }
 
-                // Simple Waiting Dialog
+                // Vibrant Green Booking Confirmed Dialog
                 if (isWaiting) {
+                    val months = listOf("", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+                    val mName = months.getOrElse(month.toIntOrNull() ?: 0) { "" }
+                    val displayDate = "$day $mName, $year"
+                    val displayTime = "$hour:$minute $amPm $timezoneDisplay"
+                    val sessionType = if (callType == "match") "Relationship Matching" else "Full Natal Chart Reading"
+
                     Dialog(onDismissRequest = { /* Prevent dismiss */ }) {
-                        Card(
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(24.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color.White
-                            ),
-                            elevation = CardDefaults.cardElevation(8.dp),
-                            shape = RoundedCornerShape(24.dp)
+                                .shadow(
+                                    elevation = 20.dp,
+                                    shape = RoundedCornerShape(24.dp),
+                                    spotColor = Color(0xFF69F0AE),
+                                    ambientColor = Color(0xFF2ECC71)
+                                )
+                                .background(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(Color(0xFF1B5E20), Color(0xFF2E7D32))
+                                    ),
+                                    shape = RoundedCornerShape(24.dp)
+                                )
+                                .border(1.dp, Color(0xFF69F0AE).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
                         ) {
                             Column(
                                 modifier = Modifier.padding(24.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                // Circular Progress Indicator
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(64.dp),
-                                    color = PeacockGreen,
-                                    strokeWidth = 6.dp
-                                )
+                                // Celestial Icon Placeholder (Glow Effect)
+                                Box(
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .shadow(10.dp, CircleShape, spotColor = Color(0xFF69F0AE))
+                                        .background(Color(0xFF2ECC71).copy(alpha = 0.2f), CircleShape)
+                                        .border(2.dp, Color(0xFF69F0AE), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.AutoAwesome,
+                                        contentDescription = "Cosmic",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(40.dp)
+                                    )
+                                }
 
-                                Spacer(Modifier.height(16.dp))
+                                Spacer(Modifier.height(24.dp))
 
-                                // Connecting message
                                 Text(
-                                    text = "Connecting to $partnerName...",
-                                    style = MaterialTheme.typography.titleMedium,
+                                    "Your cosmic journey\nbegins soon!",
+                                    style = MaterialTheme.typography.headlineSmall,
                                     textAlign = TextAlign.Center,
-                                    color = RoyalMidnightBlue
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
                                 )
 
                                 Spacer(Modifier.height(8.dp))
 
-                                // Timer countdown
                                 Text(
-                                    text = "${waitTimeLeft}s",
-                                    style = MaterialTheme.typography.headlineLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PeacockGreen
+                                    "The stars have aligned for your session. Get ready to uncover your destiny in the emerald sky.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.Center,
+                                    color = Color.White.copy(alpha = 0.8f)
                                 )
+
+                                Spacer(Modifier.height(24.dp))
+
+                                // Details Box
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color.Black.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                                        .padding(16.dp)
+                                ) {
+                                    Text(
+                                        "SESSION TYPE",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.White.copy(alpha = 0.6f)
+                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            sessionType,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF69F0AE) // Mint
+                                        )
+                                        Icon(Icons.Default.AutoFixHigh, "", tint = Color(0xFF69F0AE), modifier = Modifier.size(20.dp))
+                                    }
+
+                                    Divider(
+                                        modifier = Modifier.padding(vertical = 12.dp),
+                                        color = Color.White.copy(alpha = 0.1f)
+                                    )
+
+                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                        Column(Modifier.weight(1f)) {
+                                            Text("DATE", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.6f))
+                                            Text(displayDate, style = MaterialTheme.typography.bodyMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                        }
+                                        Column(Modifier.weight(1f)) {
+                                            Text("TIME", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.6f))
+                                            Text(displayTime, style = MaterialTheme.typography.bodyMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                        }
+                                    }
+                                }
+
+                                Spacer(Modifier.height(24.dp))
+
+                                // Connecting...
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = Color(0xFF69F0AE),
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        "Connecting... ${waitTimeLeft}s",
+                                        color = Color.White.copy(alpha = 0.9f),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
 
                                 Spacer(Modifier.height(16.dp))
 
-                                // Cancel button
                                 Button(
                                     onClick = { isWaiting = false },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(alpha = 0.8f))
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color.Black.copy(alpha = 0.3f),
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(50)
                                 ) {
-                                    Text("Cancel Request", color = Color.White)
+                                    Text("Cancel Request", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }

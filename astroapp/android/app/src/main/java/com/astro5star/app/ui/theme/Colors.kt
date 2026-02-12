@@ -39,6 +39,14 @@ val LunarWhite = Color(0xFFF5F5F5)
 val CharcoalDark = Color(0xFF222222)
 val LuxuryOnSurface = Color(0xFFEAEAEA)
 
+// VIBRANT GREEN THEME (Booking/Wallet)
+val EmeraldGreen = Color(0xFF2ECC71)
+val MintGreen = Color(0xFF58D68D)
+val DarkEmerald = Color(0xFF27AE60)
+val DeepJungle = Color(0xFF1B5E20)
+val MagicMint = Color(0xFF69F0AE)
+val SoftMintBg = Color(0xFFE8F5E9)
+
 // Specific Colors used in HomeScreen
 val RoyalGold = Color(0xFFFFD700)
 val RoyalMidnightBlue = Color(0xFF0F0B1F) // Matching CosmicPurple bgStart roughly

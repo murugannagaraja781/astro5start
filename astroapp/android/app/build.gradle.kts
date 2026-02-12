@@ -11,13 +11,13 @@ plugins {
 
 android {
     namespace = "com.astro5star.app"
-    compileSdk = 34
+    compileSdk = 35
     defaultConfig {
         applicationId = "com.astro5star.app"
         minSdk = 24
-        targetSdk = 34
-        versionCode = 1
-        versionName = "5.5.0"
+        targetSdk = 35
+        versionCode = 2
+        versionName = "5.5.1"
     }
 
     signingConfigs {
