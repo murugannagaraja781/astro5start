@@ -1802,22 +1802,218 @@
       font-size: 0.7rem;
       color: #9CA3AF;
     }
+
+    /* ===== PREMIUM REFERRAL STYLES ===== */
+    .refer-icon-btn {
+      color: #FFF;
+      font-size: 0.9rem;
+      cursor: pointer;
+      background: linear-gradient(135deg, #059669, #10B981);
+      padding: 8px 16px;
+      border-radius: 50px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);
+      border: none;
+      transition: all 0.3s ease;
+    }
+
+    .refer-icon-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4);
+    }
+
+    .refer-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 5000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .refer-card {
+      background: #FFFFFF;
+      border-radius: 24px;
+      width: 100%;
+      max-width: 380px;
+      padding: 0;
+      overflow: hidden;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      animation: referPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes referPop {
+      from {
+        transform: scale(0.5);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .refer-header {
+      background: linear-gradient(135deg, #065F46, #059669);
+      padding: 30px 20px;
+      color: white;
+      position: relative;
+    }
+
+    .refer-body {
+      padding: 25px;
+    }
+
+    .refer-rules-list {
+      text-align: left;
+      margin: 20px 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .refer-rule-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-size: 0.85rem;
+      color: #4B5563;
+      align-items: flex-start;
+      line-height: 1.4;
+    }
+
+    .refer-rule-icon {
+      background: #ECFDF5;
+      color: #059669;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+      font-weight: bold;
+    }
+
+    .refer-code-box {
+      background: #F9FAFB;
+      border: 2px dashed #059669;
+      padding: 16px;
+      border-radius: 16px;
+      margin: 20px 0;
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: 3px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      color: #065F46;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .refer-code-box:active {
+      transform: scale(0.95);
+      background: #ECFDF5;
+    }
+
+    .copy-toast {
+      position: fixed;
+      bottom: 110px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111827;
+      color: white;
+      padding: 10px 24px;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      z-index: 6000;
+      animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 2.2s forwards;
+    }
+
+    @keyframes toastIn {
+      from {
+        transform: translate(-50%, 20px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes toastOut {
+      to {
+        transform: translate(-50%, 20px);
+        opacity: 0;
+      }
+    }
+
+    /* Money/Confetti Animation */
+    .coin-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #F59E0B;
+      animation: confettiFall 3s linear forwards;
+    }
+
+    @keyframes confettiFall {
+      0% {
+        transform: translateY(-50px) rotate(0deg);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    .referral-input-glow {
+      border: 2px solid #059669 !important;
+      box-shadow: 0 0 15px rgba(5, 150, 105, 0.2);
+    }
   </style>
 
   <!-- Screen: Client Dashboard -->
   <div id="screen-client" class="dashboard-container hidden">
     <div class="app-header">
       <div style="font-weight: bold; font-size: 1.2rem;">Astro 5 Star</div>
-      <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div class="refer-icon-btn" onclick="showReferralModal()" title="Refer & Earn">
+          <i class="fas fa-gift"></i> <span style="font-size: 0.8rem;">Refer</span>
+        </div>
         <span id="walletContainer" onclick="refreshWallet()"
           style="cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Tap to refresh">
           <i class="fas fa-wallet"></i> ₹<span id="clientWallet">0</span>
           <i id="walletSpinner" class="fas fa-sync-alt"
             style="display: none; font-size: 0.8rem; animation: spin 1s linear infinite;"></i>
-          <i id="walletRefresh" class="fas fa-sync-alt" style="font-size: 0.8rem; opacity: 0.6;"></i>
         </span>
-        <i class="fas fa-sign-out-alt" style="cursor: pointer;" onclick="clearSession()"></i>
+        <i class="fas fa-sign-out-alt" style="cursor: pointer; font-size: 1.2rem;" onclick="clearSession()"></i>
       </div>
+
     </div>
     <div class="content-area">
       <!-- Section: Home -->
@@ -2286,10 +2482,12 @@
           <div class="toggle-switch" id="toggleCall"></div>
         </div>
         <div class="toggle-item">
-          <span>Video Call </span>
+          <span>Video </span>
           <div class="toggle-switch" id="toggleVideo"></div>
         </div>
       </div>
+
+
 
       <div class="emergency-banner">
         <div style="font-weight: bold; margin-bottom: 5px;">Online for Emergency!</div>
@@ -4472,7 +4670,6 @@
 
       if (user.role === 'guest') {
         const walletEl = document.getElementById('clientWallet');
-        // Replace wallet icon/text with Login Button
         if (walletEl) {
           walletEl.parentElement.innerHTML = '<button onclick="showLogin()" style="background:#F59E0B; color:white; border:none; padding:5px 15px; border-radius:20px; cursor:pointer; font-weight:bold; font-size:0.9rem;">Login</button>';
         }
@@ -4480,10 +4677,26 @@
           document.getElementById('dashWalletBalance').innerText = '0.00';
         }
       } else {
-        // Normal User
-        const walletHtml = '<i class="fas fa-wallet"></i> ₹<span id="clientWallet">' + (user.walletBalance || 0) + '</span><i class="fas fa-sign-out-alt" style="margin-left: 10px; cursor: pointer;" onclick="clearSession()"></i>';
+        // Normal User - No Welcome Popup (item 2 removed)
+        const walletHtml = `
+
+
+          <div class="refer-icon-btn" onclick="showReferralModal()" title="Refer & Earn">
+            <i class="fas fa-gift"></i> <span style="font-size: 0.8rem;">Refer</span>
+          </div>
+          <span id="walletContainer" onclick="refreshWallet()" style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <i class="fas fa-wallet"></i> ₹<span id="clientWallet">${user.walletBalance || 0}</span>
+          </span>
+          <i class="fas fa-sign-out-alt" style="cursor: pointer; font-size: 1.2rem;" onclick="clearSession()"></i>
+        `;
         const headerRight = document.querySelector('.app-header > div:last-child');
-        if (headerRight) headerRight.innerHTML = walletHtml;
+        if (headerRight) {
+          headerRight.style.display = 'flex';
+          headerRight.style.alignItems = 'center';
+          headerRight.style.gap = '12px';
+          headerRight.innerHTML = walletHtml;
+        }
+
 
         if (document.getElementById('dashWalletBalance')) {
           document.getElementById('dashWalletBalance').innerText = Number(user.walletBalance || 0).toFixed(2);
@@ -4928,6 +5141,8 @@
       updateToggleUI('toggleCall', user.isAudioOnline);
       updateToggleUI('toggleVideo', user.isVideoOnline);
 
+
+
       // Listen for Wallet Updates
       socket.off('wallet-update'); // Prevent duplicates if reloaded
       socket.on('wallet-update', (data) => {
@@ -5259,6 +5474,8 @@
         socket.emit('answer-session', { sessionId: data.sessionId, toUserId: data.fromUserId, accept: false });
       };
     });
+
+
 
     socket.on('session-answered', (data) => {
       console.log('[Session] session-answered received:', data);
@@ -8371,6 +8588,131 @@
       // const modal = document.getElementById('sessionSummaryModal');
       // ...
     }
+    // --- Referral & Animation Logic ---
+
+
+    window.showReferralModal = function () {
+      if (!state.me || !state.me.referralCode) return alert('Please login to see referral code');
+      document.getElementById('myReferralCode').innerText = state.me.referralCode;
+
+      // Show/Hide apply section based on user status
+      const applySection = document.getElementById('applyCodeSection');
+      if (state.me.isNewUser) {
+        applySection.style.display = 'block';
+      } else {
+        applySection.style.display = 'none';
+      }
+
+      document.getElementById('referralInfoModal').classList.remove('hidden');
+    };
+
+
+    window.closeReferralModal = function () {
+      document.getElementById('referralInfoModal').classList.add('hidden');
+    };
+
+    window.copyReferralCode = function () {
+      const code = document.getElementById('myReferralCode').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        showToast('Code Copied! ✅');
+      });
+    };
+
+    window.shareOnWhatsApp = function () {
+      const code = document.getElementById('myReferralCode').innerText;
+      const text = `வணக்கம்! Astro 5 Star செயலியில் இணையுங்கள். எனது Referral Code: ${code}. பயன்படுத்தி போனஸ் பெறுங்கள்! https://play.google.com/store/search?q=astro5start&c=apps`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+    };
+
+    window.skipReferral = function () {
+      document.getElementById('referralWelcomeModal').classList.add('hidden');
+      fetch('/api/referral/skip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: state.me.userId })
+      });
+    };
+
+    window.applyReferral = async function () {
+      const code = document.getElementById('inputReferralCode').value;
+      if (!code) return alert('Please enter a referral code');
+
+      const btn = event.target;
+      btn.disabled = true;
+      btn.innerText = 'Applying...';
+
+      try {
+        const res = await fetch('/api/referral/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: state.me.userId, referralCode: code })
+        }).then(r => r.json());
+
+        if (res.ok) {
+          document.getElementById('referralWelcomeModal').classList.add('hidden');
+          // Money Animation
+          startMoneyAnimation();
+          // Update Wallet
+          document.getElementById('clientWallet').innerText = res.newBalance;
+          state.me.walletBalance = res.newBalance;
+          state.me.isNewUser = false;
+          showToast('₹' + res.bonusAmount + ' Bonus Credited! 🎊');
+        } else {
+          alert(res.error || 'Invalid Code');
+        }
+      } catch (e) {
+        alert('Error applying referral');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Apply & Claim';
+      }
+    };
+
+    function showToast(msg) {
+      const toast = document.createElement('div');
+      toast.className = 'copy-toast';
+      toast.innerText = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2500);
+    }
+
+    function startMoneyAnimation() {
+      const container = document.getElementById('coinAnimationContainer');
+      const colors = ['#F59E0B', '#10B981', '#3B82F6', '#EF4444', '#FFFFFF'];
+
+      // Create 100 colorful confetti pieces
+      for (let i = 0; i < 100; i++) {
+        setTimeout(() => {
+          const confetti = document.createElement('div');
+          confetti.className = 'confetti';
+          confetti.style.left = Math.random() * 100 + 'vw';
+          confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          confetti.style.width = (Math.random() * 8 + 4) + 'px';
+          confetti.style.height = (Math.random() * 8 + 4) + 'px';
+          confetti.style.animationDuration = (Math.random() * 2 + 1) + 's';
+          confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+
+          container.appendChild(confetti);
+          setTimeout(() => confetti.remove(), 3000);
+        }, i * 15);
+      }
+
+      // Add actual big coins
+      for (let i = 0; i < 15; i++) {
+        setTimeout(() => {
+          const coin = document.createElement('div');
+          coin.className = 'confetti';
+          coin.innerText = '💰';
+          coin.style.left = Math.random() * 100 + 'vw';
+          coin.style.fontSize = '2rem';
+          coin.style.background = 'none';
+          coin.style.animationDuration = '2s';
+          container.appendChild(coin);
+          setTimeout(() => coin.remove(), 2000);
+        }, i * 200);
+      }
+    }
+
   </script>
 
   <!-- Session Summary Modal -->
@@ -8385,6 +8727,57 @@
         style="width:100%; padding: 12px; font-size:1rem; border-radius:10px; border:none; background:#2563EB; color:white; font-weight:bold;">Okay</button>
     </div>
   </div>
+  <div id="referralInfoModal" class="refer-modal-overlay hidden">
+    <div class="refer-card">
+      <div class="refer-header">
+        <i class="fas fa-times"
+          style="position: absolute; top: 15px; right: 15px; cursor: pointer; color:white; font-size: 1.2rem;"
+          onclick="closeReferralModal()"></i>
+        <div style="font-size: 2.5rem; margin-bottom: 10px;">🎁</div>
+        <h2 style="margin: 0; color: white; font-size: 1.4rem;">பரிசு வெல்லுங்கள்!</h2>
+        <p style="color: rgba(255,255,255,0.9); font-size: 0.85rem; margin-top: 5px;">நண்பர்களை அழைத்து வாலட் பணத்தை
+          அள்ளுங்கள்</p>
+      </div>
+
+      <div class="refer-body">
+        <div class="refer-rules-list">
+          <div class="refer-rule-item">
+            <div class="refer-rule-icon">1</div>
+            <div>உங்கள் <b>Referral Code</b>-ஐ நண்பர்களுக்கு பகிருங்கள்.</div>
+          </div>
+          <div class="refer-rule-item">
+            <div class="refer-rule-icon">2</div>
+            <div>உங்கள் நண்பர் இணைந்தவுடன் உங்களுக்கு <b>₹20</b> போனஸ் கிடைக்கும்!</div>
+          </div>
+        </div>
+
+
+        <div class="refer-code-box" id="referralCodeBox" onclick="copyReferralCode()" title="Click to copy">
+          <span id="myReferralCode">ASTRO111</span>
+          <i class="far fa-copy" style="font-size: 1.1rem; opacity: 0.6;"></i>
+        </div>
+
+        <button class="cosmic-btn"
+          style="background: #25d366; border:none; display: flex; align-items:center; justify-content:center; gap:10px; padding: 14px; margin-bottom:20px;"
+          onclick="shareOnWhatsApp()">
+          <i class="fab fa-whatsapp" style="font-size: 1.2rem;"></i> WhatsApp-ல் பகிரவும்
+        </button>
+
+        <!-- New User Apply Section -->
+        <div id="applyCodeSection" style="border-top: 1px solid #eee; padding-top: 20px; display: none;">
+          <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">உங்களிடம் <b>Referral Code</b> உள்ளதா?</p>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="inputReferralCode" class="cosmic-input" placeholder="Enter Code"
+              style="margin:0; text-align:center; flex:1; height:45px; border-radius:12px; font-weight:700; border: 1px solid #ddd;">
+            <button class="cosmic-btn" onclick="applyReferral()"
+              style="width: auto; margin:0; padding: 0 20px; height:45px; border-radius:12px; border:none; background: #059669; color:white; font-weight:bold;">Claim</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="coinAnimationContainer" class="coin-container"></div>
 </body>
 
 </html>

@@ -102,19 +102,8 @@ w: Kapt currently doesn't support language version 2.0+. Falling back to 1.9.
 
 > Task :app:kaptDebugKotlin UP-TO-DATE
 > Task :app:kaptReleaseKotlin UP-TO-DATE
-
-> Task :app:compileDebugKotlin
-w: file:///Users/wohozo/Documents/astro5start/astroapp/android/app/src/main/java/com/astro5star/app/ui/home/HomeScreen.kt:409:25 'fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
-w: file:///Users/wohozo/Documents/astro5start/astroapp/android/app/src/main/java/com/astro5star/app/ui/home/HomeScreen.kt:992:103 'val Icons.Rounded.Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Rounded.Chat.
-w: file:///Users/wohozo/Documents/astro5start/astroapp/android/app/src/main/java/com/astro5star/app/ui/home/HomeScreen.kt:1009:74 'val Icons.Rounded.Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Rounded.Chat.
-w: file:///Users/wohozo/Documents/astro5start/astroapp/android/app/src/main/java/com/astro5star/app/ui/home/HomeScreen.kt:1472:78 'val Icons.Rounded.Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Rounded.Chat.
-
 > Task :app:compileReleaseKotlin
-w: file:///Users/wohozo/Documents/astro5start/astroapp/android/app/src/main/java/com/astro5star/app/ui/home/HomeScreen.kt:409:25 'fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
-w: file:///Users/wohozo/Documents/astro5start/astroapp/android/app/src/main/java/com/astro5star/app/ui/home/HomeScreen.kt:992:103 'val Icons.Rounded.Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Rounded.Chat.
-w: file:///Users/wohozo/Documents/astro5start/astroapp/android/app/src/main/java/com/astro5star/app/ui/home/HomeScreen.kt:1009:74 'val Icons.Rounded.Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Rounded.Chat.
-w: file:///Users/wohozo/Documents/astro5start/astroapp/android/app/src/main/java/com/astro5star/app/ui/home/HomeScreen.kt:1472:78 'val Icons.Rounded.Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Rounded.Chat.
-
+> Task :app:compileDebugKotlin
 > Task :app:compileDebugJavaWithJavac UP-TO-DATE
 > Task :app:dexBuilderDebug
 > Task :app:mergeDebugGlobalSynthetics UP-TO-DATE
@@ -130,9 +119,9 @@ w: file:///Users/wohozo/Documents/astro5start/astroapp/android/app/src/main/java
 > Task :app:packageDebug
 > Task :app:createDebugApkListingFileRedirect UP-TO-DATE
 > Task :app:assembleDebug
+> Task :app:lintVitalAnalyzeRelease
 > Task :app:mergeDexRelease
 > Task :app:compileReleaseArtProfile
-> Task :app:lintVitalAnalyzeRelease
 > Task :app:packageRelease
 > Task :app:createReleaseApkListingFileRedirect UP-TO-DATE
 > Task :app:lintVitalReportRelease UP-TO-DATE
@@ -147,5 +136,5 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/8.12/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD SUCCESSFUL in 1m 1s
+BUILD SUCCESSFUL in 1m 35s
 96 actionable tasks: 14 executed, 82 up-to-date

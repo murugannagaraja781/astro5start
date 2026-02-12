@@ -23,5 +23,8 @@ data class AuthResponse(
     val phone: String?,
     val walletBalance: Double? = 0.0,
     val image: String?,
-    val error: String?
+    val error: String?,
+    val referralCode: String? = null,
+    val isNewUser: Boolean? = false
 )
+

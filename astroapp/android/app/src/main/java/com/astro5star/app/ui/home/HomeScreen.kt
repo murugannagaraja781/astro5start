@@ -254,14 +254,22 @@ fun HomeScreen(
     onLogoutClick: () -> Unit,
     onDrawerItemClick: (String) -> Unit = {},
     onServiceClick: (String) -> Unit = {},
-    isGuest: Boolean = false // New Param
+    isGuest: Boolean = false,
+    referralCode: String? = null,
+    isNewUser: Boolean = false,
+    onApplyReferral: (String) -> Unit = {}
 ) {
+
     val context = LocalContext.current
     val listState = rememberLazyListState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var selectedTab by remember { mutableIntStateOf(0) }
     var selectedFilter by remember { mutableStateOf("All") }
+    var showReferralDialog by remember { mutableStateOf(false) }
+    var referralInput by remember { mutableStateOf("") }
+    var isApplyingReferral by remember { mutableStateOf(false) }
+
     // Language State (Default Tamil)
     var isTamil by rememberSaveable { mutableStateOf(true) }
 
@@ -324,6 +332,117 @@ fun HomeScreen(
         )
     }
 
+
+    if (showReferralDialog) {
+        AlertDialog(
+            onDismissRequest = { showReferralDialog = false },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showReferralDialog = false }) {
+                    Text("Close", color = Color.Gray)
+                }
+            },
+            title = {
+                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                     Text("🎁 பரிசு வெல்லுங்கள்!", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = PeacockGreen)
+                     Text("நண்பர்களை அழைத்து வாலட் பணத்தை அள்ளுங்கள்", fontSize = 12.sp, color = Color.Gray, textAlign = TextAlign.Center)
+                 }
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Rules
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
+                        Surface(shape = CircleShape, color = PeacockGreen, modifier = Modifier.size(24.dp)) {
+                            Box(contentAlignment = Alignment.Center) { Text("1", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("உங்கள் Referral Code-ஐ நண்பர்களுக்கு பகிருங்கள்.", fontSize = 14.sp)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
+                        Surface(shape = CircleShape, color = PeacockGreen, modifier = Modifier.size(24.dp)) {
+                            Box(contentAlignment = Alignment.Center) { Text("2", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("உங்கள் நண்பர் இணைந்தவுடன் உங்களுக்கு ₹20 போனஸ் கிடைக்கும்!", fontSize = 14.sp)
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // My Code Box
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF1F5F9),
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            // Copy to clipboard
+                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            val clip = android.content.ClipData.newPlainText("Referral Code", referralCode ?: "")
+                            clipboard.setPrimaryClip(clip)
+                            Toast.makeText(context, "Code Copied!", Toast.LENGTH_SHORT).show()
+                        }
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = referralCode ?: "ASTRO111", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = RoyalMidnightBlue)
+                            Text("COPY", color = PeacockGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = {
+                            // Share via WhatsApp
+                            val msg = "Astro 5 Star செயலியில் இணையுங்கள்! என் Referral Code: ${referralCode ?: ""}. இணைந்து ₹10 போனஸ் பெறுங்கள்: https://play.google.com/store/search?q=astro5start&c=apps"
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                data = Uri.parse("https://api.whatsapp.com/send?text=${Uri.encode(msg)}")
+                            }
+                            context.startActivity(intent)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("WhatsApp-ல் பகிரவும்", fontWeight = FontWeight.Bold)
+                    }
+
+                    if (isNewUser) {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Divider(color = Color.LightGray.copy(alpha = 0.5f))
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("உங்களிடம் Referral Code உள்ளதா?", fontSize = 12.sp, color = Color.Gray)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            OutlinedTextField(
+                                value = referralInput,
+                                onValueChange = { referralInput = it },
+                                placeholder = { Text("Enter Code", fontSize = 14.sp) },
+                                modifier = Modifier.weight(1f).height(50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                singleLine = true
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(
+                                onClick = {
+                                    if (referralInput.isNotEmpty()) {
+                                        onApplyReferral(referralInput)
+                                        showReferralDialog = false
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = PeacockGreen),
+                                modifier = Modifier.height(50.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Claim")
+                            }
+                        }
+                    }
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
+
+
     fun checkBalanceAndProceed(action: () -> Unit) {
         if (!isGuest && walletBalance < 10) { // Skip check for guest (login handles it)
             showLowBalanceDialog = true
@@ -354,8 +473,10 @@ fun HomeScreen(
                     onMenuClick = { scope.launch { drawerState.open() } },
                     isGuest = isGuest,
                     isTamil = isTamil,
-                    onToggleLanguage = { isTamil = !isTamil }
+                    onToggleLanguage = { isTamil = !isTamil },
+                    onReferClick = { showReferralDialog = true }
                 )
+
             },
             bottomBar = {
                 Column {
@@ -623,7 +744,6 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit) {
 }
 
 // --- 2. HEADER ---
-// --- 2. HEADER ---
 @Composable
 fun HomeTopBar(
     balance: Double,
@@ -631,56 +751,84 @@ fun HomeTopBar(
     onMenuClick: () -> Unit,
     isGuest: Boolean = false,
     isTamil: Boolean,
-    onToggleLanguage: () -> Unit
+    onToggleLanguage: () -> Unit,
+    onReferClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(CosmicAppTheme.headerBrush)
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .statusBarsPadding()
+            .padding(horizontal = 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+
         // LEFT: Menu + Title
-        Row(verticalAlignment = Alignment.CenterVertically) {
-             // 1. Restore Menu Icon
-             IconButton(onClick = onMenuClick) {
-                Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Default.Menu,
-                    contentDescription = "Menu",
-                    tint = Color.White
-                )
-             }
-             Spacer(modifier = Modifier.width(4.dp))
-             Text(
-                text = "Astro 5 Star",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp),
-                color = Color.White
+        IconButton(onClick = onMenuClick) {
+            Icon(
+                imageVector = androidx.compose.material.icons.Icons.Default.Menu,
+                contentDescription = "Menu",
+                tint = Color.White
             )
         }
 
-        // RIGHT: Wallet (Simple)
+        Text(
+            text = "Astro 5 Star",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 17.sp),
+            color = Color.White,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f).padding(horizontal = 2.dp)
+        )
+
+
+        // RIGHT: Actions
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.clickable { onWalletClick() } // Make clickable
+            modifier = Modifier.padding(end = 4.dp)
         ) {
             if (!isGuest) {
-                // 3. Simple Wallet Display (No Card, just Text)
-                Text(
-                    text = "₹${balance.toInt()}",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 18.sp),
-                    color = Color.White
-                )
+                Surface(
+                    onClick = onReferClick,
+                    shape = RoundedCornerShape(50),
+                    color = PeacockGreen,
+                    modifier = Modifier.padding(end = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Rounded.Star, null, tint = Color.White, modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("Refer", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                    }
+                }
+
+
+                Row(
+                    modifier = Modifier.clickable { onWalletClick() },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "₹${balance.toInt()}",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                        color = Color.White
+                    )
+                }
+
             } else {
                 Text(
                     text = "Login",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
+                    color = Color.White,
+                    modifier = Modifier.clickable { onWalletClick() }.padding(horizontal = 12.dp)
                 )
             }
         }
     }
 }
+
+
 
 // --- 3. RASI ITEM (Fitted BG + Border) ---
 @Composable

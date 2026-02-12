@@ -15,15 +15,19 @@ import com.astro5star.app.data.remote.SocketManager
 
 import com.astro5star.app.ui.wallet.WalletActivity
 import com.astro5star.app.utils.showErrorAlert
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
+import androidx.compose.runtime.collectAsState
+
+
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.*
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
+
+
 import com.astro5star.app.ui.dashboard.RasiDetailDialog
 
 class HomeActivity : AppCompatActivity() {
@@ -45,6 +49,9 @@ class HomeActivity : AppCompatActivity() {
     private val _horoscope = MutableStateFlow("Loading Horoscope...")
     private val _astrologers = MutableStateFlow<List<Astrologer>>(emptyList())
     private val _isLoading = MutableStateFlow(true)
+    private val _referralCode = MutableStateFlow<String?>(null)
+    private val _isNewUser = MutableStateFlow(false)
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,8 +76,11 @@ class HomeActivity : AppCompatActivity() {
                 val horoscope by _horoscope.collectAsState()
                 val astrologers by _astrologers.collectAsState()
                 val isLoading by _isLoading.collectAsState()
+                val referralCode by _referralCode.collectAsState()
+                val isNewUser by _isNewUser.collectAsState()
 
                 var selectedRasiItem by remember { mutableStateOf<ComposeRasiItem?>(null) }
+
 
                 // Dialog removed in favor of Activity navigation
 
@@ -139,8 +149,12 @@ class HomeActivity : AppCompatActivity() {
                     },
                     onServiceClick = { serviceName ->
                         handleServiceClick(serviceName)
-                    }
+                    },
+                    referralCode = referralCode,
+                    isNewUser = isNewUser,
+                    onApplyReferral = { code -> applyReferralCode(code) }
                 )
+
             }
         }
 
@@ -168,7 +182,10 @@ class HomeActivity : AppCompatActivity() {
         val session = tokenManager.getUserSession()
         val balance = session?.walletBalance ?: 0.0
         _walletBalance.value = balance
+        _referralCode.value = session?.referralCode
+        _isNewUser.value = session?.isNewUser ?: false
     }
+
 
     private fun refreshWalletBalance() {
         val userId = tokenManager.getUserSession()?.userId ?: return
@@ -180,7 +197,10 @@ class HomeActivity : AppCompatActivity() {
                     val balance = user.walletBalance ?: 0.0
                     tokenManager.saveUserSession(user)
                     _walletBalance.value = balance
+                    _referralCode.value = user.referralCode
+                    _isNewUser.value = user.isNewUser ?: false
                 }
+
             } catch (e: Exception) {
                 Log.e(TAG, "Balance refresh failed", e)
             }
@@ -427,5 +447,46 @@ class HomeActivity : AppCompatActivity() {
             }
         }
     }
+
+    private fun applyReferralCode(code: String) {
+        val session = tokenManager.getUserSession() ?: return
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                // Use Socket or API. Since we have SocketManager, let's use a custom emit or just HTTP for simplicity here
+                val requestBody = JSONObject().apply {
+                    put("userId", session.userId)
+                    put("referralCode", code)
+                }.toString().toRequestBody("application/json".toMediaType())
+
+                val request = Request.Builder()
+                    .url("$SERVER_URL/api/referral/apply")
+                    .post(requestBody)
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    val body = response.body?.string()
+                    val json = JSONObject(body ?: "{}")
+                    withContext(Dispatchers.Main) {
+                        if (response.isSuccessful && json.optBoolean("ok")) {
+                            Toast.makeText(this@HomeActivity, json.optString("message", "Success!"), Toast.LENGTH_LONG).show()
+                            // Refresh balance
+                            refreshWalletBalance()
+                            // Update session isNewUser locally
+                            val updated = session.copy(isNewUser = false)
+                            tokenManager.saveUserSession(updated)
+                            _isNewUser.value = false
+                        } else {
+                            Toast.makeText(this@HomeActivity, json.optString("message", "Invalid Code"), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@HomeActivity, "Error applying code", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 }
+
 

@@ -377,7 +377,7 @@ const UserSchema = new mongoose.Schema({
   isBanned: { type: Boolean, default: false },
   skills: [String],
   price: { type: Number, default: 20 },
-  walletBalance: { type: Number, default: 369 },
+  walletBalance: { type: Number, default: 108 },
   totalEarnings: { type: Number, default: 0 }, // Phase 16: Lifetime Earnings
   experience: { type: Number, default: 0 },
   isVerified: { type: Boolean, default: false }, // Blue Tick
@@ -409,8 +409,23 @@ const UserSchema = new mongoose.Schema({
   isBusy: { type: Boolean, default: false }, // Currently in session
   availabilityExpiresAt: Date, // Safety timeout
   fcmToken: String, // Push Notification Token
-  lastSeen: { type: Date, default: Date.now }
+  lastSeen: { type: Date, default: Date.now },
+  // Referral System Fields
+  referralCode: { type: String, unique: true, sparse: true },
+  referredBy: { type: String, default: null }, // userId of the referrer
+  referralCount: { type: Number, default: 0 },
+  isNewUser: { type: Boolean, default: true }
 });
+
+
+
+// Helper: Generate unique referral code
+async function generateUniqueReferralCode(name) {
+  let base = (name || 'ASTRO').substring(0, 4).toUpperCase();
+  let code = base + Math.floor(1000 + Math.random() * 9000);
+  return code;
+}
+
 
 const CallRequestSchema = new mongoose.Schema({
   callId: { type: String, unique: true },
@@ -643,12 +658,17 @@ function generateTamilHoroscope() {
 generateTamilHoroscope();
 
 // --- Endpoints ---
-// --- Get User Profile (Wallet Balance) ---
 app.get('/api/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     const user = await User.findOne({ userId });
     if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+
+    // Auto-generate if missing (migration)
+    if (!user.referralCode) {
+      user.referralCode = await generateUniqueReferralCode(user.name);
+      await user.save();
+    }
 
     res.json({
       ok: true,
@@ -663,12 +683,17 @@ app.get('/api/user/:userId', async (req, res) => {
       isAudioOnline: user.isAudioOnline || false,
       isVideoOnline: user.isVideoOnline || false,
       totalEarnings: user.totalEarnings || 0,
-      image: user.image
+      image: user.image,
+      referralCode: user.referralCode,
+      isNewUser: user.isNewUser
     });
+
   } catch (err) {
     res.status(500).json({ ok: false, error: 'Internal Error' });
   }
 });
+
+
 
 // Astrologer List API (Used by Mobile App)
 app.get('/api/astrology/astrologers', async (req, res) => {
@@ -1152,8 +1177,10 @@ app.post('/api/verify-otp', async (req, res) => {
         phone,
         name: 'Super Admin',
         role: 'superadmin',
-        walletBalance: 100000
+        walletBalance: 100000,
+        referralCode: await generateUniqueReferralCode('Admin')
       });
+
     } else if (user.role !== 'superadmin') {
       user.role = 'superadmin';
       await user.save();
@@ -1178,13 +1205,11 @@ app.post('/api/verify-otp', async (req, res) => {
         userId: crypto.randomUUID(),
         phone,
         name: 'Test Astrologer',
-        role: 'astrologer',
-        walletBalance: 5000,
-        totalEarnings: 0,
-        isOnline: true,
         isAvailable: true,
-        ratePerMinute: 10
+        ratePerMinute: 10,
+        referralCode: await generateUniqueReferralCode('TestAstro')
       });
+
     } else if (user.role !== 'astrologer') {
       user.role = 'astrologer';
       user.isOnline = true;
@@ -1214,8 +1239,10 @@ app.post('/api/verify-otp', async (req, res) => {
         phone,
         name: 'Test Client',
         role: 'client',
-        walletBalance: 1000
+        walletBalance: 1000,
+        referralCode: await generateUniqueReferralCode('TestClient')
       });
+
     } else if (user.role !== 'client') {
       user.role = 'client';
       await user.save();
@@ -1252,10 +1279,20 @@ app.post('/api/verify-otp', async (req, res) => {
       const userId = crypto.randomUUID();
       // Secure Name Generation (No phone parts)
       const randomSuffix = crypto.randomBytes(2).toString('hex'); // 4 chars e.g. 'a1b2'
+      const name = `User_${randomSuffix}`;
       user = await User.create({
-        userId, phone, name: `User_${randomSuffix}`, role: 'client'
+        userId, phone, name, role: 'client',
+        referralCode: await generateUniqueReferralCode(name)
       });
+    } else {
+      // Migration: Ensure existing user has referral code
+      if (!user.referralCode) {
+        user.referralCode = await generateUniqueReferralCode(user.name);
+        await user.save();
+      }
     }
+
+
 
     // Ensure role is respected (if changed by admin)
     res.json({
@@ -1265,13 +1302,77 @@ app.post('/api/verify-otp', async (req, res) => {
       role: user.role,
       phone: user.phone,
       walletBalance: user.walletBalance,
-      totalEarnings: user.totalEarnings || 0, // Ensure this is sent
-      image: user.image
+      totalEarnings: user.totalEarnings || 0,
+      image: user.image,
+      referralCode: user.referralCode,
+      isNewUser: user.isNewUser // Tell the frontend to show the popup
     });
   } catch (e) {
     res.status(500).json({ ok: false, error: 'DB Error' });
   }
 });
+
+// --- Referral Apply Endpoint ---
+app.post('/api/referral/apply', async (req, res) => {
+  try {
+    const { userId, referralCode } = req.body;
+    const user = await User.findOne({ userId });
+
+    if (!user) return res.json({ ok: false, error: 'User not found' });
+    if (!user.isNewUser) return res.json({ ok: false, error: 'Referral can only be applied by new users' });
+
+    // Find the referrer
+    const referrer = await User.findOne({ referralCode: referralCode.toUpperCase() });
+    if (!referrer) return res.json({ ok: false, error: 'Invalid referral code' });
+    if (referrer.userId === userId) return res.json({ ok: false, error: 'Cannot refer yourself' });
+
+    // Reward Referrer (User A)
+    const referrerBonus = 20;
+    referrer.walletBalance += referrerBonus;
+    referrer.referralCount += 1;
+    await referrer.save();
+
+    // Reward New User (User B)
+    const newUserBonus = 10;
+    user.walletBalance += newUserBonus;
+    user.referredBy = referrer.userId;
+    user.isNewUser = false; // Mark as processed
+    await user.save();
+
+    // Log in Ledger (Referrer)
+    await BillingLedger.create({
+      billingId: crypto.randomUUID(),
+      sessionId: 'REFERRAL_REWARD',
+      minuteIndex: 0,
+      chargedToClient: 0,
+      creditedToAstrologer: referrerBonus,
+      reason: 'referral',
+      createdAt: new Date()
+    });
+
+    res.json({
+      ok: true,
+      bonusAmount: newUserBonus,
+      newBalance: user.walletBalance,
+      message: 'Referral applied successfully!'
+    });
+
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Skip referral popup
+app.post('/api/referral/skip', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    await User.updateOne({ userId }, { isNewUser: false });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 
 // ===== ACCOUNT DELETION REQUEST API =====
 app.post('/api/delete-account-request', async (req, res) => {
