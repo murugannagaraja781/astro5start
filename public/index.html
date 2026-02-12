@@ -1214,9 +1214,15 @@
       flex: 1;
       overflow-y: auto;
       padding: 15px;
+      padding-bottom: 30px;
       background: #f9fafb;
       position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
+
+
 
     #birthChartColumn {
       flex: 0 0 400px;
@@ -4057,16 +4063,17 @@
 
           <style>
             .chat-input {
-              padding: 10px;
-              border-top: 1px solid #eee;
+              padding: 12px 15px;
+              border-top: 1px solid #f1f5f9;
               display: flex;
               gap: 10px;
               align-items: center;
-              position: sticky;
-              bottom: 0;
               background: white;
-              z-index: 20;
+              z-index: 30;
+              box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+              padding-bottom: max(12px, env(safe-area-inset-bottom));
             }
+
 
             .msg-input-reduced {
               flex: 0 0 60%;
@@ -4914,10 +4921,9 @@
         renderAstroList([...online, ...offline]);
       }
       else if (tab === 'profile') {
-        // Reset active to Previous or keep Profile active?
-        // User wants "Profile clik time update progile..." implying opening profile
-        showProfile();
+        showHistory();
       }
+
     };
 
     window.filterAstros = function (type) {
@@ -5281,8 +5287,8 @@
         res.sessions.forEach(s => {
           const date = new Date(s.startTime).toLocaleString();
 
-          // Format duration as M min S sec
-          let duraText = 'Ongoing/Failed';
+          // Format duration
+          let duraText = '0m 0s';
           if (s.duration) {
             const totalSec = Math.floor(s.duration / 1000);
             const m = Math.floor(totalSec / 60);
@@ -5291,25 +5297,41 @@
           }
 
           const isMe = s.fromUserId === state.me.userId;
+          const isAstro = state.me.role === 'astrologer';
           const otherId = isMe ? s.toUserId : s.fromUserId;
 
+          // Amount Details
+          const amount = isAstro ? (s.totalEarned || 0) : (s.totalCharged || 0);
+          const amountLabel = isAstro ? 'Earned' : 'Paid';
+
           const item = document.createElement('div');
-          item.style.cssText = 'background: #f9f9f9; padding: 12px; margin-bottom: 12px; border-radius: 12px; border-left: 5px solid #FFD700; box-shadow: 0 2px 5px rgba(0,0,0,0.05);';
+          item.style.cssText = 'background: white; padding: 15px; margin-bottom: 15px; border-radius: 16px; border: 1px solid #f0f0f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: all 0.2s;';
           item.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
               <div>
-                <div style="font-weight:bold; font-size:1rem; color:#111827;">${s.type.toUpperCase()}</div>
-                <div style="font-size:0.8rem; color:#6B7280; margin-top: 2px;">Partner ID: ${otherId ? otherId.slice(0, 6) : 'Unknown'}</div>
+                <div style="font-weight:700; font-size:1.1rem; color:#1e3a8a; display:flex; align-items:center; gap:8px;">
+                  <i class="fas ${s.type === 'video' ? 'fa-video' : (s.type === 'chat' ? 'fa-comment' : 'fa-phone-alt')}" style="font-size:0.9rem; color:#F59E0B;"></i>
+                  ${s.type.toUpperCase()}
+                </div>
+                <div style="font-size:0.8rem; color:#6B7280; margin-top: 4px; font-family:monospace;">ID: ${otherId ? otherId.slice(0, 8) : '---'}</div>
               </div>
-              <div style="font-size:0.75rem; color:#9BA3AF; text-align: right;">${date}</div>
+              <div style="font-size:0.75rem; color:#9CA3AF; text-align: right; background:#f8fafc; padding:4px 8px; border-radius:6px;">${date}</div>
             </div>
-            <div style="font-size:0.9rem; color:#059669; font-weight: 600; padding-top: 5px; border-top: 1px solid #EEE; display: flex; align-items: center; gap: 6px;">
-              <i class="fas fa-history" style="font-size: 0.8rem;"></i>
-              <span>Consultation Time: ${duraText}</span>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; padding-top:12px; border-top:1px solid #f1f5f9;">
+               <div style="display:flex; flex-direction:column;">
+                  <span style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">Duration</span>
+                  <span style="font-size:0.95rem; font-weight:600; color:#334155;">${duraText}</span>
+               </div>
+               <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                  <span style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">${amountLabel}</span>
+                  <span style="font-size:1.1rem; font-weight:800; color:${isAstro ? '#059669' : '#1e3a8a'};">₹${amount.toFixed(2)}</span>
+               </div>
             </div>
           `;
           list.appendChild(item);
         });
+
       });
     }
 

@@ -94,7 +94,9 @@ class ChatActivity : ComponentActivity() {
         // Ensure socket is initialized and connected
         com.astro5star.app.data.remote.SocketManager.init()
         com.astro5star.app.data.remote.SocketManager.ensureConnection()
+        window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         handleIntent(intent)
+
 
         // --- GLOBAL STATE FIX: Mark chat as active to prevent incoming calls during session ---
         com.astro5star.app.utils.CallState.isCallActive = true
@@ -411,10 +413,11 @@ fun ChatScreen(
 
             LazyColumn(
                 state = listState,
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 80.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
+
 
                 if (displayedMessages.isEmpty()) {
                     item {

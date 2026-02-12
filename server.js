@@ -454,12 +454,13 @@ const SessionSchema = new mongoose.Schema({
   toUserId: String,
   type: String,
   startTime: Number,
-  startTime: Number,
   endTime: Number,
   duration: Number,
-  totalEarned: Number // Phase 16: Track session earnings
+  totalEarned: Number, // Phase 16: Track session earnings
+  totalCharged: Number // Track total client deduction
 });
 const Session = mongoose.model('Session', SessionSchema);
+
 
 const PairMonthSchema = new mongoose.Schema({
   pairId: { type: String, required: true, index: true }, // client_id + "_" + astrologer_id
@@ -731,27 +732,35 @@ app.get('/api/astrology/astrologers', async (req, res) => {
 app.get('/api/astrology/history/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    // Find sessions where this user was the astrologer
-    // We check both astrologerId and toUserId for compatibility
+    // Find sessions where this user was either the client or the astrologer
     const sessions = await Session.find({
       $or: [
         { astrologerId: userId },
-        { toUserId: userId, type: { $in: ['audio', 'video', 'chat'] } }
+        { clientId: userId },
+        { fromUserId: userId },
+        { toUserId: userId }
       ],
       status: 'ended'
     })
       .sort({ actualBillingStart: -1, startTime: -1 })
       .limit(50)
+
       .lean();
 
     const populatedSessions = await Promise.all(sessions.map(async (s) => {
       const cId = s.clientId || s.fromUserId;
-      const client = await User.findOne({ userId: cId }).select('name').lean();
+      const aId = s.astrologerId || s.toUserId;
+      const [client, astro] = await Promise.all([
+        User.findOne({ userId: cId }).select('name').lean(),
+        User.findOne({ userId: aId }).select('name').lean()
+      ]);
       return {
         ...s,
-        clientName: client ? client.name : 'Unknown Client'
+        clientName: client ? client.name : 'Unknown Client',
+        astrologerName: astro ? astro.name : 'Unknown Astrologer'
       };
     }));
+
 
     res.json({ ok: true, sessions: populatedSessions });
   } catch (err) {
@@ -1650,8 +1659,10 @@ async function endSessionRecord(sessionId) {
     endTime,
     duration: billableSeconds * 1000,
     totalEarned: s.totalEarned || 0,
+    totalCharged: s.totalDeducted || 0,
     status: 'ended'
   });
+
 
   // Update PairMonth Cumulative Seconds (Phase 4)
   if (s.pairMonthId) {
@@ -1663,9 +1674,10 @@ async function endSessionRecord(sessionId) {
 
   // Phase 3: Early Exit Handling (< 60s)
   if (billableSeconds > 0 && billableSeconds < 60) {
-    console.log(`Session ${sessionId}: Early exit at ${billableSeconds}s. Charging pro-rata.`);
+    console.log(`Session ${sessionId}: Early exit at ${billableSeconds}s. Charging full first minute.`);
     await processBillingCharge(sessionId, billableSeconds, 1, 'early_exit');
   }
+
   // Phase 5: Round-Up Billing (Partial Minute at End)
   else if (billableSeconds > 60) {
     const lastBilled = s.lastBilledMinute || 1;
@@ -1675,8 +1687,13 @@ async function endSessionRecord(sessionId) {
       console.log(`Session ${sessionId}: Finalizing billing for partial minutes ${lastBilled + 1} to ${totalMinutes}`);
 
       for (let i = lastBilled + 1; i <= totalMinutes; i++) {
-        await processBillingCharge(sessionId, 60, i, 'slab');
+        // User Rule: If it's the last minute of the session AND it has extra seconds, it's a fraction (100% Admin)
+        const isFraction = (i === totalMinutes && (billableSeconds % 60) !== 0);
+        const billingType = isFraction ? 'fraction' : 'slab';
+
+        await processBillingCharge(sessionId, 60, i, billingType);
       }
+
     }
   }
 
@@ -1759,10 +1776,12 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
       astroShare = 0;
       reason = 'first_60';
     } else if (type === 'early_exit') {
-      amountToCharge = (pricePerMin / 60) * durationSeconds;
+      // User requested: Even if early exit (e.g. 30s), charge full minute (pricePerMin)
+      amountToCharge = pricePerMin;
       adminShare = amountToCharge; // 100% to Admin
       astroShare = 0;
-      reason = 'first_60_partial';
+      reason = 'first_60_min_charge';
+
     } else if (type === 'slab') {
       // Standard Minute Billing
       const activeSess = activeSessions.get(sessionId);
@@ -1775,7 +1794,15 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
       reason = `slab_${currentSlab}`;
 
       console.log(`[Billing] Slab: ${currentSlab} | Rate: ${rate} | AstroShare: ${astroShare}`);
+    } else if (type === 'fraction') {
+      // User rule: Extra seconds (fractional minute) at the end
+      // 100% of this charge goes to Admin, 0 to Astrologer.
+      amountToCharge = pricePerMin;
+      adminShare = amountToCharge;
+      astroShare = 0;
+      reason = 'fraction_roundup';
     } else {
+
       return;
     }
 

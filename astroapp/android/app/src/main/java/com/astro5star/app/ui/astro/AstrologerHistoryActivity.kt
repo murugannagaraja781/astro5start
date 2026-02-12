@@ -48,6 +48,7 @@ class AstrologerHistoryActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(userId: String, onBack: () -> Unit) {
+    val context = LocalContext.current
     var sessions by remember { mutableStateOf<List<SessionHistoryItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -55,7 +56,9 @@ fun HistoryScreen(userId: String, onBack: () -> Unit) {
     LaunchedEffect(userId) {
         withContext(Dispatchers.IO) {
             try {
+                val myRole = TokenManager(context).getUserSession()?.role ?: "client"
                 val client = okhttp3.OkHttpClient()
+
                 val request = okhttp3.Request.Builder()
                     .url("https://astro5star.com/api/astrology/history/$userId")
                     .build()
@@ -66,21 +69,26 @@ fun HistoryScreen(userId: String, onBack: () -> Unit) {
                     if (json.optBoolean("ok")) {
                         val array = json.optJSONArray("sessions") ?: JSONArray()
                         val list = mutableListOf<SessionHistoryItem>()
+
                         for (i in 0 until array.length()) {
+
                             val obj = array.getJSONObject(i)
+                            val isAstro = myRole == "astrologer"
                             list.add(
                                 SessionHistoryItem(
                                     id = obj.optString("sessionId"),
-                                    clientName = obj.optString("clientName", "Unknown"),
+                                    partnerName = if (isAstro) obj.optString("clientName", "Unknown") else obj.optString("astrologerName", "Unknown"),
                                     type = obj.optString("type", "call"),
-                                    startTime = if (obj.has("actualBillingStart")) obj.optLong("actualBillingStart") else obj.optLong("startTime", 0),
-                                    endTime = if (obj.has("sessionEndAt")) obj.optLong("sessionEndAt") else obj.optLong("endTime", 0),
+                                    startTime = if (obj.has("actualBillingStart") && obj.optLong("actualBillingStart") > 0) obj.optLong("actualBillingStart") else obj.optLong("startTime", 0),
+                                    endTime = if (obj.has("sessionEndAt") && obj.optLong("sessionEndAt") > 0) obj.optLong("sessionEndAt") else obj.optLong("endTime", 0),
                                     duration = obj.optInt("duration", 0),
-                                    earned = obj.optDouble("totalEarned", 0.0)
+                                    amount = if (isAstro) obj.optDouble("totalEarned", 0.0) else obj.optDouble("totalCharged", 0.0),
+                                    isEarned = isAstro
                                 )
                             )
                         }
                         sessions = list
+
                     } else {
                         error = "Failed to load history"
                     }
@@ -171,19 +179,20 @@ fun HistoryCard(item: SessionHistoryItem) {
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = item.clientName,
+                    text = item.partnerName,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     color = colors.textPrimary,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
-                    text = "₹${String.format("%.2f", item.earned)}",
+                    text = "₹${String.format("%.2f", item.amount)}",
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 18.sp,
-                    color = Color(0xFF4CAF50)
+                    color = if (item.isEarned) Color(0xFF4CAF50) else Color(0xFF1E3A8A)
                 )
             }
+
 
             Spacer(modifier = Modifier.height(8.dp))
             HorizontalDivider(color = colors.cardStroke.copy(alpha = 0.5f))
@@ -209,10 +218,12 @@ fun HistoryCard(item: SessionHistoryItem) {
 
 data class SessionHistoryItem(
     val id: String,
-    val clientName: String,
+    val partnerName: String,
     val type: String,
     val startTime: Long,
     val endTime: Long,
     val duration: Int,
-    val earned: Double
+    val amount: Double,
+    val isEarned: Boolean
 )
+

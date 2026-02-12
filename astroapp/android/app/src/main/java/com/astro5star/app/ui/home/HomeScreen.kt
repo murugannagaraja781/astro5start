@@ -68,9 +68,13 @@ import com.astro5star.app.ui.theme.CosmicColors
 import com.astro5star.app.ui.theme.CosmicShapes
 import coil.compose.AsyncImage
 import com.astro5star.app.data.api.ApiClient
-import com.astro5star.app.data.model.Banner
-
 import androidx.compose.foundation.ExperimentalFoundationApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import org.json.JSONArray
+import com.astro5star.app.data.local.TokenManager
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -269,6 +273,55 @@ fun HomeScreen(
     var showReferralDialog by remember { mutableStateOf(false) }
     var referralInput by remember { mutableStateOf("") }
     var isApplyingReferral by remember { mutableStateOf(false) }
+
+    // History State
+    var historySessions by remember { mutableStateOf<List<SessionHistoryItem>>(emptyList()) }
+    var isHistoryLoading by remember { mutableStateOf(false) }
+
+    // Fetch History when tab 4 is selected
+    LaunchedEffect(selectedTab) {
+        if (selectedTab == 4 && !isGuest) {
+            isHistoryLoading = true
+            try {
+                val userId = TokenManager(context).getUserSession()?.userId ?: ""
+                val myRole = TokenManager(context).getUserSession()?.role ?: "client"
+                val response = withContext(Dispatchers.IO) {
+                    val client = okhttp3.OkHttpClient()
+                    val request = okhttp3.Request.Builder()
+                        .url("https://astro5star.com/api/astrology/history/$userId")
+                        .build()
+                    client.newCall(request).execute()
+                }
+                if (response.isSuccessful) {
+                    val json = JSONObject(response.body?.string() ?: "{}")
+                    if (json.optBoolean("ok")) {
+                         val array = json.optJSONArray("sessions") ?: JSONArray()
+                         val list = mutableListOf<SessionHistoryItem>()
+
+                         for (i in 0 until array.length()) {
+                             val obj = array.getJSONObject(i)
+                             val isAstro = myRole == "astrologer"
+                             list.add(
+                                 SessionHistoryItem(
+                                     id = obj.optString("sessionId"),
+                                     partnerName = if (isAstro) obj.optString("clientName", "Unknown") else obj.optString("astrologerName", "Unknown"),
+                                     type = obj.optString("type", "call"),
+                                     startTime = if (obj.has("actualBillingStart") && obj.optLong("actualBillingStart") > 0) obj.optLong("actualBillingStart") else obj.optLong("startTime", 0),
+                                     endTime = if (obj.has("sessionEndAt") && obj.optLong("sessionEndAt") > 0) obj.optLong("sessionEndAt") else obj.optLong("endTime", 0),
+                                     duration = obj.optInt("duration", 0),
+                                     amount = if (isAstro) obj.optDouble("totalEarned", 0.0) else obj.optDouble("totalCharged", 0.0),
+                                     isEarned = isAstro
+                                 )
+                             )
+                         }
+                         historySessions = list
+                    }
+                }
+            } catch (e: Exception) { e.printStackTrace() }
+            finally { isHistoryLoading = false }
+        }
+    }
+
 
     // Language State (Default Tamil)
     var isTamil by rememberSaveable { mutableStateOf(true) }
@@ -549,15 +602,16 @@ fun HomeScreen(
                             else -> Localization.get("premium_consultation", isTamil) // Home
                         }
                         Text(
-                            text = title,
+                            text = if (selectedTab == 4) "Consultation History" else title,
                             style = MaterialTheme.typography.titleLarge,
                             color = CosmicAppTheme.colors.accent,
                             modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
                         )
+
                     }
 
                     // 5. Filter Bar (Only for Listing Tabs)
-                    if (selectedTab != 0) {
+                    if (selectedTab != 0 && selectedTab != 4) {
                         item {
                             FilterBar(
                                 filters = listOf("All", "Love", "Career", "Finance", "Marriage", "Health", "Education"),
@@ -567,11 +621,24 @@ fun HomeScreen(
                         }
                     }
 
-                    // 6. Loading Indicator or List
-                    if (isLoading) {
-                        item {
-                            Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(color = PeacockGreen)
+
+                    } else if (selectedTab == 4) {
+                        // 6b. History List
+                        if (isHistoryLoading) {
+                            item {
+                                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(color = PeacockGreen)
+                                }
+                            }
+                        } else if (historySessions.isEmpty()) {
+                            item {
+                                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                                    Text("No Consultation History", color = Color.Gray)
+                                }
+                            }
+                        } else {
+                            items(historySessions) { item ->
+                                ConsultationHistoryCard(item)
                             }
                         }
                     } else {
@@ -585,6 +652,7 @@ fun HomeScreen(
                             )
                         }
                     }
+
 
                     // 7. Policy & Support Footer (Stronger Play Store Support)
                     if (selectedTab == 0) {
@@ -1496,3 +1564,70 @@ fun StickyFooterButtons(
         }
     }
 }
+
+@Composable
+fun ConsultationHistoryCard(item: SessionHistoryItem) {
+    val dateFormat = java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a", java.util.Locale.getDefault())
+    val startTimeStr = if (item.startTime > 0) dateFormat.format(java.util.Date(item.startTime)) else "N/A"
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = if (item.type == "chat") androidx.compose.material.icons.Icons.Rounded.Chat else androidx.compose.material.icons.Icons.Rounded.Call,
+                    contentDescription = null,
+                    tint = PeacockGreen,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.partnerName,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.Black
+                    )
+                    Text(text = startTimeStr, fontSize = 12.sp, color = Color.Gray)
+                }
+                Text(
+                    text = "₹${String.format("%.2f", item.amount)}",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 18.sp,
+                    color = if (item.isEarned) Color(0xFF4CAF50) else Color(0xFF1E3A8A)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                val totalSec = item.duration / 1000
+                val mins = totalSec / 60
+                val secs = totalSec % 60
+                val duraText = if (mins > 0) "${mins}m ${secs}s" else "${secs}s"
+                Text("Duration: $duraText", fontSize = 12.sp, color = Color.Gray)
+                Text(
+                    text = if (item.isEarned) "Earned" else "Paid",
+                    fontSize = 11.sp,
+                    color = Color.Gray,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+data class SessionHistoryItem(
+    val id: String,
+    val partnerName: String,
+    val type: String,
+    val startTime: Long,
+    val endTime: Long,
+    val duration: Int,
+    val amount: Double,
+    val isEarned: Boolean
+)
+

@@ -326,21 +326,27 @@ fun SouthIndianGridEnhanced(planets: List<Planet>, ascSign: String, title: Strin
                                 if (signEn == ascSign) occupants.add("As")
                                 planets.filter { it.signName == signEn }.forEach { occupants.add(it.name) }
 
-                                Column(Modifier.fillMaxSize().padding(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(signNo.toString(), fontSize = 10.sp, color = TraditionalRed.copy(0.6f), modifier = Modifier.align(Alignment.Start))
+                                 Column(Modifier.fillMaxSize().padding(2.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                                    // Removed signNo text as requested
+                                    val fontSize = if (occupants.size > 3) 10.sp else 11.sp
+                                    val lineHeight = if (occupants.size > 3) 11.sp else 13.sp
 
-                                    Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                                    Column(
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
                                         occupants.forEach { pName ->
                                             Text(
                                                 text = planetAbbrTamil[pName] ?: pName.take(3),
-                                                fontSize = 13.sp,
+                                                fontSize = fontSize,
                                                 fontWeight = FontWeight.Bold,
                                                 color = if(pName == "As") Color.Blue else Color.Black,
-                                                lineHeight = 14.sp
+                                                lineHeight = lineHeight
                                             )
                                         }
                                     }
                                 }
+
                             } else if (pos == 5) {
                                 // Central Info Display (Spans 2x2 area 5,6,9,10 but we use box 5 as anchor)
                                 Box(modifier = Modifier.fillMaxSize().offset(x = 0.dp), contentAlignment = Alignment.Center) {
@@ -359,15 +365,16 @@ fun SouthIndianGridEnhanced(planets: List<Planet>, ascSign: String, title: Strin
                 val dob = "${birthData.optInt("day")}-${getMonthName(birthData.optInt("month"))}-${birthData.optInt("year")}"
                 val tob = String.format("%02d:%02d", birthData.optInt("hour"), birthData.optInt("minute"))
 
-                Text(dob, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                Text(tob, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                Spacer(Modifier.height(4.dp))
-                Text(title, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = TraditionalRed)
+                Text(dob, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Text(tob, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Spacer(Modifier.height(2.dp))
+                Text(title, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = TraditionalRed)
                 if (starName.isNotEmpty()) {
-                    Text(starName, fontSize = 12.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
+                    Text(starName, fontSize = 11.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
                 }
             }
         }
+
     }
 }
 
