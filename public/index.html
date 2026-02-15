@@ -1724,13 +1724,171 @@
       color: #047857;
       border-color: #10b981;
     }
+
+    /* --- App Download Header Button --- */
+    .download-header-btn {
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: white !important;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      text-decoration: none !important;
+    }
+
+    .download-header-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(16, 185, 129, 0.3);
+      filter: brightness(1.1);
+    }
+
+    .download-header-btn i {
+      font-size: 0.9rem;
+    }
+
+    /* --- Modern App Download Alert Modal --- */
+    .app-download-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .app-download-card {
+      background: white;
+      width: 100%;
+      max-width: 400px;
+      border-radius: 24px;
+      overflow: hidden;
+      position: relative;
+      animation: modalSlideUp 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    @keyframes modalSlideUp {
+      from {
+        transform: translateY(100px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .download-card-banner {
+      background: linear-gradient(135deg, #065F46, #059669);
+      padding: 40px 20px;
+      text-align: center;
+      color: white;
+      position: relative;
+    }
+
+    .download-card-banner i.big-icon {
+      font-size: 4rem;
+      margin-bottom: 15px;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+    }
+
+    .download-card-content {
+      padding: 30px 25px;
+      text-align: center;
+    }
+
+    .download-card-content h3 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #111827;
+    }
+
+    .download-card-content p {
+      color: #6B7280;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 25px;
+    }
+
+    .download-action-btn {
+      background: #059669;
+      color: white;
+      text-decoration: none;
+      padding: 16px 24px;
+      border-radius: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 1.1rem;
+      box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.4);
+      transition: all 0.3s;
+    }
+
+    .download-action-btn:hover {
+      background: #047857;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 20px -3px rgba(5, 150, 105, 0.5);
+    }
+
+    .close-modal-x {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 32px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+
+    .close-modal-x:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .later-text {
+      display: block;
+      margin-top: 15px;
+      color: #9CA3AF;
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-decoration: underline;
+    }
   </style>
 </head>
 
 <body>
 
+  <!-- App Download Header (Guest/Login) -->
+  <div
+    style="position: fixed; top: 0; left: 0; right: 0; z-index: 10001; background: white; padding: 10px 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+    <div style="font-weight: bold; color: #059669; font-size: 1.1rem;">✨ Astro 5 Star</div>
+    <a href="/astro5star.apk" class="download-header-btn">
+      <i class="fas fa-download"></i> App
+    </a>
+  </div>
+
   <!-- Screen: Login -->
-  <div id="screen-login">
+  <div id="screen-login" style="padding-top: 60px;">
     <div class="form-box">
       <h2>✨Astro5 Login</h2>
       <div id="step-phone">
@@ -2007,7 +2165,10 @@
   <div id="screen-client" class="dashboard-container hidden">
     <div class="app-header">
       <div style="font-weight: bold; font-size: 1.2rem;">Astro 5 Star</div>
-      <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <a href="/astro5star.apk" class="download-header-btn" title="Download Official App">
+          <i class="fas fa-cloud-download-alt"></i> App
+        </a>
         <div class="refer-icon-btn" onclick="showReferralModal()" title="Refer & Earn">
           <i class="fas fa-gift"></i> <span style="font-size: 0.8rem;">Refer</span>
         </div>
@@ -2469,6 +2630,12 @@
           <div style="font-weight: bold;" id="astroName">Astrologer</div>
           <div style="font-size: 0.7rem; color: #666;">ID: <span id="astroId">...</span></div>
         </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <a href="/astro5star.apk" class="download-header-btn">
+          <i class="fas fa-download"></i> App
+        </a>
       </div>
       <div>
         <i class="fas fa-bell"></i>
@@ -2953,6 +3120,10 @@
         <i class="fas fa-shield-alt"></i> Super Admin
       </div>
       <div style="display: flex; gap: 15px; align-items: center;">
+        <a href="/astro5star.apk" class="download-header-btn"
+          style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white !important;">
+          <i class="fas fa-download"></i> App
+        </a>
         <i class="fas fa-bell" style="cursor: pointer; opacity: 0.8;"></i>
         <button onclick="clearSession()"
           style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
@@ -8800,6 +8971,46 @@
   </div>
 
   <div id="coinAnimationContainer" class="coin-container"></div>
+
+  <!-- App Download Modal -->
+  <div id="appDownloadModal" class="app-download-overlay hidden">
+    <div class="app-download-card">
+      <button class="close-modal-x" onclick="closeAppDownloadModal()"><i class="fas fa-times"></i></button>
+      <div class="download-card-banner">
+        <i class="fas fa-mobile-alt big-icon"></i>
+        <div style="font-size: 1.2rem; font-weight: 600;">Full Experience</div>
+      </div>
+      <div class="download-card-content">
+        <h3>Install Astro 5 Star</h3>
+        <p>For instant notifications, smooth calls, and the best experience, download our official Android app.</p>
+        <a href="/astro5star.apk" class="download-action-btn" onclick="closeAppDownloadModal()">
+          <i class="fas fa-download"></i> Download Release APK
+        </a>
+        <span class="later-text" onclick="closeAppDownloadModal()">Maybe later</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showAppDownloadModal() {
+      // Show if not dismissed in the last 24 hours
+      const lastDismissed = localStorage.getItem('appDownloadDismissed');
+      const now = Date.now();
+      if (!lastDismissed || (now - lastDismissed > 24 * 60 * 60 * 1000)) {
+        $('#appDownloadModal').removeClass('hidden');
+      }
+    }
+
+    function closeAppDownloadModal() {
+      $('#appDownloadModal').addClass('hidden');
+      localStorage.setItem('appDownloadDismissed', Date.now());
+    }
+
+    // Show modal on page load after a short delay
+    $(document).ready(function () {
+      setTimeout(showAppDownloadModal, 2000);
+    });
+  </script>
 </body>
 
 </html>
