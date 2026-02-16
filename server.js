@@ -3469,13 +3469,17 @@ io.on('connection', (socket) => {
       const amount = parseInt(data.amount);
       if (!amount || amount < 100) return cb({ ok: false, error: 'Minimum limit 100' });
 
-      // Check Balance
-      const u = await User.findOne({ userId });
-      if (!u || u.walletBalance < amount) return cb({ ok: false, error: 'Insufficient Balance' });
+      // Attempt atomic deduction to prevent race conditions
+      const u = await User.findOneAndUpdate(
+        { userId, walletBalance: { $gte: amount } },
+        { $inc: { walletBalance: -amount } },
+        { new: true }
+      );
 
-      // DEDUCT IMMEDIATELY
-      u.walletBalance -= amount;
-      await u.save();
+      if (!u) {
+        // Either user not found OR insufficient balance
+        return cb({ ok: false, error: 'Insufficient Balance' });
+      }
 
       let w;
       try {
@@ -3488,8 +3492,8 @@ io.on('connection', (socket) => {
       } catch (dbErr) {
         // Rollback if DB creation fails
         console.error("DB Error creating withdrawal, rolling back wallet:", dbErr);
-        u.walletBalance += amount;
-        await u.save();
+        // Refund seamlessly
+        await User.updateOne({ userId }, { $inc: { walletBalance: amount } });
         return cb({ ok: false, error: 'Database Error - Try Again' });
       }
 

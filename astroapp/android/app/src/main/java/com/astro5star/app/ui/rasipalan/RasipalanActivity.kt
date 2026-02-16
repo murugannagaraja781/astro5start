@@ -240,17 +240,46 @@ fun PremiumRasipalanCard(item: RasipalanItem) {
 
 @Composable
 fun StatusIndicatorRow(label: String, status: String?) {
-    Row(
-        modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MysticTextSecondary
-        )
-        StatusChip(status ?: "Moderate")
+    val text = status ?: "Moderate"
+    val isLongText = text.length > 20
+
+    if (isLongText) {
+        Column(
+            modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth()
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleSmall,
+                color = GoldAccent,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Surface(
+                color = EmeraldStart.copy(alpha = 0.3f),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.3f))
+            ) {
+                Text(
+                    text = text,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
+                    color = MysticTextPrimary
+                )
+            }
+        }
+    } else {
+        Row(
+            modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MysticTextSecondary
+            )
+            StatusChip(text)
+        }
     }
 }
 
