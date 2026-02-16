@@ -1487,7 +1487,7 @@
         style="background:#fee2e2; color:#b91c1c; border:none; padding:6px 15px; border-radius:20px; cursor:pointer; font-weight:bold; font-size:0.9rem; display:none;">Logout</button>
       <script>
         try {
-          if (localStorage.getItem('astro_session_v1')) {
+          if (localStorage.getItem('astro_session')) {
             if (document.getElementById('staticLoginBtn')) document.getElementById('staticLoginBtn').style.display = 'none';
             if (document.getElementById('staticLogoutBtn')) document.getElementById('staticLogoutBtn').style.display = 'inline-block';
           }
@@ -4104,6 +4104,8 @@
     function loadAstroDash(user) {
       hideAllScreens();
       sAstro.classList.remove('hidden');
+      if (document.getElementById('staticHeader')) document.getElementById('staticHeader').style.display = 'none';
+
       document.getElementById('astroName').textContent = user.name;
       document.getElementById('astroId').textContent = user.userId.slice(0, 6);
 
