@@ -1481,8 +1481,18 @@
       <a href="/astro5star.apk" class="download-header-btn">
         <i class="fas fa-download"></i> App
       </a>
-      <button onclick="window.location.reload()"
+      <button id="staticLoginBtn" onclick="window.location.reload()"
         style="background:#F59E0B; color:white; border:none; padding:6px 15px; border-radius:20px; cursor:pointer; font-weight:bold; font-size:0.9rem;">Login</button>
+      <button id="staticLogoutBtn" onclick="clearSession()"
+        style="background:#fee2e2; color:#b91c1c; border:none; padding:6px 15px; border-radius:20px; cursor:pointer; font-weight:bold; font-size:0.9rem; display:none;">Logout</button>
+      <script>
+        try {
+          if (localStorage.getItem('astro_session_v1')) {
+            if (document.getElementById('staticLoginBtn')) document.getElementById('staticLoginBtn').style.display = 'none';
+            if (document.getElementById('staticLogoutBtn')) document.getElementById('staticLogoutBtn').style.display = 'inline-block';
+          }
+        } catch (e) { }
+      </script>
     </div>
   </div>
 
@@ -3642,6 +3652,9 @@
         if (referBtn) referBtn.style.display = 'flex';
         if (walletContainer) walletContainer.style.display = 'flex';
         if (logoutBtn) logoutBtn.style.display = 'inline-block';
+
+        // Also force hide static Login just in case
+        if (document.getElementById('staticLoginBtn')) document.getElementById('staticLoginBtn').style.display = 'none';
 
         if (walletBalanceSpan) {
           walletBalanceSpan.innerText = user.walletBalance || 0;
