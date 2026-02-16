@@ -58,6 +58,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.astro5star.app.utils.Localization
 import com.astro5star.app.data.model.Astrologer
+import com.astro5star.app.data.model.AuthResponse
 import com.astro5star.app.data.model.Banner
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -125,12 +126,15 @@ fun BannerSection(banners: List<Banner>) {
                     }
                     .fillMaxSize()
             ) {
-                Box(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.fillMaxSize().padding(horizontal = 0.dp)) {
                     // 1. Dynamic Background Image
+                    val imageUrl = if (banner.imageUrl.startsWith("http")) banner.imageUrl
+                                  else if (banner.imageUrl.isNotEmpty()) "${com.astro5star.app.utils.Constants.SERVER_URL}/${banner.imageUrl}"
+                                  else ""
                     AsyncImage(
-                        model = banner.imageUrl,
+                        model = imageUrl,
                         contentDescription = banner.title,
-                        contentScale = ContentScale.Crop,
+                        contentScale = ContentScale.FillBounds,
                         modifier = Modifier.fillMaxSize()
                     )
 
@@ -279,13 +283,16 @@ fun HomeScreen(
     var historySessions by remember { mutableStateOf<List<SessionHistoryItem>>(emptyList()) }
     var isHistoryLoading by remember { mutableStateOf(false) }
 
+    val tokenManager = remember { TokenManager(context) }
+    val userSession by remember { mutableStateOf(tokenManager.getUserSession()) }
+
     // Fetch History when tab 4 is selected
     LaunchedEffect(selectedTab) {
         if (selectedTab == 4 && !isGuest) {
             isHistoryLoading = true
             try {
-                val userId = TokenManager(context).getUserSession()?.userId ?: ""
-                val myRole = TokenManager(context).getUserSession()?.role ?: "client"
+                val userId = tokenManager.getUserSession()?.userId ?: ""
+                val myRole = tokenManager.getUserSession()?.role ?: "client"
                 val response = withContext(Dispatchers.IO) {
                     val client = okhttp3.OkHttpClient()
                     val request = okhttp3.Request.Builder()
@@ -514,7 +521,8 @@ fun HomeScreen(
                     onDrawerItemClick(item)
                     if (item == "Logout") onLogoutClick()
                 },
-                onClose = { scope.launch { drawerState.close() } }
+                onClose = { scope.launch { drawerState.close() } },
+                session = userSession
             )
         }
     ) {
@@ -736,7 +744,7 @@ fun PolicyLink(label: String, url: String, context: android.content.Context) {
 
 // --- 1. DRAWER ---
 @Composable
-fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit) {
+fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthResponse?) {
     val context = LocalContext.current
     ModalDrawerSheet(
         drawerContainerColor = Color(0xFFF8F9FA), // Light Color (User Request)
@@ -763,16 +771,23 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit) {
             }
 
             // Profile Section
-            Image(
-                painter = painterResource(id = com.astro5star.app.R.drawable.ic_person_placeholder),
+            val profileUrl = if (session?.image?.startsWith("http") == true) session.image
+                                else if (!session?.image.isNullOrEmpty()) "${com.astro5star.app.utils.Constants.SERVER_URL}/${session.image}"
+                                else ""
+            AsyncImage(
+                model = profileUrl,
                 contentDescription = "Profile",
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
-                    .border(2.dp, Color.Gray, CircleShape)
+                    .background(Color.White)
+                    .border(2.dp, PeacockGreen.copy(alpha=0.5f), CircleShape),
+                contentScale = ContentScale.Crop,
+                error = painterResource(id = R.drawable.ic_person_placeholder),
+                placeholder = painterResource(id = R.drawable.ic_person_placeholder)
             )
             Spacer(modifier = Modifier.height(12.dp))
-            Text("User Profile", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Color.DarkGray) // Strong Gray
+            Text(session?.name ?: "User Profile", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Color.DarkGray) // Strong Gray
             Text("Edit Profile", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
         }
 
@@ -1012,25 +1027,33 @@ fun AstrologerCard(
         ) {
              // Left Column (Avatar)
              Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(80.dp)) {
-                 Box(contentAlignment = Alignment.BottomEnd) {
+                Box(contentAlignment = Alignment.BottomEnd) {
+                    val imageUrl = if (astro.image.startsWith("http")) astro.image
+                                  else if (astro.image.isNotEmpty()) "${com.astro5star.app.utils.Constants.SERVER_URL}/${astro.image}"
+                                  else ""
                     AsyncImage(
-                        model = astro.image,
+                        model = imageUrl,
                         contentDescription = "Astrologer Image",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(70.dp)
+                            .size(72.dp)
                             .clip(CircleShape)
                             .border(2.dp, if(astro.isBusy) Color.Red else if(astro.isOnline) PeacockGreen else Color.LightGray, CircleShape),
                         error = painterResource(id = com.astro5star.app.R.drawable.ic_person_placeholder),
                         placeholder = painterResource(id = com.astro5star.app.R.drawable.ic_person_placeholder)
                     )
-                     Icon(
-                        imageVector = Icons.Filled.CheckCircle,
-                        contentDescription = "Verified",
-                        tint = Color(0xFF2196F3),
-                        modifier = Modifier.size(20.dp).background(Color.White, CircleShape).border(1.dp, Color.White, CircleShape)
-                    )
-                 }
+                    if (astro.isVerified) {
+                        Icon(
+                            imageVector = Icons.Filled.CheckCircle,
+                            contentDescription = "Verified",
+                            tint = Color(0xFF2196F3),
+                            modifier = Modifier
+                                .size(22.dp)
+                                .background(Color.White, CircleShape)
+                                .border(1.5.dp, Color.White, CircleShape)
+                        )
+                    }
+                }
                  Spacer(modifier = Modifier.height(8.dp))
                  Row(verticalAlignment = Alignment.CenterVertically) {
                      Text("${if(astro.rating > 0) astro.rating else 4.5}", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = Color.Black)
@@ -1060,12 +1083,24 @@ fun AstrologerCard(
 
                  Spacer(modifier = Modifier.height(12.dp))
 
-                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                     // Only show buttons for services the astrologer has enabled
-                     if (showChat && astro.isChatOnline) AstrologerActionButton("Chat", Icons.Rounded.Chat, !astro.isBusy, AquaBlue, { onChatClick(astro) })
-                     if (showVideo && astro.isVideoOnline) AstrologerActionButton("Video", Icons.Rounded.VideoCall, !astro.isBusy, PriceRed, { onCallClick(astro, "Video") }, Modifier.padding(start=4.dp))
-                     if (showCall && astro.isAudioOnline) AstrologerActionButton("Call", Icons.Rounded.Call, !astro.isBusy, PeacockGreen, { onCallClick(astro, "Audio") }, Modifier.padding(start=4.dp))
-                 }
+                  Row(
+                      modifier = Modifier
+                          .fillMaxWidth()
+                          .padding(top = 8.dp),
+                      horizontalArrangement = Arrangement.End,
+                      verticalAlignment = Alignment.CenterVertically
+                  ) {
+                      // Only show buttons for services the astrologer has enabled
+                      if (showChat && astro.isChatOnline) {
+                          AstrologerActionButton("Chat", Icons.Rounded.Chat, !astro.isBusy, AquaBlue, { onChatClick(astro) })
+                      }
+                      if (showVideo && astro.isVideoOnline) {
+                          AstrologerActionButton("Video", Icons.Rounded.VideoCall, !astro.isBusy, PriceRed, { onCallClick(astro, "Video") }, Modifier.padding(start=6.dp))
+                      }
+                      if (showCall && astro.isAudioOnline) {
+                          AstrologerActionButton("Call", Icons.Rounded.Call, !astro.isBusy, PeacockGreen, { onCallClick(astro, "Audio") }, Modifier.padding(start=6.dp))
+                      }
+                  }
              }
         }
     }
@@ -1192,6 +1227,7 @@ fun DailyHoroscopeCard(content: String) {
 
                 Spacer(modifier = Modifier.height(20.dp))
 
+                // Content Box
                 // Content Box
                 Box(
                     modifier = Modifier

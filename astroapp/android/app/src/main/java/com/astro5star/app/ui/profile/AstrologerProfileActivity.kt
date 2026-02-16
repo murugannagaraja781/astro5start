@@ -128,109 +128,140 @@ fun AstrologerProfileScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(80.dp)
+                    .height(120.dp)
             ) {
-                // Header extension
+                // Header with Gradient
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp)
-                        .background(peacockTeal)
+                        .height(100.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0xFF004D40), Color(0xFF00695B))
+                            )
+                        )
                 )
 
                 // Avatar
                 Box(
                     modifier = Modifier
-                        .size(100.dp)
+                        .size(110.dp)
                         .align(Alignment.BottomCenter)
-                        .offset(y = 20.dp)
+                        .shadow(8.dp, CircleShape)
                 ) {
+                    val imageUrl = if (image.startsWith("http")) image
+                                  else if (image.isNotEmpty()) "${com.astro5star.app.utils.Constants.SERVER_URL}/$image"
+                                  else ""
                     AsyncImage(
-                        model = image,
+                        model = imageUrl,
                         contentDescription = "Avatar",
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(CircleShape)
-                            .border(4.dp, Color(0xFF1B5E20), CircleShape),
+                            .background(Color.White)
+                            .border(3.dp, Color.White, CircleShape),
                         contentScale = ContentScale.Crop,
                         error = painterResource(id = R.drawable.ic_person_placeholder),
                         placeholder = painterResource(id = R.drawable.ic_person_placeholder)
                     )
-                   // Verified Badge
+                    // Verified Badge
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = "Verified",
-                        tint = Color(0xFF4CAF50),
+                        tint = Color(0xFF2196F3),
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .size(24.dp)
+                            .size(28.dp)
                             .background(Color.White, CircleShape)
+                            .border(2.dp, Color.White, CircleShape)
                             .padding(2.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Column(
-                modifier = Modifier.fillMaxWidth().offset(y = (-10).dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Background for name to make it white
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(peacockTeal, Color(0xFF00332E))
-                            )
-                        )
-                        .shadow(4.dp, RoundedCornerShape(16.dp))
-                        .padding(12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                }
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = Color.Black
+                )
 
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top=4.dp)) {
-                    Text("★★★★★", color = Color(0xFFFFC107))
-                    Text(" 8942 orders", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(start=4.dp))
+                    Text("★★★★★", color = Color(0xFFFFC107), fontSize = 16.sp)
+                    Text(" 8942 reviews", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(start=4.dp))
                 }
 
-                Text(skills, color = Color.Gray, modifier = Modifier.padding(top=4.dp))
-                Text("₹$price/min", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F), modifier = Modifier.padding(top=4.dp))
+                Text(
+                    text = skills,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(top=6.dp),
+                    textAlign = TextAlign.Center
+                )
 
-                // Stats
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFFEEBEE),
+                    modifier = Modifier.padding(top = 10.dp)
+                ) {
+                    Text(
+                        text = "₹$price/min",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFFD32F2F),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
+
+                // Stats Section
                 Row(
                    modifier = Modifier
                        .fillMaxWidth()
+                       .padding(vertical = 20.dp)
+                       .clip(RoundedCornerShape(16.dp))
+                       .background(Color(0xFFF8F9FA))
                        .padding(16.dp),
-                   horizontalArrangement = Arrangement.SpaceEvenly
+                   horizontalArrangement = Arrangement.SpaceEvenly,
+                   verticalAlignment = Alignment.CenterVertically
                 ) {
                     StatItem(icon = Icons.Default.Chat, value = "49k Mins")
+                    Box(modifier = Modifier.width(1.dp).height(24.dp).background(Color.LightGray.copy(alpha=0.6f)))
                     StatItem(icon = Icons.Default.Call, value = "31k Mins")
-                    StatItem(icon = Icons.Default.CheckCircle, value = "$exp years Exp")
+                    Box(modifier = Modifier.width(1.dp).height(24.dp).background(Color.LightGray.copy(alpha=0.6f)))
+                    StatItem(icon = Icons.Default.CheckCircle, value = "$exp Years")
                 }
 
-                // Bio
-                Text(
-                    text = "$name is a Tarot Reader in India. She loves to help her clients when they are in need. Her ...show more",
-                    modifier = Modifier.padding(horizontal = 24.dp),
-                    textAlign = TextAlign.Center,
-                    color = Color.Gray,
-                    fontSize = 14.sp
-                )
+                // Bio Section
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4).copy(alpha = 0.3f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("About Astrologer", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "$name is highly experienced in $skills. Dedicated to providing accurate guidance and helping clients find clarity in life's complex situations.",
+                            color = Color.DarkGray,
+                            fontSize = 13.sp,
+                            lineHeight = 18.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Actions
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Only show buttons for services the astrologer has enabled
                     if (isChatOnline) {
                         ActionButton(
                             icon = Icons.Default.Chat,
