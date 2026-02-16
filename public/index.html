@@ -4139,6 +4139,74 @@
       document.getElementById('astroLifetimeDisplay').innerText = Number(user.totalEarnings || 0).toFixed(2);
       document.getElementById('astroWalletDisplay').innerText = Number(user.walletBalance || 0).toFixed(2);
 
+      window.loadAstroWithdrawals = () => {
+        socket.emit('get-my-withdrawals', (res) => {
+          const list = document.getElementById('astroWithdrawList');
+          if (!list) return;
+          if (res.ok && res.list && res.list.length > 0) {
+            list.innerHTML = res.list.map(w => {
+              let statusLabel = `<span style="color:#F59E0B; font-weight:bold;">PENDING</span>`;
+              let bgColor = '#FFFBEB';
+              if (w.status === 'approved') {
+                statusLabel = `<span style="color:#059669; font-weight:bold;">APPROVED</span>`;
+                bgColor = '#ECFDF5';
+              } else if (w.status === 'rejected') {
+                statusLabel = `<span style="color:#DC2626; font-weight:bold;">REJECTED</span>`;
+                bgColor = '#FEF2F2';
+              }
+              return `
+                <div style="background:${bgColor}; padding:10px; border-radius:10px; border:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+                  <div>
+                    <div style="font-weight:bold; font-size:0.9rem;">₹${w.amount}</div>
+                    <div style="font-size:0.75rem; color:#666;">${new Date(w.requestedAt).toLocaleDateString()}</div>
+                  </div>
+                  <div style="font-size:0.8rem;">${statusLabel}</div>
+                </div>
+              `;
+            }).join('');
+          } else {
+            list.innerHTML = `<div style="text-align:center; padding:10px; color:#999; font-size:0.8rem;">No recent requests</div>`;
+          }
+        });
+
+        // Also update the summary pending amount
+        socket.emit('get-payout-status', {}, (res) => {
+          const pDiv = document.getElementById('astroPendingWithdrawals');
+          if (pDiv) {
+            if (res.pendingAmount > 0) {
+              pDiv.style.display = 'block';
+              pDiv.innerHTML = `<i class="fas fa-clock"></i> Pending Withdrawal: ₹${res.pendingAmount}`;
+            } else {
+              pDiv.style.display = 'none';
+            }
+          }
+        });
+      };
+
+      window.astroRequestWithdrawal = () => {
+        const amt = prompt("Amount to Withdraw (Min ₹100):");
+        if (!amt) return;
+        const amount = parseInt(amt);
+        if (isNaN(amount) || amount < 100) return alert("Minimum withdrawal is ₹100");
+        if (amount > (state.me.walletBalance || 0)) return alert("Insufficient Balance");
+
+        socket.emit('request-withdrawal', { amount }, (res) => {
+          if (res.ok) {
+            alert("Withdrawal request sent successfully. Amount deducted from wallet.");
+            loadAstroWithdrawals();
+            // Refresh wallet balance display
+            if (res.balance !== undefined) {
+              state.me.walletBalance = res.balance;
+              const el = document.getElementById('astroWalletDisplay');
+              if (el) el.innerText = Number(res.balance).toFixed(2);
+              saveSession(state.me);
+            }
+          } else {
+            alert(res.error || "Failed to send request");
+          }
+        });
+      };
+
       loadAstroWithdrawals();
 
       // Update Dynamic Prices
@@ -4182,16 +4250,7 @@
         saveSession(state.me);
       });
 
-      // Update Payout Status (if any pending)
-      socket.emit('get-payout-status', {}, (res) => {
-        const pDiv = document.getElementById('astroPendingWithdrawals');
-        if (res.pendingAmount > 0) {
-          pDiv.style.display = 'block';
-          pDiv.innerHTML = `<i class="fas fa-clock"></i> Pending Withdrawal: ₹${res.pendingAmount}`;
-        } else {
-          pDiv.style.display = 'none';
-        }
-      });
+      // Update Payout Status handled inside loadAstroWithdrawals
     }
 
     function setupToggle(id, type) {

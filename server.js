@@ -616,6 +616,36 @@ const AccountDeletionRequestSchema = new mongoose.Schema({
 });
 const AccountDeletionRequest = mongoose.model('AccountDeletionRequest', AccountDeletionRequestSchema);
 
+const GlobalSettingsSchema = new mongoose.Schema({
+  key: { type: String, unique: true },
+  value: mongoose.Schema.Types.Mixed
+});
+const GlobalSettings = mongoose.model('GlobalSettings', GlobalSettingsSchema);
+
+// Memory cache for performance
+let SLAB_RATES = {
+  1: 0.30,
+  2: 0.35,
+  3: 0.40,
+  4: 0.50
+};
+
+async function loadSettings() {
+  try {
+    const slabSetting = await GlobalSettings.findOne({ key: 'slab_rates' });
+    if (slabSetting) {
+      SLAB_RATES = slabSetting.value;
+      console.log('[Settings] Slab Rates loaded:', SLAB_RATES);
+    } else {
+      // Initialize if not exists
+      await GlobalSettings.create({ key: 'slab_rates', value: SLAB_RATES });
+    }
+  } catch (e) {
+    console.error('[Settings] Failed to load settings:', e);
+  }
+}
+loadSettings();
+
 
 // ===== Seed Data =====
 async function seedDatabase() {
@@ -1793,12 +1823,7 @@ async function endSessionRecord(sessionId) {
 }
 
 // --- Phase 3: Billing Helper ---
-const SLAB_RATES = {
-  1: 0.30, // 30% to Astro
-  2: 0.35, // 35%
-  3: 0.40, // 40%
-  4: 0.50  // 50%
-};
+// SLAB_RATES is now a let defined above with GlobalSettings loading logic
 
 async function processBillingCharge(sessionId, durationSeconds, minuteIndex, type) {
   try {
@@ -3452,12 +3477,21 @@ io.on('connection', (socket) => {
       u.walletBalance -= amount;
       await u.save();
 
-      const w = await Withdrawal.create({
-        astroId: userId,
-        amount,
-        status: 'pending',
-        requestedAt: Date.now()
-      });
+      let w;
+      try {
+        w = await Withdrawal.create({
+          astroId: userId,
+          amount,
+          status: 'pending',
+          requestedAt: Date.now()
+        });
+      } catch (dbErr) {
+        // Rollback if DB creation fails
+        console.error("DB Error creating withdrawal, rolling back wallet:", dbErr);
+        u.walletBalance += amount;
+        await u.save();
+        return cb({ ok: false, error: 'Database Error - Try Again' });
+      }
 
       // Emit wallet update to self
       io.to(socket.id).emit('wallet-update', { balance: u.walletBalance });
@@ -3493,10 +3527,24 @@ io.on('connection', (socket) => {
       w.processedAt = Date.now();
       await w.save();
 
-      // Notify Astro
+      // Notify Astro via Socket
       const sId = userSockets.get(u.userId);
       if (sId) {
-        io.to(sId).emit('app-notification', { text: `✅ Your withdrawal of ₹${w.amount} is approved!` });
+        io.to(sId).emit('app-notification', { text: `✅ Your withdrawal of ₹${w.amount} is approved! 2 working days logic applied.` });
+      }
+
+      // Notify Astro via FCM (Push Notification)
+      if (u.fcmToken) {
+        const fcmData = {
+          type: "withdrawal_approved",
+          withdrawalId: w._id.toString(),
+          amount: w.amount.toString()
+        };
+        const fcmNotification = {
+          title: "Withdrawal Approved! 💰",
+          body: `Your withdrawal of ₹${w.amount} has been approved. The amount will be credited to your bank account within 2 working days.`
+        };
+        sendFcmV1Push(u.fcmToken, fcmData, fcmNotification).catch(e => console.error("FCM Error:", e));
       }
 
       cb({ ok: true, balance: u.walletBalance });
@@ -3543,7 +3591,17 @@ io.on('connection', (socket) => {
       const enriched = [];
       for (const w of list) {
         const u = await User.findOne({ userId: w.astroId });
-        enriched.push({ ...w.toObject(), astroName: u ? u.name : 'Unknown' });
+        enriched.push({
+          ...w.toObject(),
+          astroName: u ? u.name : 'Unknown',
+          bankingDetails: u ? {
+            bankName: 'Details Below',
+            accountNumber: u.bankDetails || 'N/A', // Mapping free-text bank details here
+            accountHolderName: u.realName || u.name,
+            ifscCode: '-',
+            upiId: `${u.upiId || ''} ${u.upiNumber ? '(' + u.upiNumber + ')' : ''}`
+          } : null
+        });
       }
       if (typeof cb === 'function') cb({ ok: true, list: enriched });
     } catch (e) {
@@ -3575,6 +3633,65 @@ io.on('connection', (socket) => {
     } catch (e) {
       console.error(e);
       cb({ ok: false, error: 'Error' });
+    }
+  });
+
+  socket.on('get-slab-rates', async (cb) => {
+    if (!await checkAdmin(socket.id)) return;
+    cb({ ok: true, rates: SLAB_RATES });
+  });
+
+  socket.on('update-slab-rates', async (rates, cb) => {
+    if (!await checkAdmin(socket.id)) return;
+    try {
+      await GlobalSettings.updateOne({ key: 'slab_rates' }, { value: rates }, { upsert: true });
+      SLAB_RATES = rates;
+      console.log('[Admin] Slab Rates updated:', SLAB_RATES);
+      cb({ ok: true });
+    } catch (e) {
+      cb({ ok: false, error: e.message });
+    }
+  });
+
+  socket.on('send-bulk-fcm', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return;
+    try {
+      const { userIds, title, body, allUsers } = data;
+      let query = {};
+
+      if (!allUsers) {
+        if (!userIds || userIds.length === 0) return cb({ ok: false, error: 'No users selected' });
+        query = { userId: { $in: userIds } };
+      } else {
+        query = { fcmToken: { $exists: true, $ne: '' } };
+      }
+
+      const users = await User.find(query, 'userId fcmToken name');
+      const validUsers = users.filter(u => u.fcmToken);
+      let sentCount = 0;
+      let failCount = 0;
+
+      // Batch processing (Chunk size 20)
+      const chunkSize = 20;
+      for (let i = 0; i < validUsers.length; i += chunkSize) {
+        const chunk = validUsers.slice(i, i + chunkSize);
+        const promises = chunk.map(u => {
+          const fcmData = { type: 'marketing_offer', title, body };
+          const fcmNotif = { title, body };
+          return sendFcmV1Push(u.fcmToken, fcmData, fcmNotif)
+            .then(res => res.success ? 1 : 0)
+            .catch(() => 0);
+        });
+
+        const results = await Promise.all(promises);
+        const chunkSuccess = results.reduce((a, b) => a + b, 0);
+        sentCount += chunkSuccess;
+        failCount += (chunk.length - chunkSuccess);
+      }
+
+      cb({ ok: true, sentCount, failCount });
+    } catch (e) {
+      cb({ ok: false, error: e.message });
     }
   });
   // --- End Withdrawal Logic ---

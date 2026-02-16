@@ -123,7 +123,21 @@
                 </div>
             </div>
 
-            <!-- Tab 5: Academy -->
+            <!-- Tab 5: Withdrawals -->
+            <div id="admin-sect-withdrawals" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-money-bill-transfer"></i> Withdrawal Requests</h2>
+                <div class="filter-tabs" style="margin-bottom:15px;">
+                    <button class="c-tab active" onclick="filterWithdrawals('all', this)">All</button>
+                    <button class="c-tab" onclick="filterWithdrawals('pending', this)">Pending</button>
+                    <button class="c-tab" onclick="filterWithdrawals('approved', this)">Approved</button>
+                    <button class="c-tab" onclick="filterWithdrawals('rejected', this)">Rejected</button>
+                </div>
+                <div id="adminFullWithdrawalsList">
+                    <div class="loader"></div>
+                </div>
+            </div>
+
+            <!-- Tab 6: Academy -->
             <div id="admin-sect-academy" class="admin-tab-section">
                 <h2 style="margin-bottom:20px;"><i class="fas fa-graduation-cap"></i> Academy Videos</h2>
                 <div class="admin-card">
@@ -160,6 +174,101 @@
                 </div>
                 <div id="adminBannerList">
                     <div class="loader"></div>
+                </div>
+            </div>
+
+            <!-- Tab 7: Slab Rates -->
+            <div id="admin-sect-slab" class="admin-tab-section">
+                <h2 style="margin-bottom:20px; color:#1e3a8a;"><i class="fas fa-layer-group"></i> Manage Slab Rates</h2>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px;">
+                    <!-- Left: Edit Rates -->
+                    <div class="admin-card">
+                        <h4 style="border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;">Update
+                            Commission Rates</h4>
+                        <p style="font-size:0.85rem; color:#666; margin-bottom:15px;">
+                            Set the percentage shared with astrologers for each time slab. <br>
+                            <b>Example:</b> 0.40 means 40% commission.
+                        </p>
+                        <div id="slab-inputs-container">
+                            <!-- Dynamic inputs loaded here -->
+                            <div class="loader"></div>
+                        </div>
+                        <button class="cosmic-btn" style="margin-top:20px; width:100%;" onclick="saveSlabRates()">
+                            <i class="fas fa-save"></i> Update Rates
+                        </button>
+                    </div>
+
+                    <!-- Right: Rules Info -->
+                    <div class="admin-card" style="background:#F9FAFB; border:1px solid #E5E7EB;">
+                        <h4 style="border-bottom:1px solid #ddd; padding-bottom:10px; margin-bottom:15px;">ℹ️ Slab Logic
+                            Rules</h4>
+                        <div class="slab-rule-item">
+                            <div class="slab-badge">Slab 1</div>
+                            <div>
+                                <b>0 - 5 Minutes</b><br>
+                                <span style="font-size:0.8rem; color:#555;">Initial conversation phase.</span>
+                            </div>
+                        </div>
+                        <div class="slab-rule-item">
+                            <div class="slab-badge">Slab 2</div>
+                            <div>
+                                <b>6 - 10 Minutes</b><br>
+                                <span style="font-size:0.8rem; color:#555;">Engagement phase.</span>
+                            </div>
+                        </div>
+                        <div class="slab-rule-item">
+                            <div class="slab-badge">Slab 3</div>
+                            <div>
+                                <b>11 - 15 Minutes</b><br>
+                                <span style="font-size:0.8rem; color:#555;">Deep consultation phase.</span>
+                            </div>
+                        </div>
+                        <div class="slab-rule-item">
+                            <div class="slab-badge">Slab 4</div>
+                            <div>
+                                <b>16+ Minutes</b><br>
+                                <span style="font-size:0.8rem; color:#555;">Long duration retention bonus.</span>
+                            </div>
+                        </div>
+
+                        <div
+                            style="margin-top:20px; font-size:0.8rem; color:#666; padding:10px; background:#FEF3C7; border-radius:6px; border:1px solid #FCD34D;">
+                            <b>Note:</b> Commission is calculated based on the <i>total duration accumulated</i> in the
+                            current month for a specific Astrologer-Client pair.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 8: Offers & FCM -->
+            <div id="admin-sect-offers" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-bullhorn"></i> Send Offers & FCM</h2>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                    <div class="admin-card">
+                        <h4>1. Select Users</h4>
+                        <div style="margin-bottom:10px;">
+                            <label><input type="checkbox" id="fcmAllUsers" onchange="toggleFcmUserSelection()"> Send to
+                                ALL Users (with FCM token)</label>
+                        </div>
+                        <div id="fcmUserSearchContainer">
+                            <input type="text" id="fcmUserSearch" class="app-input" placeholder="Search users..."
+                                oninput="searchFcmUsers()">
+                            <div id="fcmUserList"
+                                style="max-height:300px; overflow-y:auto; border:1px solid #ddd; border-radius:8px; margin-top:10px; padding:5px;">
+                                <!-- User list with checkboxes -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="admin-card">
+                        <h4>2. Message Details</h4>
+                        <input type="text" id="fcmTitle" class="app-input"
+                            placeholder="Offer Title (e.g. 50% Cashback!)" style="margin-bottom:10px;">
+                        <textarea id="fcmBody" class="app-input" placeholder="Message content..."
+                            style="margin-bottom:10px; height:100px;"></textarea>
+                        <button id="btnSendBulkFcm" class="cosmic-btn" onclick="sendOfferFCM()">Send
+                            Notification</button>
+                    </div>
                 </div>
             </div>
 
@@ -235,11 +344,16 @@
                     class="fas fa-user-astronaut"></i><span>Astros</span></div>
             <div class="admin-nav-item" onclick="navAdmin('users', event)"><i
                     class="fas fa-users"></i><span>Users</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('withdrawals', event)"><i
+                    class="fas fa-money-bill-transfer"></i><span>Withdraws</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('slab', event)"><i
+                    class="fas fa-layer-group"></i><span>Slabs</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('offers', event)"><i
+                    class="fas fa-bullhorn"></i><span>Offers</span></div>
             <div class="admin-nav-item" onclick="navAdmin('academy', event)"><i
                     class="fas fa-graduation-cap"></i><span>Academy</span></div>
-            <div class="admin-nav-item" onclick="navAdmin('slider', event)">
-                <i class="fas fa-images"></i><span>Slider</span>
-            </div>
+            <div class="admin-nav-item" onclick="navAdmin('slider', event)"><i
+                    class="fas fa-images"></i><span>Slider</span></div>
             <div class="admin-nav-item" onclick="logout()"
                 style="margin-top: auto; color: #EF4444; border-top: 1px solid #eee;">
                 <i class="fas fa-sign-out-alt"></i><span>Logout</span>
@@ -400,8 +514,124 @@
             const sect = document.getElementById('admin-sect-' + id);
             if (sect) sect.classList.add('active');
 
+            if (id === 'withdrawals') loadAllWithdrawals();
+            if (id === 'slab') loadSlabRates();
+            if (id === 'offers') fetchOfferUsers();
+
             document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
             if (ev) ev.currentTarget.classList.add('active');
+        };
+
+        // --- Slab Rates Logic ---
+        window.loadSlabRates = () => {
+            socket.emit('get-slab-rates', (res) => {
+                if (res.ok) {
+                    const container = document.getElementById('slab-inputs-container');
+                    const slabLabels = {
+                        1: '0 - 5 Mins',
+                        2: '6 - 10 Mins',
+                        3: '11 - 15 Mins',
+                        4: '16+ Mins'
+                    };
+
+                    container.innerHTML = Object.keys(res.rates).map(k => `
+                        <div style="margin-bottom:15px;">
+                            <label style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.9rem; font-weight:600;">
+                                <span>Slab ${k} (${slabLabels[k] || 'Unknown'})</span>
+                                <span style="color:#059669;">${(res.rates[k] * 100).toFixed(0)}%</span>
+                            </label>
+                            <input type="number" step="0.01" class="app-input slab-rate-input" data-key="${k}" value="${res.rates[k]}" style="margin:0;">
+                        </div>
+                    `).join('');
+                }
+            });
+        };
+
+        window.saveSlabRates = () => {
+            const inputs = document.querySelectorAll('.slab-rate-input');
+            const rates = {};
+            inputs.forEach(i => {
+                rates[i.dataset.key] = parseFloat(i.value);
+            });
+            socket.emit('update-slab-rates', rates, (res) => {
+                if (res.ok) alert('Slab Rates Updated Successfully');
+                else alert('Error: ' + res.error);
+            });
+        };
+
+        // --- Offers / FCM Logic ---
+        let allUsersForFcm = [];
+        window.fetchOfferUsers = () => {
+            socket.emit('admin-get-users', (res) => {
+                if (res.users) {
+                    allUsersForFcm = res.users.filter(u => u.fcmToken);
+                    renderFcmUserList(allUsersForFcm);
+                }
+            });
+        };
+
+        function renderFcmUserList(list) {
+            const container = document.getElementById('fcmUserList');
+            if (list.length === 0) {
+                container.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">No users with FCM tokens found</div>';
+                return;
+            }
+            container.innerHTML = list.map(u => `
+                <div style="display:flex; align-items:center; padding:8px; border-bottom:1px solid #f3f4f6;">
+                    <input type="checkbox" class="fcm-user-checkbox" value="${u.userId}" style="margin-right:10px;">
+                    <div style="font-size:0.85rem;">
+                        <b>${u.name}</b><br>
+                        <small style="color:#666;">${u.phone} (${u.role})</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.searchFcmUsers = () => {
+            const q = document.getElementById('fcmUserSearch').value.toLowerCase();
+            const filtered = allUsersForFcm.filter(u =>
+                u.name.toLowerCase().includes(q) || u.phone.includes(q)
+            );
+            renderFcmUserList(filtered);
+        };
+
+        window.toggleFcmUserSelection = () => {
+            const isAll = document.getElementById('fcmAllUsers').checked;
+            document.getElementById('fcmUserSearchContainer').style.opacity = isAll ? '0.5' : '1';
+            document.getElementById('fcmUserSearchContainer').style.pointerEvents = isAll ? 'none' : 'auto';
+        };
+
+        window.sendOfferFCM = () => {
+            const title = document.getElementById('fcmTitle').value;
+            const body = document.getElementById('fcmBody').value;
+            const allUsers = document.getElementById('fcmAllUsers').checked;
+
+            if (!title || !body) return alert('Please enter title and body');
+
+            let userIds = [];
+            if (!allUsers) {
+                const checked = document.querySelectorAll('.fcm-user-checkbox:checked');
+                userIds = Array.from(checked).map(i => i.value);
+                if (userIds.length === 0) return alert('Select at least one user');
+            }
+
+            if (!confirm(`Send this notification to ${allUsers ? 'ALL' : userIds.length} users?`)) return;
+
+            const btn = document.getElementById('btnSendBulkFcm');
+            btn.disabled = true;
+            btn.innerText = 'Sending...';
+
+            socket.emit('send-bulk-fcm', { userIds, title, body, allUsers }, (res) => {
+                btn.disabled = false;
+                btn.innerText = 'Send Notification';
+                if (res.ok) {
+                    alert(`Success! Sent: ${res.sentCount}, Failed: ${res.failCount}`);
+                    document.getElementById('fcmTitle').value = '';
+                    document.getElementById('fcmBody').value = '';
+                } else {
+                    alert('Error: ' + res.error);
+                }
+            });
         };
 
         // Actions
@@ -496,6 +726,67 @@
         };
 
         // Withdrawals
+        let fullWithdrawalsCache = [];
+        window.loadAllWithdrawals = () => {
+            socket.emit('get-withdrawals', {}, (res) => {
+                if (res.ok) {
+                    fullWithdrawalsCache = res.list || [];
+                    renderWithdrawals(fullWithdrawalsCache);
+                }
+            });
+        };
+
+        window.filterWithdrawals = (status, btn) => {
+            $(btn).siblings().removeClass('active');
+            $(btn).addClass('active');
+            if (status === 'all') {
+                renderWithdrawals(fullWithdrawalsCache);
+            } else {
+                renderWithdrawals(fullWithdrawalsCache.filter(w => w.status === status));
+            }
+        };
+
+        function renderWithdrawals(list) {
+            const container = document.getElementById('adminFullWithdrawalsList');
+            if (list.length === 0) {
+                container.innerHTML = '<div style="padding:20px; text-align:center; color:#666;">No requests found.</div>';
+                return;
+            }
+            container.innerHTML = list.map(w => `
+                <div class="admin-card" style="margin-bottom:12px; border-left:4px solid ${w.status === 'pending' ? '#F59E0B' : (w.status === 'approved' ? '#059669' : '#DC2626')};">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                    <div style="font-weight:bold; font-size:1.05rem;">${w.astroName || 'Astrologer'}</div>
+                    <div style="font-size:0.85rem; color:#666;">Requested: ${new Date(w.requestedAt).toLocaleString()}</div>
+                    ${w.processedAt ? `<div style="font-size:0.85rem; color:#059669;">Processed: ${new Date(w.processedAt).toLocaleString()}</div>` : ''}
+
+                    ${w.bankingDetails ? `
+                    <div style="margin-top:8px; padding:8px; background:#F9FAFB; border-radius:6px; font-size:0.8rem; border:1px solid #E5E7EB;">
+                        <div style="margin-bottom:2px;"><b>Bank:</b> ${w.bankingDetails.bankName || 'N/A'}</div>
+                        <div style="margin-bottom:2px;"><b>A/C:</b> ${w.bankingDetails.accountNumber || 'N/A'} (${w.bankingDetails.accountHolderName || 'N/A'})</div>
+                        <div style="margin-bottom:2px;"><b>IFSC:</b> ${w.bankingDetails.ifscCode || 'N/A'}</div>
+                        <div style="margin-bottom:2px;"><b>UPI:</b> ${w.bankingDetails.upiId || 'N/A'}</div>
+                    </div>
+                    ` : '<div style="font-size:0.8rem; color:#991B1B; margin-top:5px;">⚠️ No Banking Details Found</div>'}
+
+                    <span style="display:inline-block; padding:2px 8px; border-radius:12px; font-size:0.75rem; margin-top:5px; font-weight:600;
+                          background:${w.status === 'pending' ? '#FEF3C7' : (w.status === 'approved' ? '#D1FAE5' : '#FEE2E2')};
+                          color:${w.status === 'pending' ? '#92400E' : (w.status === 'approved' ? '#065F46' : '#991B1B')};">
+                        ${w.status.toUpperCase()}
+                    </span>
+                </div>
+                <div style="text-align:right;">
+                            <div style="font-weight:bold; font-size:1.2rem; color:#111; margin-bottom:8px;">₹${w.amount}</div>
+                            ${w.status === 'pending' ? `
+                                <button onclick="approveW('${w._id}')" style="background:#059669; color:white; border:none; padding:6px 12px; border-radius:6px; font-weight:600; cursor:pointer; margin-right:5px;">Approve</button>
+                                <button onclick="rejectW('${w._id}')" style="background:#DC2626; color:white; border:none; padding:6px 12px; border-radius:6px; font-weight:600; cursor:pointer;">Reject</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
         function loadWithdrawals() {
             socket.emit('get-withdrawals', {}, (res) => {
                 const sect = document.getElementById('adminWithdrawalsSection');
@@ -518,12 +809,20 @@
         }
         window.approveW = (id) => {
             if (confirm('Are you sure you want to APPROVE this withdrawal and deduct from the wallet?')) {
-                socket.emit('approve-withdrawal', { withdrawalId: id }, (res) => { loadWithdrawals(); fetchAdminStats(); });
+                socket.emit('approve-withdrawal', { withdrawalId: id }, (res) => {
+                    loadWithdrawals();
+                    loadAllWithdrawals();
+                    fetchAdminStats();
+                });
             }
         };
         window.rejectW = (id) => {
             if (confirm('Are you sure you want to REJECT this withdrawal?')) {
-                socket.emit('reject-withdrawal', { withdrawalId: id }, (res) => { loadWithdrawals(); fetchAdminStats(); });
+                socket.emit('reject-withdrawal', { withdrawalId: id }, (res) => {
+                    loadWithdrawals();
+                    loadAllWithdrawals();
+                    fetchAdminStats();
+                });
             }
         };
 
