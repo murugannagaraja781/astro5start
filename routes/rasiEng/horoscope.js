@@ -17,7 +17,7 @@ router.get('/daily', async (req, res) => {
 
         // Default to today in IST (UTC+5.5)
         if (!date) {
-            date = DateTime.now().setZone('UTC+5.5').toFormat('yyyy-MM-dd');
+            date = DateTime.now().setZone('Asia/Kolkata').toFormat('yyyy-MM-dd');
         }
 
         const data = await fetchDailyHoroscope(date);
@@ -67,7 +67,7 @@ router.post('/daily', async (req, res) => {
         let { date, sign } = req.body;
 
         if (!date) {
-            date = DateTime.now().setZone('UTC+5.5').toFormat('yyyy-MM-dd');
+            date = DateTime.now().setZone('Asia/Kolkata').toFormat('yyyy-MM-dd');
         }
 
         const data = await fetchDailyHoroscope(date);

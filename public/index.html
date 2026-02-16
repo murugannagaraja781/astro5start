@@ -1384,12 +1384,16 @@
 <body>
 
   <!-- App Download Header (Guest/Login) -->
-  <div
+  <div id="staticHeader"
     style="position: fixed; top: 0; left: 0; right: 0; z-index: 10001; background: white; padding: 10px 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
     <div style="font-weight: bold; color: #059669; font-size: 1.1rem;">✨ Astro 5 Star</div>
-    <a href="/astro5star.apk" class="download-header-btn">
-      <i class="fas fa-download"></i> App
-    </a>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <a href="/astro5star.apk" class="download-header-btn">
+        <i class="fas fa-download"></i> App
+      </a>
+      <button onclick="window.location.reload()"
+        style="background:#F59E0B; color:white; border:none; padding:6px 15px; border-radius:20px; cursor:pointer; font-weight:bold; font-size:0.9rem;">Login</button>
+    </div>
   </div>
 
   <!-- Screen: Login -->
@@ -1740,6 +1744,8 @@
             flex-shrink: 0;
             background-size: cover;
             background-position: center;
+            background-color: #064E3B;
+            /* Fallback deep green */
             position: relative;
             display: flex;
             align-items: center;
@@ -2816,7 +2822,7 @@
 
                 <!-- Content: Dasha -->
                 <div id="content-dasha" class="chart-tab-content hidden" style="flex:1; overflow-y:auto;">
-                  ```
+
                 </div>
               </div>
             </div>
@@ -3421,8 +3427,8 @@
 
     function showLogin() {
       sLogin.classList.remove('hidden');
-      // Add a close button to login screen if not present, to return to guest mode?
-      // For now, standard behavior is fine. User asked to "ask login".
+      if (document.getElementById('screen-client')) document.getElementById('screen-client').classList.add('hidden');
+      if (document.getElementById('staticHeader')) document.getElementById('staticHeader').style.display = 'flex';
     }
 
     function hideAllScreens() {
@@ -3527,11 +3533,27 @@
     function loadClientDash(user) {
       hideAllScreens();
       sClient.classList.remove('hidden');
+      // Hide static header as client dash has its own
+      if (document.getElementById('staticHeader')) document.getElementById('staticHeader').style.display = 'none';
 
       const loginBtn = document.getElementById('headerLoginBtn');
 
       if (user.role === 'guest') {
-        if (loginBtn) loginBtn.style.display = 'block';
+        // GUEST VIEW
+        const guestHtml = `
+          <a href="/astro5star.apk" class="download-header-btn" title="Download Official App">
+            <i class="fas fa-cloud-download-alt"></i> App
+          </a>
+          <button id="headerLoginBtn" onclick="showLogin()"
+            style="background:#F59E0B; color:white; border:none; padding:6px 15px; border-radius:20px; cursor:pointer; font-weight:bold; font-size:0.9rem;">Login</button>
+        `;
+        const headerRight = document.querySelector('.app-header > div:last-child');
+        if (headerRight) {
+          headerRight.innerHTML = guestHtml;
+          headerRight.style.display = 'flex';
+          headerRight.style.alignItems = 'center';
+          headerRight.style.gap = '10px';
+        }
 
         const walletEl = document.getElementById('clientWallet');
         if (walletEl) {
@@ -3545,8 +3567,9 @@
 
         // Normal User - No Welcome Popup (item 2 removed)
         const walletHtml = `
-
-
+          <a href="/astro5star.apk" class="download-header-btn" title="Download Official App">
+            <i class="fas fa-cloud-download-alt"></i> App
+          </a>
           <div class="refer-icon-btn" onclick="showReferralModal()" title="Refer & Earn">
             <i class="fas fa-gift"></i> <span style="font-size: 0.8rem;">Refer</span>
           </div>
@@ -3679,34 +3702,63 @@
       const dotsCont = document.getElementById('homeSliderDots');
       if (!wrapper) return;
 
+      currentSlide = 0; // Reset index on new render
+      wrapper.style.transform = 'translateX(0)';
+
       if (banners.length === 0) {
         // Fallback or Empty State
         wrapper.innerHTML = `
-          < div class="home-slide" style = "background-image: url('https://via.placeholder.com/600x300/1e3a8a/FFFFFF?text=Welcome+to+Astro5');" >
+          <div class="home-slide" style="background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%);">
             <div class="slide-content">
-              <div class="slide-title">Welcome to Astro5</div>
-              <div class="slide-subtitle">Connect with top astrologers instantly.</div>
+              <div class="slide-title">Premium Consultation</div>
+              <div class="slide-subtitle">50% Off Today</div>
+              <div class="slide-cta">Book Now <i class="fas fa-arrow-right"></i></div>
             </div>
-          </div >
-          `;
+          </div>
+          <div class="home-slide" style="background: linear-gradient(135deg, #059669 0%, #10B981 100%);">
+            <div class="slide-content">
+              <div class="slide-title">Find Your Soulmate</div>
+              <div class="slide-subtitle">Vedic Compatibility</div>
+              <div class="slide-cta">Check Match <i class="fas fa-arrow-right"></i></div>
+            </div>
+          </div>
+          <div class="home-slide" style="background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%);">
+            <div class="slide-content">
+              <div class="slide-title">Career Guidance</div>
+              <div class="slide-subtitle">Success Ahead</div>
+              <div class="slide-cta">View Path <i class="fas fa-arrow-right"></i></div>
+            </div>
+          </div>
+        `;
+
+        // Dots for fallback
+        if (dotsCont) {
+          dotsCont.innerHTML = `
+                <div class="slider-dot active" onclick="goToSlide(0)"></div>
+                <div class="slider-dot" onclick="goToSlide(1)"></div>
+                <div class="slider-dot" onclick="goToSlide(2)"></div>
+            `;
+        }
+
+        startSliderAutoScroll(3);
         return;
       }
 
       // Render Slides
       wrapper.innerHTML = banners.map(b => `
-          < div class="home-slide" style = "background-image: url('${b.imageUrl}');" >
+          <div class="home-slide" style="background-image: url('${b.imageUrl}'); cursor:pointer;" onclick="handleBannerClick('${b._id || b.id}')">
             <div class="slide-content">
               <div class="slide-title" style="${!b.title ? 'display:none' : ''}">${b.title}</div>
               <div class="slide-subtitle" style="${!b.subtitle ? 'display:none' : ''}">${b.subtitle}</div>
-              ${b.ctaText ? `<div class="slide-cta" onclick="handleBannerClick('${b._id}')">${b.ctaText} <i class="fas fa-arrow-right" style="font-size:0.7rem; margin-left:4px;"></i></div>` : ''}
+              ${b.ctaText ? `<div class="slide-cta">${b.ctaText} <i class="fas fa-arrow-right" style="font-size:0.7rem; margin-left:4px;"></i></div>` : ''}
             </div>
-         </div >
+          </div>
           `).join('');
 
       // Render Dots
       if (dotsCont) {
         dotsCont.innerHTML = banners.map((_, i) => `
-          < div class="slider-dot ${i === 0 ? 'active' : ''}" onclick = "goToSlide(${i})" ></div >
+          <div class="slider-dot ${i === 0 ? 'active' : ''}" onclick="goToSlide(${i})"></div>
             `).join('');
       }
 
@@ -3721,7 +3773,7 @@
       if (!wrapper) return;
 
       currentSlide = index;
-      wrapper.style.transform = `translateX(-${index * 100} %)`;
+      wrapper.style.transform = `translateX(-${index * 100}%)`;
 
       dots.forEach((d, i) => d.classList.toggle('active', i === index));
     }

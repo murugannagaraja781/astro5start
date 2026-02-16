@@ -881,9 +881,9 @@ app.get('/api/home/banners', async (req, res) => {
       return res.json({
         ok: true,
         data: [
-          { id: '1', imageUrl: "https://via.placeholder.com/600x300/1B5E20/FFFFFF?text=Astro+Premium", title: "Premium Consultation", subtitle: "50% Off Today", ctaText: "Book Now" },
-          { id: '2', imageUrl: "https://via.placeholder.com/600x300/43A047/FFFFFF?text=Love+Match", title: "Find Your Soulmate", subtitle: "Vedic Compatibility", ctaText: "Check Match" },
-          { id: '3', imageUrl: "https://via.placeholder.com/600x300/66BB6A/FFFFFF?text=Career+Growth", title: "Career Guidance", subtitle: "Success Ahead", ctaText: "View Path" }
+          { id: '1', _id: '1', imageUrl: "https://images.unsplash.com/photo-1532983330958-4b32bb9bb078?q=80&w=1200", title: "Premium Consultation", subtitle: "50% Off Today", ctaText: "Book Now" },
+          { id: '2', _id: '2', imageUrl: "https://images.unsplash.com/photo-1516589174184-c68d8e01d300?q=80&w=1200", title: "Find Your Soulmate", subtitle: "Vedic Compatibility", ctaText: "Check Match" },
+          { id: '3', _id: '3', imageUrl: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1200", title: "Career Guidance", subtitle: "Success Ahead", ctaText: "View Path" }
         ]
       });
     }
