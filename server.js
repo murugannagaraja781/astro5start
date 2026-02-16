@@ -2472,12 +2472,33 @@ io.on('connection', (socket) => {
           io.to(fromUserId).emit('session-ended', { sessionId, reason: 'no_answer' });
           io.to(toUserId).emit('session-ended', { sessionId, reason: 'missed' });
 
+          // --- MISS LOGIC START ---
+          const astro = await User.findOne({ userId: toUserId });
+          if (astro && astro.role === 'astrologer') {
+            astro.isOnline = false;
+            astro.isAvailable = false;
+            await astro.save();
+            broadcastAstroUpdate(); // Ensure this function is defined/imported
+
+            // Notify Super Admin
+            const reasonMsg = `Missed Call Alert: ${astro.name} failed to answer in 30s. Automatically marked OFFLINE.`;
+            io.to('superadmin').emit('admin-notification', { text: reasonMsg, type: 'missed_call', astroId: toUserId });
+
+            // Log to text file (as requested)
+            const logMsg = `[${new Date().toISOString()}] MISSED CALL: Astrologer ${astro.name} (${astro.phone}) missed a call from ${fromUserId}. Marked OFFLINE.\n`;
+            const fs = require('fs');
+            fs.appendFile('missed_calls_log.txt', logMsg, (err) => {
+              if (err) console.error('Error writing to log file', err);
+            });
+          }
+          // --- MISS LOGIC END ---
+
           userActiveSession.delete(fromUserId);
           userActiveSession.delete(toUserId);
           activeSessions.delete(sessionId);
           await Session.updateOne({ sessionId }, { status: 'missed', endTime: Date.now() }).catch(() => { });
         }
-      }, 25000);
+      }, 30000); // 30 Seconds Timeout
     } catch (err) {
       console.error('request-session error', err);
       cb({ ok: false, error: 'Internal error' });

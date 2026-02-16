@@ -1676,6 +1676,10 @@
     <div class="app-header">
       <div style="font-weight: bold; font-size: 1.2rem;">Astro 5 Star</div>
       <div style="display: flex; align-items: center; gap: 10px;">
+        <!-- Login Button (Visible when Guest) -->
+        <button id="headerLoginBtn" onclick="showLogin()"
+          style="background:#F59E0B; color:white; border:none; padding:6px 15px; border-radius:20px; cursor:pointer; font-weight:bold; font-size:0.9rem; display:none;">Login</button>
+
         <a href="/astro5star.apk" class="download-header-btn" title="Download Official App">
           <i class="fas fa-cloud-download-alt"></i> App
         </a>
@@ -3522,15 +3526,21 @@
       hideAllScreens();
       sClient.classList.remove('hidden');
 
+      const loginBtn = document.getElementById('headerLoginBtn');
+
       if (user.role === 'guest') {
+        if (loginBtn) loginBtn.style.display = 'block';
+
         const walletEl = document.getElementById('clientWallet');
         if (walletEl) {
-          walletEl.parentElement.innerHTML = '<button onclick="showLogin()" style="background:#F59E0B; color:white; border:none; padding:5px 15px; border-radius:20px; cursor:pointer; font-weight:bold; font-size:0.9rem;">Login</button>';
+          // Keep wallet but maybe show 0
         }
         if (document.getElementById('dashWalletBalance')) {
           document.getElementById('dashWalletBalance').innerText = '0.00';
         }
       } else {
+        if (loginBtn) loginBtn.style.display = 'none';
+
         // Normal User - No Welcome Popup (item 2 removed)
         const walletHtml = `
 
