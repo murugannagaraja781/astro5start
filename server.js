@@ -149,11 +149,29 @@ let SERVER_URL = process.env.SERVER_URL || '';
 
 // Middleware to capture host for absolute image paths
 app.use((req, res, next) => {
-  if (!SERVER_URL && req.get('host')) {
-    SERVER_URL = `${req.protocol}://${req.get('host')}`;
-    // console.log(`[Config] Set SERVER_URL to ${SERVER_URL}`);
+  if (!SERVER_URL) {
+    const host = req.get('x-forwarded-host') || req.get('host');
+    const protocol = req.get('x-forwarded-proto') || req.protocol;
+    if (host) {
+      SERVER_URL = `${protocol}://${host}`;
+      console.log(`[Config] Automatically detected SERVER_URL: ${SERVER_URL}`);
+    }
   }
   next();
+});
+
+// Diagnostic route to check server URL
+app.get('/api/check-server-url', (req, res) => {
+  res.json({
+    ok: true,
+    serverUrl: SERVER_URL,
+    headers: {
+      host: req.get('host'),
+      forwardedHost: req.get('x-forwarded-host'),
+      forwardedProto: req.get('x-forwarded-proto'),
+      protocol: req.protocol
+    }
+  });
 });
 
 function formatImageUrl(imgPath, name) {
@@ -162,7 +180,9 @@ function formatImageUrl(imgPath, name) {
   }
   if (imgPath.startsWith('http')) return imgPath;
   if (SERVER_URL) {
-    return `${SERVER_URL}${imgPath.startsWith('/') ? '' : '/'}${imgPath}`;
+    // Ensure imgPath starts with / for joining
+    const path = imgPath.startsWith('/') ? imgPath : `/${imgPath}`;
+    return `${SERVER_URL}${path}`;
   }
   return imgPath;
 }
@@ -1273,7 +1293,7 @@ app.post('/api/verify-otp', async (req, res) => {
       phone: user.phone,
       walletBalance: user.walletBalance,
       totalEarnings: user.totalEarnings || 0,
-      image: user.image,
+      image: formatImageUrl(user.image, user.name),
       ratePerMinute: user.ratePerMinute
     });
   }
@@ -1303,7 +1323,7 @@ app.post('/api/verify-otp', async (req, res) => {
       phone: user.phone,
       walletBalance: user.walletBalance,
       totalEarnings: user.totalEarnings || 0,
-      image: user.image
+      image: formatImageUrl(user.image, user.name)
     });
   }
 
@@ -1351,7 +1371,7 @@ app.post('/api/verify-otp', async (req, res) => {
       phone: user.phone,
       walletBalance: user.walletBalance,
       totalEarnings: user.totalEarnings || 0,
-      image: user.image,
+      image: formatImageUrl(user.image, user.name),
       referralCode: user.referralCode,
       isNewUser: user.isNewUser,
       approvalStatus: user.approvalStatus,
