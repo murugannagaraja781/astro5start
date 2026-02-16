@@ -1779,7 +1779,7 @@
         <button id="headerLoginBtn" onclick="showLogin()"
           style="background:#F59E0B; color:white; border:none; padding:6px 15px; border-radius:20px; cursor:pointer; font-weight:bold; font-size:0.9rem; display:none;">Login</button>
 
-        <div class="refer-icon-btn" onclick="showReferralModal()" title="Refer & Earn">
+        <div id="headerReferBtn" class="refer-icon-btn" onclick="showReferralModal()" title="Refer & Earn">
           <i class="fas fa-gift"></i> <span style="font-size: 0.8rem;">Refer</span>
         </div>
         <span id="walletContainer" onclick="refreshWallet()"
@@ -1788,7 +1788,8 @@
           <i id="walletSpinner" class="fas fa-sync-alt"
             style="display: none; font-size: 0.8rem; animation: spin 1s linear infinite;"></i>
         </span>
-        <i class="fas fa-sign-out-alt" style="cursor: pointer; font-size: 1.2rem;" onclick="clearSession()"></i>
+        <i id="headerLogoutBtn" class="fas fa-sign-out-alt" style="cursor: pointer; font-size: 1.2rem;"
+          onclick="clearSession()"></i>
       </div>
 
     </div>
@@ -3622,52 +3623,28 @@
 
       const loginBtn = document.getElementById('headerLoginBtn');
 
-      if (user.role === 'guest') {
-        // GUEST VIEW
-        const guestHtml = `
-          <a href="/astro5star.apk" class="download-header-btn" title="Download Official App">
-            <i class="fas fa-cloud-download-alt"></i> App
-          </a>
-          <button id="headerLoginBtn" onclick="showLogin()"
-            style="background:#F59E0B; color:white; border:none; padding:6px 15px; border-radius:20px; cursor:pointer; font-weight:bold; font-size:0.9rem;">Login</button>
-        `;
-        const headerRight = document.querySelector('.app-header > div:last-child');
-        if (headerRight) {
-          headerRight.innerHTML = guestHtml;
-          headerRight.style.display = 'flex';
-          headerRight.style.alignItems = 'center';
-          headerRight.style.gap = '10px';
-        }
+      const referBtn = document.getElementById('headerReferBtn');
+      const walletContainer = document.getElementById('walletContainer');
+      const logoutBtn = document.getElementById('headerLogoutBtn');
+      const walletBalanceSpan = document.getElementById('clientWallet');
 
-        const walletEl = document.getElementById('clientWallet');
-        if (walletEl) {
-          // Keep wallet but maybe show 0
-        }
+      if (user.role === 'guest') {
+        if (loginBtn) loginBtn.style.display = 'block';
+        if (referBtn) referBtn.style.display = 'none';
+        if (walletContainer) walletContainer.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+
         if (document.getElementById('dashWalletBalance')) {
           document.getElementById('dashWalletBalance').innerText = '0.00';
         }
       } else {
         if (loginBtn) loginBtn.style.display = 'none';
+        if (referBtn) referBtn.style.display = 'flex';
+        if (walletContainer) walletContainer.style.display = 'flex';
+        if (logoutBtn) logoutBtn.style.display = 'inline-block';
 
-        // Normal User - No Welcome Popup (item 2 removed)
-        const walletHtml = `
-          <a href="/astro5star.apk" class="download-header-btn" title="Download Official App">
-            <i class="fas fa-cloud-download-alt"></i> App
-          </a>
-          <div class="refer-icon-btn" onclick="showReferralModal()" title="Refer & Earn">
-            <i class="fas fa-gift"></i> <span style="font-size: 0.8rem;">Refer</span>
-          </div>
-          <span id="walletContainer" onclick="refreshWallet()" style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
-            <i class="fas fa-wallet"></i> ₹<span id="clientWallet">${user.walletBalance || 0}</span>
-          </span>
-          <i class="fas fa-sign-out-alt" onclick="clearSession()" title="Logout" style="cursor: pointer; font-size: 1.2rem; color: #EF4444; margin-left: 5px;"></i>
-        `;
-        const headerRight = document.querySelector('.app-header > div:last-child');
-        if (headerRight) {
-          headerRight.style.display = 'flex';
-          headerRight.style.alignItems = 'center';
-          headerRight.style.gap = '12px';
-          headerRight.innerHTML = walletHtml;
+        if (walletBalanceSpan) {
+          walletBalanceSpan.innerText = user.walletBalance || 0;
         }
 
 

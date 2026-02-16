@@ -576,10 +576,8 @@ fun HomeScreen(
                         item { TopServicesSection() }
                     }
 
-                    // 1. Daily Horoscope Card (Only on Home)
-                    if (selectedTab == 0) {
-                        item { DailyHoroscopeCard(horoscope) }
-                    }
+                    // 1. Daily Horoscope Card removed
+
 
                     // 2. Banner (Only on Home)
                     if (selectedTab == 0) {
