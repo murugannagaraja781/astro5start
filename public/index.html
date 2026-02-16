@@ -1059,63 +1059,153 @@
     }
 
     /* Horoscope UI */
+    /* Premium Horoscope UI */
     .zodiac-scroller {
       display: flex;
       overflow-x: auto;
-      gap: 12px;
-      padding: 10px 0;
+      gap: 16px;
+      padding: 15px 5px;
       scrollbar-width: none;
-      /* Firefox */
-      margin-bottom: 15px;
+      margin-bottom: 20px;
+      -webkit-overflow-scrolling: touch;
     }
 
     .zodiac-scroller::-webkit-scrollbar {
       display: none;
-      /* Chrome/Safari */
     }
 
     .zodiac-item {
       flex: 0 0 auto;
-      width: 70px;
+      width: 75px;
       text-align: center;
-      padding: 10px 5px;
-      border-radius: 12px;
-      background: white;
-      border: 1px solid #eee;
+      padding: 12px 8px;
+      border-radius: 18px;
+      background: #ffffff;
+      border: 1px solid #f1f5f9;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .zodiac-item:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      border-color: #f59e0b;
     }
 
     .zodiac-item.active {
-      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
       color: white;
-      border-color: #D97706;
-      transform: scale(1.05);
-      box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3);
+      border-color: #f59e0b;
+      transform: scale(1.1);
+      box-shadow: 0 10px 20px -5px rgba(245, 158, 11, 0.4);
     }
 
     .zodiac-icon {
-      font-size: 1.4rem;
-      font-weight: bold;
-      margin-bottom: 5px;
+      font-size: 1.6rem;
+      margin-bottom: 8px;
       display: block;
-      color: #D97706;
+      transition: transform 0.3s;
+    }
+
+    .zodiac-item.active .zodiac-icon {
+      transform: scale(1.2);
     }
 
     .zodiac-name {
       font-size: 0.75rem;
-      font-weight: 600;
+      font-weight: 700;
+      letter-spacing: 0.025em;
     }
 
     .horoscope-card {
-      background: white;
-      border-radius: 16px;
-      padding: 20px;
-      border: 1px solid #f3f4f6;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-      margin-bottom: 20px;
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 24px;
+      border: 1px solid #f1f5f9;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+      margin-bottom: 30px;
       position: relative;
       overflow: hidden;
+      background-image: radial-gradient(at 0% 0%, rgba(245, 158, 11, 0.05) 0, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(5, 150, 105, 0.05) 0, transparent 50%);
+    }
+
+    .horoscope-card::before {
+      content: 'ॐ';
+      position: absolute;
+      right: -20px;
+      bottom: -30px;
+      font-size: 15rem;
+      color: rgba(245, 158, 11, 0.03);
+      filter: blur(1px);
+      pointer-events: none;
+    }
+
+    .horoscope-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .horoscope-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .horoscope-main-title {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #0f172a;
+      background: linear-gradient(90deg, #0f172a, #334155);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .date-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.1);
+      padding: 4px 12px;
+      border-radius: 50px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .horoscope-content-box {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: #334155;
+      font-weight: 500;
+      min-height: 80px;
+      transition: opacity 0.3s;
+    }
+
+    .horoscope-content-box.hidden {
+      opacity: 0;
+    }
+
+    .loading-spinner {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: #f59e0b;
+    }
+
+    .loading-spinner i {
+      font-size: 1.5rem;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     .horoscope-card::before {
@@ -1902,31 +1992,25 @@
         </style>
 
         <!-- Horoscope Section -->
-        <div id="dailyHoroscopeSection" style="margin-bottom: 20px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3 style="margin:0; font-size:1.1rem; color:#374151;"> ராசிபலன்</h3>
-            <span id="horoscopeDate"
-              style="font-size:0.8rem; color:#6b7280; background:#f3f4f6; padding:2px 8px; border-radius:10px;">Today</span>
+        <div id="dailyHoroscopeSection" style="margin-bottom: 30px;">
+          <div class="horoscope-header">
+            <div class="horoscope-title-group">
+              <span id="activeSignIcon" style="font-size: 1.5rem;">♈</span>
+              <h3 class="horoscope-main-title" id="activeSignName">மேஷம்</h3>
+            </div>
+            <span id="horoscopeDate" class="date-badge">Loading...</span>
           </div>
 
           <div class="zodiac-scroller" id="zodiacScroller">
             <!-- Dynamic Zodiac Signs -->
           </div>
 
-          <div class="horoscope-card" id="horoscopeDisplay">
-            <div id="horoscopeLoading" style="text-align:center; padding:20px; color:#d97706;">
-              <i class="fas fa-circle-notch fa-spin"></i> Loading...
+          <div class="horoscope-card">
+            <div id="horoscopeLoading" class="loading-spinner">
+              <i class="fas fa-circle-notch"></i>
             </div>
-            <div id="horoscopeContent" class="hidden">
-              <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                <div id="activeSignIcon"
-                  style="font-size:1.5rem; background:#fff7ed; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
-                  ♈</div>
-                <div style="font-weight:bold; font-size:1.1rem; color:#1f2937;" id="activeSignName">Aries</div>
-              </div>
-              <p id="horoscopeText" style="font-size:0.95rem; line-height:1.6; color:#4b5563; margin:0;">
-                Select a sign to see your daily prediction.
-              </p>
+            <div class="horoscope-content-box" id="horoscopeContent">
+              உங்கள் ராசிபலனை அறிய மேலே உள்ள ராசியைத் தேர்ந்தெடுக்கவும்...
             </div>
           </div>
         </div>

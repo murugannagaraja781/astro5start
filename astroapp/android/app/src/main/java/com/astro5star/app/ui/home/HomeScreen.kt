@@ -1013,14 +1013,16 @@ fun AstrologerCard(
              // Left Column (Avatar)
              Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(80.dp)) {
                  Box(contentAlignment = Alignment.BottomEnd) {
-                    Image(
-                        painter = painterResource(id = com.astro5star.app.R.drawable.ic_person_placeholder),
-                        contentDescription = null,
+                    AsyncImage(
+                        model = astro.image,
+                        contentDescription = "Astrologer Image",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(70.dp)
                             .clip(CircleShape)
-                            .border(2.dp, if(astro.isBusy) Color.Red else if(astro.isOnline) PeacockGreen else Color.LightGray, CircleShape)
+                            .border(2.dp, if(astro.isBusy) Color.Red else if(astro.isOnline) PeacockGreen else Color.LightGray, CircleShape),
+                        error = painterResource(id = com.astro5star.app.R.drawable.ic_person_placeholder),
+                        placeholder = painterResource(id = com.astro5star.app.R.drawable.ic_person_placeholder)
                     )
                      Icon(
                         imageVector = Icons.Filled.CheckCircle,
@@ -1103,75 +1105,132 @@ fun HomeBottomBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {
 
 @Composable
 fun DailyHoroscopeCard(content: String) {
-    // Breathing Animation
-    val infiniteTransition = rememberInfiniteTransition(label = "CardBreath")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.01f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "CardScale"
-    )
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
-        shape = RoundedCornerShape(20.dp),
+            .shadow(
+                elevation = 12.dp,
+                shape = RoundedCornerShape(24.dp),
+                spotColor = PeacockGreen,
+                ambientColor = Color.Black
+            ),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, PeacockGreen.copy(alpha = 0.3f))
+        border = androidx.compose.foundation.BorderStroke(1.dp, PeacockGreen.copy(alpha = 0.2f))
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 12.dp)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // Background Decorative Gradient
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(PeacockGreen.copy(alpha = 0.05f), Color.Transparent)
+                        )
+                    )
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
             ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = PeacockGreen,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Star,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Sacred Horoscope",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = 0.5.sp
+                                ),
+                                color = RoyalMidnightBlue
+                            )
+                            Text(
+                                text = "Daily Cosmic Guidance",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+
+                    // Date Badge
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = PeacockGreen.copy(alpha = 0.1f),
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) {
+                        Text(
+                            text = "Feb 16",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = PeacockGreen
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Content Box
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
-                        .background(PeacockGreen.copy(alpha = 0.1f), CircleShape),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .background(Color(0xFFF8F9FA), RoundedCornerShape(16.dp))
+                        .padding(16.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Star,
-                        contentDescription = null,
-                        tint = PeacockGreen,
-                        modifier = Modifier.size(24.dp)
+                    Text(
+                        text = content,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            lineHeight = 22.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = Color.DarkGray,
+                        maxLines = 4,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "Daily Horoscope",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = RoyalMidnightBlue
-                    )
-                    Text(
-                        text = "இன்றைய ராசிபலன்",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = PeacockGreen
-                    )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Row for "Read More" and Share
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = { /* Navigate to Detail */ },
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                    ) {
+                        Text(
+                            "Full Insight →",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = PeacockGreen
+                        )
+                    }
                 }
             }
-
-            Text(
-                text = content,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    lineHeight = 22.sp,
-                    color = Color.DarkGray
-                )
-            )
         }
     }
 }

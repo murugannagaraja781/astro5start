@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.astro5star.app.R
 import com.astro5star.app.ui.theme.CosmicAppTheme
+import coil.compose.AsyncImage
 
 class AstrologerProfileActivity : ComponentActivity() {
 
@@ -144,27 +145,16 @@ fun AstrologerProfileScreen(
                         .align(Alignment.BottomCenter)
                         .offset(y = 20.dp)
                 ) {
-                    androidx.compose.ui.viewinterop.AndroidView(
-                        factory = { context ->
-                           android.widget.ImageView(context).apply {
-                               scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
-                               // Simple circle mask using background if needed, but better to use Image with clip
-                           }
-                        },
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape)
-                            .border(4.dp, Color(0xFF1B5E20), CircleShape)
-                    )
-                    // Simplified: Since Coil implementation is harder in AndroidView here, I'll use icon placeholder for now
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_person_placeholder),
+                    AsyncImage(
+                        model = image,
                         contentDescription = "Avatar",
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(CircleShape)
                             .border(4.dp, Color(0xFF1B5E20), CircleShape),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(id = R.drawable.ic_person_placeholder),
+                        placeholder = painterResource(id = R.drawable.ic_person_placeholder)
                     )
                    // Verified Badge
                     Icon(
