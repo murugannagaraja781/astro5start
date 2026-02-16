@@ -144,6 +144,29 @@ const compression = require('compression');
 app.use(compression());
 app.use(cors({ origin: "*" }));
 
+// Global to store server URL for absolute image paths
+let SERVER_URL = process.env.SERVER_URL || '';
+
+// Middleware to capture host for absolute image paths
+app.use((req, res, next) => {
+  if (!SERVER_URL && req.get('host')) {
+    SERVER_URL = `${req.protocol}://${req.get('host')}`;
+    // console.log(`[Config] Set SERVER_URL to ${SERVER_URL}`);
+  }
+  next();
+});
+
+function formatImageUrl(imgPath, name) {
+  if (!imgPath) {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=random`;
+  }
+  if (imgPath.startsWith('http')) return imgPath;
+  if (SERVER_URL) {
+    return `${SERVER_URL}${imgPath.startsWith('/') ? '' : '/'}${imgPath}`;
+  }
+  return imgPath;
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));  // Serve static files
@@ -696,7 +719,7 @@ app.get('/api/user/:userId', async (req, res) => {
       isAudioOnline: user.isAudioOnline || false,
       isVideoOnline: user.isVideoOnline || false,
       totalEarnings: user.totalEarnings || 0,
-      image: user.image,
+      image: formatImageUrl(user.image, user.name),
       referralCode: user.referralCode,
       isNewUser: user.isNewUser
     });
@@ -729,7 +752,7 @@ app.get('/api/astrology/astrologers', async (req, res) => {
       experience: a.experience || 0,
       isVerified: a.isVerified || false,
       isBusy: a.isBusy || false,
-      image: a.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=random`,
+      image: formatImageUrl(a.image, a.name),
       walletBalance: a.walletBalance // Optional
     }));
 
@@ -887,7 +910,11 @@ app.get('/api/home/banners', async (req, res) => {
         ]
       });
     }
-    res.json({ ok: true, data: banners });
+    const formattedBanners = banners.map(b => ({
+      ...b.toObject ? b.toObject() : b,
+      imageUrl: formatImageUrl(b.imageUrl, 'Banner')
+    }));
+    res.json({ ok: true, data: formattedBanners });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -2176,7 +2203,11 @@ io.on('connection', (socket) => {
       console.log('Fetching astrologers for broadcast...');
       const astros = await User.find({ role: 'astrologer' }).lean();
       console.log(`Broadcasting update for ${astros.length} astrologers.`);
-      io.emit('astrologer-update', astros);
+      const formattedAstros = astros.map(a => ({
+        ...a,
+        image: formatImageUrl(a.image, a.name)
+      }));
+      io.emit('astrologer-update', formattedAstros);
     } catch (e) {
       console.error('Broadcast Error:', e);
     }
@@ -3215,7 +3246,9 @@ io.on('connection', (socket) => {
       // Notify the specific user if online
       const sId = userSockets.get(user.userId);
       if (sId) {
-        io.to(sId).emit('my-profile-updated', user);
+        const formattedUser = user.toObject ? user.toObject() : user;
+        formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
+        io.to(sId).emit('my-profile-updated', formattedUser);
       }
 
       cb({ ok: true, user });
