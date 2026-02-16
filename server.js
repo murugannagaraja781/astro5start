@@ -368,8 +368,24 @@ connectDB();
 const UserSchema = new mongoose.Schema({
   userId: { type: String, unique: true },
   phone: { type: String, unique: true },
-  name: String,
+  name: String, // Display Name
+  realName: String, // New
+  gender: String, // New
+  dob: String, // New
+  tob: String, // New
+  pob: String, // New
+  cellNumber2: String, // New
+  whatsAppNumber: String, // New
+  address: String, // New
+  aadharNumber: String, // New
+  panNumber: String, // New
+  astrologyExperience: String, // New
+  profession: String, // New
+  bankDetails: String, // New
+  upiId: String, // New
+  upiNumber: String, // New
   role: { type: String, enum: ['client', 'astrologer', 'superadmin'], default: 'client' },
+  approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' }, // New
   isOnline: { type: Boolean, default: false },
   isChatOnline: { type: Boolean, default: false },
   isAudioOnline: { type: Boolean, default: false },
@@ -378,11 +394,11 @@ const UserSchema = new mongoose.Schema({
   skills: [String],
   price: { type: Number, default: 20 },
   walletBalance: { type: Number, default: 108 },
-  totalEarnings: { type: Number, default: 0 }, // Phase 16: Lifetime Earnings
+  totalEarnings: { type: Number, default: 0 },
   experience: { type: Number, default: 0 },
-  isVerified: { type: Boolean, default: false }, // Blue Tick
-  isDocumentVerified: { type: Boolean, default: false }, // Legacy Boolean
-  documentStatus: { type: String, enum: ['none', 'processing', 'verified'], default: 'none' }, // New Status
+  isVerified: { type: Boolean, default: false },
+  isDocumentVerified: { type: Boolean, default: false },
+  documentStatus: { type: String, default: 'none' },
   image: { type: String, default: '' },
   birthDetails: {
     dob: String,
@@ -391,28 +407,21 @@ const UserSchema = new mongoose.Schema({
     lat: Number,
     lon: Number
   },
-  // Phase Extra: Persistent Intake Form Details
   intakeDetails: {
     gender: String,
     marital: String,
     occupation: String,
     topic: String,
-    partner: {
-      name: String,
-      dob: String,
-      tob: String,
-      pob: String
-    }
+    partner: { name: String, dob: String, tob: String, pob: String }
   },
-  // Phase 2: Reliable Calling Fields
-  isAvailable: { type: Boolean, default: false }, // Explicit Online Toggle
-  isBusy: { type: Boolean, default: false }, // Currently in session
-  availabilityExpiresAt: Date, // Safety timeout
-  fcmToken: String, // Push Notification Token
-  lastSeen: { type: Date, default: Date.now },
-  // Referral System Fields
+  isAvailable: { type: Boolean, default: false },
+  ratePerMinute: { type: Number, default: 10 },
   referralCode: { type: String, unique: true, sparse: true },
-  referredBy: { type: String, default: null }, // userId of the referrer
+  fcmToken: { type: String, default: '' },
+  lastSeen: { type: Date, default: Date.now },
+  isBusy: { type: Boolean, default: false },
+  availabilityExpiresAt: Date,
+  referredBy: { type: String, default: null },
   referralCount: { type: Number, default: 0 },
   isNewUser: { type: Boolean, default: true }
 });
@@ -1317,7 +1326,9 @@ app.post('/api/verify-otp', async (req, res) => {
       totalEarnings: user.totalEarnings || 0,
       image: user.image,
       referralCode: user.referralCode,
-      isNewUser: user.isNewUser // Tell the frontend to show the popup
+      isNewUser: user.isNewUser,
+      approvalStatus: user.approvalStatus,
+      documentStatus: user.documentStatus
     });
   } catch (e) {
     res.status(500).json({ ok: false, error: 'DB Error' });
@@ -1993,6 +2004,79 @@ io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
 
   // --- Register user ---
+  // --- Register New Astrologer ---
+  socket.on('submit-astro-registration', async (data, cb) => {
+    try {
+      const {
+        realName,
+        displayName,
+        gender,
+        dob,
+        tob,
+        pob,
+        cellNumber1,
+        cellNumber2,
+        whatsAppNumber,
+        address,
+        aadharNumber,
+        panNumber,
+        astrologyExperience,
+        profession,
+        bankDetails,
+        upiId,
+        upiNumber
+      } = data;
+
+      // Basic Validation
+      if (!cellNumber1 || !realName) {
+        return cb({ ok: false, error: 'Mandatory fields missing' });
+      }
+
+      // Check if phone already exists
+      const existing = await User.findOne({ phone: cellNumber1 });
+      if (existing) {
+        return cb({ ok: false, error: 'Phone number already registered' });
+      }
+
+      const userId = 'ASTRO_' + Date.now() + Math.floor(Math.random() * 1000);
+      const newUser = new User({
+        userId,
+        phone: cellNumber1,
+        name: displayName || realName,
+        realName,
+        gender,
+        birthDetails: { dob, tob, pob, lat: 0, lon: 0 }, // Using lat/0 lon/0 as placeholder
+        cellNumber2,
+        whatsAppNumber,
+        address,
+        aadharNumber,
+        panNumber,
+        astrologyExperience,
+        profession,
+        bankDetails,
+        upiId,
+        upiNumber,
+        role: 'astrologer',
+        approvalStatus: 'pending', // Explicit pending status
+        isVerified: false,
+        documentStatus: 'processing',
+        walletBalance: 0,
+        image: 'images/default-user.png' // Configurable later
+      });
+
+      await newUser.save();
+      console.log('New Astrologer Registration:', newUser.name, newUser.userId);
+
+      // Notify Super Admin if online
+      io.to('superadmin').emit('admin-notification', { text: `New Astrologer Request: ${newUser.name}` });
+
+      cb({ ok: true });
+    } catch (e) {
+      console.error('Registration Error:', e);
+      cb({ ok: false, error: 'Server Error' });
+    }
+  });
+
   // --- Register user ---
   socket.on('register', (data, cb) => {
     try {
@@ -2089,9 +2173,13 @@ io.on('connection', (socket) => {
 
   async function broadcastAstroUpdate() {
     try {
+      console.log('Fetching astrologers for broadcast...');
       const astros = await User.find({ role: 'astrologer' });
+      console.log(`Broadcasting update for ${astros.length} astrologers.`);
       io.emit('astrologer-update', astros);
-    } catch (e) { }
+    } catch (e) {
+      console.error('Broadcast Error:', e);
+    }
   }
 
   // --- Get Astrologers List ---
@@ -3098,7 +3186,16 @@ io.on('connection', (socket) => {
       await user.save();
       console.log(`Admin updated user ${user.name}:`, updates);
 
-      if (user.role === 'astrologer') broadcastAstroUpdate();
+      if (user.role === 'astrologer') {
+        console.log('Broadcasting update for astrologer:', user.name);
+        await broadcastAstroUpdate();
+      }
+
+      // Notify the specific user if online
+      const sId = userSockets.get(user.userId);
+      if (sId) {
+        io.to(sId).emit('my-profile-updated', user);
+      }
 
       cb({ ok: true, user });
     } catch (e) {
@@ -3153,6 +3250,45 @@ io.on('connection', (socket) => {
         if (s) io.to(s).emit('force-logout'); // Need to handle client side
       }
     } catch (e) { cb({ ok: false }); }
+  });
+
+  socket.on('admin-get-pending-requests', async (cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    try {
+      const pending = await User.find({ approvalStatus: 'pending', role: 'astrologer' });
+      cb({ ok: true, requests: pending });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false });
+    }
+  });
+
+  socket.on('admin-approve-astrologer', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    try {
+      const { userId, action } = data; // action: 'approve' | 'reject'
+      const user = await User.findOne({ userId });
+      if (!user) return cb({ ok: false, error: 'User not found' });
+
+      if (action === 'approve') {
+        user.approvalStatus = 'approved';
+        user.isVerified = true;
+        user.documentStatus = 'verified';
+        await user.save();
+
+        // Notify user via WhatsApp (Manual step or automated script if API exists)
+        // For now, if they try to login, they will see dashboard
+      } else if (action === 'reject') {
+        user.approvalStatus = 'rejected';
+        await user.save();
+      }
+
+      console.log(`Admin ${action}ed astrologer: ${user.name}`);
+      cb({ ok: true });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false });
+    }
   });
 
   // Phase 10: Ledger Stats

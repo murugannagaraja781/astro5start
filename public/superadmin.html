@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Astro 5 Star - Super Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/smoothness/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="superadmin.css">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <div class="app-header" style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color:white;">
+            <div style="font-weight: bold; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+                <img src="images/astro_5_star_logo.png" style="height: 30px; filter: brightness(0) invert(1);"
+                    alt="Logo">
+                <i class="fas fa-shield-alt"></i> Super Admin Dashboard
+            </div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <button onclick="logout()"
+                    style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+                    <i class="fas fa-power-off"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <div class="admin-content-area">
+            <!-- Tab 1: Home -->
+            <div id="admin-sect-home" class="admin-tab-section active">
+                <div class="dashboard-header">
+                    <h2 class="dashboard-title"><i class="fas fa-chart-line"></i> Overview</h2>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="card-icon revenue-icon"><i class="fas fa-rupee-sign"></i></div>
+                        <div id="quickRev" class="stat-value">₹0</div>
+                        <div class="stat-label">Total Revenue</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="card-icon profit-icon"><i class="fas fa-chart-line"></i></div>
+                        <div id="quickProfit" class="stat-value">₹0</div>
+                        <div class="stat-label">Net Profit</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="card-icon payout-icon"><i class="fas fa-wallet"></i></div>
+                        <div id="quickPayout" class="stat-value">₹0</div>
+                        <div class="stat-label">Astro Payout</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="card-icon activity-icon"><i class="fas fa-clock"></i></div>
+                        <div id="quickMins" class="stat-value">0</div>
+                        <div class="stat-label">Mins Billed</div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="revenueChart" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- Tab 2: Earnings -->
+            <div id="admin-sect-earnings" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-chart-pie"></i> Financial Ledger</h2>
+                <div class="admin-card" style="padding:0; overflow:hidden;">
+                    <table style="width:100%; border-collapse:collapse;">
+                        <thead style="background:#f9fafb; border-bottom:1px solid #eee;">
+                            <tr>
+                                <th style="padding:15px; text-align:left;">Type</th>
+                                <th style="padding:15px; text-align:center;">Count</th>
+                                <th style="padding:15px; text-align:right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fullLedgerBody">
+                            <tr>
+                                <td colspan="3">
+                                    <div class="loader"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 3: Payouts/Astrologers -->
+            <div id="admin-sect-payouts" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-user-astronaut"></i> Astrologer Management</h2>
+
+                <div id="adminPendingAstrologersSection" style="display:none; margin-bottom:20px;">
+                    <div class="admin-card" style="background:#ECFDF5; border:1px solid #10B981;">
+                        <h4 style="margin-top:0; color:#065F46;">Pending Registrations</h4>
+                        <div id="adminPendingAstrologersList">
+                            <div class="loader"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="adminWithdrawalsSection" style="display:none; margin-bottom:20px;">
+                    <div class="admin-card" style="background:#FEF3C7; border:1px solid #FCD34D;">
+                        <h4 style="margin-top:0; color:#92400E;">Pending Withdrawals</h4>
+                        <div id="adminWithdrawalsList">
+                            <div class="loader"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="adminAstroList">
+                    <div class="loader"></div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Users -->
+            <div id="admin-sect-users" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-users"></i> User Directory</h2>
+                <div style="margin-bottom:20px;">
+                    <input type="text" id="adminUserSearch" oninput="searchAdminUsers()"
+                        placeholder="Search users by name, phone or ID..." class="app-input">
+                </div>
+                <div id="adminClientList">
+                    <div class="loader"></div>
+                </div>
+            </div>
+
+            <!-- Tab 5: Academy -->
+            <div id="admin-sect-academy" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-graduation-cap"></i> Academy Videos</h2>
+                <div class="admin-card">
+                    <h4>Add New Video</h4>
+                    <input type="text" id="academyTitle" class="app-input" placeholder="Title"
+                        style="margin-bottom:10px;">
+                    <input type="text" id="academyUrl" class="app-input" placeholder="YouTube URL"
+                        style="margin-bottom:10px;">
+                    <input type="text" id="academyCategory" class="app-input" placeholder="Category"
+                        style="margin-bottom:10px;">
+                    <button class="cosmic-btn" onclick="addAcademyVideo()">Add Video</button>
+                </div>
+                <div id="adminAcademyList">
+                    <div class="loader"></div>
+                </div>
+            </div>
+
+            <!-- Tab 6: Slider -->
+            <div id="admin-sect-slider" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-images"></i> App Slider Banners</h2>
+                <div class="admin-card">
+                    <h4>Add New Banner</h4>
+                    <input type="text" id="bannerTitle" class="app-input" placeholder="Title"
+                        style="margin-bottom:10px;">
+                    <input type="text" id="bannerSubtitle" class="app-input" placeholder="Subtitle"
+                        style="margin-bottom:10px;">
+                    <input type="text" id="bannerImageUrl" class="app-input" placeholder="Image URL"
+                        style="margin-bottom:10px;">
+                    <input type="text" id="bannerCta" class="app-input" placeholder="CTA Text"
+                        style="margin-bottom:10px;">
+                    <input type="number" id="bannerOrder" class="app-input" placeholder="Order"
+                        style="margin-bottom:10px;">
+                    <button class="cosmic-btn" onclick="addBanner()">Add Banner</button>
+                </div>
+                <div id="adminBannerList">
+                    <div class="loader"></div>
+                </div>
+            </div>
+
+            <div class="admin-footer">
+                <div class="admin-footer-content">
+                    <div class="admin-footer-section">
+                        <div class="admin-footer-item"><i class="fas fa-users"></i> Users: <span
+                                id="footerTotalUsers">...</span></div>
+                        <div class="admin-footer-item"><i class="fas fa-wallet"></i> Revenue: <span
+                                id="footerRevenue">...</span></div>
+                        <div class="admin-footer-item"><i class="fas fa-clock"></i> <span id="footerTime">--:--</span>
+                        </div>
+                    </div>
+                    <div class="admin-footer-divider"></div>
+                    <div style="text-align:center; opacity:0.6;">Astro 5 Star Admin v2.0 © 2026</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modals -->
+        <div id="adminEditModal" class="modal-overlay hidden">
+            <div class="admin-card" style="width:90%; max-width:400px;">
+                <h3>Edit Profile</h3>
+                <input type="hidden" id="adminEditUserId">
+                <div style="text-align:center; margin-bottom:15px;">
+                    <img id="adminEditAvatar"
+                        style="width:80px; height:80px; border-radius:50%; object-fit:cover; border: 3px solid #eee; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                    <div style="margin-top:10px;">
+                        <input type="file" id="adminAvatarFile" style="display:none;" onchange="uploadAvatar(this)">
+                        <button class="btn-admin" style="background:#eee; color:black; font-size:0.7rem;"
+                            onclick="document.getElementById('adminAvatarFile').click()">Change Photo</button>
+                    </div>
+                </div>
+                <input type="text" id="adminEditName" class="app-input" placeholder="Name" style="margin-bottom:10px;">
+                <div id="adminEditAstroFields" style="display:none;">
+                    <input type="number" id="adminEditPrice" class="app-input" placeholder="Price"
+                        style="margin-bottom:10px;">
+                    <label><input type="checkbox" id="adminEditVerified"> Verified Badge</label>
+                </div>
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button class="btn-admin" style="background:#eee; color:black;"
+                        onclick="closeModal('adminEditModal')">Cancel</button>
+                    <button class="btn-admin" style="background:#1e40af;" onclick="saveAdminEditUser()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-admin-role-modal" class="modal-overlay hidden">
+            <div class="admin-card" style="width:90%; max-width:400px;">
+                <h3>Change Role</h3>
+                <select id="adminRoleSelect" class="app-input" style="margin-bottom:20px;">
+                    <option value="client">Client</option>
+                    <option value="astrologer">Astrologer</option>
+                    <option value="superadmin">Super Admin</option>
+                </select>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-admin" style="background:#eee; color:black;"
+                        onclick="closeModal('screen-admin-role-modal')">Cancel</button>
+                    <button class="btn-admin" style="background:#3b82f6;"
+                        onclick="submitAdminRoleChange()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="admin-nav">
+            <div class="admin-nav-item active" onclick="navAdmin('home', event)"><i
+                    class="fas fa-home"></i><span>Dash</span>
+            </div>
+            <div class="admin-nav-item" onclick="navAdmin('earnings', event)"><i
+                    class="fas fa-chart-pie"></i><span>Earnings</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('payouts', event)"><i
+                    class="fas fa-user-astronaut"></i><span>Astros</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('users', event)"><i
+                    class="fas fa-users"></i><span>Users</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('academy', event)"><i
+                    class="fas fa-graduation-cap"></i><span>Academy</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('slider', event)">
+                <i class="fas fa-images"></i><span>Slider</span>
+            </div>
+            <div class="admin-nav-item" onclick="logout()"
+                style="margin-top: auto; color: #EF4444; border-top: 1px solid #eee;">
+                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const socket = io();
+        let adminUsersCache = [];
+        let state = { me: null };
+        let roleChangeTargetId = null;
+        let tempAvatarUrl = null;
+
+        // Boot
+        function init() {
+            console.log('Initializing Super Admin Dashboard...');
+            const saved = localStorage.getItem('astro_session');
+            if (!saved) {
+                console.log('No session found, redirecting to home.');
+                return location.href = '/';
+            }
+
+            let session;
+            try {
+                session = JSON.parse(saved);
+            } catch (e) {
+                console.error('Session parse error', e);
+                localStorage.removeItem('astro_session');
+                return location.href = '/';
+            }
+
+            if (session.role !== 'superadmin') {
+                console.log('User is not superadmin, redirecting.');
+                return location.href = '/';
+            }
+
+            state.me = session;
+
+            console.log('Registering socket for Super Admin...');
+            socket.emit('register', { name: session.name, phone: session.phone, userId: session.userId }, (ack) => {
+                if (ack && ack.ok) {
+                    console.log('Super Admin Registered Successfully.');
+                    loadData();
+                    setInterval(updateTime, 60000);
+                    updateTime();
+                } else {
+                    console.error('Registration failed:', ack);
+                    alert('Session expired or invalid. Please login again.');
+                    localStorage.removeItem('astro_session');
+                    location.href = '/';
+                }
+            });
+        }
+
+        function loadData() {
+            fetchAdminStats();
+            fetchAllUsers();
+            fetchAcademyVideos();
+            fetchBanners();
+            loadWithdrawals();
+            loadPendingAstrologers();
+        }
+
+        function fetchAdminStats() {
+            socket.emit('admin-get-ledger-stats', {}, (res) => {
+                if (res.ok) {
+                    setText('quickRev', '₹' + res.stats.totalRevenue);
+                    setText('quickProfit', '₹' + res.stats.adminProfit);
+                    setText('quickPayout', '₹' + res.stats.astroPayout);
+                    setText('quickMins', Math.round(res.stats.totalDuration / 60));
+
+                    setText('footerTotalUsers', res.stats.totalUsers);
+                    setText('footerRevenue', '₹' + res.stats.totalRevenue);
+
+                    renderLedger(res.fullLedger);
+                    renderChart(res.stats);
+                }
+            });
+        }
+
+        function fetchAllUsers() {
+            socket.emit('get-all-users', (res) => {
+                if (res.ok) {
+                    adminUsersCache = res.users;
+                    renderUsers();
+                }
+            });
+        }
+
+        function renderLedger(ledger) {
+            const body = document.getElementById('fullLedgerBody');
+            if (!body) return;
+            if (!ledger || ledger.length === 0) {
+                body.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px;">No records</td></tr>';
+                return;
+            }
+            const agg = {};
+            ledger.forEach(l => {
+                if (!agg[l.type]) agg[l.type] = { count: 0, amount: 0 };
+                agg[l.type].count++;
+                agg[l.type].amount += (l.amount || 0);
+            });
+            body.innerHTML = Object.keys(agg).map(k => `
+        <tr>
+          <td style="padding:15px; border-bottom:1px solid #eee;">${k.toUpperCase().replace('_', ' ')}</td>
+          <td style="padding:15px; border-bottom:1px solid #eee; text-align:center;">${agg[k].count}</td>
+          <td style="padding:15px; border-bottom:1px solid #eee; text-align:right; font-weight:700; color:#059669;">₹${agg[k].amount}</td>
+        </tr>
+      `).join('');
+        }
+
+        function renderUsers() {
+            const clientList = document.getElementById('adminClientList');
+            const astroList = document.getElementById('adminAstroList');
+
+            const astros = adminUsersCache.filter(u => u.role === 'astrologer');
+            const clients = adminUsersCache.filter(u => u.role !== 'superadmin');
+
+            astroList.innerHTML = astros.map(u => renderUserCard(u)).join('');
+            clientList.innerHTML = clients.map(u => renderUserCard(u)).join('');
+        }
+
+        function renderUserCard(u) {
+            const isAstro = u.role === 'astrologer';
+            return `
+        <div class="admin-user-card">
+          <div class="admin-user-header">
+            <div>
+              <div class="admin-user-name">${u.name} ${u.isVerified ? '<i class="fas fa-check-circle" style="color:#3B82F6;"></i>' : ''}</div>
+              <div style="font-size:0.8rem; color:#6B7280;">${u.phone} | ID: ${u.userId.slice(0, 6)}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:700; color:#059669;">₹${u.walletBalance || 0}</div>
+              <span class="user-pill">${u.role.toUpperCase()}</span>
+            </div>
+          </div>
+          <div class="admin-actions">
+            <button class="btn-admin btn-wallet" onclick="adminWallet('${u.userId}')"><i class="fas fa-plus"></i> Wallet</button>
+            <button class="btn-admin btn-role" onclick="adminRole('${u.userId}', '${u.role}')"><i class="fas fa-user-tag"></i> Role</button>
+            <button class="btn-admin btn-role" style="background:#6366F1;" onclick="openEditUser('${u.userId}')"><i class="fas fa-edit"></i> Edit</button>
+            <button class="btn-admin btn-block" onclick="toggleBan('${u.userId}', ${!u.isBanned})" style="background:${u.isBanned ? '#EF4444' : '#eee'}; color:${u.isBanned ? 'white' : '#666'};">
+              <i class="fas fa-ban"></i> ${u.isBanned ? 'Unblock' : 'Block'}
+            </button>
+          </div>
+        </div>
+      `;
+        }
+
+        // Tabs
+        window.navAdmin = (id, ev) => {
+            document.querySelectorAll('.admin-tab-section').forEach(s => s.classList.remove('active'));
+            const sect = document.getElementById('admin-sect-' + id);
+            if (sect) sect.classList.add('active');
+
+            document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
+            if (ev) ev.currentTarget.classList.add('active');
+        };
+
+        // Actions
+        window.adminWallet = (uid) => {
+            const amt = prompt("Amount to ADD:");
+            if (amt) socket.emit('admin-add-wallet', { userId: uid, amount: parseInt(amt) }, (res) => { alert(res.msg); fetchAllUsers(); });
+        };
+
+        window.adminRole = (uid, current) => {
+            roleChangeTargetId = uid;
+            document.getElementById('adminRoleSelect').value = current;
+            document.getElementById('screen-admin-role-modal').classList.remove('hidden');
+        };
+
+        window.submitAdminRoleChange = () => {
+            const role = document.getElementById('adminRoleSelect').value;
+            socket.emit('admin-update-role', { userId: roleChangeTargetId, role }, (res) => {
+                if (res.ok) { alert('Updated'); closeModal('screen-admin-role-modal'); fetchAllUsers(); }
+            });
+        };
+
+        window.toggleBan = (uid, status) => {
+            if (confirm(status ? 'Block?' : 'Unblock?')) {
+                socket.emit('admin-toggle-ban', { userId: uid, isBanned: status }, (res) => { fetchAllUsers(); });
+            }
+        };
+
+        window.searchAdminUsers = () => {
+            const q = document.getElementById('adminUserSearch').value.toLowerCase();
+            const filtered = adminUsersCache.filter(u => u.name?.toLowerCase().includes(q) || u.phone?.includes(q));
+            document.getElementById('adminClientList').innerHTML = filtered.map(u => renderUserCard(u)).join('');
+        };
+
+        // Academy
+        async function fetchAcademyVideos() {
+            const res = await fetch('/api/academy/videos').then(r => r.json());
+            if (res.ok) renderAcademy(res.videos);
+        }
+        function renderAcademy(videos) {
+            document.getElementById('adminAcademyList').innerHTML = videos.map(v => `
+        <div class="admin-card" style="display:flex; justify-content:space-between; align-items:center;">
+          <div><b>${v.title}</b><br><small>${v.category}</small></div>
+          <button class="btn-admin btn-delete" style="flex:none; width:auto;" onclick="deleteVideo('${v._id}')"><i class="fas fa-trash"></i></button>
+        </div>
+      `).join('');
+        }
+        window.addAcademyVideo = async () => {
+            const title = document.getElementById('academyTitle').value;
+            const youtubeUrl = document.getElementById('academyUrl').value;
+            const category = document.getElementById('academyCategory').value;
+            await fetch('/api/admin/academy/videos', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, youtubeUrl, category })
+            });
+            fetchAcademyVideos();
+        };
+        window.deleteVideo = async (id) => {
+            if (confirm('Delete?')) { await fetch('/api/admin/academy/videos/' + id, { method: 'DELETE' }); fetchAcademyVideos(); }
+        };
+
+        // Banners
+        async function fetchBanners() {
+            const res = await fetch('/api/admin/banners').then(r => r.json());
+            if (res.ok) renderBanners(res.banners);
+        }
+        function renderBanners(banners) {
+            document.getElementById('adminBannerList').innerHTML = banners.map(b => `
+        <div class="admin-card" style="display:flex; gap:15px; align-items:center;">
+          <img src="${b.imageUrl}" style="width:60px; height:40px; border-radius:4px; object-fit:cover;">
+          <div style="flex:1;"><b>${b.title}</b></div>
+          <button class="btn-admin btn-delete" style="flex:none; width:auto;" onclick="deleteBanner('${b._id}')"><i class="fas fa-trash"></i></button>
+        </div>
+      `).join('');
+        }
+        window.addBanner = async () => {
+            const payload = {
+                title: document.getElementById('bannerTitle').value,
+                subtitle: document.getElementById('bannerSubtitle').value,
+                imageUrl: document.getElementById('bannerImageUrl').value,
+                ctaText: document.getElementById('bannerCta').value,
+                order: parseInt(document.getElementById('bannerOrder').value || 0),
+                isActive: true
+            };
+            await fetch('/api/admin/banners', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            fetchBanners();
+        };
+        window.deleteBanner = async (id) => {
+            if (confirm('Delete?')) { await fetch('/api/admin/banners/' + id, { method: 'DELETE' }); fetchBanners(); }
+        };
+
+        // Withdrawals
+        function loadWithdrawals() {
+            socket.emit('get-withdrawals', {}, (res) => {
+                const sect = document.getElementById('adminWithdrawalsSection');
+                if (res.ok && res.list?.filter(x => x.status === 'pending').length > 0) {
+                    sect.style.display = 'block';
+                    document.getElementById('adminWithdrawalsList').innerHTML = res.list.filter(x => x.status === 'pending').map(w => `
+            <div class="admin-card" style="margin-bottom:10px; border-left:4px solid #F59E0B;">
+              <div style="display:flex; justify-content:space-between;">
+                <div><b>${w.astroName}</b><br><small>${new Date(w.requestedAt).toLocaleString()}</small></div>
+                <div style="text-align:right;">
+                  <b style="color:#DC2626; font-size:1.1rem;">₹${w.amount}</b><br>
+                  <button onclick="approveW('${w._id}')" style="background:#059669; color:white; border:none; padding:4px 8px; border-radius:4px;">Approve</button>
+                  <button onclick="rejectW('${w._id}')" style="background:#DC2626; color:white; border:none; padding:4px 8px; border-radius:4px;">Reject</button>
+                </div>
+              </div>
+            </div>
+          `).join('');
+                } else { sect.style.display = 'none'; }
+            });
+        }
+        window.approveW = (id) => {
+            if (confirm('Are you sure you want to APPROVE this withdrawal and deduct from the wallet?')) {
+                socket.emit('approve-withdrawal', { withdrawalId: id }, (res) => { loadWithdrawals(); fetchAdminStats(); });
+            }
+        };
+        window.rejectW = (id) => {
+            if (confirm('Are you sure you want to REJECT this withdrawal?')) {
+                socket.emit('reject-withdrawal', { withdrawalId: id }, (res) => { loadWithdrawals(); fetchAdminStats(); });
+            }
+        };
+
+        window.uploadAvatar = async (input) => {
+            if (!input.files[0]) return;
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            const btn = input.nextElementSibling;
+            const oldText = btn.textContent;
+            btn.textContent = 'Uploading...';
+
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData }).then(r => r.json());
+                if (res.ok) {
+                    tempAvatarUrl = res.url;
+                    document.getElementById('adminEditAvatar').src = res.url;
+                    btn.textContent = 'Uploaded';
+                    setTimeout(() => btn.textContent = 'Change Photo', 2000);
+                } else {
+                    alert('Upload Failed');
+                    btn.textContent = oldText;
+                }
+            } catch (e) {
+                alert('Error uploading');
+                btn.textContent = oldText;
+            }
+        };
+
+        // Pending Registrations
+        function loadPendingAstrologers() {
+            socket.emit('admin-get-pending-requests', (res) => {
+                const sect = document.getElementById('adminPendingAstrologersSection');
+                if (res.ok && res.requests && res.requests.length > 0) {
+                    sect.style.display = 'block';
+                    document.getElementById('adminPendingAstrologersList').innerHTML = res.requests.map(u => `
+                        <div class="admin-card" style="margin-bottom:10px; background:white;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                <div>
+                                    <div style="font-weight:bold; font-size:1.1rem;">${u.name} (Real: ${u.realName})</div>
+                                    <div style="font-size:0.9rem; color:#555;">📱 ${u.phone}</div>
+                                    <div style="font-size:0.8rem; margin-top:5px;">
+                                        Gender: ${u.intakeDetails?.gender || u.gender}<br>
+                                        Exp: ${u.astrologyExperience} | Prof: ${u.profession}
+                                    </div>
+                                    <div style="font-size:0.8rem; margin-top:5px; color:#666;">
+                                        <i>Address: ${u.address}</i>
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <button onclick="approveRegistration('${u.userId}', 'approve')"
+                                        style="background:#059669; color:white; border:none; padding:8px 12px; border-radius:6px; margin-bottom:5px; cursor:pointer;">
+                                        <i class="fas fa-check"></i> Approve
+                                    </button><br>
+                                    <button onclick="approveRegistration('${u.userId}', 'reject')"
+                                        style="background:#DC2626; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">
+                                        <i class="fas fa-times"></i> Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    sect.style.display = 'none';
+                }
+            });
+        }
+
+        window.approveRegistration = (uid, action) => {
+            if (confirm(`Are you sure you want to ${action.toUpperCase()} this request?`)) {
+                socket.emit('admin-approve-astrologer', { userId: uid, action }, (res) => {
+                    if (res.ok) {
+                        alert('Success');
+                        loadPendingAstrologers();
+                        fetchAllUsers(); // Refresh main list too
+                    }
+                });
+            }
+        };
+
+        // Utils
+        function setText(id, val) { const el = document.getElementById(id); if (el) el.innerText = val; }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function updateTime() { const timeEl = document.getElementById('footerTime'); if (timeEl) timeEl.innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+
+        function logout() { localStorage.removeItem('astro_session'); location.href = '/'; }
+
+        function renderChart(stats) {
+            const ctx = document.getElementById('revenueChart')?.getContext('2d');
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{ label: 'Revenue', data: [0, 0, 0, 0, 0, stats.totalRevenue], borderColor: '#10B981', tension: 0.4 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        window.openEditUser = (uid) => {
+            const u = adminUsersCache.find(x => x.userId === uid);
+            if (!u) return;
+            document.getElementById('adminEditUserId').value = u.userId;
+            document.getElementById('adminEditName').value = u.name;
+            document.getElementById('adminEditAvatar').src = u.image || `https://ui-avatars.com/api/?name=${u.name}`;
+            const astroFields = document.getElementById('adminEditAstroFields');
+            if (u.role === 'astrologer') {
+                astroFields.style.display = 'block';
+                document.getElementById('adminEditPrice').value = u.price || 20;
+                document.getElementById('adminEditVerified').checked = u.isVerified || false;
+            } else {
+                astroFields.style.display = 'none';
+            }
+            document.getElementById('adminEditModal').classList.remove('hidden');
+            tempAvatarUrl = null; // Reset for new edit
+        };
+
+        window.saveAdminEditUser = () => {
+            const uid = document.getElementById('adminEditUserId').value;
+            const name = document.getElementById('adminEditName').value;
+            const u = adminUsersCache.find(x => x.userId === uid);
+            const updates = { name };
+            if (tempAvatarUrl) updates.image = tempAvatarUrl;
+            if (u.role === 'astrologer') {
+                updates.price = document.getElementById('adminEditPrice').value;
+                updates.isVerified = document.getElementById('adminEditVerified').checked;
+            }
+            socket.emit('admin-update-user-details', { userId: uid, updates }, (res) => {
+                if (res.ok) { alert('Updated'); closeModal('adminEditModal'); fetchAllUsers(); }
+            });
+        };
+
+        socket.on('admin-notification', (msg) => {
+            // Create Popup
+            const div = document.createElement('div');
+            div.className = 'admin-notification-popup';
+            div.id = `notif-${msg.data ? msg.data.withdrawalId : Date.now()}`;
+            div.innerHTML = `
+                 <div style="font-weight:bold; margin-bottom:5px; color:#111;">🔔 Notification</div>
+                 <div style="margin-bottom:10px; color:#555;">${msg.text}</div>
+                 ${msg.data && msg.data.withdrawalId ?
+                    `<button class="approve" onclick="approveW('${msg.data.withdrawalId}')">Accept & Deduct</button>` : ''}
+                 <button class="close" onclick="this.parentElement.remove()">Close</button>
+              `;
+            document.body.appendChild(div);
+
+            // Sound Effect
+            try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch (e) { }
+        });
+
+        init();
+    </script>
+</body>
+
+</html>
