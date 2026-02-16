@@ -370,8 +370,10 @@
             const isAstro = u.role === 'astrologer';
             return `
         <div class="admin-user-card">
-          <div class="admin-user-header">
-            <div>
+          <div class="admin-user-header" style="align-items: center; gap: 12px; display: flex;">
+            <img src="${u.image || 'https://ui-avatars.com/api/?name=' + u.name + '&background=random'}"
+                 style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid #eee;">
+            <div style="flex: 1;">
               <div class="admin-user-name">${u.name} ${u.isVerified ? '<i class="fas fa-check-circle" style="color:#3B82F6;"></i>' : ''}</div>
               <div style="font-size:0.8rem; color:#6B7280;">${u.phone} | ID: ${u.userId.slice(0, 6)}</div>
             </div>

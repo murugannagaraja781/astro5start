@@ -729,7 +729,7 @@ app.get('/api/astrology/astrologers', async (req, res) => {
       experience: a.experience || 0,
       isVerified: a.isVerified || false,
       isBusy: a.isBusy || false,
-      image: a.image || '',
+      image: a.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=random`,
       walletBalance: a.walletBalance // Optional
     }));
 
@@ -2174,7 +2174,7 @@ io.on('connection', (socket) => {
   async function broadcastAstroUpdate() {
     try {
       console.log('Fetching astrologers for broadcast...');
-      const astros = await User.find({ role: 'astrologer' });
+      const astros = await User.find({ role: 'astrologer' }).lean();
       console.log(`Broadcasting update for ${astros.length} astrologers.`);
       io.emit('astrologer-update', astros);
     } catch (e) {
