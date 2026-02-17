@@ -1948,12 +1948,11 @@
           style="margin-bottom: 25px; overflow-x: auto; -webkit-overflow-scrolling: touch;">
           <div style="display: flex; gap: 12px; padding: 5px 0;">
             <div class="service-item-card"
-              onclick="document.getElementById('universalChartModal').classList.remove('hidden')">
+              onclick="document.getElementById('screen-chart-helper').classList.remove('hidden')">
               <img src="images/kundali_icon.png" alt="Kundali">
               <span>Free Horoscope</span>
             </div>
-            <div class="service-item-card"
-              onclick="document.getElementById('screen-porutham').classList.remove('hidden')">
+            <div class="service-item-card" onclick="openPoruthamModal()">
               <img src="images/match_icon.png" alt="Match">
               <span>Horoscope Match</span>
             </div>
@@ -2970,6 +2969,7 @@
                       <div id="boyCityResults" class="city-results-dropdown" style="display:none;"></div>
                       <input type="hidden" id="boyLat">
                       <input type="hidden" id="boyLon">
+                      <input type="hidden" id="boyTz" value="5.5">
                     </div>
                   </div>
 
@@ -2997,6 +2997,7 @@
                       <div id="girlCityResults" class="city-results-dropdown" style="display:none;"></div>
                       <input type="hidden" id="girlLat">
                       <input type="hidden" id="girlLon">
+                      <input type="hidden" id="girlTz" value="5.5">
                     </div>
                   </div>
                 </div>
@@ -3086,7 +3087,7 @@
             <i class="fas fa-calculator"></i> Get Birth Chart
           </button>
 
-          <button onclick="porutham()" class="cosmic-btn" style="width:100%; padding:10px; font-size:0.9rem;">
+          <button onclick="openPoruthamModal()" class="cosmic-btn" style="width:100%; padding:10px; font-size:0.9rem;">
             <i class="fas fa-calculator"></i> பொருத்தம்
           </button>
 
@@ -3105,9 +3106,119 @@
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
   <script src="https://unpkg.com/simple-peer/simplepeer.min.js"></script>
   <script>
-    // State (exposed to window for Android WebView access)
-    const state = { me: null, socket: null, session: null, peer: null, localStream: null };
+    const state = { me: null, socket: null, session: null, peer: null, localStream: null, lang: 'ta' };
     window.state = state; // Expose for Android onResume wallet refresh
+
+    // --- Translation Logic ---
+    const tamilDict = {
+      'Sun': 'சூரியன்', 'Moon': 'சந்திரன்', 'Mars': 'செவ்வாய்', 'Mercury': 'புதன்',
+      'Jupiter': 'குரு', 'Venus': 'சுக்கிரன்', 'Saturn': 'சனி', 'Rahu': 'ராகு', 'Ketu': 'கேது',
+      'Ascendant': 'லக்னம்', 'Lagna': 'லக்னம்', 'Asc': 'லக்',
+      'Aries': 'மேஷம்', 'Taurus': 'ரிஷபம்', 'Gemini': 'மிதுனம்', 'Cancer': 'கடகம்',
+      'Leo': 'சிம்மம்', 'Virgo': 'கன்னி', 'Libra': 'துலாம்', 'Scorpio': 'விருச்சிகம்',
+      'Sagittarius': 'தனுசு', 'Capricorn': 'மகரம்', 'Aquarius': 'கும்பம்', 'Pisces': 'மீனம்',
+      'Nakshatra': 'நட்சத்திரம்', 'Tithi': 'திதி', 'Yoga': 'யோகம்', 'Karan': 'கரணம்',
+      'Rasi Chart': 'ராசி கட்டம்', 'Navamsa Chart': 'நவாம்ச கட்டம்',
+      'Planet & KP Lords': 'கிரகங்கள் & உப அதிபதிகள்', 'Current Mahadasha': 'தற்போதைய மஹா தசை',
+      'Current Transits': 'தற்போதைய கோச்சாரம்', 'Analyzing Planets...': 'கிரகங்களை ஆய்வு செய்கிறோம்...',
+      'Remaining': 'மீதமுள்ளது', 'Years': 'ஆண்டுகள்', 'SignL': 'ராசி.அ', 'StarL': 'நட்.அ', 'SubL': 'உப.அ',
+      'Birth Chart Results': 'பிறப்பு ஜாதக விவரங்கள்', "Today's Panchangam": 'இன்றைய பஞ்சாங்கம்',
+      // Stars
+      'Ashwini': 'அஸ்வினி', 'Bharani': 'பரணி', 'Krittika': 'கார்த்திகை', 'Rohini': 'ரோகிணி', 'Mrigashira': 'மிருகசீரிடம்',
+      'Ardra': 'திருவாதிரை', 'Punarvasu': 'புனர்பூசம்', 'Pushya': 'பூசம்', 'Ashlesha': 'ஆயிலியம்', 'Magha': 'மகம்',
+      'Purva Phalguni': 'பூரம்', 'Uttara Phalguni': 'உத்திரம்', 'Hasta': 'அஸ்தம்', 'Chitra': 'சித்திரை', 'Swati': 'சுவாதி',
+      'Vishakha': 'விசாகம்', 'Anuradha': 'அனுஷம்', 'Jyeshtha': 'கேட்டை', 'Mula': 'மூலம்', 'Purva Ashadha': 'பூராடம்',
+      'Uttara Ashadha': 'உத்திராடம்', 'Shravana': 'திருவோணம்', 'Dhanishta': 'அவிட்டம்', 'Shatabhisha': 'சதயம்',
+      'Purva Bhadrapada': 'பூரட்டாதி', 'Uttara Bhadrapada': 'உத்திரட்டாதி', 'Revati': 'ரேவதி'
+    };
+
+    function t(key) {
+      if (state.lang === 'en') return key;
+      return tamilDict[key] || key;
+    }
+
+    window.toggleChartLang = function () {
+      state.lang = (state.lang === 'ta' ? 'en' : 'ta');
+      const btn = document.getElementById('btnToggleLang');
+      if (btn) btn.innerText = state.lang === 'ta' ? 'Language: Tamil' : 'Language: English';
+      if (window.lastChartData) displayChartInColumn2(window.lastChartData);
+    };
+
+
+    // --- Porutham Logic (Relocated Here) ---
+    window.openPoruthamModal = function () {
+      try {
+        console.log('openPoruthamModal called (mobile) v3');
+        const modal = document.getElementById('screen-porutham');
+        if (!modal) {
+          console.error('Modal screen-porutham not found');
+          return;
+        }
+        modal.style.zIndex = "10002"; // Ensure it's on top
+        modal.classList.remove('hidden');
+        modal.style.setProperty('display', 'flex', 'important');
+
+        const resultsDiv = document.getElementById('poruthamResults');
+        if (resultsDiv) {
+          resultsDiv.style.display = 'none';
+          resultsDiv.innerHTML = '';
+        }
+
+        // --- Auto Fill Logic ---
+        let client = null, partner = null, gender = 'Male';
+        if (window.receivedBirthData) {
+          const bd = window.receivedBirthData;
+          gender = bd.gender || 'Male';
+          client = {
+            date: `${bd.year}-${String(bd.month).padStart(2, '0')}-${String(bd.day).padStart(2, '0')}`,
+            time: `${String(bd.hour).padStart(2, '0')}:${String(bd.minute).padStart(2, '0')}`,
+            city: bd.city, lat: bd.latitude, lon: bd.longitude, tz: bd.timezone
+          };
+          if (bd.partner && bd.partner.name) {
+            partner = { date: bd.partner.dob, time: bd.partner.tob, city: bd.partner.pob, lat: 0, lon: 0, tz: 5.5 };
+          }
+        } else if (state.me) {
+          const bd = state.me.birthDetails || {};
+          const id = state.me.intakeDetails || {};
+          gender = id.gender || 'Male';
+          client = { date: bd.dob, time: bd.tob, city: bd.pob, lat: bd.lat, lon: bd.lon, tz: bd.tz || 5.5 };
+          if (id.partner && id.partner.name) {
+            partner = { date: id.partner.dob, time: id.partner.tob, city: id.partner.pob, lat: 0, lon: 0, tz: 5.5 };
+          }
+        }
+
+        if (client) {
+          const isBoy = gender === 'Male';
+          const prefix = isBoy ? 'boy' : 'girl', pPrefix = isBoy ? 'girl' : 'boy';
+          if (client.date) document.getElementById(prefix + 'Date').value = client.date;
+          if (client.time) document.getElementById(prefix + 'Time').value = client.time;
+          if (client.city) document.getElementById(prefix + 'City').value = client.city;
+          if (client.lat) document.getElementById(prefix + 'Lat').value = client.lat;
+          if (client.lon) document.getElementById(prefix + 'Lon').value = client.lon;
+          if (client.tz) document.getElementById(prefix + 'Tz').value = client.tz;
+          if (partner) {
+            if (partner.date) document.getElementById(pPrefix + 'Date').value = partner.date;
+            if (partner.time) document.getElementById(pPrefix + 'Time').value = partner.time;
+            if (partner.city) document.getElementById(pPrefix + 'City').value = partner.city;
+          }
+        } else {
+          document.getElementById('boyDate').value = '1995-05-15';
+          document.getElementById('girlDate').value = '1998-08-20';
+          document.getElementById('boyTime').value = '10:00';
+          document.getElementById('girlTime').value = '10:00';
+          document.getElementById('boyCity').value = 'Chennai, Tamil Nadu';
+          document.getElementById('girlCity').value = 'Chennai, Tamil Nadu';
+          document.getElementById('boyLat').value = '13.0827';
+          document.getElementById('boyLon').value = '80.2707';
+          document.getElementById('girlLat').value = '13.0827';
+          document.getElementById('girlLon').value = '80.2707';
+        }
+      } catch (e) {
+        console.error('openPoruthamModal error:', e);
+        alert('Error opening modal: ' + e.message);
+      }
+    };
+    window.porutham = window.openPoruthamModal;
 
     // Persistent Session Helper
     const SESSION_KEY = 'astro_session';
@@ -3797,21 +3908,21 @@
             <div class="slide-content">
               <div class="slide-title">Premium Consultation</div>
               <div class="slide-subtitle">50% Off Today</div>
-              <div class="slide-cta">Book Now <i class="fas fa-arrow-right"></i></div>
+              <div class="slide-cta" onclick="document.getElementById('astroList').scrollIntoView({behavior:'smooth'})">Book Now <i class="fas fa-arrow-right"></i></div>
             </div>
           </div>
           <div class="home-slide" style="background: linear-gradient(135deg, #059669 0%, #10B981 100%);">
             <div class="slide-content">
               <div class="slide-title">Find Your Soulmate</div>
               <div class="slide-subtitle">Vedic Compatibility</div>
-              <div class="slide-cta">Check Match <i class="fas fa-arrow-right"></i></div>
+              <div class="slide-cta" onclick="openPoruthamModal()">Check Match <i class="fas fa-arrow-right"></i></div>
             </div>
           </div>
           <div class="home-slide" style="background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%);">
             <div class="slide-content">
               <div class="slide-title">Career Guidance</div>
               <div class="slide-subtitle">Success Ahead</div>
-              <div class="slide-cta">View Path <i class="fas fa-arrow-right"></i></div>
+              <div class="slide-cta" onclick="document.getElementById('astroList').scrollIntoView({behavior:'smooth'})">View Path <i class="fas fa-arrow-right"></i></div>
             </div>
           </div>
         `;
@@ -5623,15 +5734,20 @@
 
       let html = `
         <div style="padding:20px; background:white; font-weight:700; font-size:1.2rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e5e5; color:#1F2937;">
-          <span>🔮 Birth Chart Results</span>
-          <button onclick="document.getElementById('universalChartModal').classList.add('hidden')" style="background:none; border:none; font-size:1.4rem; color:#6B7280; cursor:pointer;"><i class="fas fa-times"></i></button>
+          <span>🔮 ${t('Birth Chart Results')}</span>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button onclick="toggleChartLang()" style="background:#f3f4f6; border:1px solid #ddd; padding:4px 8px; border-radius:6px; font-size:0.75rem; cursor:pointer; font-weight:600;">
+              ${state.lang === 'ta' ? 'Tamil' : 'English'}
+            </button>
+            <button onclick="document.getElementById('universalChartModal').classList.add('hidden')" style="background:none; border:none; font-size:1.4rem; color:#6B7280; cursor:pointer;"><i class="fas fa-times"></i></button>
+          </div>
         </div>
         <div style="flex:1; overflow-y:auto; padding:20px;">
           <!-- Lagna Section -->
           <div style="background:linear-gradient(135deg, #047857 0%, #059669 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px;">
-            <div style="font-size:0.8rem; opacity:0.9; margin-bottom:5px;">🌟 Ascendant (Lagna)</div>
-            <div style="font-size:1.5rem; font-weight:bold;">${d.houses?.ascendantDetails?.signName || 'N/A'}</div>
-            <div style="font-size:0.8rem; margin-top:5px;">Nakshatra: ${d.houses?.ascendantDetails?.nakshatra || 'N/A'}</div>
+            <div style="font-size:0.8rem; opacity:0.9; margin-bottom:5px;">🌟 ${t('Ascendant')}</div>
+            <div style="font-size:1.5rem; font-weight:bold;">${t(d.houses?.ascendantDetails?.signName) || 'N/A'}</div>
+            <div style="font-size:0.8rem; margin-top:5px;">${t('Nakshatra')}: ${t(d.houses?.ascendantDetails?.nakshatra) || 'N/A'}</div>
           </div>
 
           <!-- Deep Analysis Tabs -->
@@ -5650,10 +5766,10 @@
         const color = planetColors[p.name] || '#6b7280';
         html += `
             <div style="background:white; border-left:4px solid ${color}; padding:12px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-              <div style="font-weight:bold; color:${color}; margin-bottom:4px;">${p.name}</div>
+              <div style="font-weight:bold; color:${color}; margin-bottom:4px;">${t(p.name)}</div>
               <div style="font-size:0.85rem; color:#555;">
-                <div>${p.signName}</div>
-                <div style="color:#d97706; font-size:0.8rem;">${p.nakshatra} (${p.nakshatraPada})</div>
+                <div>${t(p.signName)}</div>
+                <div style="color:#d97706; font-size:0.8rem;">${t(p.nakshatra)} (${p.nakshatraPada})</div>
               </div>
             </div>
           `;
@@ -5671,11 +5787,11 @@
       rawPlanets.forEach(p => {
         html += `
           <div style="background:white; padding:10px; border-radius:8px; border:1px solid #eee; font-size:0.85rem;">
-            <div style="font-weight:bold; color:#047857; margin-bottom:5px; border-bottom:1px solid #f9f9f9;">${p.name}</div>
+            <div style="font-weight:bold; color:#047857; margin-bottom:5px; border-bottom:1px solid #f9f9f9;">${t(p.name)}</div>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; text-align:center;">
-              <div><span style="color:#999;font-size:0.7rem;">SignL</span><br>${p.signLord?.substring(0, 3)}</div>
-              <div><span style="color:#999;font-size:0.7rem;">StarL</span><br>${p.starLord?.substring(0, 3)}</div>
-              <div><span style="color:#999;font-size:0.7rem;">SubL</span><br>${p.subLord?.substring(0, 3)}</div>
+              <div><span style="color:#999;font-size:0.7rem;">${t('SignL')}</span><br>${t(p.signLord || '')}</div>
+              <div><span style="color:#999;font-size:0.7rem;">${t('StarL')}</span><br>${t(p.starLord || '')}</div>
+              <div><span style="color:#999;font-size:0.7rem;">${t('SubL')}</span><br>${t(p.subLord || '')}</div>
             </div>
           </div>
         `;
@@ -5691,15 +5807,15 @@
 
           <!-- Existing sections follow... -->
           <div style="margin-top:20px;">
-            <div style="font-weight:bold; color:#d97706; margin-bottom:12px; font-size:1.1rem;">📅 Today's Panchangam</div>
+            <div style="font-weight:bold; color:#d97706; margin-bottom:12px; font-size:1.1rem;">📅 ${t('Today\'s Panchangam')}</div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
               <div style="background:#ecfdf5; padding:12px; border-radius:8px; border-left:4px solid #10b981;">
-                <div style="font-size:0.8rem; color:#666; margin-bottom:4px;">Tithi</div>
-                <div style="font-weight:bold; color:#047857;">${panchangam.tithi || 'N/A'}</div>
+                <div style="font-size:0.8rem; color:#666; margin-bottom:4px;">${t('Tithi')}</div>
+                <div style="font-weight:bold; color:#047857;">${t(panchangam.tithi) || 'N/A'}</div>
               </div>
               <div style="background:#eff6ff; padding:12px; border-radius:8px; border-left:4px solid #3b82f6;">
-                <div style="font-size:0.8rem; color:#666; margin-bottom:4px;">Nakshatra</div>
-                <div style="font-weight:bold; color:#1e40af;">${panchangam.nakshatra || 'N/A'}</div>
+                <div style="font-size:0.8rem; color:#666; margin-bottom:4px;">${t('Nakshatra')}</div>
+                <div style="font-weight:bold; color:#1e40af;">${t(panchangam.nakshatra) || 'N/A'}</div>
               </div>
             </div>
           </div>
@@ -5798,6 +5914,7 @@
         if (res.error) throw new Error(res.error);
 
         setTimeout(() => {
+          window.lastChartData = res;
           renderChartResults(res);
           document.getElementById('chartLoading').style.display = 'none';
           document.getElementById('chartResults').style.display = 'flex';
@@ -5835,22 +5952,32 @@
 
       let html = '<div style="padding:15px; background:#f9fafb;">';
 
+      // Language Toggle Header
+      html += `
+        <div style="margin-bottom:15px; text-align:right;">
+          <button id="btnToggleLang" onclick="toggleChartLang()"
+            style="background:#f3f4f6; border:1px solid #ddd; padding:5px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer; font-weight:600;">
+            Language: ${state.lang === 'ta' ? 'Tamil' : 'English'}
+          </button>
+        </div>
+      `;
+
       // 1. Lagna & Panchangam Header
       html += `
         <div style="background:linear-gradient(135deg, #047857 0%, #059669 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px; box-shadow:0 10px 15px -3px rgba(4,120,87,0.2);">
           <div style="display:flex; justify-content:space-between; align-items:center;">
              <div>
-                <div style="font-size:0.8rem; opacity:0.9;">🌟 Ascendant (Lagna)</div>
-                <div style="font-size:1.5rem; font-weight:bold;">${lagna.signName || 'N/A'}</div>
+                <div style="font-size:0.8rem; opacity:0.9;">🌟 ${t('Ascendant')}</div>
+                <div style="font-size:1.5rem; font-weight:bold;">${t(lagna.signName) || 'N/A'}</div>
              </div>
              <div style="text-align:right;">
-                <div style="font-size:0.8rem; opacity:0.9;">📅 Tithi</div>
-                <div style="font-weight:bold;">${panchangam.tithi || 'N/A'}</div>
+                <div style="font-size:0.8rem; opacity:0.9;">📅 ${t('Tithi')}</div>
+                <div style="font-weight:bold;">${t(panchangam.tithi) || 'N/A'}</div>
              </div>
           </div>
           <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.2); display:flex; gap:15px; font-size:0.85rem;">
-             <div><b>Nakshatra:</b> ${panchangam.nakshatra || 'N/A'}</div>
-             <div><b>Yoga:</b> ${panchangam.yoga || 'N/A'}</div>
+             <div><b>${t('Nakshatra')}:</b> ${t(panchangam.nakshatra) || 'N/A'}</div>
+             <div><b>${t('Yoga')}:</b> ${t(panchangam.yoga) || 'N/A'}</div>
           </div>
         </div>
       `;
@@ -5859,13 +5986,13 @@
       html += `
         <div style="margin-bottom:20px;">
           <div style="font-weight:bold; color:#374151; margin-bottom:10px; font-size:1rem; display:flex; align-items:center; gap:8px;">
-             <i class="fas fa-th-large" style="color:#d97706;"></i> 🕉️ Rasi Chart
+             <i class="fas fa-th-large" style="color:#d97706;"></i> 🕉️ ${t('Rasi Chart')}
           </div>
            <div class="south-indian-chart" id="southChartColumn2"></div>
         </div>
         <div style="margin-bottom:20px;">
           <div style="font-weight:bold; color:#374151; margin-bottom:10px; font-size:1rem; display:flex; align-items:center; gap:8px;">
-             <i class="fas fa-th" style="color:#3b82f6;"></i> 🕉️ Navamsa Chart
+             <i class="fas fa-th" style="color:#3b82f6;"></i> 🕉️ ${t('Navamsa Chart')}
           </div>
            <div class="south-indian-chart" id="navamsaChartColumn2"></div>
         </div>
@@ -5904,21 +6031,23 @@
               if (isRasi) {
                 rawPlanets.forEach(p => {
                   if (p.signName === sign) {
-                    planetsInSign.push(`<div style="font-size:0.75rem; color:${planetColors[p.name]}">${p.name.substring(0, 2)}</div>`);
+                    const shortName = t(p.name).substring(0, 2);
+                    planetsInSign.push(`<div style="font-size:0.75rem; color:${planetColors[p.name]}">${shortName}</div>`);
                   }
                 });
                 if (lagna.signName === sign) {
-                  planetsInSign.unshift('<div style="font-weight:bold; color:red; font-size:0.8rem;">Asc</div>');
+                  planetsInSign.unshift(`<div style="font-weight:bold; color:red; font-size:0.8rem;">${t('Asc')}</div>`);
                 }
               } else if (d.navamsa) {
                 for (let k in d.navamsa.planets) {
                   if (d.navamsa.planets[k] === sign) {
-                    planetsInSign.push(`<div style="font-size:0.75rem; color:${planetColors[k] || '#555'}">${k.substring(0, 2)}</div>`);
+                    const shortName = t(k).substring(0, 2);
+                    planetsInSign.push(`<div style="font-size:0.75rem; color:${planetColors[k] || '#555'}">${shortName}</div>`);
                   }
                 }
               }
 
-              div.innerHTML = `<span style="font-size:0.65rem; color:#999; font-weight:bold;">${sign.substring(0, 3)}</span>
+              div.innerHTML = `<span style="font-size:0.65rem; color:#999; font-weight:bold;">${t(sign).substring(0, 3)}</span>
                     <div style="display:flex; flex-wrap:wrap; gap:2px; padding-top:10px; justify-content:center;">${planetsInSign.join('')}</div>`;
             }
             if (div.style.display !== 'none') grid.appendChild(div);
@@ -5930,7 +6059,7 @@
       }, 100);
 
       // 3. Planet Details with KP Lords
-      html += '<div style="margin-bottom:20px;"><div style="font-weight:bold; color:#374151; margin-bottom:12px; font-size:1rem;">🪐 Planet & KP Lords</div>';
+      html += `<div style="margin-bottom:20px;"><div style="font-weight:bold; color:#374151; margin-bottom:12px; font-size:1rem;">🪐 ${t('Planet & KP Lords')}</div>`;
       html += '<div style="display:flex; flex-direction:column; gap:8px;">';
 
       rawPlanets.forEach(p => {
@@ -5938,14 +6067,14 @@
         html += `
           <div style="background:white; border-left:4px solid ${color}; padding:12px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-               <div style="font-weight:bold; color:${color};">${p.name}</div>
-               <div style="font-size:0.75rem; color:#d97706; background:#fff7ed; padding:1px 6px; border-radius:4px;">${p.nakshatra} (${p.nakshatraPada})</div>
+               <div style="font-weight:bold; color:${color};">${t(p.name)}</div>
+               <div style="font-size:0.75rem; color:#d97706; background:#fff7ed; padding:1px 6px; border-radius:4px;">${t(p.nakshatra)} (${p.nakshatraPada})</div>
             </div>
-            <div style="font-size:0.75rem; color:#666; margin-bottom:8px;">${p.signName} - ${p.degreeFormatted}</div>
+            <div style="font-size:0.75rem; color:#666; margin-bottom:8px;">${t(p.signName)} - ${p.degreeFormatted}</div>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; text-align:center; border-top:1px solid #f3f4f6; padding-top:8px;">
-              <div><span style="color:#999;font-size:0.65rem;">SignL</span><br><b>${p.signLord?.substring(0, 3)}</b></div>
-              <div><span style="color:#999;font-size:0.65rem;">StarL</span><br><b>${p.starLord?.substring(0, 3)}</b></div>
-              <div><span style="color:#999;font-size:0.65rem;">SubL</span><br><b>${p.subLord?.substring(0, 3)}</b></div>
+              <div><span style="color:#999;font-size:0.65rem;">${t('SignL')}</span><br><b>${t(p.signLord || '')}</b></div>
+              <div><span style="color:#999;font-size:0.65rem;">${t('StarL')}</span><br><b>${t(p.starLord || '')}</b></div>
+              <div><span style="color:#999;font-size:0.65rem;">${t('SubL')}</span><br><b>${t(p.subLord || '')}</b></div>
             </div>
           </div>
         `;
@@ -5956,10 +6085,10 @@
       if (dasha && dasha.currentLord) {
         html += `
           <div style="background:linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color:white; padding:15px; border-radius:12px; margin-bottom:20px; box-shadow:0 10px 15px -3px rgba(79,70,229,0.2);">
-            <div style="font-size:0.8rem; opacity:0.9; margin-bottom:5px;">⏳ Current Mahadasha</div>
-            <div style="font-size:1.3rem; font-weight:bold;">${dasha.currentLord}</div>
+            <div style="font-size:0.8rem; opacity:0.9; margin-bottom:5px;">⏳ ${t('Current Mahadasha')}</div>
+            <div style="font-size:1.3rem; font-weight:bold;">${t(dasha.currentLord)}</div>
             <div style="margin-top:10px; font-size:0.85rem; opacity:0.9;">
-               <div><b>Remaining:</b> ${parseFloat(dasha.remainingYearsInCurrentDasha || 0).toFixed(2)} Years</div>
+               <div><b>${t('Remaining')}:</b> ${parseFloat(dasha.remainingYearsInCurrentDasha || 0).toFixed(2)} ${t('Years')}</div>
             </div>
           </div>
         `;
@@ -5967,13 +6096,13 @@
 
       // 5. Transits (Gocharam)
       if (transitPlanets.length > 0) {
-        html += '<div style="margin-bottom:20px;"><div style="font-weight:bold; color:#374151; margin-bottom:12px; font-size:1rem;">🚀 Current Transits (Gocharam)</div>';
+        html += `<div style="margin-bottom:20px;"><div style="font-weight:bold; color:#374151; margin-bottom:12px; font-size:1rem;">🚀 ${t('Current Transits')}</div>`;
         html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">';
         transitPlanets.forEach(tp => {
           html += `
             <div style="background:#f0f9ff; padding:8px; border-radius:6px; border:1px solid #bae6fd; font-size:0.75rem;">
-               <div style="font-weight:bold; color:#0369a1;">${tp.name}</div>
-               <div style="color:#075985;">${tp.signName}</div>
+               <div style="font-weight:bold; color:#0369a1;">${t(tp.name)}</div>
+               <div style="color:#075985;">${t(tp.signName)}</div>
             </div>
           `;
         });
@@ -6022,11 +6151,11 @@
           const color = planetColors[p.name] || '#6b7280';
           div.innerHTML = `
               <div style="display:flex; justify-content:space-between; align-items:center">
-                <b style="color:${color}">${p.name}</b>
-                <span style="background:#e5e7eb; padding:2px 8px; border-radius:10px; font-size:0.75rem;">${p.signName}</span>
+                <b style="color:${color}">${t(p.name)}</b>
+                <span style="background:#e5e7eb; padding:2px 8px; border-radius:10px; font-size:0.75rem;">${t(p.signName)}</span>
               </div>
               <div style="margin-top:5px; font-size:0.85rem; color:#555;">
-                ${p.degreeFormatted} | ${p.nakshatra} (${p.nakshatraPada})
+                ${p.degreeFormatted} | ${t(p.nakshatra)} (${p.nakshatraPada})
               </div>
             `;
           pList.appendChild(div);
@@ -6038,6 +6167,7 @@
         if (!grid) return;
 
         const isRasi = chartType === 'rasi';
+        // Updated cellMap to match desktop-view logic perfectly
         const cellMap = [
           'Pisces', 'Aries', 'Taurus', 'Gemini',
           'Aquarius', null, null, 'Cancer',
@@ -6062,31 +6192,103 @@
           } else {
             const planetsInSign = [];
             if (isRasi) {
+              // Rasi Chart Logic
               rawPlanets.forEach(p => {
                 if (p.signName === sign) {
-                  planetsInSign.push(p.name.substring(0, 2));
+                  planetsInSign.push(t(p.name).substring(0, 2)); // 2 chars like Su, Mo
                 }
               });
-              if (houses.ascendantDetails?.signName === sign) {
-                planetsInSign.unshift('Asc');
+              // Add Ascendant
+              if (houses.ascendantDetails && houses.ascendantDetails.signName === sign) {
+                planetsInSign.unshift(`<span style="color:red; font-weight:bold;">${t('Asc')}</span>`);
               }
-            } else if (d.navamsa) {
-              for (let k in d.navamsa.planets) {
-                if (d.navamsa.planets[k] === sign) {
-                  planetsInSign.push(k.substring(0, 2));
+            } else {
+              // Navamsa Logic
+              if (d.navamsa && d.navamsa.planets) {
+                for (const [pName, pSign] of Object.entries(d.navamsa.planets)) {
+                  if (pSign === sign) {
+                    planetsInSign.push(t(pName).substring(0, 2));
+                  }
+                }
+                // Add Navamsa Ascendant if available (often passed as 'Ascendant' in navamsa.planets or separate field)
+                if (d.navamsa.ascendant && d.navamsa.ascendant === sign) {
+                  planetsInSign.unshift(`<span style="color:red; font-weight:bold;">${t('Asc')}</span>`);
                 }
               }
             }
 
-            div.innerHTML = `<span class="s-sign-label" style="font-size:0.7rem; color:#d97706; font-weight:bold;">${sign.substring(0, 3)}</span>
-                  <div class="s-planet-text" style="font-size:0.85rem; line-height:1.4;">${planetsInSign.join('<br>') || ''}</div>`;
+            // Render Cell Content
+            div.innerHTML = `<span class="s-sign-label" style="font-size:0.7rem; color:#d97706; font-weight:bold;">${t(sign).substring(0, 3)}</span>
+                   <div class="s-planet-text" style="font-size:0.85rem; line-height:1.4;">${planetsInSign.join('<br>') || ''}</div>`;
           }
-          if (div.style.display !== 'none') grid.appendChild(div);
+
+          if (div.style.display !== 'none') {
+            grid.appendChild(div);
+          }
         });
       }
 
       renderSouthGrid('southChart', 'rasi');
       renderSouthGrid('navamsaChart', 'navamsa');
+
+      // Populate Panchangam List
+      const pListContainer = document.getElementById('panchangamList');
+      if (pListContainer && d.panchanga) {
+        const panchangam = d.panchanga;
+        pListContainer.innerHTML = `
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:4px;">
+            <span>${t('Tithi')}</span>
+            <b>${t(typeof panchangam.tithi === 'object' ? panchangam.tithi.name : panchangam.tithi) || 'N/A'}</b>
+          </div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:4px;">
+            <span>${t('Nakshatra')}</span>
+            <b>${t(typeof panchangam.nakshatra === 'object' ? panchangam.nakshatra.name : panchangam.nakshatra) || 'N/A'}</b>
+          </div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:4px;">
+            <span>${t('Yoga')}</span>
+            <b>${t(typeof panchangam.yoga === 'object' ? panchangam.yoga.name : panchangam.yoga) || 'N/A'}</b>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding-bottom:4px;">
+            <span>${t('Karan')}</span>
+            <b>${t(typeof panchangam.karna === 'object' ? panchangam.karna.name : panchangam.karna) || 'N/A'}</b>
+          </div>
+        `;
+      }
+
+      // Populate Dasha Section
+      const dashaInfo = document.getElementById('currentDashaInfo');
+      const dList = document.getElementById('dashaList');
+      if (dashaInfo && d.dasha) {
+        const dasha = d.dasha;
+        // Current Dasha
+        if (dasha.currentLord) {
+          dashaInfo.innerHTML = `
+              <div style="font-size:0.9rem; margin-bottom:5px;">${t('Current Mahadasha')}</div>
+              <div style="font-size:1.4rem; font-weight:bold;">${t(dasha.currentLord)}</div>
+              <div style="font-size:0.8rem; margin-top:5px;">
+                 ${t('Ends in')}: <b>${parseFloat(dasha.remainingYearsInCurrentDasha || 0).toFixed(2)} ${t('Years')}</b>
+              </div>
+          `;
+        }
+        // Dasha List (if available)
+        if (dList) {
+          dList.innerHTML = '';
+          // Check if dasha has a list or antardasha property
+          const sequence = dasha.list || dasha.antardasha || (Array.isArray(dasha) ? dasha : []);
+          if (Array.isArray(sequence) && sequence.length > 0) {
+            sequence.forEach(item => {
+              dList.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #f0f0f0;">
+                       <span>${t(item.lord || item.name)}</span>
+                       <span style="color:#666; font-size:0.85rem;">${item.endDate || item.duration}</span>
+                    </div>
+                  `;
+            });
+          } else {
+            dList.innerHTML = `<div style="padding:10px; color:#999; text-align:center;">${t('Dasha details available in full analysis')}</div>`;
+          }
+        }
+      }
 
       const shareBtn = document.getElementById('btnShareChart');
       if (shareBtn) {
@@ -6103,96 +6305,8 @@
     }
 
 
-    // Porutham Logic
-    window.porutham = function () {
-      document.getElementById('screen-porutham').classList.remove('hidden');
-      document.getElementById('poruthamResults').style.display = 'none';
-      document.getElementById('poruthamResults').innerHTML = '';
+    // Porutham Logic moved to top for reliability
 
-      // --- Auto Fill Logic ---
-      let client = null;
-      let partner = null;
-      let gender = 'Male'; // Default
-
-      // Scenario 1: Astrologer Viewing Client Data
-      if (window.receivedBirthData) {
-        const bd = window.receivedBirthData;
-        gender = bd.gender || 'Male';
-
-        client = {
-          date: `${bd.year}-${String(bd.month).padStart(2, '0')}-${String(bd.day).padStart(2, '0')}`,
-          time: `${String(bd.hour).padStart(2, '0')}:${String(bd.minute).padStart(2, '0')}`,
-          city: bd.city, lat: bd.latitude, lon: bd.longitude
-        };
-
-        if (bd.partner && bd.partner.name) {
-          partner = {
-            date: bd.partner.dob,
-            time: bd.partner.tob,
-            city: bd.partner.pob,
-            lat: 0, lon: 0 // We might not have lat/lon for partner yet
-          };
-        }
-      }
-      // Scenario 2: Client Viewing their own data
-      else if (state.me && state.me.intakeDetails && state.me.birthDetails) {
-        gender = state.me.intakeDetails.gender || 'Male';
-        const bd = state.me.birthDetails;
-        const id = state.me.intakeDetails;
-
-        client = {
-          date: bd.dob,
-          time: bd.tob,
-          city: bd.pob, lat: bd.lat, lon: bd.lon
-        };
-        if (id.partner && id.partner.name) {
-          partner = {
-            date: id.partner.dob,
-            time: id.partner.tob,
-            city: id.partner.pob,
-            lat: 0, lon: 0
-          };
-        }
-      }
-
-      // Assign to Boy/Girl
-      if (client) {
-        if (gender === 'Male') {
-          // Client is Boy
-          if (client.date) document.getElementById('boyDate').value = client.date;
-          if (client.time) document.getElementById('boyTime').value = client.time;
-          if (client.city) document.getElementById('boyCity').value = client.city;
-          if (client.lat) document.getElementById('boyLat').value = client.lat;
-          if (client.lon) document.getElementById('boyLon').value = client.lon;
-
-          if (partner) {
-            if (partner.date) document.getElementById('girlDate').value = partner.date;
-            if (partner.time) document.getElementById('girlTime').value = partner.time;
-            if (partner.city) document.getElementById('girlCity').value = partner.city;
-            // Partner lat/lon would need search, assumed manual for now
-          }
-        } else {
-          // Client is Girl
-          if (client.date) document.getElementById('girlDate').value = client.date;
-          if (client.time) document.getElementById('girlTime').value = client.time;
-          if (client.city) document.getElementById('girlCity').value = client.city;
-          if (client.lat) document.getElementById('girlLat').value = client.lat;
-          if (client.lon) document.getElementById('girlLon').value = client.lon;
-
-          if (partner) {
-            if (partner.date) document.getElementById('boyDate').value = partner.date;
-            if (partner.time) document.getElementById('boyTime').value = partner.time;
-            if (partner.city) document.getElementById('boyCity').value = partner.city;
-          }
-        }
-      } else {
-        // Defaults if no data
-        document.getElementById('boyDate').value = '1995-05-15';
-        document.getElementById('girlDate').value = '1998-08-20';
-        document.getElementById('boyTime').value = '10:00';
-        document.getElementById('girlTime').value = '10:00';
-      }
-    };
 
     let matchCityTimeout;
     window.handleMatchCitySearch = function (input, type) {
@@ -6218,12 +6332,12 @@
             let html = '';
             data.results.forEach(city => {
               html += `
-                  <div onclick="selectMatchCity('${type}', '${city.name}', ${city.latitude}, ${city.longitude})"
-                       style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
+        < div onclick = "selectMatchCity('${type}', '${city.name}', ${city.latitude}, ${city.longitude})"
+      style = "padding:10px; border-bottom:1px solid #eee; cursor:pointer;" >
                     <div style="font-weight:bold;">${city.name}</div>
                     <div style="font-size:0.8rem; color:#666;">${city.state}</div>
-                  </div>
-                `;
+                  </div >
+        `;
             });
             resultsDiv.innerHTML = html;
             resultsDiv.style.display = 'block';
@@ -6234,11 +6348,23 @@
       }, 300);
     };
 
-    window.selectMatchCity = function (type, name, lat, lon) {
+    window.selectMatchCity = async function (type, name, lat, lon) {
       document.getElementById(type + 'City').value = name;
       document.getElementById(type + 'Lat').value = lat;
       document.getElementById(type + 'Lon').value = lon;
       document.getElementById(type + 'CityResults').style.display = 'none';
+
+      // Fetch timezone
+      try {
+        const res = await fetch('/api/city-timezone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat, lon })
+        }).then(r => r.json());
+        if (res.ok) {
+          document.getElementById(type + 'Tz').value = res.timezone;
+        }
+      } catch (e) { console.error('Tz fetch error:', e); }
     };
 
     window.calculatePorutham = async function () {
@@ -6247,25 +6373,15 @@
       const bLat = document.getElementById('boyLat').value || 13.0827; // Default Chennai
       const bLon = document.getElementById('boyLon').value || 80.2707;
 
-      const gDate = document.getElementById('girlDate').value;
-      const gTime = document.getElementById('girlTime').value;
-      const gLat = document.getElementById('girlLat').value || 13.0827;
-      const gLon = document.getElementById('girlLon').value || 80.2707;
+      const bTz = document.getElementById('boyTz').value || 5.5;
+      const gTz = document.getElementById('girlTz').value || 5.5;
+      const bCity = document.getElementById('boyCity').value;
+      const gCity = document.getElementById('girlCity').value;
 
-      if (!bDate || !bTime || !gDate || !gTime) {
-        alert('Please fill all date and time fields');
+      if (!bDate || !bTime || !bCity || !gDate || !gTime || !gCity) {
+        alert('Please fill all birth details (Date, Time, City) for both partners');
         return;
       }
-
-      const [by, bm, bd] = bDate.split('-');
-      const [bh, bmin] = bTime.split(':');
-      const [gy, gm, gd] = gDate.split('-');
-      const [gh, gmin] = gTime.split(':');
-
-      const payload = {
-        boy: { year: parseInt(by), month: parseInt(bm), day: parseInt(bd), hour: parseInt(bh), minute: parseInt(bmin), lat: parseFloat(bLat), lon: parseFloat(bLon) },
-        girl: { year: parseInt(gy), month: parseInt(gm), day: parseInt(gd), hour: parseInt(gh), minute: parseInt(gmin), lat: parseFloat(gLat), lon: parseFloat(gLon) }
-      };
 
       document.getElementById('poruthamLoading').style.display = 'block';
       document.getElementById('poruthamResults').style.display = 'none';
@@ -6275,8 +6391,8 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            boyData: { dob: bDate, tob: bTime, lat: parseFloat(bLat), lng: parseFloat(bLon) },
-            girlData: { dob: gDate, tob: gTime, lat: parseFloat(gLat), lng: parseFloat(gLon) }
+            boyData: { dob: bDate, tob: bTime, lat: parseFloat(bLat), lng: parseFloat(bLon), timezone: parseFloat(bTz) },
+            girlData: { dob: gDate, tob: gTime, lat: parseFloat(gLat), lng: parseFloat(gLon), timezone: parseFloat(gTz) }
           })
         }).then(r => r.json());
 
@@ -6315,18 +6431,27 @@
 
       zodiacSigns.forEach((sign, idx) => {
         const div = document.createElement('div');
-        div.className = `zodiac-item ${idx === 0 ? 'active' : ''}`;
+        div.className = `zodiac - item ${idx === 0 ? 'active' : ''} `;
         div.onclick = () => {
           document.querySelectorAll('.zodiac-item').forEach(el => el.classList.remove('active'));
           div.classList.add('active');
+          // Update header
+          const iconEl = document.getElementById('activeSignIcon');
+          const nameEl = document.getElementById('activeSignName');
+          if (iconEl) iconEl.innerText = sign.icon;
+          if (nameEl) nameEl.innerText = sign.name;
+
           fetchHoroscope(sign);
         };
         div.innerHTML = `
-             <span class="zodiac-icon">${sign.icon}</span>
-             <div class="zodiac-name">${sign.name}</div>
-          `;
+        < div class="zodiac-icon" style = "font-size:1.5rem;" > ${sign.icon}</div >
+          <div class="zodiac-name">${sign.name}</div>
+      `;
         container.appendChild(div);
       });
+
+      // Load first sign by default
+      fetchHoroscope(zodiacSigns[0]);
     }
 
     let horoscopeCache = {}; // Simple cache
@@ -6354,13 +6479,15 @@
       if (loading) loading.style.display = 'block';
       if (content) content.classList.add('hidden');
 
-      // Update active header immediately
-      document.getElementById('activeSignIcon').innerText = signObj.icon;
-      document.getElementById('activeSignName').innerText = signObj.name;
+      // Update active header immediately (if elements exist)
+      const iconEl = document.getElementById('activeSignIcon');
+      const nameEl = document.getElementById('activeSignName');
+      if (iconEl) iconEl.innerText = signObj.icon;
+      if (nameEl) nameEl.innerText = signObj.name;
 
       // Check cache
       const today = new Date().toISOString().split('T')[0];
-      const cacheKey = `${signObj.api}-${today}`;
+      const cacheKey = `${signObj.api} -${today} `;
 
       if (horoscopeCache[cacheKey]) {
         displayHoroscope(horoscopeCache[cacheKey]);
@@ -6369,7 +6496,7 @@
 
       try {
         // Use our internal Rasi Engine API
-        const res = await fetch(`/api/rasi-eng/horoscope/daily?sign=${signObj.api}`)
+        const res = await fetch(`/ api / rasi - eng / horoscope / daily ? sign = ${signObj.api} `)
           .then(r => r.json());
 
         if (res.success && res.data) {
@@ -6399,22 +6526,25 @@
       if (loading) loading.style.display = 'none';
       if (content) content.classList.remove('hidden');
 
-      document.getElementById('horoscopeDate').innerText = data.date;
+      const dateEl = document.getElementById('horoscopeDate');
+      if (dateEl) dateEl.innerText = data.date;
 
-      let html = `<p style="margin-bottom:15px;">${data.horoscope_data}</p>`;
+      const prediction = data.forecast_ta || data.horoscope_data || 'இன்று உங்களுக்கு நற்பலன்கள் கிடைக்கும்.';
+      let html = `< p style = "margin-bottom:15px; font-size:1.1rem; line-height:1.6; color:#1f2937;" > ${prediction}</p > `;
 
       if (data.details) {
         html += `
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
-            <div style="font-size:0.85rem;"><i class="fas fa-briefcase" style="color:#d97706; width:18px;"></i> <b>தொழில்:</b> ${data.details.career_ta}</div>
-            <div style="font-size:0.85rem;"><i class="fas fa-coins" style="color:#059669; width:18px;"></i> <b>நிதி:</b> ${data.details.finance_ta}</div>
-            <div style="font-size:0.85rem;"><i class="fas fa-heartbeat" style="color:#ef4444; width:18px;"></i> <b>ஆரோக்கியம்:</b> ${data.details.health_ta}</div>
-            <div style="font-size:0.85rem;"><i class="fas fa-magic" style="color:#3b82f6; width:18px;"></i> <b>அதிர்ஷ்டம்:</b> ${data.details.lucky_number} (${data.details.lucky_color_ta})</div>
-          </div>
+        < div style = "display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px; border-top:1px solid #eee; padding-top:15px;" >
+            <div style="font-size:0.85rem;"><i class="fas fa-briefcase" style="color:#d97706; width:18px;"></i> <b>தொழில்:</b> ${data.details.career_ta || 'N/A'}</div>
+            <div style="font-size:0.85rem;"><i class="fas fa-coins" style="color:#059669; width:18px;"></i> <b>நிதி:</b> ${data.details.finance_ta || 'N/A'}</div>
+            <div style="font-size:0.85rem;"><i class="fas fa-heartbeat" style="color:#ef4444; width:18px;"></i> <b>ஆரோக்கியம்:</b> ${data.details.health_ta || 'N/A'}</div>
+            <div style="font-size:0.85rem;"><i class="fas fa-magic" style="color:#3b82f6; width:18px;"></i> <b>அதிர்ஷ்டம்:</b> ${data.details.lucky_number || ''} (${data.details.lucky_color_ta || ''})</div>
+          </div >
         `;
       }
 
-      document.getElementById('horoscopeText').innerHTML = html;
+      const textEl = document.getElementById('horoscopeText');
+      if (textEl) textEl.innerHTML = html;
     }
 
     // Initialize Horoscope
@@ -6423,67 +6553,85 @@
 
     function displayPoruthamResults(res) {
       const data = res.data || {};
-      const m = data; // New engine returns poruthams directly in data or as proper score
+      const m = data;
       const div = document.getElementById('poruthamResults');
 
-      const scoreColor = m.percentage > 50 ? '#10b981' : '#ef4444';
+      const isGood = m.percentage >= 50 && m.poruthams.find(p => p.name === 'Rajju')?.score > 0;
+      const scoreColor = isGood ? '#10b981' : '#ef4444';
+      const verdict = m.verdict || (isGood ? 'Advisable' : 'Not Advisable');
 
       let html = `
-         <div style="background:${scoreColor}20; border:2px solid ${scoreColor}; padding:20px; border-radius:12px; text-align:center; margin-bottom:20px;">
-           <div style="font-size:1.1rem; color:#444;">Compatibility Score</div>
-           <div style="font-size:3rem; font-weight:900; color:${scoreColor}; line-height:1;">${m.percentage}%</div>
-           <div style="font-size:1.2rem; font-weight:bold; color:#333;">${m.totalScore} / ${m.maxScore} Points</div>
-         </div>
+        < div style = "background:white; border-radius:15px; border:1px solid #e5e7eb; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom:20px;" >
+           <div style="background:linear-gradient(135deg, ${scoreColor} 0%, ${scoreColor}dd 100%); padding:25px; text-align:center; color:white;">
+             <div style="font-size:0.85rem; opacity:0.9; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;">Compatibility Score</div>
+             <div style="font-size:3rem; font-weight:900; line-height:1; margin-bottom:10px;">${m.percentage}%</div>
+             <div style="background:rgba(255,255,255,0.2); display:inline-block; padding:5px 15px; border-radius:20px; font-weight:bold; font-size:1rem;">
+               ${verdict}
+             </div>
+             <div style="margin-top:10px; font-size:0.8rem; opacity:0.8;">${m.totalScore} out of ${m.maxScore} points matched</div>
+           </div>
 
-         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
-            <div style="background:#eff6ff; padding:15px; border-radius:10px;">
-               <div style="font-weight:bold; color:#1e40af;">🤵 Boy</div>
-               <div>${data.boy.rasi} / ${data.boy.nakshatra}</div>
-            </div>
-             <div style="background:#fdf2f8; padding:15px; border-radius:10px;">
-               <div style="font-weight:bold; color:#be185d;">👰 Girl</div>
-               <div>${data.girl.rasi} / ${data.girl.nakshatra}</div>
-            </div>
-         </div>
+           <div style="padding:15px;">
+             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+                <div style="background:#eff6ff; padding:12px; border-radius:12px; border:1px solid #dbeafe;">
+                   <div style="font-weight:bold; color:#1e40af; font-size:0.75rem; text-transform:uppercase; margin-bottom:5px;">🤵 Boy</div>
+                   <div style="font-weight:bold; color:#1e3a8a; font-size:0.9rem;">${data.boy.nakshatra}</div>
+                   <div style="font-size:0.75rem; color:#60a5fa;">${data.boy.rasi} Rasi</div>
+                </div>
+                 <div style="background:#fdf2f8; padding:12px; border-radius:12px; border:1px solid #fce7f3;">
+                   <div style="font-weight:bold; color:#be185d; font-size:0.75rem; text-transform:uppercase; margin-bottom:5px;">👰 Girl</div>
+                   <div style="font-weight:bold; color:#9d174d; font-size:0.9rem;">${data.girl.nakshatra}</div>
+                   <div style="font-size:0.75rem; color:#f472b6;">${data.girl.rasi} Rasi</div>
+                </div>
+             </div>
 
-         <div class="porutham-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
+             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
        `;
 
       if (m.poruthams && Array.isArray(m.poruthams)) {
         m.poruthams.forEach(p => {
-          const isGood = p.score > 0;
-          const icon = isGood ? '✅' : '❌';
-          const bg = isGood ? '#ecfdf5' : '#fef2f2';
-          const border = isGood ? '#10b981' : '#ef4444';
+          const matched = p.score > 0;
+          const statusIcon = matched ? 'fa-check-circle' : 'fa-times-circle';
+          const statusColor = matched ? '#10b981' : '#f87171';
+          const bg = matched ? '#f0fdf4' : '#fef2f2';
 
           html += `
-               <div style="background:${bg}; border-left:4px solid ${border}; padding:10px; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                 <div style="font-size:0.85rem; color:#666;">${p.name}</div>
-                 <div style="font-weight:bold; font-size:1rem; margin:2px 0;">${icon} ${isGood ? 'Matched' : 'Not Matched'}</div>
-                 <div style="font-size:0.7rem; color:#888;">${p.score}/${p.max} Points</div>
+               <div style="background:${bg}; border:1px solid ${statusColor}20; padding:10px; border-radius:10px; display:flex; flex-direction:column; justify-content:center;">
+                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                   <span style="font-size:0.7rem; color:#6b7280; font-weight:600;">${p.name}</span>
+                   <i class="fas ${statusIcon}" style="color:${statusColor}; font-size:0.8rem;"></i>
+                 </div>
+                 <div style="font-weight:bold; font-size:0.85rem; color:#374151;">${matched ? 'Yes' : 'No'}</div>
+                 <div style="font-size:0.65rem; color:#9ca3af;">${p.score}/${p.max} Pts</div>
                </div>
              `;
         });
       }
 
-      // Add Dosha Info
-      if (m.girlDosha || m.boyDosha) {
-        html += `</div><div style="margin-top:20px; font-weight:bold; color:#555;">Kuja Dosha Check</div>
-         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:5px;">
-            <div style="background:#fef2f2; padding:10px; border-radius:6px; border:1px solid #fee2e2;">
-               <div style="font-size:0.8rem; color:#be185d; font-weight:bold;">Girl Dosha</div>
-               <div style="font-size:0.8rem;">${m.girlDosha?.hasDosha ? 'YES' : 'NO'}</div>
-               <div style="font-size:0.65rem; color:#666;">${m.girlDosha?.desc || ''}</div>
-            </div>
-            <div style="background:#eff6ff; padding:10px; border-radius:6px; border:1px solid #dbeafe;">
-               <div style="font-size:0.8rem; color:#1e40af; font-weight:bold;">Boy Dosha</div>
-               <div style="font-size:0.8rem;">${m.boyDosha?.hasDosha ? 'YES' : 'NO'}</div>
-               <div style="font-size:0.65rem; color:#666;">${m.boyDosha?.desc || ''}</div>
-            </div>
-         </div>`;
+      html += `</div>`;
+
+      // Dosha and Sandhi Section
+      if (m.girlDosha || m.boyDosha || (m.sandhi && m.sandhi.hasSandhi)) {
+        html += `<div style="margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+          <div style="font-weight:bold; color:#374151; margin-bottom:10px; font-size:0.9rem;">Compatibility Check</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+             <div style="background:#fef2f2; padding:10px; border-radius:10px; border:1px solid #fee2e2;">
+                <div style="font-size:0.7rem; color:#991b1b; font-weight:bold; text-transform:uppercase;">Kuja Dosha</div>
+                <div style="font-size:0.75rem; margin-top:4px;">
+                  <b>G:</b> ${m.girlDosha?.hasDosha ? 'Svr' : 'No'}, <b>B:</b> ${m.boyDosha?.hasDosha ? 'Svr' : 'No'}
+                </div>
+             </div>
+             <div style="background:#f0fdfa; padding:10px; border-radius:10px; border:1px solid #ccfbf1;">
+                <div style="font-size:0.7rem; color:#0f766e; font-weight:bold; text-transform:uppercase;">Dasha Sandhi</div>
+                <div style="font-size:0.75rem; margin-top:4px;">
+                  ${m.sandhi?.hasSandhi ? '⚠️ Overlap' : '✅ No Overlap'}
+                </div>
+             </div>
+          </div>
+        </div>`;
       }
 
-      html += `</div>`;
+      html += `</div></div >`;
       div.innerHTML = html;
       div.style.display = 'block';
     }
@@ -6693,7 +6841,7 @@
       // listEl.innerHTML = '<div style="text-align:center; padding:10px; color:#6B7280;">Updating...</div>';
 
       try {
-        const res = await fetch(`/api/payment/history/${state.me.userId}`).then(r => r.json());
+        const res = await fetch(`/ api / payment / history / ${state.me.userId} `).then(r => r.json());
         if (res.ok && res.data) {
           if (res.data.length === 0) {
             listEl.innerHTML = '<div style="text-align:center; padding:20px; color:#6B7280; font-size:0.9rem;">No transactions found.</div>';
@@ -6706,7 +6854,7 @@
             const icon = txn.status === 'success' ? 'fa-check-circle' : (txn.status === 'failed' ? 'fa-times-circle' : 'fa-clock');
 
             return `
-            <div style="background:white; padding:15px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+        < div style = "background:white; padding:15px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);" >
               <div style="display:flex; align-items:center; gap:12px;">
                 <div style="width:40px; height:40px; border-radius:50%; background:${statusColor}20; display:flex; align-items:center; justify-content:center; color:${statusColor}; font-size:1.1rem;">
                   <i class="fas ${icon}"></i>
@@ -6720,8 +6868,8 @@
                  <div style="font-size:0.8rem; font-weight:600; color:${statusColor}; text-transform:capitalize;">${txn.status}</div>
                  <div style="font-size:0.65rem; color:#D1D5DB; margin-top:2px;">#${txn.transactionId ? txn.transactionId.slice(-6).toUpperCase() : '---'}</div>
               </div>
-            </div>
-            `;
+            </div >
+        `;
           }).join('');
         }
       } catch (e) {
@@ -6781,7 +6929,7 @@
 
         if (result.ok && result.token) {
           // Redirect to payment.html with secure token
-          window.location.href = `/payment.html?token=${result.token}`;
+          window.location.href = `/ payment.html ? token = ${result.token} `;
         } else {
           alert(result.error || 'Failed to initiate payment');
           isPaymentInProgress = false; // Reset flag on error
@@ -6962,7 +7110,7 @@
 
     window.shareOnWhatsApp = function () {
       const code = document.getElementById('myReferralCode').innerText;
-      const text = `வணக்கம்! Astro 5 Star செயலியில் இணையுங்கள். எனது Referral Code: ${code}. பயன்படுத்தி போனஸ் பெறுங்கள்! https://play.google.com/store/search?q=astro5start&c=apps`;
+      const text = `வணக்கம்! Astro 5 Star செயலியில் இணையுங்கள்.எனது Referral Code: ${code}. பயன்படுத்தி போனஸ் பெறுங்கள்! https://play.google.com/store/search?q=astro5start&c=apps`;
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
     };
 

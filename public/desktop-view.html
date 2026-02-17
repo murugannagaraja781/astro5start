@@ -2054,8 +2054,7 @@
           <div class="services-grid-container" style="margin-bottom: 40px; overflow-x: auto; padding: 10px 5px;">
             <div style="display: flex; gap: 20px; padding: 5px 0;">
               <!-- Kundali -->
-              <div class="service-item-card"
-                onclick="document.getElementById('universalChartModal').classList.remove('hidden')">
+              <div class="service-item-card" onclick="openUniversalChartModal()">
                 <div class="service-icon-wrapper">
                   <img src="images/kundali_icon.png" alt="Kundali">
                 </div>
@@ -2063,8 +2062,7 @@
               </div>
 
               <!-- Match -->
-              <div class="service-item-card"
-                onclick="document.getElementById('screen-porutham').classList.remove('hidden')">
+              <div class="service-item-card" onclick="openPoruthamModal()">
                 <div class="service-icon-wrapper">
                   <img src="images/match_icon.png" alt="Match">
                 </div>
@@ -2318,53 +2316,158 @@
               class="fas fa-times"></i></button>
         </div>
         <div style="flex:1; overflow-y:auto; padding:20px;">
-          <div
-            style="background:white; border-radius:16px; padding:20px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom:20px;">
-            <div style="display:flex; gap:15px; margin-bottom:15px;">
-              <div style="flex:1;">
-                <label style="display:block; font-size:0.85rem; color:#4B5563; margin-bottom:6px; font-weight:500;">Date
-                  of Birth</label>
-                <input type="date" id="dashboardChartDate" class="app-input"
-                  style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font-size:1rem; color:#111827; background:#F9FAFB;">
-              </div>
-              <div style="flex:1;">
-                <label style="display:block; font-size:0.85rem; color:#4B5563; margin-bottom:6px; font-weight:500;">Time
-                  of Birth</label>
-                <input type="time" id="dashboardChartTime" class="app-input"
-                  style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font-size:1rem; color:#111827; background:#F9FAFB;">
-              </div>
+          <!-- Name -->
+          <div style="margin-bottom:15px;">
+            <label
+              style="display:block; font-size:0.85rem; color:#4B5563; margin-bottom:6px; font-weight:500;">Name</label>
+            <input type="text" id="dashboardChartName" class="app-input" placeholder="Your Name"
+              style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font-size:1rem; color:#111827; background:#F9FAFB;">
+          </div>
+
+          <div style="display:flex; gap:15px; margin-bottom:15px;">
+            <div style="flex:1;">
+              <label style="display:block; font-size:0.85rem; color:#4B5563; margin-bottom:6px; font-weight:500;">Date
+                of Birth</label>
+              <input type="date" id="dashboardChartDate" class="app-input"
+                style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font-size:1rem; color:#111827; background:#F9FAFB;">
             </div>
-            <div style="display:flex; gap:15px; margin-bottom:15px;">
-              <div style="flex:1;">
-                <label
-                  style="display:block; font-size:0.85rem; color:#4B5563; margin-bottom:6px; font-weight:500;">Latitude</label>
-                <input type="text" id="dashboardChartLat" class="app-input" placeholder="e.g., 13.0827"
-                  style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font-size:1rem; color:#111827; background:#F9FAFB;">
-              </div>
-              <div style="flex:1;">
-                <label
-                  style="display:block; font-size:0.85rem; color:#4B5563; margin-bottom:6px; font-weight:500;">Longitude</label>
-                <input type="text" id="dashboardChartLon" class="app-input" placeholder="e.g., 80.2707"
-                  style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font-size:1rem; color:#111827; background:#F9FAFB;">
-              </div>
+            <div style="flex:1;">
+              <label style="display:block; font-size:0.85rem; color:#4B5563; margin-bottom:6px; font-weight:500;">Time
+                of Birth</label>
+              <input type="time" id="dashboardChartTime" class="app-input"
+                style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font-size:1rem; color:#111827; background:#F9FAFB;">
             </div>
-            <div style="display:flex; gap:15px;">
-              <div style="flex:1;">
-                <label
-                  style="display:block; font-size:0.85rem; color:#4B5563; margin-bottom:6px; font-weight:500;">Timezone
-                  (IST = 5.5)</label>
-                <input type="number" id="dashboardChartTz" class="app-input" value="5.5" step="0.5"
-                  style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font-size:1rem; color:#111827; background:#F9FAFB;">
+          </div>
+
+          <!-- Gender -->
+          <div style="margin-bottom:15px; display:flex; gap:20px; align-items:center;">
+            <label style="margin:0; font-size:0.85rem; color:#4B5563; font-weight:500;">Gender:</label>
+            <label style="font-size:0.9rem; color:#374151;"><input type="radio" name="dashboardChartGender" value="Male"
+                checked> Male</label>
+            <label style="font-size:0.9rem; color:#374151;"><input type="radio" name="dashboardChartGender"
+                value="Female"> Female</label>
+          </div>
+
+          <div style="margin-bottom:15px; position:relative;">
+            <label style="display:block; font-size:0.85rem; color:#4B5563; margin-bottom:6px; font-weight:500;">Place of
+              Birth</label>
+            <div style="position:relative;">
+              <input type="text" id="dashboardCitySearch" class="app-input" placeholder="Enter City" autocomplete="off"
+                style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font-size:1rem; color:#111827; background:#F9FAFB;"
+                oninput="handleDashboardCityInput(this.value)">
+              <div id="dashboardCityResults"
+                style="display:none; position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #ddd; z-index:9999; max-height:200px; overflow-y:auto; border-radius:6px; box-shadow:0 4px 15px rgba(0,0,0,0.2); margin-top:5px;">
               </div>
             </div>
           </div>
-          <button class="cosmic-btn" onclick="fetchDashboardChart()"
-            style="font-size:1.1rem; padding:15px; border-radius:12px; box-shadow:0 10px 15px -3px rgba(4,120,87,0.2); width:100%; border:none; background:linear-gradient(to right, #059669, #047857); color:white; cursor:pointer; font-weight:600;">
-            <i class="fas fa-calculator"></i> Get Birth Chart
-          </button>
+
+          <!-- Hidden/Readonly Coords -->
+          <div style="display:flex; gap:15px; margin-bottom:15px;">
+            <div style="flex:1;">
+              <label
+                style="display:block; font-size:0.85rem; color:#4B5563; margin-bottom:6px; font-weight:500;">Latitude</label>
+              <input type="text" id="dashboardChartLat" class="app-input" placeholder="e.g., 13.0827" readonly
+                style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font-size:1rem; color:#555; background:#E5E7EB;">
+            </div>
+            <div style="flex:1;">
+              <label
+                style="display:block; font-size:0.85rem; color:#4B5563; margin-bottom:6px; font-weight:500;">Longitude</label>
+              <input type="text" id="dashboardChartLon" class="app-input" placeholder="e.g., 80.2707" readonly
+                style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font-size:1rem; color:#555; background:#E5E7EB;">
+            </div>
+          </div>
+
+          <div style="display:flex; gap:15px; margin-bottom:15px;">
+            <div style="flex:1;">
+              <label
+                style="display:block; font-size:0.85rem; color:#4B5563; margin-bottom:6px; font-weight:500;">Timezone
+                (IST = 5.5)</label>
+              <input type="number" id="dashboardChartTz" class="app-input" value="5.5" step="0.5" readonly
+                style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font-size:1rem; color:#555; background:#E5E7EB;">
+            </div>
+          </div>
+
+          <!-- Marital & Occupation -->
+          <div style="display:flex; gap:15px; margin-bottom:15px;">
+            <div style="flex:1;">
+              <label
+                style="display:block; font-size:0.85rem; color:#4B5563; margin-bottom:6px; font-weight:500;">Marital
+                Status</label>
+              <select id="dashboardChartMarital" class="app-input"
+                style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font-size:1rem; color:#111827; background:#F9FAFB;">
+                <option value="Single">Single</option>
+                <option value="Married">Married</option>
+                <option value="Divorced">Divorced</option>
+                <option value="Widowed">Widowed</option>
+              </select>
+            </div>
+            <div style="flex:1;">
+              <label
+                style="display:block; font-size:0.85rem; color:#4B5563; margin-bottom:6px; font-weight:500;">Occupation</label>
+              <input type="text" id="dashboardChartOccupation" class="app-input" placeholder="e.g. Engineer"
+                style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font-size:1rem; color:#111827; background:#F9FAFB;">
+            </div>
+          </div>
+
+          <!-- Topic -->
+          <div style="margin-bottom:15px;">
+            <label style="display:block; font-size:0.85rem; color:#4B5563; margin-bottom:6px; font-weight:500;">Topic of
+              Concern</label>
+            <select id="dashboardChartTopic" class="app-input"
+              style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font-size:1rem; color:#111827; background:#F9FAFB;">
+              <option value="Career">Career / Job</option>
+              <option value="Marriage">Marriage / Relationship</option>
+              <option value="Health">Health</option>
+              <option value="Education">Education</option>
+              <option value="Finance">Finance / Wealth</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <!-- Partner Details Toggle -->
+          <div style="margin-top:15px; padding-top:10px; border-top:1px solid #eee;">
+            <label style="font-size:0.9rem; color:#374151; cursor:pointer;">
+              <input type="checkbox" id="dashboardTogglePartner"
+                onchange="document.getElementById('dashboardPartnerFields').style.display = this.checked ? 'block' : 'none'">
+              Enter Partner's Details
+            </label>
+          </div>
+
+          <div id="dashboardPartnerFields"
+            style="display:none; margin-top:10px; padding:15px; background:#F9FAFB; border-radius:12px; border:1px solid #E5E7EB;">
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+              <div style="flex:1;">
+                <label style="display:block; font-size:0.75rem; color:#6B7280; margin-bottom:4px;">Partner Name</label>
+                <input type="text" id="dashboardPartnerName" class="app-input"
+                  style="width:100%; padding:10px; border:1px solid #D1D5DB; border-radius:8px;">
+              </div>
+              <div style="flex:1;">
+                <label style="display:block; font-size:0.75rem; color:#6B7280; margin-bottom:4px;">Partner DOB</label>
+                <input type="date" id="dashboardPartnerDob" class="app-input"
+                  style="width:100%; padding:10px; border:1px solid #D1D5DB; border-radius:8px;">
+              </div>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <div style="flex:1;">
+                <label style="display:block; font-size:0.75rem; color:#6B7280; margin-bottom:4px;">Partner Time</label>
+                <input type="time" id="dashboardPartnerTob" class="app-input"
+                  style="width:100%; padding:10px; border:1px solid #D1D5DB; border-radius:8px;">
+              </div>
+              <div style="flex:1;">
+                <label style="display:block; font-size:0.75rem; color:#6B7280; margin-bottom:4px;">Partner Place</label>
+                <input type="text" id="dashboardPartnerPob" class="app-input"
+                  style="width:100%; padding:10px; border:1px solid #D1D5DB; border-radius:8px;">
+              </div>
+            </div>
+          </div>
         </div>
+        <button class="cosmic-btn" onclick="fetchDashboardChart()"
+          style="font-size:1.1rem; padding:15px; border-radius:12px; box-shadow:0 10px 15px -3px rgba(4,120,87,0.2); width:100%; border:none; background:linear-gradient(to right, #059669, #047857); color:white; cursor:pointer; font-weight:600;">
+          <i class="fas fa-calculator"></i> Get Birth Chart
+        </button>
       </div>
     </div>
+  </div>
   </div>
   <!-- Screen: Client Academy Modal -->
   <div id="clientAcademyModal" class="modal-overlay hidden"
@@ -2463,6 +2566,7 @@
         font-size: 1.5rem;
         background: linear-gradient(135deg, #FFD700, #B8860B);
         -webkit-background-clip: text;
+        background-clip: text;
         -webkit-text-fill-color: transparent;
         letter-spacing: 1px;
       }
@@ -3250,12 +3354,15 @@
                     <label
                       style="display:block; margin-bottom:5px; margin-top:10px; font-size:0.9rem; color:#666;">City</label>
                     <div style="position:relative;">
-                      <input type="text" id="boyCity" class="cosmic-input" placeholder="Search City..."
+                      <input type="text" id="boyCity" class="app-input" placeholder="Search City..."
                         oninput="handleMatchCitySearch(this, 'boy')"
-                        style="background:#f9f9f9; color:black; border:1px solid #ddd;">
-                      <div id="boyCityResults" class="city-results-dropdown" style="display:none;"></div>
+                        style="width:100%; border:1px solid #D1D5DB; border-radius:10px; padding:12px;">
+                      <div id="boyCityResults" class="city-results-dropdown"
+                        style="display:none; position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #ddd; z-index:999; max-height:200px; overflow-y:auto; border-radius:10px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin-top:5px;">
+                      </div>
                       <input type="hidden" id="boyLat">
                       <input type="hidden" id="boyLon">
+                      <input type="hidden" id="boyTz" value="5.5">
                     </div>
                   </div>
 
@@ -3266,23 +3373,26 @@
 
                     <label style="display:block; margin-bottom:5px; font-size:0.9rem; color:#666;">Date of
                       Birth</label>
-                    <input type="date" id="girlDate" class="cosmic-input"
-                      style="background:#f9f9f9; color:black; border:1px solid #ddd;">
+                    <input type="date" id="girlDate" class="app-input"
+                      style="width:100%; border:1px solid #D1D5DB; border-radius:10px; padding:12px;">
 
                     <label style="display:block; margin-bottom:5px; margin-top:10px; font-size:0.9rem; color:#666;">Time
                       of Birth</label>
-                    <input type="time" id="girlTime" class="cosmic-input"
-                      style="background:#f9f9f9; color:black; border:1px solid #ddd;">
+                    <input type="time" id="girlTime" class="app-input"
+                      style="width:100%; border:1px solid #D1D5DB; border-radius:10px; padding:12px;">
 
                     <label
                       style="display:block; margin-bottom:5px; margin-top:10px; font-size:0.9rem; color:#666;">City</label>
                     <div style="position:relative;">
-                      <input type="text" id="girlCity" class="cosmic-input" placeholder="Search City..."
+                      <input type="text" id="girlCity" class="app-input" placeholder="Search City..."
                         oninput="handleMatchCitySearch(this, 'girl')"
-                        style="background:#f9f9f9; color:black; border:1px solid #ddd;">
-                      <div id="girlCityResults" class="city-results-dropdown" style="display:none;"></div>
+                        style="width:100%; border:1px solid #D1D5DB; border-radius:10px; padding:12px;">
+                      <div id="girlCityResults" class="city-results-dropdown"
+                        style="display:none; position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #ddd; z-index:999; max-height:200px; overflow-y:auto; border-radius:10px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin-top:5px;">
+                      </div>
                       <input type="hidden" id="girlLat">
                       <input type="hidden" id="girlLon">
+                      <input type="hidden" id="girlTz" value="5.5">
                     </div>
                   </div>
                 </div>
@@ -3372,7 +3482,7 @@
             <i class="fas fa-calculator"></i> Get Birth Chart
           </button>
 
-          <button onclick="porutham()" class="cosmic-btn" style="width:100%; padding:10px; font-size:0.9rem;">
+          <button onclick="openPoruthamModal()" class="cosmic-btn" style="width:100%; padding:10px; font-size:0.9rem;">
             <i class="fas fa-calculator"></i> பொருத்தம்
           </button>
 
@@ -3391,9 +3501,122 @@
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
   <script src="https://unpkg.com/simple-peer/simplepeer.min.js"></script>
   <script>
-    // State (exposed to window for Android WebView access)
-    const state = { me: null, socket: null, session: null, peer: null, localStream: null };
+    const state = { me: null, socket: null, session: null, peer: null, localStream: null, lang: 'ta' };
     window.state = state; // Expose for Android onResume wallet refresh
+
+    // --- Translation Logic ---
+    const tamilDict = {
+      'Sun': 'சூரியன்', 'Moon': 'சந்திரன்', 'Mars': 'செவ்வாய்', 'Mercury': 'புதன்',
+      'Jupiter': 'குரு', 'Venus': 'சுக்கிரன்', 'Saturn': 'சனி', 'Rahu': 'ராகு', 'Ketu': 'கேது',
+      'Ascendant': 'லக்னம்', 'Lagna': 'லக்னம்', 'Asc': 'லக்',
+      'Aries': 'மேஷம்', 'Taurus': 'ரிஷபம்', 'Gemini': 'மிதுனம்', 'Cancer': 'கடகம்',
+      'Leo': 'சிம்மம்', 'Virgo': 'கன்னி', 'Libra': 'துலாம்', 'Scorpio': 'விருச்சிகம்',
+      'Sagittarius': 'தனுசு', 'Capricorn': 'மகரம்', 'Aquarius': 'கும்பம்', 'Pisces': 'மீனம்',
+      'Nakshatra': 'நட்சத்திரம்', 'Tithi': 'திதி', 'Yoga': 'யோகம்', 'Karan': 'கரணம்',
+      'Rasi Chart': 'ராசி கட்டம்', 'Navamsa Chart': 'நவாம்ச கட்டம்',
+      'Planet & KP Lords': 'கிரகங்கள் & உப அதிபதிகள்', 'Current Mahadasha': 'தற்போதைய மஹா தசை',
+      'Current Transits': 'தற்போதைய கோச்சாரம்', 'Analyzing Planets...': 'கிரகங்களை ஆய்வு செய்கிறோம்...',
+      'Remaining': 'மீதமுள்ளது', 'Years': 'ஆண்டுகள்', 'SignL': 'ராசி.அ', 'StarL': 'நட்.அ', 'SubL': 'உப.அ',
+      'Birth Chart Results': 'பிறப்பு ஜாதக விவரங்கள்', "Today's Panchangam": 'இன்றைய பஞ்சாங்கம்',
+      // Stars
+      'Ashwini': 'அஸ்வினி', 'Bharani': 'பரணி', 'Krittika': 'கார்த்திகை', 'Rohini': 'ரோகிணி', 'Mrigashira': 'மிருகசீரிடம்',
+      'Ardra': 'திருவாதிரை', 'Punarvasu': 'புனர்பூசம்', 'Pushya': 'பூசம்', 'Ashlesha': 'ஆயிலியம்', 'Magha': 'மகம்',
+      'Purva Phalguni': 'பூரம்', 'Uttara Phalguni': 'உத்திரம்', 'Hasta': 'அஸ்தம்', 'Chitra': 'சித்திரை', 'Swati': 'சுவாதி',
+      'Vishakha': 'விசாகம்', 'Anuradha': 'அனுஷம்', 'Jyeshtha': 'கேட்டை', 'Mula': 'மூலம்', 'Purva Ashadha': 'பூராடம்',
+      'Uttara Ashadha': 'உத்திராடம்', 'Shravana': 'திருவோணம்', 'Dhanishta': 'அவிட்டம்', 'Shatabhisha': 'சதயம்',
+      'Purva Bhadrapada': 'பூரட்டாதி', 'Uttara Bhadrapada': 'உத்திரட்டாதி', 'Revati': 'ரேவதி'
+    };
+
+    function t(key) {
+      if (state.lang === 'en') return key;
+      return tamilDict[key] || key;
+    }
+
+    window.toggleChartLang = function () {
+      state.lang = (state.lang === 'ta' ? 'en' : 'ta');
+      const btn = document.getElementById('btnToggleLang');
+      if (btn) btn.innerText = state.lang === 'ta' ? 'Language: Tamil' : 'Language: English';
+      if (window.lastChartData) displayChartInColumn2(window.lastChartData);
+    };
+
+
+    // --- Porutham Logic (Relocated Here) ---
+    window.openPoruthamModal = function () {
+      try {
+        console.log('openPoruthamModal called (desktop) v3');
+        const modal = document.getElementById('screen-porutham');
+        if (!modal) {
+          console.error('Modal screen-porutham not found');
+          alert('Modal error: screen-porutham not found');
+          return;
+        }
+        modal.style.zIndex = "10002"; // Ensure it's on top
+        modal.classList.remove('hidden');
+        modal.style.setProperty('display', 'flex', 'important');
+
+        const resultsDiv = document.getElementById('poruthamResults');
+        if (resultsDiv) {
+          resultsDiv.style.display = 'none';
+          resultsDiv.innerHTML = '';
+        }
+
+        // --- Auto Fill Logic ---
+        let client = null, partner = null, gender = 'Male';
+
+        if (window.receivedBirthData) {
+          const bd = window.receivedBirthData;
+          gender = bd.gender || 'Male';
+          client = {
+            date: `${bd.year}-${String(bd.month).padStart(2, '0')}-${String(bd.day).padStart(2, '0')}`,
+            time: `${String(bd.hour).padStart(2, '0')}:${String(bd.minute).padStart(2, '0')}`,
+            city: bd.city, lat: bd.latitude, lon: bd.longitude, tz: bd.timezone
+          };
+          if (bd.partner && bd.partner.name) {
+            partner = { date: bd.partner.dob, time: bd.partner.tob, city: bd.partner.pob, lat: 0, lon: 0, tz: 5.5 };
+          }
+        } else if (state.me) {
+          const bd = state.me.birthDetails || {};
+          const id = state.me.intakeDetails || {};
+          gender = id.gender || 'Male';
+          client = { date: bd.dob, time: bd.tob, city: bd.pob, lat: bd.lat, lon: bd.lon, tz: bd.tz || 5.5 };
+          if (id.partner && id.partner.name) {
+            partner = { date: id.partner.dob, time: id.partner.tob, city: id.partner.pob, lat: 0, lon: 0, tz: 5.5 };
+          }
+        }
+
+        if (client) {
+          const isBoy = gender === 'Male';
+          const prefix = isBoy ? 'boy' : 'girl', pPrefix = isBoy ? 'girl' : 'boy';
+          if (client.date) document.getElementById(prefix + 'Date').value = client.date;
+          if (client.time) document.getElementById(prefix + 'Time').value = client.time;
+          if (client.city) document.getElementById(prefix + 'City').value = client.city;
+          if (client.lat) document.getElementById(prefix + 'Lat').value = client.lat;
+          if (client.lon) document.getElementById(prefix + 'Lon').value = client.lon;
+          if (client.tz) document.getElementById(prefix + 'Tz').value = client.tz;
+          if (partner) {
+            if (partner.date) document.getElementById(pPrefix + 'Date').value = partner.date;
+            if (partner.time) document.getElementById(pPrefix + 'Time').value = partner.time;
+            if (partner.city) document.getElementById(pPrefix + 'City').value = partner.city;
+          }
+        } else {
+          document.getElementById('boyDate').value = '1995-05-15';
+          document.getElementById('girlDate').value = '1998-08-20';
+          document.getElementById('boyTime').value = '10:00';
+          document.getElementById('girlTime').value = '10:00';
+          document.getElementById('boyCity').value = 'Chennai, Tamil Nadu';
+          document.getElementById('girlCity').value = 'Chennai, Tamil Nadu';
+          document.getElementById('boyLat').value = '13.0827';
+          document.getElementById('boyLon').value = '80.2707';
+          document.getElementById('girlLat').value = '13.0827';
+          document.getElementById('girlLon').value = '80.2707';
+        }
+      } catch (e) {
+        console.error('openPoruthamModal error:', e);
+        alert('Error opening modal: ' + e.message);
+      }
+    };
+    window.porutham = window.openPoruthamModal;
+
 
     // Persistent Session Helper
     const SESSION_KEY = 'astro_session';
@@ -4037,7 +4260,7 @@
 
         // Low Balance Warning (e.g., < ₹50)
         // Check if we are in a session? Maybe not needed, just warn.
-        if (data.balance < 50) {
+        if (state.me.role !== 'astrologer' && data.balance < 50) {
           // Optional: Check if we haven't shown it recently to avoid spam
           showLowBalanceAlert(data.balance);
         }
@@ -4083,21 +4306,21 @@
             <div class="slide-content">
               <div class="slide-title">Premium Consultation</div>
               <div class="slide-subtitle">50% Off Today</div>
-              <div class="slide-cta">Book Now <i class="fas fa-arrow-right"></i></div>
+              <div class="slide-cta" onclick="document.getElementById('astroList').scrollIntoView({behavior:'smooth'})">Book Now <i class="fas fa-arrow-right"></i></div>
             </div>
           </div>
           <div class="home-slide" style="background: linear-gradient(135deg, #059669 0%, #10B981 100%);">
             <div class="slide-content">
               <div class="slide-title">Find Your Soulmate</div>
               <div class="slide-subtitle">Vedic Compatibility</div>
-              <div class="slide-cta">Check Match <i class="fas fa-arrow-right"></i></div>
+              <div class="slide-cta" onclick="openPoruthamModal()">Check Match <i class="fas fa-arrow-right"></i></div>
             </div>
           </div>
           <div class="home-slide" style="background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%);">
             <div class="slide-content">
               <div class="slide-title">Career Guidance</div>
               <div class="slide-subtitle">Success Ahead</div>
-              <div class="slide-cta">View Path <i class="fas fa-arrow-right"></i></div>
+              <div class="slide-cta" onclick="document.getElementById('astroList').scrollIntoView({behavior:'smooth'})">View Path <i class="fas fa-arrow-right"></i></div>
             </div>
           </div>
         `;
@@ -4115,9 +4338,8 @@
         return;
       }
 
-      // Render Slides
       wrapper.innerHTML = banners.map(b => `
-          <div class="home-slide" style="background-image: url('${b.imageUrl}'); cursor:pointer;" onclick="handleBannerClick('${b._id || b.id}')">
+          <div class="home-slide" style="background-image: url('${b.imageUrl}'); cursor:pointer;" onclick="handleBannerClick(${JSON.stringify(b).replace(/"/g, '&quot;')})">
             <div class="slide-content">
               <div class="slide-title" style="${(!b.title || b.title === 'undefined') ? 'display:none' : ''}">${b.title}</div>
               <div class="slide-subtitle" style="${(!b.subtitle || b.subtitle === 'undefined') ? 'display:none' : ''}">${b.subtitle}</div>
@@ -4160,9 +4382,16 @@
       }, 5000); // 5 Seconds
     }
 
-    function handleBannerClick(id) {
+    function handleBannerClick(banner) {
       // Logic to handle clicks (e.g. open specific page, or just scroll to astro list)
-      document.getElementById('astroList').scrollIntoView({ behavior: 'smooth' });
+      const title = (banner.title || '').toLowerCase();
+      const st = (banner.subtitle || '').toLowerCase();
+
+      if (title.includes('match') || st.includes('match') || title.includes('soulmate') || st.includes('compatibility')) {
+        openPoruthamModal();
+      } else {
+        document.getElementById('astroList').scrollIntoView({ behavior: 'smooth' });
+      }
     }
 
     function updateHomeTime() {
@@ -5511,6 +5740,7 @@
       }, 300);
     };
 
+
     window.selectCity = async function (index, cityName, state, latitude, longitude) {
       document.getElementById('clientCitySearch').value = cityName;
       document.getElementById('clientCityResults').style.display = 'none';
@@ -5535,6 +5765,81 @@
       } catch (error) {
         console.error('Timezone fetch error:', error);
         document.getElementById('clientChartTz').value = '5.5';
+      }
+    };
+
+    // --- Dashboard City Search Logic ---
+    let dashboardCitySearchTimeout;
+    window.handleDashboardCityInput = async function (query) {
+      clearTimeout(dashboardCitySearchTimeout);
+      const resultsDiv = document.getElementById('dashboardCityResults');
+
+      if (!query || query.trim().length < 2) {
+        resultsDiv.style.display = 'none';
+        return;
+      }
+
+      dashboardCitySearchTimeout = setTimeout(async () => {
+        try {
+          const response = await fetch('/api/city-autocomplete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: query.trim() })
+          });
+
+          const data = await response.json();
+
+          if (data.ok && data.results && data.results.length > 0) {
+            let html = '';
+            data.results.forEach((city, index) => {
+              const stateLabel = city.state ? ` (${city.state})` : '';
+              html += `
+                <div onclick="selectDashboardCity(${index}, '${city.name}', '${city.state}', ${city.latitude}, ${city.longitude})"
+                  style="padding:10px 15px; cursor:pointer; border-bottom:1px solid #eee; hover:background:#f5f5f5; transition:0.2s;"
+                  onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='white'">
+                  <div style="font-weight:500; color:#333;">${city.name}${stateLabel}</div>
+                  <div style="font-size:0.85rem; color:#999;">${city.displayName}</div>
+                </div>
+              `;
+            });
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+          } else {
+            resultsDiv.innerHTML = '<div style="padding:10px 15px; color:#999;">No cities found</div>';
+            resultsDiv.style.display = 'block';
+          }
+        } catch (error) {
+          console.error('City search error:', error);
+          resultsDiv.innerHTML = '<div style="padding:10px 15px; color:#f00;">Error searching cities</div>';
+          resultsDiv.style.display = 'block';
+        }
+      }, 300);
+    };
+
+    window.selectDashboardCity = async function (index, cityName, state, latitude, longitude) {
+      document.getElementById('dashboardCitySearch').value = cityName;
+      document.getElementById('dashboardCityResults').style.display = 'none';
+      document.getElementById('dashboardChartLat').value = latitude;
+      document.getElementById('dashboardChartLon').value = longitude;
+
+      try {
+        const response = await fetch('/api/city-timezone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ latitude, longitude })
+        });
+
+        const data = await response.json();
+
+        if (data.ok) {
+          const gmtOffset = data.gmtOffset || 5.5;
+          document.getElementById('dashboardChartTz').value = gmtOffset;
+        } else {
+          document.getElementById('dashboardChartTz').value = '5.5';
+        }
+      } catch (error) {
+        console.error('Timezone fetch error:', error);
+        document.getElementById('dashboardChartTz').value = '5.5';
       }
     };
 
@@ -5864,6 +6169,51 @@
       document.getElementById('birthChartColumn').style.display = 'none';
     };
 
+
+    // --- Universal Chart Modal Logic ---
+    window.openUniversalChartModal = function () {
+      document.getElementById('universalChartModal').classList.remove('hidden');
+
+      // Reset logic: Only pre-fill if empty or if it's the first time
+      if (state.me) {
+        if (state.me.name) document.getElementById('dashboardChartName').value = state.me.name;
+
+        if (state.me.birthDetails) {
+          const bd = state.me.birthDetails;
+          if (bd.dob) document.getElementById('dashboardChartDate').value = bd.dob;
+          if (bd.tob) document.getElementById('dashboardChartTime').value = bd.tob;
+          if (bd.pob) document.getElementById('dashboardCitySearch').value = bd.pob;
+          if (bd.lat) document.getElementById('dashboardChartLat').value = bd.lat;
+          if (bd.lon) document.getElementById('dashboardChartLon').value = bd.lon;
+        } else {
+          // Defaults if no birth details
+          const now = new Date();
+          document.getElementById('dashboardChartDate').value = now.toISOString().split('T')[0];
+          document.getElementById('dashboardChartTime').value = now.toTimeString().slice(0, 5);
+        }
+
+        if (state.me.intakeDetails) {
+          const id = state.me.intakeDetails;
+          if (id.gender) {
+            const rad = document.querySelector(`input[name="dashboardChartGender"][value="${id.gender}"]`);
+            if (rad) rad.checked = true;
+          }
+          if (id.marital) document.getElementById('dashboardChartMarital').value = id.marital;
+          if (id.occupation) document.getElementById('dashboardChartOccupation').value = id.occupation;
+          if (id.topic) document.getElementById('dashboardChartTopic').value = id.topic;
+
+          if (id.partner && id.partner.name) {
+            document.getElementById('dashboardTogglePartner').checked = true;
+            document.getElementById('dashboardPartnerFields').style.display = 'block';
+            document.getElementById('dashboardPartnerName').value = id.partner.name;
+            document.getElementById('dashboardPartnerDob').value = id.partner.dob || '';
+            document.getElementById('dashboardPartnerTob').value = id.partner.tob || '';
+            document.getElementById('dashboardPartnerPob').value = id.partner.pob || '';
+          }
+        }
+      }
+    };
+
     // Fetch chart from dashboard form
     async function fetchDashboardChart() {
       const dateStr = document.getElementById('dashboardChartDate')?.value;
@@ -5886,6 +6236,43 @@
         lng: parseFloat(lon) || 80.2707,
         timezone: parseFloat(tz) || 5.5
       };
+
+      // Collect all details
+      const name = document.getElementById('dashboardChartName')?.value;
+      const gender = document.querySelector('input[name="dashboardChartGender"]:checked')?.value;
+      const marital = document.getElementById('dashboardChartMarital')?.value;
+      const occupation = document.getElementById('dashboardChartOccupation')?.value;
+      const topic = document.getElementById('dashboardChartTopic')?.value;
+      const city = document.getElementById('dashboardCitySearch')?.value;
+
+      let partner = null;
+      if (document.getElementById('dashboardTogglePartner')?.checked) {
+        partner = {
+          name: document.getElementById('dashboardPartnerName').value,
+          dob: document.getElementById('dashboardPartnerDob').value,
+          tob: document.getElementById('dashboardPartnerTob').value,
+          pob: document.getElementById('dashboardPartnerPob').value
+        };
+      }
+
+      // Update state and save
+      if (state.me) {
+        state.me.name = name;
+        state.me.birthDetails = { dob: dateStr, tob: timeStr, pob: city, lat: bd.lat, lon: bd.lng };
+        state.me.intakeDetails = { gender, marital, occupation, topic, partner };
+        saveSession(state.me);
+        if (typeof socket !== 'undefined' && socket.connected) {
+          socket.emit('save-intake-details', {
+            name, gender, marital, occupation, topic, partner,
+            year: parseInt(dateStr.split('-')[0]),
+            month: parseInt(dateStr.split('-')[1]),
+            day: parseInt(dateStr.split('-')[2]),
+            hour: parseInt(timeStr.split(':')[0]),
+            minute: parseInt(timeStr.split(':')[1]),
+            latitude: bd.lat, longitude: bd.lng, timezone: bd.timezone, city
+          });
+        }
+      }
 
       try {
         // Show loading state
@@ -5924,17 +6311,37 @@
       const houses = d.houses?.details || [];
       const transitPlanets = d.transits || [];
 
+      // Define planet colors for dashboard chart
+      const planetColors = {
+        'Sun': '#EAA300', 'Moon': '#C0C0C0', 'Mars': '#EF4444',
+        'Mercury': '#10B981', 'Jupiter': '#F59E0B', 'Venus': '#EC4899',
+        'Saturn': '#374151', 'Rahu': '#1F2937', 'Ketu': '#6B7280'
+      };
+
       let html = `
         <div style="padding:20px; background:white; font-weight:700; font-size:1.2rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e5e5; color:#1F2937;">
-          <span>🔮 Birth Chart Results</span>
-          <button onclick="document.getElementById('universalChartModal').classList.add('hidden')" style="background:none; border:none; font-size:1.4rem; color:#6B7280; cursor:pointer;"><i class="fas fa-times"></i></button>
+          <span>🔮 ${t('Birth Chart Results')}</span>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button onclick="toggleChartLang()" style="background:#f3f4f6; border:1px solid #ddd; padding:4px 8px; border-radius:6px; font-size:0.75rem; cursor:pointer; font-weight:600;">
+              ${state.lang === 'ta' ? 'Tamil' : 'English'}
+            </button>
+            <button onclick="document.getElementById('universalChartModal').classList.add('hidden')" style="background:none; border:none; font-size:1.4rem; color:#6B7280; cursor:pointer;"><i class="fas fa-times"></i></button>
+          </div>
         </div>
         <div style="flex:1; overflow-y:auto; padding:20px;">
+          <!-- User Summary -->
+          ${state.me ? `
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:12px; margin-bottom:15px; font-size:0.9rem; color:#475569;">
+               <div style="font-weight:bold; color:#1e293b; margin-bottom:4px;">${state.me.name || 'Anonymous'} (${state.me.intakeDetails?.gender || 'N/A'})</div>
+               <div style="font-size:0.8rem;">📅 ${state.me.birthDetails?.dob} at ${state.me.birthDetails?.tob}</div>
+               <div style="font-size:0.8rem;">📍 ${state.me.birthDetails?.pob || 'N/A'}</div>
+            </div>
+          ` : ''}
           <!-- Lagna Section -->
           <div style="background:linear-gradient(135deg, #047857 0%, #059669 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px;">
-            <div style="font-size:0.8rem; opacity:0.9; margin-bottom:5px;">🌟 Ascendant (Lagna)</div>
-            <div style="font-size:1.5rem; font-weight:bold;">${d.houses?.ascendantDetails?.signName || 'N/A'}</div>
-            <div style="font-size:0.8rem; margin-top:5px;">Nakshatra: ${d.houses?.ascendantDetails?.nakshatra || 'N/A'}</div>
+            <div style="font-size:0.8rem; opacity:0.9; margin-bottom:5px;">🌟 ${t('Ascendant')}</div>
+            <div style="font-size:1.5rem; font-weight:bold;">${t(d.houses?.ascendantDetails?.signName) || 'N/A'}</div>
+            <div style="font-size:0.8rem; margin-top:5px;">${t('Nakshatra')}: ${t(d.houses?.ascendantDetails?.nakshatra) || 'N/A'}</div>
           </div>
 
           <!-- Deep Analysis Tabs -->
@@ -5945,6 +6352,23 @@
           </div>
 
           <div id="deep-planets" class="deep-tab-content">
+
+            <!-- Added Rasi & Navamsa Charts for Dashboard View -->
+            <div style="margin-bottom:20px;">
+              <div style="font-weight:bold; color:#374151; margin-bottom:10px; font-size:1rem; display:flex; align-items:center; gap:8px;">
+                 <i class="fas fa-th-large" style="color:#d97706;"></i> 🕉️ ${t('Rasi Chart')}
+              </div>
+               <div class="south-indian-chart" id="dashboardSouthChart" style="min-height:300px;"></div>
+            </div>
+
+            <div style="margin-bottom:20px;">
+              <div style="font-weight:bold; color:#374151; margin-bottom:10px; font-size:1rem; display:flex; align-items:center; gap:8px;">
+                 <i class="fas fa-th" style="color:#3b82f6;"></i> 🕉️ ${t('Navamsa Chart')}
+              </div>
+               <div class="south-indian-chart" id="dashboardNavamsaChart" style="min-height:300px;"></div>
+            </div>
+
+            <div style="font-weight:bold; color:#374151; margin-bottom:10px;">Planet Details</div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
       `;
 
@@ -5953,10 +6377,10 @@
         const color = planetColors[p.name] || '#6b7280';
         html += `
             <div style="background:white; border-left:4px solid ${color}; padding:12px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-              <div style="font-weight:bold; color:${color}; margin-bottom:4px;">${p.name}</div>
+              <div style="font-weight:bold; color:${color}; margin-bottom:4px;">${t(p.name)}</div>
               <div style="font-size:0.85rem; color:#555;">
-                <div>${p.signName}</div>
-                <div style="color:#d97706; font-size:0.8rem;">${p.nakshatra} (${p.nakshatraPada})</div>
+                <div>${t(p.signName)}</div>
+                <div style="color:#d97706; font-size:0.8rem;">${t(p.nakshatra)} (${p.nakshatraPada})</div>
               </div>
             </div>
           `;
@@ -5974,11 +6398,11 @@
       rawPlanets.forEach(p => {
         html += `
           <div style="background:white; padding:10px; border-radius:8px; border:1px solid #eee; font-size:0.85rem;">
-            <div style="font-weight:bold; color:#047857; margin-bottom:5px; border-bottom:1px solid #f9f9f9;">${p.name}</div>
+            <div style="font-weight:bold; color:#047857; margin-bottom:5px; border-bottom:1px solid #f9f9f9;">${t(p.name)}</div>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; text-align:center;">
-              <div><span style="color:#999;font-size:0.7rem;">SignL</span><br>${p.signLord?.substring(0, 3)}</div>
-              <div><span style="color:#999;font-size:0.7rem;">StarL</span><br>${p.starLord?.substring(0, 3)}</div>
-              <div><span style="color:#999;font-size:0.7rem;">SubL</span><br>${p.subLord?.substring(0, 3)}</div>
+              <div><span style="color:#999;font-size:0.7rem;">${t('SignL')}</span><br><b>${t(p.signLord || '')}</b></div>
+              <div><span style="color:#999;font-size:0.7rem;">${t('StarL')}</span><br><b>${t(p.starLord || '')}</b></div>
+              <div><span style="color:#999;font-size:0.7rem;">${t('SubL')}</span><br><b>${t(p.subLord || '')}</b></div>
             </div>
           </div>
         `;
@@ -5992,17 +6416,24 @@
             <pre style="background:#1f2937; color:#10b981; padding:15px; border-radius:8px; font-size:0.75rem; overflow-x:auto; max-height:400px;">${JSON.stringify(d, null, 2)}</pre>
           </div>
 
-          <!-- Existing sections follow... -->
           <div style="margin-top:20px;">
-            <div style="font-weight:bold; color:#d97706; margin-bottom:12px; font-size:1.1rem;">📅 Today's Panchangam</div>
+            <div style="font-weight:bold; color:#d97706; margin-bottom:12px; font-size:1.1rem;">📅 ${t('Today\'s Panchangam')}</div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
               <div style="background:#ecfdf5; padding:12px; border-radius:8px; border-left:4px solid #10b981;">
-                <div style="font-size:0.8rem; color:#666; margin-bottom:4px;">Tithi</div>
-                <div style="font-weight:bold; color:#047857;">${panchangam.tithi || 'N/A'}</div>
+                <div style="font-size:0.8rem; color:#666; margin-bottom:4px;">${t('Tithi')}</div>
+                <div style="font-weight:bold; color:#047857;">${t(typeof panchangam.tithi === 'object' ? panchangam.tithi.name : panchangam.tithi) || 'N/A'}</div>
               </div>
               <div style="background:#eff6ff; padding:12px; border-radius:8px; border-left:4px solid #3b82f6;">
-                <div style="font-size:0.8rem; color:#666; margin-bottom:4px;">Nakshatra</div>
-                <div style="font-weight:bold; color:#1e40af;">${panchangam.nakshatra || 'N/A'}</div>
+                <div style="font-size:0.8rem; color:#666; margin-bottom:4px;">${t('Nakshatra')}</div>
+                <div style="font-weight:bold; color:#1e40af;">${t(typeof panchangam.nakshatra === 'object' ? panchangam.nakshatra.name : panchangam.nakshatra) || 'N/A'}</div>
+              </div>
+              <div style="background:#fef3c7; padding:12px; border-radius:8px; border-left:4px solid #d97706;">
+                <div style="font-size:0.8rem; color:#666; margin-bottom:4px;">${t('Yoga')}</div>
+                <div style="font-weight:bold; color:#b45309;">${t(typeof panchangam.yoga === 'object' ? panchangam.yoga.name : panchangam.yoga) || 'N/A'}</div>
+              </div>
+              <div style="background:#f3e8ff; padding:12px; border-radius:8px; border-left:4px solid #7c3aed;">
+                <div style="font-size:0.8rem; color:#666; margin-bottom:4px;">${t('Karan')}</div>
+                <div style="font-weight:bold; color:#6d28d9;">${t(typeof panchangam.karna === 'object' ? panchangam.karna.name : panchangam.karna) || 'N/A'}</div>
               </div>
             </div>
           </div>
@@ -6014,6 +6445,87 @@
       `;
 
       panel.innerHTML = html;
+
+      // Render South Indian Grids for Dashboard
+      setTimeout(() => {
+        const renderDashboardSouthGrid = (gridId, chartType) => {
+          try {
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+
+            const isRasi = chartType === 'rasi';
+            const cellMap = [
+              'Pisces', 'Aries', 'Taurus', 'Gemini',
+              'Aquarius', null, null, 'Cancer',
+              'Capricorn', null, null, 'Leo',
+              'Sagittarius', 'Scorpio', 'Libra', 'Virgo'
+            ];
+
+            while (grid.firstChild) {
+              grid.removeChild(grid.firstChild);
+            }
+
+            cellMap.forEach((sign, idx) => {
+              const div = document.createElement('div');
+              div.className = 'SouthChartBox';
+
+              if (!sign) {
+                div.setAttribute('data-center', 'true');
+                div.style.cssText = 'border: none; background: transparent;';
+                if (idx === 5) {
+                  div.style.gridColumn = '2 / span 2';
+                  div.style.gridRow = '2 / span 2';
+                  div.style.display = 'flex';
+                  div.style.alignItems = 'center';
+                  div.style.justifyContent = 'center';
+                  div.innerHTML = '<i class="fas fa-om fa-4x" style="color:#d97706; opacity:0.15;"></i>';
+                } else {
+                  div.style.display = 'none';
+                }
+              } else {
+                const planetsInSign = [];
+                if (isRasi) {
+                  rawPlanets.forEach(p => {
+                    if (p.signName === sign) {
+                      const trName = t(p.name);
+                      const shortName = trName ? trName.substring(0, 2) : '??';
+                      const pColor = planetColors[p.name] || '#444';
+                      planetsInSign.push(`<div style="font-size:0.75rem; color:${pColor}; font-weight:700;">${shortName}</div>`);
+                    }
+                  });
+                  // Ascendant from d.houses.ascendantDetails or fallback
+                  const ascSign = d.houses?.ascendantDetails?.signName;
+                  if (ascSign === sign) {
+                    planetsInSign.unshift(`<div style="font-weight:bold; color:#dc2626; font-size:0.8rem;">${t('Asc')}</div>`);
+                  }
+                } else if (d.navamsa) {
+                  for (let k in d.navamsa.planets) {
+                    if (d.navamsa.planets[k] === sign) {
+                      const trName = t(k);
+                      const shortName = trName ? trName.substring(0, 2) : '??';
+                      const pColor = planetColors[k] || '#555';
+                      planetsInSign.push(`<div style="font-size:0.75rem; color:${pColor}; font-weight:700;">${shortName}</div>`);
+                    }
+                  }
+                }
+
+                div.innerHTML = `
+                  <span style="font-size:0.65rem; color:#9ca3af; font-weight:bold; margin-bottom:2px; display:block; text-transform:uppercase;">
+                    ${t(sign) ? t(sign).substring(0, 3) : sign}
+                  </span>
+                  <div style="display:flex; flex-wrap:wrap; gap:3px; justify-content:center; align-items:center;">
+                    ${planetsInSign.join('')}
+                  </div>
+                `;
+              }
+              if (div.style.display !== 'none') grid.appendChild(div);
+            });
+          } catch (e) { console.error('Dashboard Chart Render Error', e); }
+        };
+
+        renderDashboardSouthGrid('dashboardSouthChart', 'rasi');
+        renderDashboardSouthGrid('dashboardNavamsaChart', 'navamsa');
+      }, 50);
     }
 
     window.switchDeepTab = function (tab) {
@@ -6101,6 +6613,7 @@
         if (res.error) throw new Error(res.error);
 
         setTimeout(() => {
+          window.lastChartData = res;
           renderChartResults(res);
           document.getElementById('chartLoading').style.display = 'none';
           document.getElementById('chartResults').style.display = 'flex';
@@ -6131,6 +6644,7 @@
       const lagna = houseData.ascendantDetails || {};
       const transitPlanets = d.transits || [];
 
+      // Ensure colors are available
       const planetColors = {
         'Sun': '#ef4444', 'Moon': '#3b82f6', 'Mars': '#b91c1c', 'Mercury': '#10b981',
         'Jupiter': '#f59e0b', 'Venus': '#ec4899', 'Saturn': '#374151', 'Rahu': '#1f2937', 'Ketu': '#4b5563'
@@ -6138,102 +6652,54 @@
 
       let html = '<div style="padding:15px; background:#f9fafb;">';
 
+      // Language Toggle Header
+      html += `
+        <div style="margin-bottom:15px; text-align:right;">
+          <button id="btnToggleLang" onclick="toggleChartLang()"
+            style="background:#f3f4f6; border:1px solid #ddd; padding:5px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer; font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+            🌐 ${state.lang === 'ta' ? 'Language: Tamil' : 'Language: English'}
+          </button>
+        </div>
+      `;
+
       // 1. Lagna & Panchangam Header
       html += `
         <div style="background:linear-gradient(135deg, #047857 0%, #059669 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px; box-shadow:0 10px 15px -3px rgba(4,120,87,0.2);">
           <div style="display:flex; justify-content:space-between; align-items:center;">
              <div>
-                <div style="font-size:0.8rem; opacity:0.9;">🌟 Ascendant (Lagna)</div>
-                <div style="font-size:1.5rem; font-weight:bold;">${lagna.signName || 'N/A'}</div>
+                <div style="font-size:0.8rem; opacity:0.9;">🌟 ${t('Ascendant')}</div>
+                <div style="font-size:1.5rem; font-weight:bold;">${t(lagna.signName) || 'N/A'}</div>
              </div>
              <div style="text-align:right;">
-                <div style="font-size:0.8rem; opacity:0.9;">📅 Tithi</div>
-                <div style="font-weight:bold;">${panchangam.tithi || 'N/A'}</div>
+                <div style="font-size:0.8rem; opacity:0.9;">📅 ${t('Tithi')}</div>
+                <div style="font-weight:bold;">${t(panchangam.tithi) || 'N/A'}</div>
              </div>
           </div>
           <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.2); display:flex; gap:15px; font-size:0.85rem;">
-             <div><b>Nakshatra:</b> ${panchangam.nakshatra || 'N/A'}</div>
-             <div><b>Yoga:</b> ${panchangam.yoga || 'N/A'}</div>
+             <div><b>${t('Nakshatra')}:</b> ${t(panchangam.nakshatra) || 'N/A'}</div>
+             <div><b>${t('Yoga')}:</b> ${t(panchangam.yoga) || 'N/A'}</div>
           </div>
         </div>
       `;
 
       // 2. Charts (Rasi & Navamsa)
+      // Added min-height to prevent collapse
       html += `
         <div style="margin-bottom:20px;">
           <div style="font-weight:bold; color:#374151; margin-bottom:10px; font-size:1rem; display:flex; align-items:center; gap:8px;">
-             <i class="fas fa-th-large" style="color:#d97706;"></i> 🕉️ Rasi Chart
+             <i class="fas fa-th-large" style="color:#d97706;"></i> 🕉️ ${t('Rasi Chart')}
           </div>
-           <div class="south-indian-chart" id="southChartColumn2"></div>
+           <div class="south-indian-chart" id="southChartColumn2" style="min-height:300px;"></div>
         </div>
         <div style="margin-bottom:20px;">
           <div style="font-weight:bold; color:#374151; margin-bottom:10px; font-size:1rem; display:flex; align-items:center; gap:8px;">
-             <i class="fas fa-th" style="color:#3b82f6;"></i> 🕉️ Navamsa Chart
+             <i class="fas fa-th" style="color:#3b82f6;"></i> 🕉️ ${t('Navamsa Chart')}
           </div>
-           <div class="south-indian-chart" id="navamsaChartColumn2"></div>
+           <div class="south-indian-chart" id="navamsaChartColumn2" style="min-height:300px;"></div>
         </div>
       `;
 
-      // Render South Indian Grids
-      setTimeout(() => {
-        const renderSouthGrid = (gridId, chartType) => {
-          const grid = document.getElementById(gridId);
-          if (!grid) return;
-
-          const isRasi = chartType === 'rasi';
-          const cellMap = [
-            'Pisces', 'Aries', 'Taurus', 'Gemini',
-            'Aquarius', null, null, 'Cancer',
-            'Capricorn', null, null, 'Leo',
-            'Sagittarius', 'Scorpio', 'Libra', 'Virgo'
-          ];
-
-          grid.innerHTML = '';
-          cellMap.forEach((sign, idx) => {
-            const div = document.createElement('div');
-            div.className = 'SouthChartBox';
-
-            if (!sign) {
-              div.setAttribute('data-center', 'true');
-              div.style.cssText = 'border: none; background: transparent;';
-              if (idx === 5) {
-                div.style.cssText = 'grid-column: 2 / span 2; grid-row: 2 / span 2; display: flex; align-items: center; justify-content: center; opacity: 0.1;';
-                div.innerHTML = '<i class="fas fa-om fa-4x" style="color:#d97706;"></i>';
-              } else {
-                div.style.display = 'none';
-              }
-            } else {
-              const planetsInSign = [];
-              if (isRasi) {
-                rawPlanets.forEach(p => {
-                  if (p.signName === sign) {
-                    planetsInSign.push(`<div style="font-size:0.75rem; color:${planetColors[p.name]}">${p.name.substring(0, 2)}</div>`);
-                  }
-                });
-                if (lagna.signName === sign) {
-                  planetsInSign.unshift('<div style="font-weight:bold; color:red; font-size:0.8rem;">Asc</div>');
-                }
-              } else if (d.navamsa) {
-                for (let k in d.navamsa.planets) {
-                  if (d.navamsa.planets[k] === sign) {
-                    planetsInSign.push(`<div style="font-size:0.75rem; color:${planetColors[k] || '#555'}">${k.substring(0, 2)}</div>`);
-                  }
-                }
-              }
-
-              div.innerHTML = `<span style="font-size:0.65rem; color:#999; font-weight:bold;">${sign.substring(0, 3)}</span>
-                    <div style="display:flex; flex-wrap:wrap; gap:2px; padding-top:10px; justify-content:center;">${planetsInSign.join('')}</div>`;
-            }
-            if (div.style.display !== 'none') grid.appendChild(div);
-          });
-        };
-
-        renderSouthGrid('southChartColumn2', 'rasi');
-        renderSouthGrid('navamsaChartColumn2', 'navamsa');
-      }, 100);
-
-      // 3. Planet Details with KP Lords
-      html += '<div style="margin-bottom:20px;"><div style="font-weight:bold; color:#374151; margin-bottom:12px; font-size:1rem;">🪐 Planet & KP Lords</div>';
+      html += `<div style="margin-bottom:20px;"><div style="font-weight:bold; color:#374151; margin-bottom:12px; font-size:1rem;">🪐 ${t('Planet & KP Lords')}</div>`;
       html += '<div style="display:flex; flex-direction:column; gap:8px;">';
 
       rawPlanets.forEach(p => {
@@ -6241,14 +6707,14 @@
         html += `
           <div style="background:white; border-left:4px solid ${color}; padding:12px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-               <div style="font-weight:bold; color:${color};">${p.name}</div>
-               <div style="font-size:0.75rem; color:#d97706; background:#fff7ed; padding:1px 6px; border-radius:4px;">${p.nakshatra} (${p.nakshatraPada})</div>
+               <div style="font-weight:bold; color:${color};">${t(p.name)}</div>
+               <div style="font-size:0.75rem; color:#d97706; background:#fff7ed; padding:1px 6px; border-radius:4px;">${t(p.nakshatra)} (${p.nakshatraPada})</div>
             </div>
-            <div style="font-size:0.75rem; color:#666; margin-bottom:8px;">${p.signName} - ${p.degreeFormatted}</div>
+            <div style="font-size:0.75rem; color:#666; margin-bottom:8px;">${t(p.signName)} - ${p.degreeFormatted}</div>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; text-align:center; border-top:1px solid #f3f4f6; padding-top:8px;">
-              <div><span style="color:#999;font-size:0.65rem;">SignL</span><br><b>${p.signLord?.substring(0, 3)}</b></div>
-              <div><span style="color:#999;font-size:0.65rem;">StarL</span><br><b>${p.starLord?.substring(0, 3)}</b></div>
-              <div><span style="color:#999;font-size:0.65rem;">SubL</span><br><b>${p.subLord?.substring(0, 3)}</b></div>
+              <div><span style="color:#999;font-size:0.65rem;">${t('SignL')}</span><br><b>${t(p.signLord || '')}</b></div>
+              <div><span style="color:#999;font-size:0.65rem;">${t('StarL')}</span><br><b>${t(p.starLord || '')}</b></div>
+              <div><span style="color:#999;font-size:0.65rem;">${t('SubL')}</span><br><b>${t(p.subLord || '')}</b></div>
             </div>
           </div>
         `;
@@ -6259,10 +6725,10 @@
       if (dasha && dasha.currentLord) {
         html += `
           <div style="background:linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color:white; padding:15px; border-radius:12px; margin-bottom:20px; box-shadow:0 10px 15px -3px rgba(79,70,229,0.2);">
-            <div style="font-size:0.8rem; opacity:0.9; margin-bottom:5px;">⏳ Current Mahadasha</div>
-            <div style="font-size:1.3rem; font-weight:bold;">${dasha.currentLord}</div>
+            <div style="font-size:0.8rem; opacity:0.9; margin-bottom:5px;">⏳ ${t('Current Mahadasha')}</div>
+            <div style="font-size:1.3rem; font-weight:bold;">${t(dasha.currentLord)}</div>
             <div style="margin-top:10px; font-size:0.85rem; opacity:0.9;">
-               <div><b>Remaining:</b> ${parseFloat(dasha.remainingYearsInCurrentDasha || 0).toFixed(2)} Years</div>
+               <div><b>${t('Remaining')}:</b> ${parseFloat(dasha.remainingYearsInCurrentDasha || 0).toFixed(2)} ${t('Years')}</div>
             </div>
           </div>
         `;
@@ -6270,13 +6736,13 @@
 
       // 5. Transits (Gocharam)
       if (transitPlanets.length > 0) {
-        html += '<div style="margin-bottom:20px;"><div style="font-weight:bold; color:#374151; margin-bottom:12px; font-size:1rem;">🚀 Current Transits (Gocharam)</div>';
+        html += `<div style="margin-bottom:20px;"><div style="font-weight:bold; color:#374151; margin-bottom:12px; font-size:1rem;">🚀 ${t('Current Transits')}</div>`;
         html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">';
         transitPlanets.forEach(tp => {
           html += `
             <div style="background:#f0f9ff; padding:8px; border-radius:6px; border:1px solid #bae6fd; font-size:0.75rem;">
-               <div style="font-weight:bold; color:#0369a1;">${tp.name}</div>
-               <div style="color:#075985;">${tp.signName}</div>
+               <div style="font-weight:bold; color:#0369a1;">${t(tp.name)}</div>
+               <div style="color:#075985;">${t(tp.signName)}</div>
             </div>
           `;
         });
@@ -6284,7 +6750,115 @@
       }
 
       html += '</div>';
-      document.getElementById('birthChartContent').innerHTML = html;
+
+      const container = document.getElementById('birthChartContent');
+      if (container) {
+        container.innerHTML = html;
+
+        // Render South Indian Grids immediately
+        const renderSouthGrid = (gridId, chartType) => {
+          try {
+            const grid = document.getElementById(gridId);
+            if (!grid) {
+              console.warn(`Grid container #${gridId} not found.`);
+              return;
+            }
+
+            const isRasi = chartType === 'rasi';
+            const cellMap = [
+              'Pisces', 'Aries', 'Taurus', 'Gemini',
+              'Aquarius', null, null, 'Cancer',
+              'Capricorn', null, null, 'Leo',
+              'Sagittarius', 'Scorpio', 'Libra', 'Virgo'
+            ];
+
+            // Clear previous content safely
+            while (grid.firstChild) {
+              grid.removeChild(grid.firstChild);
+            }
+
+            cellMap.forEach((sign, idx) => {
+              const div = document.createElement('div');
+              div.className = 'SouthChartBox';
+
+              // Center Box (Brahmasthanam) logic
+              if (!sign) {
+                div.setAttribute('data-center', 'true');
+                div.style.cssText = 'border: none; background: transparent;';
+
+                // The center massive cell (starts at index 5 in this flattened 4x4 grid)
+                if (idx === 5) {
+                  // Grid spanning for center (2x2)
+                  div.style.gridColumn = '2 / span 2';
+                  div.style.gridRow = '2 / span 2';
+                  div.style.display = 'flex';
+                  div.style.alignItems = 'center';
+                  div.style.justifyContent = 'center';
+                  div.innerHTML = '<i class="fas fa-om fa-4x" style="color:#d97706; opacity:0.15;"></i>';
+                } else {
+                  // Other null cells in center are hidden
+                  div.style.display = 'none';
+                }
+              } else {
+                // Sign Box Logic
+                const planetsInSign = [];
+
+                // Rasi Chart Logic
+                if (isRasi) {
+                  rawPlanets.forEach(p => {
+                    if (p.signName === sign) {
+                      const trName = t(p.name);
+                      const shortName = trName ? trName.substring(0, 2) : '??';
+                      const pColor = planetColors[p.name] || '#444';
+                      planetsInSign.push(`<div style="font-size:0.75rem; color:${pColor}; font-weight:700;">${shortName}</div>`);
+                    }
+                  });
+                  // Add Ascendant
+                  if (lagna.signName === sign) {
+                    planetsInSign.unshift(`<div style="font-weight:bold; color:#dc2626; font-size:0.8rem;">${t('Asc')}</div>`);
+                  }
+                }
+                // Navamsa Chart Logic
+                else if (d.navamsa && d.navamsa.planets) {
+                  for (let k in d.navamsa.planets) {
+                    if (d.navamsa.planets[k] === sign) {
+                      const trName = t(k);
+                      const shortName = trName ? trName.substring(0, 2) : '??';
+                      const pColor = planetColors[k] || '#555';
+                      planetsInSign.push(`<div style="font-size:0.75rem; color:${pColor}; font-weight:700;">${shortName}</div>`);
+                    }
+                  }
+                }
+
+                // Construct Cell HTML
+                div.innerHTML = `
+                  <span style="font-size:0.65rem; color:#9ca3af; font-weight:bold; margin-bottom:2px; display:block; text-transform:uppercase;">
+                    ${t(sign) ? t(sign).substring(0, 3) : sign}
+                  </span>
+                  <div style="display:flex; flex-wrap:wrap; gap:3px; justify-content:center; align-items:center;">
+                    ${planetsInSign.join('')}
+                  </div>
+                `;
+              }
+
+              // Only append if it's meant to be displayed
+              if (div.style.display !== 'none') {
+                grid.appendChild(div);
+              }
+            });
+          } catch (err) {
+            console.error('Error rendering South Chart Grid:', err, gridId);
+          }
+        };
+
+        // Execute rendering
+        try {
+          renderSouthGrid('southChartColumn2', 'rasi');
+          renderSouthGrid('navamsaChartColumn2', 'navamsa');
+        } catch (e) {
+          console.error('Error rendering chart grids:', e);
+        }
+      }
     }
 
     window.shareChartInChat = function (chartData) {
@@ -6406,96 +6980,9 @@
     }
 
 
-    // Porutham Logic
-    window.porutham = function () {
-      document.getElementById('screen-porutham').classList.remove('hidden');
-      document.getElementById('poruthamResults').style.display = 'none';
-      document.getElementById('poruthamResults').innerHTML = '';
+    // Porutham Logic moved to top for reliability
 
-      // --- Auto Fill Logic ---
-      let client = null;
-      let partner = null;
-      let gender = 'Male'; // Default
 
-      // Scenario 1: Astrologer Viewing Client Data
-      if (window.receivedBirthData) {
-        const bd = window.receivedBirthData;
-        gender = bd.gender || 'Male';
-
-        client = {
-          date: `${bd.year}-${String(bd.month).padStart(2, '0')}-${String(bd.day).padStart(2, '0')}`,
-          time: `${String(bd.hour).padStart(2, '0')}:${String(bd.minute).padStart(2, '0')}`,
-          city: bd.city, lat: bd.latitude, lon: bd.longitude
-        };
-
-        if (bd.partner && bd.partner.name) {
-          partner = {
-            date: bd.partner.dob,
-            time: bd.partner.tob,
-            city: bd.partner.pob,
-            lat: 0, lon: 0 // We might not have lat/lon for partner yet
-          };
-        }
-      }
-      // Scenario 2: Client Viewing their own data
-      else if (state.me && state.me.intakeDetails && state.me.birthDetails) {
-        gender = state.me.intakeDetails.gender || 'Male';
-        const bd = state.me.birthDetails;
-        const id = state.me.intakeDetails;
-
-        client = {
-          date: bd.dob,
-          time: bd.tob,
-          city: bd.pob, lat: bd.lat, lon: bd.lon
-        };
-        if (id.partner && id.partner.name) {
-          partner = {
-            date: id.partner.dob,
-            time: id.partner.tob,
-            city: id.partner.pob,
-            lat: 0, lon: 0
-          };
-        }
-      }
-
-      // Assign to Boy/Girl
-      if (client) {
-        if (gender === 'Male') {
-          // Client is Boy
-          if (client.date) document.getElementById('boyDate').value = client.date;
-          if (client.time) document.getElementById('boyTime').value = client.time;
-          if (client.city) document.getElementById('boyCity').value = client.city;
-          if (client.lat) document.getElementById('boyLat').value = client.lat;
-          if (client.lon) document.getElementById('boyLon').value = client.lon;
-
-          if (partner) {
-            if (partner.date) document.getElementById('girlDate').value = partner.date;
-            if (partner.time) document.getElementById('girlTime').value = partner.time;
-            if (partner.city) document.getElementById('girlCity').value = partner.city;
-            // Partner lat/lon would need search, assumed manual for now
-          }
-        } else {
-          // Client is Girl
-          if (client.date) document.getElementById('girlDate').value = client.date;
-          if (client.time) document.getElementById('girlTime').value = client.time;
-          if (client.city) document.getElementById('girlCity').value = client.city;
-          if (client.lat) document.getElementById('girlLat').value = client.lat;
-          if (client.lon) document.getElementById('girlLon').value = client.lon;
-
-          if (partner) {
-            if (partner.date) document.getElementById('boyDate').value = partner.date;
-            if (partner.time) document.getElementById('boyTime').value = partner.time;
-            if (partner.city) document.getElementById('boyCity').value = partner.city;
-          }
-        }
-      } else {
-        // Defaults if no data
-        document.getElementById('boyDate').value = '1995-05-15';
-        document.getElementById('girlDate').value = '1998-08-20';
-        document.getElementById('boyTime').value = '10:00';
-        document.getElementById('girlTime').value = '10:00';
-      }
-    };
 
     let matchCityTimeout;
     window.handleMatchCitySearch = function (input, type) {
@@ -6537,38 +7024,48 @@
       }, 300);
     };
 
-    window.selectMatchCity = function (type, name, lat, lon) {
+    window.selectMatchCity = async function (type, name, lat, lon) {
       document.getElementById(type + 'City').value = name;
       document.getElementById(type + 'Lat').value = lat;
       document.getElementById(type + 'Lon').value = lon;
       document.getElementById(type + 'CityResults').style.display = 'none';
+
+      // Fetch timezone
+      try {
+        const res = await fetch('/api/city-timezone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat, lon })
+        }).then(r => r.json());
+        if (res.ok) {
+          document.getElementById(type + 'Tz').value = res.timezone;
+        }
+      } catch (e) { console.error('Tz fetch error:', e); }
     };
 
-    window.calculatePorutham = async function () {
+    window.calculatePorutham = calculatePorutham;
+    async function calculatePorutham() {
+      console.log('calculatePorutham called');
+      console.log('Calculating Porutham started...');
       const bDate = document.getElementById('boyDate').value;
       const bTime = document.getElementById('boyTime').value;
-      const bLat = document.getElementById('boyLat').value || 13.0827; // Default Chennai
+      const bLat = document.getElementById('boyLat').value || 13.0827;
       const bLon = document.getElementById('boyLon').value || 80.2707;
+      const bTz = document.getElementById('boyTz').value || 5.5;
 
       const gDate = document.getElementById('girlDate').value;
       const gTime = document.getElementById('girlTime').value;
       const gLat = document.getElementById('girlLat').value || 13.0827;
       const gLon = document.getElementById('girlLon').value || 80.2707;
+      const gTz = document.getElementById('girlTz').value || 5.5;
 
-      if (!bDate || !bTime || !gDate || !gTime) {
-        alert('Please fill all date and time fields');
+      const bCity = document.getElementById('boyCity').value;
+      const gCity = document.getElementById('girlCity').value;
+
+      if (!bDate || !bTime || !bCity || !gDate || !gTime || !gCity) {
+        alert('Please fill all birth details (Date, Time, and City) for both partners.');
         return;
       }
-
-      const [by, bm, bd] = bDate.split('-');
-      const [bh, bmin] = bTime.split(':');
-      const [gy, gm, gd] = gDate.split('-');
-      const [gh, gmin] = gTime.split(':');
-
-      const payload = {
-        boy: { year: parseInt(by), month: parseInt(bm), day: parseInt(bd), hour: parseInt(bh), minute: parseInt(bmin), lat: parseFloat(bLat), lon: parseFloat(bLon) },
-        girl: { year: parseInt(gy), month: parseInt(gm), day: parseInt(gd), hour: parseInt(gh), minute: parseInt(gmin), lat: parseFloat(gLat), lon: parseFloat(gLon) }
-      };
 
       document.getElementById('poruthamLoading').style.display = 'block';
       document.getElementById('poruthamResults').style.display = 'none';
@@ -6578,8 +7075,8 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            boyData: { dob: bDate, tob: bTime, lat: parseFloat(bLat), lng: parseFloat(bLon) },
-            girlData: { dob: gDate, tob: gTime, lat: parseFloat(gLat), lng: parseFloat(gLon) }
+            boyData: { dob: bDate, tob: bTime, lat: parseFloat(bLat), lng: parseFloat(bLon), timezone: parseFloat(bTz) },
+            girlData: { dob: gDate, tob: gTime, lat: parseFloat(gLat), lng: parseFloat(gLon), timezone: parseFloat(gTz) }
           })
         }).then(r => r.json());
 
@@ -6731,67 +7228,87 @@
 
     function displayPoruthamResults(res) {
       const data = res.data || {};
-      const m = data; // New engine returns poruthams directly in data or as proper score
+      const m = data;
       const div = document.getElementById('poruthamResults');
 
-      const scoreColor = m.percentage > 50 ? '#10b981' : '#ef4444';
+      const isGood = m.percentage >= 50 && m.poruthams.find(p => p.name === 'Rajju')?.score > 0;
+      const scoreColor = isGood ? '#10b981' : '#ef4444';
+      const verdict = m.verdict || (isGood ? 'Advisable' : 'Not Advisable');
 
       let html = `
-         <div style="background:${scoreColor}20; border:2px solid ${scoreColor}; padding:20px; border-radius:12px; text-align:center; margin-bottom:20px;">
-           <div style="font-size:1.1rem; color:#444;">Compatibility Score</div>
-           <div style="font-size:3rem; font-weight:900; color:${scoreColor}; line-height:1;">${m.percentage}%</div>
-           <div style="font-size:1.2rem; font-weight:bold; color:#333;">${m.totalScore} / ${m.maxScore} Points</div>
-         </div>
+         <div style="background:white; border-radius:15px; border:1px solid #e5e7eb; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+           <div style="background:linear-gradient(135deg, ${scoreColor} 0%, ${scoreColor}dd 100%); padding:25px; text-align:center; color:white;">
+             <div style="font-size:0.9rem; opacity:0.9; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;">Compatibility Score</div>
+             <div style="font-size:3.5rem; font-weight:900; line-height:1; margin-bottom:10px;">${m.percentage}%</div>
+             <div style="background:rgba(255,255,255,0.2); display:inline-block; padding:5px 15px; border-radius:20px; font-weight:bold; font-size:1.1rem;">
+               ${verdict}
+             </div>
+             <div style="margin-top:10px; font-size:0.9rem; opacity:0.8;">${m.totalScore} out of ${m.maxScore} points matched</div>
+           </div>
 
-         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
-            <div style="background:#eff6ff; padding:15px; border-radius:10px;">
-               <div style="font-weight:bold; color:#1e40af;">🤵 Boy</div>
-               <div>${data.boy.rasi} / ${data.boy.nakshatra}</div>
-            </div>
-             <div style="background:#fdf2f8; padding:15px; border-radius:10px;">
-               <div style="font-weight:bold; color:#be185d;">👰 Girl</div>
-               <div>${data.girl.rasi} / ${data.girl.nakshatra}</div>
-            </div>
-         </div>
+           <div style="padding:20px;">
+             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
+                <div style="background:#eff6ff; padding:15px; border-radius:12px; border:1px solid #dbeafe;">
+                   <div style="font-weight:bold; color:#1e40af; font-size:0.8rem; text-transform:uppercase; margin-bottom:5px;">🤵 Boy</div>
+                   <div style="font-weight:bold; color:#1e3a8a;">${data.boy.nakshatra}</div>
+                   <div style="font-size:0.85rem; color:#60a5fa;">${data.boy.rasi} Rasi</div>
+                </div>
+                 <div style="background:#fdf2f8; padding:15px; border-radius:12px; border:1px solid #fce7f3;">
+                   <div style="font-weight:bold; color:#be185d; font-size:0.8rem; text-transform:uppercase; margin-bottom:5px;">👰 Girl</div>
+                   <div style="font-weight:bold; color:#9d174d;">${data.girl.nakshatra}</div>
+                   <div style="font-size:0.85rem; color:#f472b6;">${data.girl.rasi} Rasi</div>
+                </div>
+             </div>
 
-         <div class="porutham-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
+             <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:12px;">
        `;
 
       if (m.poruthams && Array.isArray(m.poruthams)) {
         m.poruthams.forEach(p => {
-          const isGood = p.score > 0;
-          const icon = isGood ? '✅' : '❌';
-          const bg = isGood ? '#ecfdf5' : '#fef2f2';
-          const border = isGood ? '#10b981' : '#ef4444';
+          const matched = p.score > 0;
+          const statusIcon = matched ? 'fa-check-circle' : 'fa-times-circle';
+          const statusColor = matched ? '#10b981' : '#f87171';
+          const bg = matched ? '#f0fdf4' : '#fef2f2';
 
           html += `
-               <div style="background:${bg}; border-left:4px solid ${border}; padding:10px; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                 <div style="font-size:0.85rem; color:#666;">${p.name}</div>
-                 <div style="font-weight:bold; font-size:1rem; margin:2px 0;">${icon} ${isGood ? 'Matched' : 'Not Matched'}</div>
-                 <div style="font-size:0.7rem; color:#888;">${p.score}/${p.max} Points</div>
+               <div style="background:${bg}; border:1px solid ${statusColor}20; padding:12px; border-radius:10px; display:flex; flex-direction:column; justify-content:center;">
+                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                   <span style="font-size:0.75rem; color:#6b7280; font-weight:600;">${p.name}</span>
+                   <i class="fas ${statusIcon}" style="color:${statusColor}; font-size:0.9rem;"></i>
+                 </div>
+                 <div style="font-weight:bold; font-size:0.95rem; color:#374151;">${matched ? 'Yes' : 'No'}</div>
+                 <div style="font-size:0.7rem; color:#9ca3af;">${p.score}/${p.max} Pts</div>
                </div>
              `;
         });
       }
 
-      // Add Dosha Info
-      if (m.girlDosha || m.boyDosha) {
-        html += `</div><div style="margin-top:20px; font-weight:bold; color:#555;">Kuja Dosha Check</div>
-         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:5px;">
-            <div style="background:#fef2f2; padding:10px; border-radius:6px; border:1px solid #fee2e2;">
-               <div style="font-size:0.8rem; color:#be185d; font-weight:bold;">Girl Dosha</div>
-               <div style="font-size:0.8rem;">${m.girlDosha?.hasDosha ? 'YES' : 'NO'}</div>
-               <div style="font-size:0.65rem; color:#666;">${m.girlDosha?.desc || ''}</div>
-            </div>
-            <div style="background:#eff6ff; padding:10px; border-radius:6px; border:1px solid #dbeafe;">
-               <div style="font-size:0.8rem; color:#1e40af; font-weight:bold;">Boy Dosha</div>
-               <div style="font-size:0.8rem;">${m.boyDosha?.hasDosha ? 'YES' : 'NO'}</div>
-               <div style="font-size:0.65rem; color:#666;">${m.boyDosha?.desc || ''}</div>
-            </div>
-         </div>`;
+      html += `</div>`;
+
+      // Dosha and Sandhi Section
+      if (m.girlDosha || m.boyDosha || (m.sandhi && m.sandhi.hasSandhi)) {
+        html += `<div style="margin-top:25px; border-top:1px solid #eee; padding-top:20px;">
+          <div style="font-weight:bold; color:#374151; margin-bottom:12px; font-size:1rem;">Additional Compatibility Checks</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+             <div style="background:#fef2f2; padding:12px; border-radius:10px; border:1px solid #fee2e2;">
+                <div style="font-size:0.75rem; color:#991b1b; font-weight:bold; text-transform:uppercase;">Kuja Dosha</div>
+                <div style="font-size:0.85rem; margin-top:4px;">
+                  <b>Girl:</b> ${m.girlDosha?.hasDosha ? 'Severe' : 'No'}<br>
+                  <b>Boy:</b> ${m.boyDosha?.hasDosha ? 'Severe' : 'No'}
+                </div>
+             </div>
+             <div style="background:#f0fdfa; padding:12px; border-radius:10px; border:1px solid #ccfbf1;">
+                <div style="font-size:0.75rem; color:#0f766e; font-weight:bold; text-transform:uppercase;">Dasha Sandhi</div>
+                <div style="font-size:0.85rem; margin-top:4px;">
+                  ${m.sandhi?.hasSandhi ? '⚠️ Overlap Found' : '✅ No Overlaps'}
+                </div>
+                <div style="font-size:0.65rem; color:#6b7280; margin-top:2px;">${m.sandhi?.verdict || ''}</div>
+             </div>
+          </div>
+        </div>`;
       }
 
-      html += `</div>`;
+      html += `</div></div><div style="height:20px;"></div>`;
       div.innerHTML = html;
       div.style.display = 'block';
     }
@@ -8017,6 +8534,7 @@
       margin: 0 0 5px 0;
       display: -webkit-box;
       -webkit-line-clamp: 1;
+      line-clamp: 1;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }

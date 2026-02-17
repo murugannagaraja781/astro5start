@@ -22,17 +22,23 @@ router.post('/', (req, res) => {
                 throw new Error(`Date of birth missing for ${profile.name || 'profile'}`);
             }
 
-            const dt = DateTime.fromFormat(`${profile.dob} ${profile.tob || '12:00'}`, 'yyyy-MM-dd HH:mm');
+            const tz = profile.timezone || 5.5;
+            const offsetHours = Math.floor(Math.abs(tz));
+            const offsetMinutes = Math.round((Math.abs(tz) - offsetHours) * 60);
+            const sign = tz >= 0 ? '+' : '-';
+            const zone = `UTC${sign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`;
+
+            const dt = DateTime.fromFormat(`${profile.dob} ${profile.tob || '12:00'}`, 'yyyy-MM-dd HH:mm', { zone });
             if (!dt.isValid) {
                 throw new Error(`Invalid date/time format for ${profile.name || 'profile'}: ${profile.dob} ${profile.tob}`);
             }
             const utc = dt.toUTC();
-            const jd = swissEph.julday(utc.year, utc.month, utc.day, utc.hour + utc.minute / 60);
+            const jd = swissEph.julday(utc.year, utc.month, utc.day, utc.hour + utc.minute / 60 + utc.second / 3600);
 
             const houses = getHouseCusps(jd, profile.lat, profile.lng, 'Placidus', ayanamsa);
             const planets = getPlanetsWithDetails(jd, houses.cusps, ayanamsa);
 
-            return { ...profile, planets, houses };
+            return { ...profile, planets, houses, dt };
         };
 
         girlData = processProfile(girlData);
@@ -56,12 +62,12 @@ router.post('/', (req, res) => {
 
         // Dasha Sandhi
         let sandhi = { hasSandhi: false, overlaps: [], verdict: 'N/A' };
-        if (girlData.dob && boyData.dob) {
+        if (girlData.dt && boyData.dt) {
             sandhi = getDashaSandhiComparison(
                 gMoon.longitude,
-                DateTime.fromFormat(`${girlData.dob} ${girlData.tob || '12:00'}`, 'yyyy-MM-dd HH:mm'),
+                girlData.dt,
                 bMoon.longitude,
-                DateTime.fromFormat(`${boyData.dob} ${boyData.tob || '12:00'}`, 'yyyy-MM-dd HH:mm')
+                boyData.dt
             );
         }
 
