@@ -3524,7 +3524,15 @@
       'Purva Phalguni': 'பூரம்', 'Uttara Phalguni': 'உத்திரம்', 'Hasta': 'அஸ்தம்', 'Chitra': 'சித்திரை', 'Swati': 'சுவாதி',
       'Vishakha': 'விசாகம்', 'Anuradha': 'அனுஷம்', 'Jyeshtha': 'கேட்டை', 'Mula': 'மூலம்', 'Purva Ashadha': 'பூராடம்',
       'Uttara Ashadha': 'உத்திராடம்', 'Shravana': 'திருவோணம்', 'Dhanishta': 'அவிட்டம்', 'Shatabhisha': 'சதயம்',
-      'Purva Bhadrapada': 'பூரட்டாதி', 'Uttara Bhadrapada': 'உத்திரட்டாதி', 'Revati': 'ரேவதி'
+      'Purva Bhadrapada': 'பூரட்டாதி', 'Uttara Bhadrapada': 'உத்திரட்டாதி', 'Revati': 'ரேவதி',
+      // Matching
+      'Compatibility Score': 'பொருத்தம் மதிப்பெண்', 'Advisable': 'பொருத்தம் உண்டு', 'Not Advisable': 'பொருத்தம் இல்லை',
+      'Kuja Dosha': 'செவ்வாய் தோஷம்', 'Dasha Sandhi': 'தச சந்தி', 'Severe': 'கடுமை', 'Normal': 'சாதாரண',
+      'Boy': 'ஆண்', 'Girl': 'பெண்', 'points matched': 'புள்ளிகள் பொருந்தியது', 'out of': 'மொத்தம்',
+      'Dina': 'தின', 'Gana': 'கண', 'Mahendra': 'மகேந்திர', 'Stree Deergha': 'ஸ்திரீ தீர்க்க',
+      'Yoni': 'யோனி', 'Rasi': 'ராசி', 'Rasiyathipathi': 'ராசியதிபதி', 'Vasya': 'வசிய',
+      'Rajju': 'ரஜ்ஜு', 'Vedha': 'வேதை', 'Nadi': 'நாடி', 'Yes': 'ஆம்', 'No': 'இல்லை',
+      'Compatibility Check': 'பொருத்தம் சரிபார்ப்பு', 'Overlap': 'தச சந்திப்பு', 'No Overlap': 'சந்திப்பு இல்லை'
     };
 
     function t(key) {
@@ -6215,16 +6223,6 @@
     };
 
     // --- Horoscope Match (Porutham) Logic ---
-    window.openPoruthamModal = function () {
-      console.log('Opening Porutham Modal (Desktop)...');
-      const modal = document.getElementById('screen-porutham');
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.style.display = 'flex';
-      } else {
-        console.error('Porutham modal not found!');
-      }
-    };
 
     let matchCityTimeout;
     window.handleMatchCitySearch = function (input, type) {
@@ -6355,30 +6353,30 @@
 
       const isGood = m.percentage >= 50 && m.poruthams.find(p => p.name === 'Rajju')?.score > 0;
       const scoreColor = isGood ? '#10b981' : '#ef4444';
-      const verdict = m.verdict || (isGood ? 'Advisable' : 'Not Advisable');
+      const verdict = t(m.verdict || (isGood ? 'Advisable' : 'Not Advisable'));
 
       let html = `
         <div style="background:white; border-radius:15px; border:1px solid #e5e7eb; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom:20px;">
            <div style="background:linear-gradient(135deg, ${scoreColor} 0%, ${scoreColor}dd 100%); padding:25px; text-align:center; color:white;">
-             <div style="font-size:0.85rem; opacity:0.9; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;">Compatibility Score</div>
+             <div style="font-size:0.85rem; opacity:0.9; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;">${t('Compatibility Score')}</div>
              <div style="font-size:3rem; font-weight:900; line-height:1; margin-bottom:10px;">${m.percentage}%</div>
              <div style="background:rgba(255,255,255,0.2); display:inline-block; padding:5px 15px; border-radius:20px; font-weight:bold; font-size:1rem;">
                ${verdict}
              </div>
-             <div style="margin-top:10px; font-size:0.8rem; opacity:0.8;">${m.totalScore} out of ${m.maxScore} points matched</div>
+             <div style="margin-top:10px; font-size:0.8rem; opacity:0.8;">${m.totalScore} ${t('points matched')}</div>
            </div>
 
            <div style="padding:15px;">
              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
                 <div style="background:#eff6ff; padding:12px; border-radius:12px; border:1px solid #dbeafe;">
-                   <div style="font-weight:bold; color:#1e40af; font-size:0.75rem; text-transform:uppercase; margin-bottom:5px;">🤵 Boy</div>
-                   <div style="font-weight:bold; color:#1e3a8a; font-size:0.9rem;">${data.boy.nakshatra}</div>
-                   <div style="font-size:0.75rem; color:#60a5fa;">${data.boy.rasi} Rasi</div>
+                   <div style="font-weight:bold; color:#1e40af; font-size:0.75rem; text-transform:uppercase; margin-bottom:5px;">🤵 ${t('Boy')}</div>
+                   <div style="font-weight:bold; color:#1e3a8a; font-size:0.9rem;">${t(data.boy.nakshatra)}</div>
+                   <div style="font-size:0.75rem; color:#60a5fa;">${t(data.boy.rasi)} ${t('Rasi')}</div>
                 </div>
                  <div style="background:#fdf2f8; padding:12px; border-radius:12px; border:1px solid #fce7f3;">
-                   <div style="font-weight:bold; color:#be185d; font-size:0.75rem; text-transform:uppercase; margin-bottom:5px;">👰 Girl</div>
-                   <div style="font-weight:bold; color:#9d174d; font-size:0.9rem;">${data.girl.nakshatra}</div>
-                   <div style="font-size:0.75rem; color:#f472b6;">${data.girl.rasi} Rasi</div>
+                   <div style="font-weight:bold; color:#be185d; font-size:0.75rem; text-transform:uppercase; margin-bottom:5px;">👰 ${t('Girl')}</div>
+                   <div style="font-weight:bold; color:#9d174d; font-size:0.9rem;">${t(data.girl.nakshatra)}</div>
+                   <div style="font-size:0.75rem; color:#f472b6;">${t(data.girl.rasi)} ${t('Rasi')}</div>
                 </div>
              </div>
 
@@ -6395,10 +6393,10 @@
           html += `
                <div style="background:${bg}; border:1px solid ${statusColor}20; padding:10px; border-radius:10px; display:flex; flex-direction:column; justify-content:center;">
                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                   <span style="font-size:0.7rem; color:#6b7280; font-weight:600;">${p.name}</span>
+                   <span style="font-size:0.7rem; color:#6b7280; font-weight:600;">${t(p.name)}</span>
                    <i class="fas ${statusIcon}" style="color:${statusColor}; font-size:0.8rem;"></i>
                  </div>
-                 <div style="font-weight:bold; font-size:0.85rem; color:#374151;">${matched ? 'Yes' : 'No'}</div>
+                 <div style="font-weight:bold; font-size:0.85rem; color:#374151;">${matched ? t('Yes') : t('No')}</div>
                  <div style="font-size:0.65rem; color:#9ca3af;">${p.score}/${p.max} Pts</div>
                </div>
              `;
@@ -6410,18 +6408,18 @@
       // Dosha and Sandhi Section
       if (m.girlDosha || m.boyDosha || (m.sandhi && m.sandhi.hasSandhi)) {
         html += `<div style="margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
-          <div style="font-weight:bold; color:#374151; margin-bottom:10px; font-size:0.9rem;">Compatibility Check</div>
+          <div style="font-weight:bold; color:#374151; margin-bottom:10px; font-size:0.9rem;">${t('Compatibility Check')}</div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
              <div style="background:#fef2f2; padding:10px; border-radius:10px; border:1px solid #fee2e2;">
-                <div style="font-size:0.7rem; color:#991b1b; font-weight:bold; text-transform:uppercase;">Kuja Dosha</div>
+                <div style="font-size:0.7rem; color:#991b1b; font-weight:bold; text-transform:uppercase;">${t('Kuja Dosha')}</div>
                 <div style="font-size:0.75rem; margin-top:4px;">
-                  <b>G:</b> ${m.girlDosha?.hasDosha ? 'Svr' : 'No'}, <b>B:</b> ${m.boyDosha?.hasDosha ? 'Svr' : 'No'}
+                  <b>G:</b> ${m.girlDosha?.hasDosha ? t('Severe') : t('No')}, <b>B:</b> ${m.boyDosha?.hasDosha ? t('Severe') : t('No')}
                 </div>
              </div>
              <div style="background:#f0fdfa; padding:10px; border-radius:10px; border:1px solid #ccfbf1;">
-                <div style="font-size:0.7rem; color:#0f766e; font-weight:bold; text-transform:uppercase;">Dasha Sandhi</div>
+                <div style="font-size:0.7rem; color:#0f766e; font-weight:bold; text-transform:uppercase;">${t('Dasha Sandhi')}</div>
                 <div style="font-size:0.75rem; margin-top:4px;">
-                  ${m.sandhi?.hasSandhi ? '⚠️ Overlap' : '✅ No Overlap'}
+                  ${m.sandhi?.hasSandhi ? '⚠️ ' + t('Overlap') : '✅ ' + t('No Overlap')}
                 </div>
              </div>
           </div>
