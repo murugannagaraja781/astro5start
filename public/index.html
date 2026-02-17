@@ -6038,13 +6038,13 @@
                 if (lagna.signName === sign) {
                   planetsInSign.unshift(`<div style="font-weight:bold; color:red; font-size:0.8rem;">${t('Asc')}</div>`);
                 }
-              } else if (d.navamsa) {
-                for (let k in d.navamsa.planets) {
-                  if (d.navamsa.planets[k] === sign) {
-                    const shortName = t(k).substring(0, 2);
-                    planetsInSign.push(`<div style="font-size:0.75rem; color:${planetColors[k] || '#555'}">${shortName}</div>`);
+              } else if (d.navamsa && d.navamsa.planets) {
+                d.navamsa.planets.forEach(p => {
+                  if (p.signName === sign) {
+                    const shortName = t(p.name).substring(0, 2);
+                    planetsInSign.push(`<div style="font-size:0.75rem; color:${planetColors[p.name] || '#555'}">${shortName}</div>`);
                   }
-                }
+                });
               }
 
               div.innerHTML = `<span style="font-size:0.65rem; color:#999; font-weight:bold;">${t(sign).substring(0, 3)}</span>
@@ -6205,12 +6205,12 @@
             } else {
               // Navamsa Logic
               if (d.navamsa && d.navamsa.planets) {
-                for (const [pName, pSign] of Object.entries(d.navamsa.planets)) {
-                  if (pSign === sign) {
-                    planetsInSign.push(t(pName).substring(0, 2));
+                d.navamsa.planets.forEach(p => {
+                  if (p.signName === sign) {
+                    planetsInSign.push(t(p.name).substring(0, 2));
                   }
-                }
-                // Add Navamsa Ascendant if available (often passed as 'Ascendant' in navamsa.planets or separate field)
+                });
+                // Add Navamsa Ascendant if available
                 if (d.navamsa.ascendant && d.navamsa.ascendant === sign) {
                   planetsInSign.unshift(`<span style="color:red; font-weight:bold;">${t('Asc')}</span>`);
                 }
@@ -6259,34 +6259,39 @@
       const dashaInfo = document.getElementById('currentDashaInfo');
       const dList = document.getElementById('dashaList');
       if (dashaInfo && d.dasha) {
-        const dasha = d.dasha;
-        // Current Dasha
-        if (dasha.currentLord) {
+        const dasha = d.dasha; // Array of Mahadashas
+        const now = new Date();
+        const currentMD = dasha.find(md => new Date(md.start) <= now && new Date(md.end) >= now) || dasha[0];
+
+        if (currentMD) {
+          const ends = new Date(currentMD.end);
+          const yearsRemaining = (ends - now) / (1000 * 60 * 60 * 24 * 365.25);
+
           dashaInfo.innerHTML = `
-              <div style="font-size:0.9rem; margin-bottom:5px;">${t('Current Mahadasha')}</div>
-              <div style="font-size:1.4rem; font-weight:bold;">${t(dasha.currentLord)}</div>
+              <div style="font-size:0.85rem; margin-bottom:5px; opacity:0.9;">${t('Current Mahadasha')}</div>
+              <div style="font-size:1.5rem; font-weight:bold;">${t(currentMD.lord)}</div>
               <div style="font-size:0.8rem; margin-top:5px;">
-                 ${t('Ends in')}: <b>${parseFloat(dasha.remainingYearsInCurrentDasha || 0).toFixed(2)} ${t('Years')}</b>
+                 ${t('Ends on')}: <b>${ends.toLocaleDateString()}</b> (${yearsRemaining.toFixed(2)} ${t('Years')})
               </div>
           `;
         }
-        // Dasha List (if available)
+
         if (dList) {
           dList.innerHTML = '';
-          // Check if dasha has a list or antardasha property
-          const sequence = dasha.list || dasha.antardasha || (Array.isArray(dasha) ? dasha : []);
-          if (Array.isArray(sequence) && sequence.length > 0) {
-            sequence.forEach(item => {
-              dList.innerHTML += `
-                    <div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #f0f0f0;">
-                       <span>${t(item.lord || item.name)}</span>
-                       <span style="color:#666; font-size:0.85rem;">${item.endDate || item.duration}</span>
-                    </div>
-                  `;
-            });
-          } else {
-            dList.innerHTML = `<div style="padding:10px; color:#999; text-align:center;">${t('Dasha details available in full analysis')}</div>`;
-          }
+          dasha.forEach(md => {
+            const isCurrent = md === currentMD;
+            const item = document.createElement('div');
+            item.style.cssText = `padding:10px; border-bottom:1px solid #f0f0f0; display:flex; justify-content:space-between; align-items:center; ${isCurrent ? 'background:#f0fdf4; border-left:3px solid #10b981;' : ''}`;
+
+            item.innerHTML = `
+              <div style="font-weight:600; color:#374151;">${t(md.lord)}</div>
+              <div style="font-size:0.75rem; color:#6b7280; text-align:right;">
+                <div>${new Date(md.start).getFullYear()} - ${new Date(md.end).getFullYear()}</div>
+                <div style="font-size:0.65rem;">${t('Ends')}: ${new Date(md.end).toLocaleDateString()}</div>
+              </div>
+            `;
+            dList.appendChild(item);
+          });
         }
       }
 
@@ -6306,7 +6311,16 @@
 
 
     // Porutham Logic moved to top for reliability
-
+    window.openPoruthamModal = function () {
+      console.log('Opening Porutham Modal...');
+      const modal = document.getElementById('screen-porutham');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex'; // Ensure flex display for centering
+      } else {
+        console.error('Porutham modal not found!');
+      }
+    }
 
     let matchCityTimeout;
     window.handleMatchCitySearch = function (input, type) {
@@ -6332,12 +6346,12 @@
             let html = '';
             data.results.forEach(city => {
               html += `
-        < div onclick = "selectMatchCity('${type}', '${city.name}', ${city.latitude}, ${city.longitude})"
-      style = "padding:10px; border-bottom:1px solid #eee; cursor:pointer;" >
+                <div onclick="selectMatchCity('${type}', '${city.name}', ${city.latitude}, ${city.longitude})"
+                     style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
                     <div style="font-weight:bold;">${city.name}</div>
                     <div style="font-size:0.8rem; color:#666;">${city.state}</div>
-                  </div >
-        `;
+                </div>
+              `;
             });
             resultsDiv.innerHTML = html;
             resultsDiv.style.display = 'block';
@@ -6368,15 +6382,24 @@
     };
 
     window.calculatePorutham = async function () {
+      console.log('Calculating Porutham...');
       const bDate = document.getElementById('boyDate').value;
       const bTime = document.getElementById('boyTime').value;
       const bLat = document.getElementById('boyLat').value || 13.0827; // Default Chennai
       const bLon = document.getElementById('boyLon').value || 80.2707;
-
       const bTz = document.getElementById('boyTz').value || 5.5;
+
+      const gDate = document.getElementById('girlDate').value;
+      const gTime = document.getElementById('girlTime').value;
+      const gLat = document.getElementById('girlLat').value || 13.0827;
+      const gLon = document.getElementById('girlLon').value || 80.2707;
       const gTz = document.getElementById('girlTz').value || 5.5;
+
       const bCity = document.getElementById('boyCity').value;
       const gCity = document.getElementById('girlCity').value;
+
+      console.log('Boy:', bDate, bTime, bCity, bLat, bLon);
+      console.log('Girl:', gDate, gTime, gCity, gLat, gLon);
 
       if (!bDate || !bTime || !bCity || !gDate || !gTime || !gCity) {
         alert('Please fill all birth details (Date, Time, City) for both partners');
@@ -6387,22 +6410,30 @@
       document.getElementById('poruthamResults').style.display = 'none';
 
       try {
+        const payload = {
+          boyData: { dob: bDate, tob: bTime, lat: parseFloat(bLat), lng: parseFloat(bLon), timezone: parseFloat(bTz) },
+          girlData: { dob: gDate, tob: gTime, lat: parseFloat(gLat), lng: parseFloat(gLon), timezone: parseFloat(gTz) }
+        };
+        console.log('Sending payload:', payload);
+
         const res = await fetch('/api/rasi-eng/matching', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            boyData: { dob: bDate, tob: bTime, lat: parseFloat(bLat), lng: parseFloat(bLon), timezone: parseFloat(bTz) },
-            girlData: { dob: gDate, tob: gTime, lat: parseFloat(gLat), lng: parseFloat(gLon), timezone: parseFloat(gTz) }
-          })
+          body: JSON.stringify(payload)
         }).then(r => r.json());
 
+        console.log('Match Response:', res);
         document.getElementById('poruthamLoading').style.display = 'none';
 
         if (res.error) throw new Error(res.error);
 
+        // Ensure data exists
+        if (!res.data) throw new Error("Invalid response from server");
+
         displayPoruthamResults(res);
 
       } catch (e) {
+        console.error('Match Error:', e);
         document.getElementById('poruthamLoading').style.display = 'none';
         alert('Error: ' + e.message);
       }
@@ -6444,9 +6475,9 @@
           fetchHoroscope(sign);
         };
         div.innerHTML = `
-        < div class="zodiac-icon" style = "font-size:1.5rem;" > ${sign.icon}</div >
+          <div class="zodiac-icon" style="font-size:1.5rem;">${sign.icon}</div>
           <div class="zodiac-name">${sign.name}</div>
-      `;
+        `;
         container.appendChild(div);
       });
 
@@ -6530,16 +6561,16 @@
       if (dateEl) dateEl.innerText = data.date;
 
       const prediction = data.forecast_ta || data.horoscope_data || 'இன்று உங்களுக்கு நற்பலன்கள் கிடைக்கும்.';
-      let html = `< p style = "margin-bottom:15px; font-size:1.1rem; line-height:1.6; color:#1f2937;" > ${prediction}</p > `;
+      let html = `<p style="margin-bottom:15px; font-size:1.1rem; line-height:1.6; color:#1f2937;">${prediction}</p>`;
 
       if (data.details) {
         html += `
-        < div style = "display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px; border-top:1px solid #eee; padding-top:15px;" >
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
             <div style="font-size:0.85rem;"><i class="fas fa-briefcase" style="color:#d97706; width:18px;"></i> <b>தொழில்:</b> ${data.details.career_ta || 'N/A'}</div>
             <div style="font-size:0.85rem;"><i class="fas fa-coins" style="color:#059669; width:18px;"></i> <b>நிதி:</b> ${data.details.finance_ta || 'N/A'}</div>
             <div style="font-size:0.85rem;"><i class="fas fa-heartbeat" style="color:#ef4444; width:18px;"></i> <b>ஆரோக்கியம்:</b> ${data.details.health_ta || 'N/A'}</div>
             <div style="font-size:0.85rem;"><i class="fas fa-magic" style="color:#3b82f6; width:18px;"></i> <b>அதிர்ஷ்டம்:</b> ${data.details.lucky_number || ''} (${data.details.lucky_color_ta || ''})</div>
-          </div >
+          </div>
         `;
       }
 
@@ -6561,7 +6592,7 @@
       const verdict = m.verdict || (isGood ? 'Advisable' : 'Not Advisable');
 
       let html = `
-        < div style = "background:white; border-radius:15px; border:1px solid #e5e7eb; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom:20px;" >
+        <div style="background:white; border-radius:15px; border:1px solid #e5e7eb; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom:20px;">
            <div style="background:linear-gradient(135deg, ${scoreColor} 0%, ${scoreColor}dd 100%); padding:25px; text-align:center; color:white;">
              <div style="font-size:0.85rem; opacity:0.9; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;">Compatibility Score</div>
              <div style="font-size:3rem; font-weight:900; line-height:1; margin-bottom:10px;">${m.percentage}%</div>
@@ -6631,7 +6662,7 @@
         </div>`;
       }
 
-      html += `</div></div >`;
+      html += `</div></div>`;
       div.innerHTML = html;
       div.style.display = 'block';
     }

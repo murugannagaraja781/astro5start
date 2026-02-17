@@ -6214,6 +6214,359 @@
       }
     };
 
+    // --- Horoscope Match (Porutham) Logic ---
+    window.openPoruthamModal = function () {
+      console.log('Opening Porutham Modal (Desktop)...');
+      const modal = document.getElementById('screen-porutham');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      } else {
+        console.error('Porutham modal not found!');
+      }
+    };
+
+    let matchCityTimeout;
+    window.handleMatchCitySearch = function (input, type) {
+      clearTimeout(matchCityTimeout);
+      const resultsDiv = document.getElementById(type + 'CityResults');
+      const query = input.value.trim();
+
+      if (query.length < 3) {
+        resultsDiv.style.display = 'none';
+        return;
+      }
+
+      matchCityTimeout = setTimeout(async () => {
+        try {
+          const response = await fetch('/api/city-autocomplete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query })
+          });
+          const data = await response.json();
+
+          if (data.ok && data.results && data.results.length > 0) {
+            let html = '';
+            data.results.forEach(city => {
+              html += `
+                <div onclick="selectMatchCity('${type}', '${city.name}', ${city.latitude}, ${city.longitude})"
+                     style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
+                    <div style="font-weight:bold;">${city.name}</div>
+                    <div style="font-size:0.8rem; color:#666;">${city.state}</div>
+                </div>
+              `;
+            });
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+          } else {
+            resultsDiv.style.display = 'none';
+          }
+        } catch (e) { console.error(e); }
+      }, 300);
+    };
+
+    window.selectMatchCity = async function (type, name, lat, lon) {
+      document.getElementById(type + 'City').value = name;
+      const latEl = document.getElementById(type + 'Lat');
+      const lonEl = document.getElementById(type + 'Lon');
+      if (latEl) latEl.value = lat;
+      if (lonEl) lonEl.value = lon;
+
+      document.getElementById(type + 'CityResults').style.display = 'none';
+
+      // Fetch timezone
+      try {
+        const res = await fetch('/api/city-timezone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat, lon })
+        }).then(r => r.json());
+        if (res.ok) {
+          const tzEl = document.getElementById(type + 'Tz');
+          if (tzEl) tzEl.value = res.timezone;
+        }
+      } catch (e) { console.error('Tz fetch error:', e); }
+    };
+
+    window.calculatePorutham = async function () {
+      console.log('Calculating Porutham (Desktop)...');
+      const bDate = document.getElementById('boyDate').value;
+      const bTime = document.getElementById('boyTime').value;
+      const bLat = document.getElementById('boyLat')?.value || 13.0827;
+      const bLon = document.getElementById('boyLon')?.value || 80.2707;
+      const bTz = document.getElementById('boyTz')?.value || 5.5;
+
+      const gDate = document.getElementById('girlDate').value;
+      const gTime = document.getElementById('girlTime').value;
+      const gLat = document.getElementById('girlLat')?.value || 13.0827;
+      const gLon = document.getElementById('girlLon')?.value || 80.2707;
+      const gTz = document.getElementById('girlTz')?.value || 5.5;
+
+      const bCity = document.getElementById('boyCity').value;
+      const gCity = document.getElementById('girlCity').value;
+
+      console.log('Boy:', bDate, bTime, bCity, bLat, bLon);
+      console.log('Girl:', gDate, gTime, gCity, gLat, gLon);
+
+      if (!bDate || !bTime || !bCity || !gDate || !gTime || !gCity) {
+        alert('Please fill all birth details (Date, Time, City) for both partners');
+        return;
+      }
+
+      const loading = document.getElementById('poruthamLoading');
+      const results = document.getElementById('poruthamResults');
+      if (loading) loading.style.display = 'block';
+      if (results) results.style.display = 'none';
+
+      try {
+        const payload = {
+          boyData: { dob: bDate, tob: bTime, lat: parseFloat(bLat), lng: parseFloat(bLon), timezone: parseFloat(bTz) },
+          girlData: { dob: gDate, tob: gTime, lat: parseFloat(gLat), lng: parseFloat(gLon), timezone: parseFloat(gTz) }
+        };
+        console.log('Sending payload:', payload);
+
+        const res = await fetch('/api/rasi-eng/matching', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(r => r.json());
+
+        console.log('Match Response:', res);
+        if (loading) loading.style.display = 'none';
+
+        if (res.error) throw new Error(res.error);
+        if (!res.data) throw new Error("Invalid response from server");
+
+        displayPoruthamResults(res);
+
+      } catch (e) {
+        console.error('Match Error:', e);
+        if (loading) loading.style.display = 'none';
+        alert('Error: ' + e.message);
+      }
+    };
+
+    function displayPoruthamResults(res) {
+      const data = res.data || {};
+      const m = data;
+      const div = document.getElementById('poruthamResults');
+      if (!div) return;
+
+      const isGood = m.percentage >= 50 && m.poruthams.find(p => p.name === 'Rajju')?.score > 0;
+      const scoreColor = isGood ? '#10b981' : '#ef4444';
+      const verdict = m.verdict || (isGood ? 'Advisable' : 'Not Advisable');
+
+      let html = `
+        <div style="background:white; border-radius:15px; border:1px solid #e5e7eb; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom:20px;">
+           <div style="background:linear-gradient(135deg, ${scoreColor} 0%, ${scoreColor}dd 100%); padding:25px; text-align:center; color:white;">
+             <div style="font-size:0.85rem; opacity:0.9; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;">Compatibility Score</div>
+             <div style="font-size:3rem; font-weight:900; line-height:1; margin-bottom:10px;">${m.percentage}%</div>
+             <div style="background:rgba(255,255,255,0.2); display:inline-block; padding:5px 15px; border-radius:20px; font-weight:bold; font-size:1rem;">
+               ${verdict}
+             </div>
+             <div style="margin-top:10px; font-size:0.8rem; opacity:0.8;">${m.totalScore} out of ${m.maxScore} points matched</div>
+           </div>
+
+           <div style="padding:15px;">
+             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+                <div style="background:#eff6ff; padding:12px; border-radius:12px; border:1px solid #dbeafe;">
+                   <div style="font-weight:bold; color:#1e40af; font-size:0.75rem; text-transform:uppercase; margin-bottom:5px;">🤵 Boy</div>
+                   <div style="font-weight:bold; color:#1e3a8a; font-size:0.9rem;">${data.boy.nakshatra}</div>
+                   <div style="font-size:0.75rem; color:#60a5fa;">${data.boy.rasi} Rasi</div>
+                </div>
+                 <div style="background:#fdf2f8; padding:12px; border-radius:12px; border:1px solid #fce7f3;">
+                   <div style="font-weight:bold; color:#be185d; font-size:0.75rem; text-transform:uppercase; margin-bottom:5px;">👰 Girl</div>
+                   <div style="font-weight:bold; color:#9d174d; font-size:0.9rem;">${data.girl.nakshatra}</div>
+                   <div style="font-size:0.75rem; color:#f472b6;">${data.girl.rasi} Rasi</div>
+                </div>
+             </div>
+
+             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+      `;
+
+      if (m.poruthams && Array.isArray(m.poruthams)) {
+        m.poruthams.forEach(p => {
+          const matched = p.score > 0;
+          const statusIcon = matched ? 'fa-check-circle' : 'fa-times-circle';
+          const statusColor = matched ? '#10b981' : '#f87171';
+          const bg = matched ? '#f0fdf4' : '#fef2f2';
+
+          html += `
+               <div style="background:${bg}; border:1px solid ${statusColor}20; padding:10px; border-radius:10px; display:flex; flex-direction:column; justify-content:center;">
+                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                   <span style="font-size:0.7rem; color:#6b7280; font-weight:600;">${p.name}</span>
+                   <i class="fas ${statusIcon}" style="color:${statusColor}; font-size:0.8rem;"></i>
+                 </div>
+                 <div style="font-weight:bold; font-size:0.85rem; color:#374151;">${matched ? 'Yes' : 'No'}</div>
+                 <div style="font-size:0.65rem; color:#9ca3af;">${p.score}/${p.max} Pts</div>
+               </div>
+             `;
+        });
+      }
+
+      html += `</div>`;
+
+      // Dosha and Sandhi Section
+      if (m.girlDosha || m.boyDosha || (m.sandhi && m.sandhi.hasSandhi)) {
+        html += `<div style="margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+          <div style="font-weight:bold; color:#374151; margin-bottom:10px; font-size:0.9rem;">Compatibility Check</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+             <div style="background:#fef2f2; padding:10px; border-radius:10px; border:1px solid #fee2e2;">
+                <div style="font-size:0.7rem; color:#991b1b; font-weight:bold; text-transform:uppercase;">Kuja Dosha</div>
+                <div style="font-size:0.75rem; margin-top:4px;">
+                  <b>G:</b> ${m.girlDosha?.hasDosha ? 'Svr' : 'No'}, <b>B:</b> ${m.boyDosha?.hasDosha ? 'Svr' : 'No'}
+                </div>
+             </div>
+             <div style="background:#f0fdfa; padding:10px; border-radius:10px; border:1px solid #ccfbf1;">
+                <div style="font-size:0.7rem; color:#0f766e; font-weight:bold; text-transform:uppercase;">Dasha Sandhi</div>
+                <div style="font-size:0.75rem; margin-top:4px;">
+                  ${m.sandhi?.hasSandhi ? '⚠️ Overlap' : '✅ No Overlap'}
+                </div>
+             </div>
+          </div>
+        </div>`;
+      }
+
+      html += `</div></div>`;
+      div.innerHTML = html;
+      div.style.display = 'block';
+    }
+
+    // --- Daily Horoscope Logic ---
+    const zodiacSigns = [
+      { name: 'மேஷம்', icon: '🐏', api: 'aries' },
+      { name: 'ரிஷபம்', icon: '🐂', api: 'taurus' },
+      { name: 'மிதுனம்', icon: '👯', api: 'gemini' },
+      { name: 'கடகம்', icon: '🦀', api: 'cancer' },
+      { name: 'சிம்மம்', icon: '🦁', api: 'leo' },
+      { name: 'கன்னி', icon: '👧', api: 'virgo' },
+      { name: 'துலாம்', icon: '⚖️', api: 'libra' },
+      { name: 'விருச்சிகம்', icon: '🦂', api: 'scorpio' },
+      { name: 'தனுசு', icon: '🏹', api: 'sagittarius' },
+      { name: 'மகரம்', icon: '🐐', api: 'capricorn' },
+      { name: 'கும்பம்', icon: '🏺', api: 'aquarius' },
+      { name: 'மீனம்', icon: '🐟', api: 'pisces' }
+    ];
+
+    function renderZodiacScroller() {
+      const container = document.getElementById('zodiacScroller');
+      if (!container) return;
+      container.innerHTML = '';
+
+      zodiacSigns.forEach((sign, idx) => {
+        const div = document.createElement('div');
+        div.className = `zodiac-item ${idx === 0 ? 'active' : ''}`;
+        div.onclick = () => {
+          document.querySelectorAll('.zodiac-item').forEach(el => el.classList.remove('active'));
+          div.classList.add('active');
+          fetchHoroscope(sign);
+        };
+        div.innerHTML = `
+             <span class="zodiac-icon">${sign.icon}</span>
+             <div class="zodiac-name">${sign.name}</div>
+          `;
+        container.appendChild(div);
+      });
+    }
+
+    let horoscopeCache = {}; // Simple cache
+    // Tamil Fallback Data
+    const fallbackHoroscopeData = {
+      'aries': { date: 'இன்று', horoscope_data: 'இன்று உங்களுக்கு நற்பலன்கள் கிடைக்கும்.\nஉங்கள் முயற்சிகளில் வெற்றி கிட்டும்.\nஅதிர்ஷ்ட நிறம்: சிவப்பு (Red)' },
+      'taurus': { date: 'இன்று', horoscope_data: 'பொருளாதார வரவு சிறப்பாக இருக்கும்.\nகுடும்பத்தில் மகிழ்ச்சி நிலவும்.\nஅதிர்ஷ்ட நிறம்: வெள்ளை (White)' },
+      'gemini': { date: 'இன்று', horoscope_data: 'நண்பர்களின் உதவி கிடைக்கும்.\nபுதிய முயற்சிகள் கைக்கூடும்.\nஅதிர்ஷ்ட நிறம்: பச்சை (Green)' },
+      'cancer': { date: 'இன்று', horoscope_data: 'மனதில் நிம்மதி பிறக்கும்.\nதொழிலில் முன்னேற்றம் உண்டு.\nஅதிர்ஷ்ட நிறம்: பால் வெள்ளை (Cream)' },
+      'leo': { date: 'இன்று', horoscope_data: 'உத்தியோகத்தில் மதிப்பு கூடும்.\nஅரசு வழியில் ஆதாயம் உண்டு.\nஅதிர்ஷ்ட நிறம்: ஆரஞ்சு (Orange)' },
+      'virgo': { date: 'இன்று', horoscope_data: 'வியாபாரத்தில் லாவம் பெருகும்.\nஉறவினர்கள் வருகை இருக்கும்.\nஅதிர்ஷ்ட நிறம்: பச்சை (Green)' },
+      'libra': { date: 'இன்று', horoscope_data: 'கணவன் மனைவி ஒற்றுமை பலப்படும்.\nபயணங்களால் நன்மை உண்டாகும்.\nஅதிர்ஷ்ட நிறம்: நீலம் (Blue)' },
+      'scorpio': { date: 'இன்று', horoscope_data: 'சந்திராஷ்டமம் என்பதால் கவனம் தேவை.\nவீண் விவாதங்களை தவிர்க்கவும்.\nஅதிர்ஷ்ட நிறம்: சிவப்பு (Red)' },
+      'sagittarius': { date: 'இன்று', horoscope_data: 'குரு அருள் பரிபூரணமாக உள்ளது.\nஆன்மீக சிந்தனை மேலோங்கும்.\nஅதிர்ஷ்ட நிறம்: மஞ்சள் (Yellow)' },
+      'capricorn': { date: 'இன்று', horoscope_data: 'உழைப்புக்கேற்ற ஊதியம் கிடைக்கும்.\nநிலுவையில் உள்ள பணிகள் முடியும்.\nஅதிர்ஷ்ட நிறம்: நீலம் (Blue)' },
+      'aquarius': { date: 'இன்று', horoscope_data: 'எதிர்பாராத தனவரவு உண்டாகும்.\nநண்பர்களால் ஆதாயம் உண்டு.\nஅதிர்ஷ்ட நிறம்: நீலம் (Blue)' },
+      'pisces': { date: 'இன்று', horoscope_data: 'சுப விரயங்கள் ஏற்படும்.\nகுடும்பத்துடன் இறைவழிபாடு செய்வீர்கள்.\nஅதிர்ஷ்ட நிறம்: மஞ்சள் (Yellow)' }
+    };
+
+    async function fetchHoroscope(signObj) {
+      const loading = document.getElementById('horoscopeLoading');
+      const content = document.getElementById('horoscopeContent');
+      const dateEl = document.getElementById('horoscopeDate');
+
+      if (loading) loading.style.display = 'block';
+      if (content) content.classList.add('hidden');
+
+      if (!signObj) {
+        console.error("fetchHoroscope called with invalid signObj:", signObj);
+        return;
+      }
+
+      // Update active header immediately
+      if (signObj.icon) document.getElementById('activeSignIcon').innerText = signObj.icon;
+      if (signObj.name) document.getElementById('activeSignName').innerText = signObj.name;
+
+      // Check cache
+      const today = new Date().toISOString().split('T')[0];
+      const cacheKey = `${signObj.api}-${today}`;
+
+      if (horoscopeCache[cacheKey]) {
+        displayHoroscope(horoscopeCache[cacheKey]);
+        return;
+      }
+
+      try {
+        // Use our internal Rasi Engine API
+        const res = await fetch(`/api/rasi-eng/horoscope/daily?sign=${signObj.api}`)
+          .then(r => r.json());
+
+        if (res.success && res.data) {
+          // Normalize to match the display function's expectations if needed
+          const normalized = {
+            date: res.data.date,
+            horoscope_data: res.data.forecast_ta, // Main forecast in Tamil
+            details: res.data
+          };
+          horoscopeCache[cacheKey] = normalized;
+          displayHoroscope(normalized);
+        } else {
+          throw new Error("No data");
+        }
+      } catch (e) {
+        console.warn('API Failed, using fallback', e);
+        // Use Fallback
+        const fallback = fallbackHoroscopeData[signObj.api] || fallbackHoroscopeData['aries'];
+        displayHoroscope(fallback);
+      }
+    }
+
+    function displayHoroscope(data) {
+      const loading = document.getElementById('horoscopeLoading');
+      const content = document.getElementById('horoscopeContent');
+
+      if (loading) loading.style.display = 'none';
+      if (content) content.classList.remove('hidden');
+
+      document.getElementById('horoscopeDate').innerText = data.date;
+
+      let html = `<p style="margin-bottom:15px;">${data.horoscope_data}</p>`;
+
+      if (data.details) {
+        html += `
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
+            <div style="font-size:0.85rem;"><i class="fas fa-briefcase" style="color:#d97706; width:18px;"></i> <b>தொழில்:</b> ${data.details.career_ta}</div>
+            <div style="font-size:0.85rem;"><i class="fas fa-coins" style="color:#059669; width:18px;"></i> <b>நிதி:</b> ${data.details.finance_ta}</div>
+            <div style="font-size:0.85rem;"><i class="fas fa-heartbeat" style="color:#ef4444; width:18px;"></i> <b>ஆரோக்கியம்:</b> ${data.details.health_ta}</div>
+            <div style="font-size:0.85rem;"><i class="fas fa-magic" style="color:#3b82f6; width:18px;"></i> <b>அதிர்ஷ்டம்:</b> ${data.details.lucky_number} (${data.details.lucky_color_ta})</div>
+          </div>
+        `;
+      }
+
+      document.getElementById('horoscopeText').innerHTML = html;
+    }
+
+    // Initialize Horoscope
+    renderZodiacScroller();
+    fetchHoroscope(zodiacSigns[0]); // Load Aries by default
+
     // Fetch chart from dashboard form
     async function fetchDashboardChart() {
       const dateStr = document.getElementById('dashboardChartDate')?.value;
@@ -6498,15 +6851,15 @@
                   if (ascSign === sign) {
                     planetsInSign.unshift(`<div style="font-weight:bold; color:#dc2626; font-size:0.8rem;">${t('Asc')}</div>`);
                   }
-                } else if (d.navamsa) {
-                  for (let k in d.navamsa.planets) {
-                    if (d.navamsa.planets[k] === sign) {
-                      const trName = t(k);
+                } else if (d.navamsa && d.navamsa.planets) {
+                  d.navamsa.planets.forEach(p => {
+                    if (p.signName === sign) {
+                      const trName = t(p.name);
                       const shortName = trName ? trName.substring(0, 2) : '??';
-                      const pColor = planetColors[k] || '#555';
+                      const pColor = planetColors[p.name] || '#555';
                       planetsInSign.push(`<div style="font-size:0.75rem; color:${pColor}; font-weight:700;">${shortName}</div>`);
                     }
-                  }
+                  });
                 }
 
                 div.innerHTML = `
@@ -6722,13 +7075,19 @@
       html += '</div></div>';
 
       // 4. Current Dasha
-      if (dasha && dasha.currentLord) {
+      const now = new Date();
+      const currentMD = Array.isArray(dasha) ? dasha.find(md => new Date(md.start) <= now && new Date(md.end) >= now) : null;
+
+      if (currentMD) {
+        const ends = new Date(currentMD.end);
+        const yearsRemaining = (ends - now) / (1000 * 60 * 60 * 24 * 365.25);
         html += `
           <div style="background:linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color:white; padding:15px; border-radius:12px; margin-bottom:20px; box-shadow:0 10px 15px -3px rgba(79,70,229,0.2);">
             <div style="font-size:0.8rem; opacity:0.9; margin-bottom:5px;">⏳ ${t('Current Mahadasha')}</div>
-            <div style="font-size:1.3rem; font-weight:bold;">${t(dasha.currentLord)}</div>
+            <div style="font-size:1.3rem; font-weight:bold;">${t(currentMD.lord)}</div>
             <div style="margin-top:10px; font-size:0.85rem; opacity:0.9;">
-               <div><b>${t('Remaining')}:</b> ${parseFloat(dasha.remainingYearsInCurrentDasha || 0).toFixed(2)} ${t('Years')}</div>
+               <div><b>${t('Remaining')}:</b> ${yearsRemaining.toFixed(2)} ${t('Years')}</div>
+               <div style="font-size:0.7rem; opacity:0.8;">${t('Ends')}: ${ends.toLocaleDateString()}</div>
             </div>
           </div>
         `;
@@ -6820,14 +7179,14 @@
                 }
                 // Navamsa Chart Logic
                 else if (d.navamsa && d.navamsa.planets) {
-                  for (let k in d.navamsa.planets) {
-                    if (d.navamsa.planets[k] === sign) {
-                      const trName = t(k);
+                  d.navamsa.planets.forEach(p => {
+                    if (p.signName === sign) {
+                      const trName = t(p.name);
                       const shortName = trName ? trName.substring(0, 2) : '??';
-                      const pColor = planetColors[k] || '#555';
+                      const pColor = planetColors[p.name] || '#555';
                       planetsInSign.push(`<div style="font-size:0.75rem; color:${pColor}; font-weight:700;">${shortName}</div>`);
                     }
-                  }
+                  });
                 }
 
                 // Construct Cell HTML
@@ -6947,12 +7306,12 @@
               if (houses.ascendantDetails?.signName === sign) {
                 planetsInSign.unshift('Asc');
               }
-            } else if (d.navamsa) {
-              for (let k in d.navamsa.planets) {
-                if (d.navamsa.planets[k] === sign) {
-                  planetsInSign.push(k.substring(0, 2));
+            } else if (d.navamsa && d.navamsa.planets) {
+              d.navamsa.planets.forEach(p => {
+                if (p.signName === sign) {
+                  planetsInSign.push(t(p.name).substring(0, 2));
                 }
-              }
+              });
             }
 
             div.innerHTML = `<span class="s-sign-label" style="font-size:0.7rem; color:#d97706; font-weight:bold;">${sign.substring(0, 3)}</span>
@@ -6964,6 +7323,48 @@
 
       renderSouthGrid('southChart', 'rasi');
       renderSouthGrid('navamsaChart', 'navamsa');
+
+      // Populate Dasha Section (NEW)
+      const dashaInfo = document.getElementById('currentDashaInfo');
+      const dList = document.getElementById('dashaList');
+      if (dashaInfo && d.dasha) {
+        const dasha = d.dasha;
+        // Search for current Mahadasha
+        const now = new Date();
+        const currentMD = dasha.find(md => new Date(md.start) <= now && new Date(md.end) >= now) || dasha[0];
+
+        if (currentMD) {
+          const ends = new Date(currentMD.end);
+          const yearsRemaining = (ends - now) / (1000 * 60 * 60 * 24 * 365.25);
+
+          dashaInfo.innerHTML = `
+              <div style="font-size:0.9rem; margin-bottom:5px; color:rgba(255,255,255,0.9);">${t('Current Mahadasha')}</div>
+              <div style="font-size:1.8rem; font-weight:800; color:white;">${t(currentMD.lord)}</div>
+              <div style="font-size:0.85rem; margin-top:8px; color:rgba(255,255,255,0.8);">
+                 ${t('Ends on')}: <b>${ends.toLocaleDateString()}</b> (${yearsRemaining.toFixed(2)} ${t('Years')})
+              </div>
+          `;
+        }
+
+        if (dList) {
+          dList.innerHTML = '';
+          dasha.forEach(md => {
+            const isCurrent = md === currentMD;
+            const item = document.createElement('div');
+            item.className = `dasha-item ${isCurrent ? 'active' : ''}`;
+            item.style.cssText = `padding:12px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; ${isCurrent ? 'background:#f0fdf4; border-left:4px solid #10b981;' : ''}`;
+
+            item.innerHTML = `
+              <div style="font-weight:600; color:#374151;">${t(md.lord)}</div>
+              <div style="font-size:0.8rem; color:#6b7280; text-align:right;">
+                <div>${new Date(md.start).getFullYear()} - ${new Date(md.end).getFullYear()}</div>
+                <div style="font-size:0.7rem;">${t('Ends')}: ${new Date(md.end).toLocaleDateString()}</div>
+              </div>
+            `;
+            dList.appendChild(item);
+          });
+        }
+      }
 
       const shareBtn = document.getElementById('btnShareChart');
       if (shareBtn) {
@@ -6978,342 +7379,6 @@
         });
       } catch (e) { console.warn("jQuery Tooltip failed", e); }
     }
-
-
-    // Porutham Logic moved to top for reliability
-
-
-
-    let matchCityTimeout;
-    window.handleMatchCitySearch = function (input, type) {
-      clearTimeout(matchCityTimeout);
-      const resultsDiv = document.getElementById(type + 'CityResults');
-      const query = input.value.trim();
-
-      if (query.length < 3) {
-        resultsDiv.style.display = 'none';
-        return;
-      }
-
-      matchCityTimeout = setTimeout(async () => {
-        try {
-          const response = await fetch('/api/city-autocomplete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query })
-          });
-          const data = await response.json();
-
-          if (data.ok && data.results && data.results.length > 0) {
-            let html = '';
-            data.results.forEach(city => {
-              html += `
-                  <div onclick="selectMatchCity('${type}', '${city.name}', ${city.latitude}, ${city.longitude})"
-                       style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
-                    <div style="font-weight:bold;">${city.name}</div>
-                    <div style="font-size:0.8rem; color:#666;">${city.state}</div>
-                  </div>
-                `;
-            });
-            resultsDiv.innerHTML = html;
-            resultsDiv.style.display = 'block';
-          } else {
-            resultsDiv.style.display = 'none';
-          }
-        } catch (e) { console.error(e); }
-      }, 300);
-    };
-
-    window.selectMatchCity = async function (type, name, lat, lon) {
-      document.getElementById(type + 'City').value = name;
-      document.getElementById(type + 'Lat').value = lat;
-      document.getElementById(type + 'Lon').value = lon;
-      document.getElementById(type + 'CityResults').style.display = 'none';
-
-      // Fetch timezone
-      try {
-        const res = await fetch('/api/city-timezone', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat, lon })
-        }).then(r => r.json());
-        if (res.ok) {
-          document.getElementById(type + 'Tz').value = res.timezone;
-        }
-      } catch (e) { console.error('Tz fetch error:', e); }
-    };
-
-    window.calculatePorutham = calculatePorutham;
-    async function calculatePorutham() {
-      console.log('calculatePorutham called');
-      console.log('Calculating Porutham started...');
-      const bDate = document.getElementById('boyDate').value;
-      const bTime = document.getElementById('boyTime').value;
-      const bLat = document.getElementById('boyLat').value || 13.0827;
-      const bLon = document.getElementById('boyLon').value || 80.2707;
-      const bTz = document.getElementById('boyTz').value || 5.5;
-
-      const gDate = document.getElementById('girlDate').value;
-      const gTime = document.getElementById('girlTime').value;
-      const gLat = document.getElementById('girlLat').value || 13.0827;
-      const gLon = document.getElementById('girlLon').value || 80.2707;
-      const gTz = document.getElementById('girlTz').value || 5.5;
-
-      const bCity = document.getElementById('boyCity').value;
-      const gCity = document.getElementById('girlCity').value;
-
-      if (!bDate || !bTime || !bCity || !gDate || !gTime || !gCity) {
-        alert('Please fill all birth details (Date, Time, and City) for both partners.');
-        return;
-      }
-
-      document.getElementById('poruthamLoading').style.display = 'block';
-      document.getElementById('poruthamResults').style.display = 'none';
-
-      try {
-        const res = await fetch('/api/rasi-eng/matching', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            boyData: { dob: bDate, tob: bTime, lat: parseFloat(bLat), lng: parseFloat(bLon), timezone: parseFloat(bTz) },
-            girlData: { dob: gDate, tob: gTime, lat: parseFloat(gLat), lng: parseFloat(gLon), timezone: parseFloat(gTz) }
-          })
-        }).then(r => r.json());
-
-        document.getElementById('poruthamLoading').style.display = 'none';
-
-        if (res.error) throw new Error(res.error);
-
-        displayPoruthamResults(res);
-
-      } catch (e) {
-        document.getElementById('poruthamLoading').style.display = 'none';
-        alert('Error: ' + e.message);
-      }
-    };
-
-    // --- Daily Horoscope Logic ---
-    const zodiacSigns = [
-      { name: 'மேஷம்', icon: '🐏', api: 'aries' },
-      { name: 'ரிஷபம்', icon: '🐂', api: 'taurus' },
-      { name: 'மிதுனம்', icon: '👯', api: 'gemini' },
-      { name: 'கடகம்', icon: '🦀', api: 'cancer' },
-      { name: 'சிம்மம்', icon: '🦁', api: 'leo' },
-      { name: 'கன்னி', icon: '👧', api: 'virgo' },
-      { name: 'துலாம்', icon: '⚖️', api: 'libra' },
-      { name: 'விருச்சிகம்', icon: '🦂', api: 'scorpio' },
-      { name: 'தனுசு', icon: '🏹', api: 'sagittarius' },
-      { name: 'மகரம்', icon: '🐐', api: 'capricorn' },
-      { name: 'கும்பம்', icon: '🏺', api: 'aquarius' },
-      { name: 'மீனம்', icon: '🐟', api: 'pisces' }
-    ];
-
-    function renderZodiacScroller() {
-      const container = document.getElementById('zodiacScroller');
-      if (!container) return;
-      container.innerHTML = '';
-
-      zodiacSigns.forEach((sign, idx) => {
-        const div = document.createElement('div');
-        div.className = `zodiac-item ${idx === 0 ? 'active' : ''}`;
-        div.onclick = () => {
-          document.querySelectorAll('.zodiac-item').forEach(el => el.classList.remove('active'));
-          div.classList.add('active');
-          fetchHoroscope(sign);
-        };
-        div.innerHTML = `
-             <span class="zodiac-icon">${sign.icon}</span>
-             <div class="zodiac-name">${sign.name}</div>
-          `;
-        container.appendChild(div);
-      });
-    }
-
-    let horoscopeCache = {}; // Simple cache
-    // Tamil Fallback Data
-    const fallbackHoroscopeData = {
-      'aries': { date: 'இன்று', horoscope_data: 'இன்று உங்களுக்கு நற்பலன்கள் கிடைக்கும்.\nஉங்கள் முயற்சிகளில் வெற்றி கிட்டும்.\nஅதிர்ஷ்ட நிறம்: சிவப்பு (Red)' },
-      'taurus': { date: 'இன்று', horoscope_data: 'பொருளாதார வரவு சிறப்பாக இருக்கும்.\nகுடும்பத்தில் மகிழ்ச்சி நிலவும்.\nஅதிர்ஷ்ட நிறம்: வெள்ளை (White)' },
-      'gemini': { date: 'இன்று', horoscope_data: 'நண்பர்களின் உதவி கிடைக்கும்.\nபுதிய முயற்சிகள் கைக்கூடும்.\nஅதிர்ஷ்ட நிறம்: பச்சை (Green)' },
-      'cancer': { date: 'இன்று', horoscope_data: 'மனதில் நிம்மதி பிறக்கும்.\nதொழிலில் முன்னேற்றம் உண்டு.\nஅதிர்ஷ்ட நிறம்: பால் வெள்ளை (Cream)' },
-      'leo': { date: 'இன்று', horoscope_data: 'உத்தியோகத்தில் மதிப்பு கூடும்.\nஅரசு வழியில் ஆதாயம் உண்டு.\nஅதிர்ஷ்ட நிறம்: ஆரஞ்சு (Orange)' },
-      'virgo': { date: 'இன்று', horoscope_data: 'வியாபாரத்தில் லாவம் பெருகும்.\nஉறவினர்கள் வருகை இருக்கும்.\nஅதிர்ஷ்ட நிறம்: பச்சை (Green)' },
-      'libra': { date: 'இன்று', horoscope_data: 'கணவன் மனைவி ஒற்றுமை பலப்படும்.\nபயணங்களால் நன்மை உண்டாகும்.\nஅதிர்ஷ்ட நிறம்: நீலம் (Blue)' },
-      'scorpio': { date: 'இன்று', horoscope_data: 'சந்திராஷ்டமம் என்பதால் கவனம் தேவை.\nவீண் விவாதங்களை தவிர்க்கவும்.\nஅதிர்ஷ்ட நிறம்: சிவப்பு (Red)' },
-      'sagittarius': { date: 'இன்று', horoscope_data: 'குரு அருள் பரிபூரணமாக உள்ளது.\nஆன்மீக சிந்தனை மேலோங்கும்.\nஅதிர்ஷ்ட நிறம்: மஞ்சள் (Yellow)' },
-      'capricorn': { date: 'இன்று', horoscope_data: 'உழைப்புக்கேற்ற ஊதியம் கிடைக்கும்.\nநிலுவையில் உள்ள பணிகள் முடியும்.\nஅதிர்ஷ்ட நிறம்: நீலம் (Blue)' },
-      'aquarius': { date: 'இன்று', horoscope_data: 'எதிர்பாராத தனவரவு உண்டாகும்.\nநண்பர்களால் ஆதாயம் உண்டு.\nஅதிர்ஷ்ட நிறம்: நீலம் (Blue)' },
-      'pisces': { date: 'இன்று', horoscope_data: 'சுப விரயங்கள் ஏற்படும்.\nகுடும்பத்துடன் இறைவழிபாடு செய்வீர்கள்.\nஅதிர்ஷ்ட நிறம்: மஞ்சள் (Yellow)' }
-    };
-
-    async function fetchHoroscope(signObj) {
-      const loading = document.getElementById('horoscopeLoading');
-      const content = document.getElementById('horoscopeContent');
-      const dateEl = document.getElementById('horoscopeDate');
-
-      if (loading) loading.style.display = 'block';
-      if (content) content.classList.add('hidden');
-
-      if (!signObj) {
-        console.error("fetchHoroscope called with invalid signObj:", signObj);
-        return;
-      }
-
-      // Update active header immediately
-      if (signObj.icon) document.getElementById('activeSignIcon').innerText = signObj.icon;
-      if (signObj.name) document.getElementById('activeSignName').innerText = signObj.name;
-
-      // Check cache
-      const today = new Date().toISOString().split('T')[0];
-      const cacheKey = `${signObj.api}-${today}`;
-
-      if (horoscopeCache[cacheKey]) {
-        displayHoroscope(horoscopeCache[cacheKey]);
-        return;
-      }
-
-      try {
-        // Use our internal Rasi Engine API
-        const res = await fetch(`/api/rasi-eng/horoscope/daily?sign=${signObj.api}`)
-          .then(r => r.json());
-
-        if (res.success && res.data) {
-          // Normalize to match the display function's expectations if needed
-          const normalized = {
-            date: res.data.date,
-            horoscope_data: res.data.forecast_ta, // Main forecast in Tamil
-            details: res.data
-          };
-          horoscopeCache[cacheKey] = normalized;
-          displayHoroscope(normalized);
-        } else {
-          throw new Error("No data");
-        }
-      } catch (e) {
-        console.warn('API Failed, using fallback', e);
-        // Use Fallback
-        const fallback = fallbackHoroscopeData[signObj.api] || fallbackHoroscopeData['aries'];
-        displayHoroscope(fallback);
-      }
-    }
-
-    function displayHoroscope(data) {
-      const loading = document.getElementById('horoscopeLoading');
-      const content = document.getElementById('horoscopeContent');
-
-      if (loading) loading.style.display = 'none';
-      if (content) content.classList.remove('hidden');
-
-      document.getElementById('horoscopeDate').innerText = data.date;
-
-      let html = `<p style="margin-bottom:15px;">${data.horoscope_data}</p>`;
-
-      if (data.details) {
-        html += `
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
-            <div style="font-size:0.85rem;"><i class="fas fa-briefcase" style="color:#d97706; width:18px;"></i> <b>தொழில்:</b> ${data.details.career_ta}</div>
-            <div style="font-size:0.85rem;"><i class="fas fa-coins" style="color:#059669; width:18px;"></i> <b>நிதி:</b> ${data.details.finance_ta}</div>
-            <div style="font-size:0.85rem;"><i class="fas fa-heartbeat" style="color:#ef4444; width:18px;"></i> <b>ஆரோக்கியம்:</b> ${data.details.health_ta}</div>
-            <div style="font-size:0.85rem;"><i class="fas fa-magic" style="color:#3b82f6; width:18px;"></i> <b>அதிர்ஷ்டம்:</b> ${data.details.lucky_number} (${data.details.lucky_color_ta})</div>
-          </div>
-        `;
-      }
-
-      document.getElementById('horoscopeText').innerHTML = html;
-    }
-
-    // Initialize Horoscope
-    renderZodiacScroller();
-    fetchHoroscope(zodiacSigns[0]); // Load Aries by default
-
-    function displayPoruthamResults(res) {
-      const data = res.data || {};
-      const m = data;
-      const div = document.getElementById('poruthamResults');
-
-      const isGood = m.percentage >= 50 && m.poruthams.find(p => p.name === 'Rajju')?.score > 0;
-      const scoreColor = isGood ? '#10b981' : '#ef4444';
-      const verdict = m.verdict || (isGood ? 'Advisable' : 'Not Advisable');
-
-      let html = `
-         <div style="background:white; border-radius:15px; border:1px solid #e5e7eb; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
-           <div style="background:linear-gradient(135deg, ${scoreColor} 0%, ${scoreColor}dd 100%); padding:25px; text-align:center; color:white;">
-             <div style="font-size:0.9rem; opacity:0.9; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;">Compatibility Score</div>
-             <div style="font-size:3.5rem; font-weight:900; line-height:1; margin-bottom:10px;">${m.percentage}%</div>
-             <div style="background:rgba(255,255,255,0.2); display:inline-block; padding:5px 15px; border-radius:20px; font-weight:bold; font-size:1.1rem;">
-               ${verdict}
-             </div>
-             <div style="margin-top:10px; font-size:0.9rem; opacity:0.8;">${m.totalScore} out of ${m.maxScore} points matched</div>
-           </div>
-
-           <div style="padding:20px;">
-             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
-                <div style="background:#eff6ff; padding:15px; border-radius:12px; border:1px solid #dbeafe;">
-                   <div style="font-weight:bold; color:#1e40af; font-size:0.8rem; text-transform:uppercase; margin-bottom:5px;">🤵 Boy</div>
-                   <div style="font-weight:bold; color:#1e3a8a;">${data.boy.nakshatra}</div>
-                   <div style="font-size:0.85rem; color:#60a5fa;">${data.boy.rasi} Rasi</div>
-                </div>
-                 <div style="background:#fdf2f8; padding:15px; border-radius:12px; border:1px solid #fce7f3;">
-                   <div style="font-weight:bold; color:#be185d; font-size:0.8rem; text-transform:uppercase; margin-bottom:5px;">👰 Girl</div>
-                   <div style="font-weight:bold; color:#9d174d;">${data.girl.nakshatra}</div>
-                   <div style="font-size:0.85rem; color:#f472b6;">${data.girl.rasi} Rasi</div>
-                </div>
-             </div>
-
-             <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:12px;">
-       `;
-
-      if (m.poruthams && Array.isArray(m.poruthams)) {
-        m.poruthams.forEach(p => {
-          const matched = p.score > 0;
-          const statusIcon = matched ? 'fa-check-circle' : 'fa-times-circle';
-          const statusColor = matched ? '#10b981' : '#f87171';
-          const bg = matched ? '#f0fdf4' : '#fef2f2';
-
-          html += `
-               <div style="background:${bg}; border:1px solid ${statusColor}20; padding:12px; border-radius:10px; display:flex; flex-direction:column; justify-content:center;">
-                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                   <span style="font-size:0.75rem; color:#6b7280; font-weight:600;">${p.name}</span>
-                   <i class="fas ${statusIcon}" style="color:${statusColor}; font-size:0.9rem;"></i>
-                 </div>
-                 <div style="font-weight:bold; font-size:0.95rem; color:#374151;">${matched ? 'Yes' : 'No'}</div>
-                 <div style="font-size:0.7rem; color:#9ca3af;">${p.score}/${p.max} Pts</div>
-               </div>
-             `;
-        });
-      }
-
-      html += `</div>`;
-
-      // Dosha and Sandhi Section
-      if (m.girlDosha || m.boyDosha || (m.sandhi && m.sandhi.hasSandhi)) {
-        html += `<div style="margin-top:25px; border-top:1px solid #eee; padding-top:20px;">
-          <div style="font-weight:bold; color:#374151; margin-bottom:12px; font-size:1rem;">Additional Compatibility Checks</div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-             <div style="background:#fef2f2; padding:12px; border-radius:10px; border:1px solid #fee2e2;">
-                <div style="font-size:0.75rem; color:#991b1b; font-weight:bold; text-transform:uppercase;">Kuja Dosha</div>
-                <div style="font-size:0.85rem; margin-top:4px;">
-                  <b>Girl:</b> ${m.girlDosha?.hasDosha ? 'Severe' : 'No'}<br>
-                  <b>Boy:</b> ${m.boyDosha?.hasDosha ? 'Severe' : 'No'}
-                </div>
-             </div>
-             <div style="background:#f0fdfa; padding:12px; border-radius:10px; border:1px solid #ccfbf1;">
-                <div style="font-size:0.75rem; color:#0f766e; font-weight:bold; text-transform:uppercase;">Dasha Sandhi</div>
-                <div style="font-size:0.85rem; margin-top:4px;">
-                  ${m.sandhi?.hasSandhi ? '⚠️ Overlap Found' : '✅ No Overlaps'}
-                </div>
-                <div style="font-size:0.65rem; color:#6b7280; margin-top:2px;">${m.sandhi?.verdict || ''}</div>
-             </div>
-          </div>
-        </div>`;
-      }
-
-      html += `</div></div><div style="height:20px;"></div>`;
-      div.innerHTML = html;
-      div.style.display = 'block';
-    }
-
-
 
 
     // Initialize
