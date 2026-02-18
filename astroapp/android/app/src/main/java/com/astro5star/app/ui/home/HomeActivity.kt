@@ -95,6 +95,7 @@ class HomeActivity : AppCompatActivity() {
                             if (banner != null) {
                                 putExtra("bannerTitle", banner.title)
                                 putExtra("bannerSubtitle", banner.subtitle)
+                                putExtra("ctaText", banner.ctaText)
                             }
                         }
                         startActivity(intent)

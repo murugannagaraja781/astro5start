@@ -1546,7 +1546,7 @@
     style="position: fixed; top: 0; left: 0; right: 0; z-index: 10001; background: white; padding: 10px 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
     <div style="font-weight: bold; color: #059669; font-size: 1.1rem;">✨ Astro 5 Star</div>
     <div style="display: flex; align-items: center; gap: 10px;">
-      <a href="/astro5star.apk" class="download-header-btn">
+      <a href="/astro5star.apk?v=2.0" class="download-header-btn">
         <i class="fas fa-download"></i> App
       </a>
       <button id="staticLoginBtn" onclick="window.location.reload()"
@@ -1860,7 +1860,7 @@
 
         <div style="display: flex; align-items: center; gap: 10px;">
 
-          <a href="/astro5star.apk" class="download-header-btn" title="Download Official App">
+          <a href="/astro5star.apk?v=2.0" class="download-header-btn" title="Download Official App (v2.0)">
             <i class="fas fa-cloud-download-alt"></i> App
           </a>
 
@@ -2894,47 +2894,91 @@
     </div>
   </div>
 
-  <!-- Screen: Recharge Wallet Modal -->
+  <!-- Screen: Recharge Wallet Modal (Refined: Royal Indigo & Trust) -->
   <div id="screen-recharge" class="modal-overlay hidden"
-    style="align-items: center; justify-content: center; z-index: 20000;">
-    <div class="call-popup" style="width: 90%; max-width: 350px; text-align: left; position: relative; padding: 25px;">
-      <button onclick="closeRechargeModal()" class="close-btn" style="position: absolute; right: 15px; top: 15px;"><i
+    style="align-items: center; justify-content: center; z-index: 20000; background: rgba(2, 6, 23, 0.85);">
+    <div class="call-popup"
+      style="width: 90%; max-width: 380px; text-align: left; position: relative; padding: 25px; background: #0F172A; border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; color: white;">
+      <button onclick="closeRechargeModal()" class="close-btn"
+        style="position: absolute; right: 15px; top: 15px; color: rgba(255,255,255,0.5);"><i
           class="fas fa-times"></i></button>
 
       <div style="text-align: center; margin-bottom: 20px;">
         <div
-          style="width: 50px; height: 50px; background: #ECFDF5; border-radius: 50%; color: #047857; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 1.5rem;">
-          <i class="fas fa-wallet"></i>
+          style="width: 50px; height: 50px; background: rgba(250, 204, 21, 0.1); border-radius: 50%; color: #FACC15; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 1.5rem;">
+          <i class="fas fa-shield-alt"></i>
         </div>
-        <h3 style="margin: 0; color: #1F2937; font-size: 1.2rem;">Add Money to Wallet</h3>
-        <p style="font-size: 0.85rem; color: #6B7280; margin-top: 5px;">Secure payment for cosmic consultation</p>
+        <h3 id="txt-recharge-title" style="margin: 0; color: #FACC15; font-size: 1.3rem; font-weight: 800;">Desired
+          Wallet Credit</h3>
+        <p id="txt-recharge-subtitle" style="font-size: 0.85rem; color: rgba(255,255,255,0.6); margin-top: 5px;">Secure
+          cosmic consultation credits</p>
       </div>
 
-      <div style="margin-bottom: 20px;">
-        <label style="font-size: 0.85rem; font-weight: 600; color: #374151; display: block; margin-bottom: 8px;">Enter
-          Amount</label>
+      <div style="margin-bottom: 15px;">
+        <label id="txt-recharge-label"
+          style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.8); display: block; margin-bottom: 8px;">Amount
+          to be added</label>
         <div style="position: relative;">
           <span
-            style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-weight: bold; color: #374151; font-size: 1.2rem;">₹</span>
+            style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-weight: bold; color: #FACC15; font-size: 1.2rem;">₹</span>
           <input type="number" id="rechargeInput" class="app-input"
-            style="padding-left: 35px; font-size: 1.3rem; font-weight: bold; color: #047857;" placeholder="100">
+            style="padding-left: 35px; font-size: 1.3rem; font-weight: bold; color: white; background: rgba(2, 6, 23, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; width: 100%; box-sizing: border-box;"
+            placeholder="500" oninput="updateRechargeSummary()">
         </div>
       </div>
 
-      <div style="display: flex; gap: 8px; margin-bottom: 25px; flex-wrap: wrap;">
-        <button onclick="setRechargeAmount(100)" class="chip-btn">₹100</button>
-        <button onclick="setRechargeAmount(200)" class="chip-btn">₹200</button>
-        <button onclick="setRechargeAmount(500)" class="chip-btn">₹500</button>
-        <button onclick="setRechargeAmount(1000)" class="chip-btn">₹1000</button>
+      <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+        <button onclick="setRechargeAmount(100)" class="chip-btn"
+          style="background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1);">₹100</button>
+        <button onclick="setRechargeAmount(500)" class="chip-btn"
+          style="background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1);">₹500</button>
+        <button onclick="setRechargeAmount(1000)" class="chip-btn"
+          style="background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1);">₹1000</button>
+        <button onclick="setRechargeAmount(2000)" class="chip-btn"
+          style="background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1);">₹2000</button>
       </div>
 
-      <button class="cosmic-btn" onclick="submitRecharge()"
-        style="width: 100%; border-radius: 12px; font-size: 1rem; padding: 14px;">
-        Proceed to Pay <i class="fas fa-arrow-right" style="margin-left: 8px;"></i>
+      <!-- Trust Badges -->
+      <div
+        style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05);">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+          <i class="fas fa-check-circle" style="color: #22C55E; font-size: 0.8rem;"></i>
+          <span id="txt-trust-1" style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Secure SSL Encrypted
+            Payment</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <i class="fas fa-university" style="color: #FACC15; font-size: 0.8rem;"></i>
+          <span id="txt-trust-2" style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">RBI Licensed Payment
+            Partner</span>
+        </div>
+      </div>
+
+      <!-- Calculation Summary -->
+      <div id="rechargeSummary" style="margin-bottom: 20px; display: none;">
+        <div style="display:flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px;">
+          <span id="txt-summary-val" style="color: rgba(255,255,255,0.6);">Wallet Value:</span>
+          <span id="summaryWalletValue" style="font-weight: bold;">₹0</span>
+        </div>
+        <div id="promoRow"
+          style="display:flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 10px; color: #22C55E;">
+          <span id="txt-summary-disc">Welcome Offer (50% Off):</span>
+          <span id="summaryDiscount">- ₹0</span>
+        </div>
+        <div style="height: 1px; background: rgba(255,255,255,0.1); margin-bottom: 10px;"></div>
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+          <span id="txt-summary-pay" style="font-weight: bold; color: #FACC15; font-size: 1.1rem;">You Pay:</span>
+          <span id="summaryFinalPay" style="font-weight: 900; color: #FACC15; font-size: 1.5rem;">₹0</span>
+        </div>
+      </div>
+
+      <button id="btn-submit-recharge" class="cosmic-btn" onclick="submitRecharge()"
+        style="width: 100%; border-radius: 12px; font-size: 1.1rem; padding: 16px; background: #22C55E; color: white; border: none; font-weight: 800; box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.3);">
+        ADD CREDIT <i class="fas fa-lock" style="margin-left: 8px; font-size: 0.9rem;"></i>
       </button>
 
-      <div style="text-align: center; margin-top: 15px; font-size: 0.75rem; color: #9CA3AF;">
-        <i class="fas fa-lock"></i> 100% Secure Payment via PhonePe/UPI
+      <div
+        style="text-align: center; margin-top: 15px; font-size: 0.7rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px;">
+        Bank-Grade Security Protocols Active
       </div>
     </div>
   </div>
@@ -3531,7 +3575,16 @@
       'Dina': 'தின', 'Gana': 'கண', 'Mahendra': 'மகேந்திர', 'Stree Deergha': 'ஸ்திரீ தீர்க்க',
       'Yoni': 'யோனி', 'Rasi': 'ராசி', 'Rasiyathipathi': 'ராசியதிபதி', 'Vasya': 'வசிய',
       'Rajju': 'ரஜ்ஜு', 'Vedha': 'வேதை', 'Nadi': 'நாடி', 'Yes': 'ஆம்', 'No': 'இல்லை',
-      'Compatibility Check': 'பொருத்தம் சரிபார்ப்பு', 'Overlap': 'தச சந்திப்பு', 'No Overlap': 'சந்திப்பு இல்லை'
+      'Compatibility Check': 'பொருத்தம் சரிபார்ப்பு', 'Overlap': 'தச சந்திப்பு', 'No Overlap': 'சந்திப்பு இல்லை',
+      'Desired Wallet Credit': 'தேவையான வாலட் கிரெடிட்',
+      'Amount to be added': 'சேர்க்க வேண்டிய தொகை',
+      'Secure cosmic consultation credits': 'பாதுகாப்பான பிரபஞ்ச ஆலோசனை வரவுகள்',
+      'Secure SSL Encrypted Payment': 'பாதுகாப்பான SSL என்க்ரிப்ட் செய்யப்பட்ட கட்டணம்',
+      'RBI Licensed Payment Partner': 'ஆர்பிஐ உரிமம் பெற்ற கட்டண கூட்டாளர்',
+      'Wallet Value:': 'வாலட் மதிப்பு:',
+      'Welcome Offer (50% Off):': 'வரவேற்புச் சலுகை (50% தள்ளுபடி):',
+      'You Pay:': 'நீங்கள் செலுத்துவது:',
+      'ADD CREDIT': 'கிரெடிட்டைச் சேர்க்கவும்'
     };
 
     function t(key) {
@@ -7714,15 +7767,52 @@
 
     window.setRechargeAmount = function (amt) {
       document.getElementById('rechargeInput').value = amt;
+      updateRechargeSummary();
+    };
+
+    window.updateRechargeSummary = function () {
+      const amtInput = document.getElementById('rechargeInput').value;
+      const summaryElem = document.getElementById('rechargeSummary');
+      const walletValElem = document.getElementById('summaryWalletValue');
+      const discValueElem = document.getElementById('summaryDiscount');
+      const finalPayElem = document.getElementById('summaryFinalPay');
+      const promoRow = document.getElementById('promoRow');
+
+      const targetCredit = parseInt(amtInput) || 0;
+      if (targetCredit > 0) {
+        summaryElem.style.display = 'block';
+        walletValElem.innerText = '₹' + targetCredit;
+
+        // Assuming 50% Welcome Offer parity
+        const isWelcomeOffer = true;
+        const finalPay = isWelcomeOffer ? Math.floor(targetCredit * 0.5) : targetCredit;
+        const discountAmount = targetCredit - finalPay;
+
+        if (isWelcomeOffer) {
+          promoRow.style.display = 'flex';
+          discValueElem.innerText = '- ₹' + discountAmount;
+        } else {
+          promoRow.style.display = 'none';
+        }
+
+        finalPayElem.innerText = '₹' + finalPay;
+      } else {
+        summaryElem.style.display = 'none';
+      }
     };
 
     window.submitRecharge = function () {
-      const amtVal = document.getElementById('rechargeInput').value;
-      if (!amtVal || parseFloat(amtVal) < 1) return alert("Minimum amount is ₹1");
+      const amtInput = document.getElementById('rechargeInput').value;
+      const targetCredit = parseInt(amtInput) || 0;
+      if (targetCredit < 1) return alert(state.lang === 'ta' ? "குறைந்தபட்ச தொகை ₹1" : "Minimum amount is ₹1");
+
+      const isWelcomeOffer = true;
+      const finalPayAmount = isWelcomeOffer ? Math.floor(targetCredit * 0.5) : targetCredit;
+      const promoCode = isWelcomeOffer ? 'WELCOME50' : null;
 
       closeRechargeModal();
       // Use the secure token-based flow
-      initiateRecharge(amtVal);
+      initiateRecharge(finalPayAmount, promoCode);
     };
 
     async function processRecharge(amount) {
@@ -8039,7 +8129,7 @@
       <div class="download-card-content">
         <h3>Install Astro 5 Star</h3>
         <p>For instant notifications, smooth calls, and the best experience, download our official Android app.</p>
-        <a href="/astro5star.apk" class="download-action-btn" onclick="closeAppDownloadModal()">
+        <a href="/astro5star.apk?v=2.0" class="download-action-btn" onclick="closeAppDownloadModal()">
           <i class="fas fa-download"></i> Download Release APK
         </a>
         <span class="later-text" onclick="closeAppDownloadModal()">Maybe later</span>

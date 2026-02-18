@@ -53,6 +53,7 @@ class WalletActivity : ComponentActivity() {
     private var balanceState by mutableDoubleStateOf(0.0)
     private var bannerTitle by mutableStateOf<String?>(null)
     private var bannerSubtitle by mutableStateOf<String?>(null)
+    private var ctaText by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,6 +68,7 @@ class WalletActivity : ComponentActivity() {
 
         bannerTitle = intent.getStringExtra("bannerTitle")
         bannerSubtitle = intent.getStringExtra("bannerSubtitle")
+        ctaText = intent.getStringExtra("ctaText")
 
         setContent {
             CosmicAppTheme {
@@ -75,6 +77,7 @@ class WalletActivity : ComponentActivity() {
                     transactions = transactionsState,
                     bannerTitle = bannerTitle,
                     bannerSubtitle = bannerSubtitle,
+                    ctaText = ctaText,
                     onAddMoney = { amount, promo ->
                          if (amount < 1) {
                             Toast.makeText(this, getString(R.string.enter_valid_amount), Toast.LENGTH_SHORT).show()
@@ -181,19 +184,20 @@ fun WalletScreen(
     transactions: List<JSONObject>,
     bannerTitle: String? = null,
     bannerSubtitle: String? = null,
+    ctaText: String? = null,
     onAddMoney: (Int, String?) -> Unit,
     onRefreshHistory: () -> Unit
 ) {
     var amountInput by remember { mutableStateOf("") }
-    var isOfferApplied by remember { mutableStateOf(false) }
-    var appliedPromoCode by remember { mutableStateOf<String?>(null) }
+    var isOfferApplied by remember { mutableStateOf(!ctaText.isNullOrEmpty()) }
+    var appliedPromoCode by remember { mutableStateOf<String?>(if (isOfferApplied) "WELCOME50" else null) }
 
-    // Premium "Celestial" Theme
-    val indigoDeep = Color(0xFF0F172A)
-    val indigoMedium = Color(0xFF1E293B)
-    val indigoLight = Color(0xFF334155)
+    // Trustworthy "Royal Indigo" Theme
+    val indigoDeep = Color(0xFF020617) // Darkest Slate/Indigo for Trust
+    val indigoMedium = Color(0xFF0F172A)
+    val indigoLight = Color(0xFF1E293B)
 
-    val goldPrimary = Color(0xFFFFD700)
+    val goldPrimary = Color(0xFFFACC15)
     val goldGradient = Brush.linearGradient(
         colors = listOf(Color(0xFFFDE047), Color(0xFFEAB308), Color(0xFFB45309))
     )
@@ -448,45 +452,70 @@ fun WalletScreen(
 
                             // Discount Summary (Refined: Value vs Cost)
                             if (isOfferApplied && amountInput.isNotEmpty()) {
-                                val payAmount = amountInput.toIntOrNull() ?: 0
-                                if (payAmount > 0) {
-                                    val bonusValue = (payAmount * 0.1).toInt() // 10% Bonus for now
-                                    val totalCredit = payAmount + bonusValue
+                                // Trust Badges for Reassurance
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Rounded.AddCircle, null, tint = successGreen, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(stringResource(R.string.trust_secure_payment), fontSize = 11.sp, color = Color.White.copy(alpha=0.6f))
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Rounded.History, null, tint = goldPrimary, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(stringResource(R.string.trust_bank_grade), fontSize = 11.sp, color = Color.White.copy(alpha=0.6f))
+                                }
+                            }
 
+                            // Calculation Logic - Target Credit Model
+                            val targetCredit = amountInput.toIntOrNull() ?: 0
+                            val discountFactor = if (isOfferApplied) 0.5f else 1.0f
+                            val payAmount = (targetCredit * discountFactor).toInt()
+                            val bonusAdded = targetCredit - payAmount
+
+                            if (targetCredit > 0) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+                                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+                                ) {
                                     Column(
-                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                        modifier = Modifier.fillMaxWidth().padding(12.dp),
                                         verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text(stringResource(R.string.you_pay), color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
-                                            Text("₹$payAmount", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
+                                            Text(stringResource(R.string.recharge_wallet), color = Color.White, fontSize = 14.sp)
+                                            Text("₹$targetCredit", color = Color.White, fontWeight = FontWeight.Bold)
                                         }
-                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text(stringResource(R.string.celestial_bonus), color = successGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                            Text("+ ₹$bonusValue", color = successGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                        if (isOfferApplied) {
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                Text("50% Offer Applied", color = successGreen, fontSize = 14.sp)
+                                                Text("- ₹$bonusAdded", color = successGreen, fontWeight = FontWeight.Bold)
+                                            }
                                         }
-                                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = Color.White.copy(alpha = 0.1f))
-                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text(stringResource(R.string.total_wallet_credit), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
-                                            Text("₹$totalCredit", color = goldPrimary, fontSize = 20.sp, fontWeight = FontWeight.Black)
+                                        HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                            Text(stringResource(R.string.you_pay), color = goldPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                            Text("₹$payAmount", color = goldPrimary, fontSize = 24.sp, fontWeight = FontWeight.Black)
                                         }
                                     }
                                 }
                             }
+                        }
 
                             // Recharge button
                             Button(
                                 onClick = {
-                                    val payAmount = amountInput.toIntOrNull() ?: 0
+                                    val targetCredit = amountInput.toIntOrNull() ?: 0
+                                    val discountFactor = if (isOfferApplied) 0.5f else 1.0f
+                                    val payAmount = (targetCredit * discountFactor).toInt()
                                     if (payAmount >= 1) {
-                                        // On backend, we need to know the 'actual amount' to charge and the 'promo'
-                                        // If user pays 50 and gets 100, backend needs to handle the bonus.
-                                        // Current logic says 'onAddMoney(finalAmt, promo)'.
-                                        // I will send the payAmount and the promo so backend handles bonus.
                                         onAddMoney(payAmount, if (isOfferApplied) appliedPromoCode else null)
                                         amountInput = ""
-                                        isOfferApplied = false
-                                        appliedPromoCode = null
                                     }
                                 },
                                 modifier = Modifier
@@ -503,9 +532,12 @@ fun WalletScreen(
                                     contentColor = Color.White
                                 )
                             ) {
-                                val payAmount = amountInput.toIntOrNull() ?: 0
+                                val targetCredit = amountInput.toIntOrNull() ?: 0
+                                val discountFactor = if (isOfferApplied) 0.5f else 1.0f
+                                val payAmountOutput = (targetCredit * discountFactor).toInt()
+
                                 Text(
-                                    if (payAmount > 0) stringResource(R.string.pay_amount, payAmount) else stringResource(R.string.invest_now),
+                                    if (payAmountOutput > 0) stringResource(R.string.pay_amount, payAmountOutput) else stringResource(R.string.invest_now),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Black,
                                     letterSpacing = 1.sp
