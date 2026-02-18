@@ -207,12 +207,13 @@ object SocketManager {
         }
     }
 
-    fun onWalletUpdate(listener: (Double) -> Unit) {
+    fun onWalletUpdate(listener: (JSONObject) -> Unit) {
         socket?.on("wallet-update") { args ->
             if (args != null && args.isNotEmpty()) {
                 val data = args[0] as? JSONObject
-                val balance = data?.optDouble("balance", 0.0) ?: 0.0
-                listener(balance)
+                if (data != null) {
+                    listener(data)
+                }
             }
         }
     }
