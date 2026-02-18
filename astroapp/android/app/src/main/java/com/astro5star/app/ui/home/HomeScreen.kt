@@ -21,6 +21,7 @@ import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Chat
 import androidx.compose.material.icons.rounded.VideoCall
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Translate
@@ -294,18 +295,10 @@ fun HomeScreen(
     val tokenManager = remember { TokenManager(context) }
     val userSession by remember { mutableStateOf(tokenManager.getUserSession()) }
 
-    // Fetch History when tab 4 is selected
+    // Fetch History when tab 5 is selected
     LaunchedEffect(selectedTab) {
-        if (selectedTab == 4 && !isGuest) {
+        if (selectedTab == 5 && !isGuest) {
             isHistoryLoading = true
-            try {
-                val userId = tokenManager.getUserSession()?.userId ?: ""
-                val myRole = tokenManager.getUserSession()?.role ?: "client"
-                val response = withContext(Dispatchers.IO) {
-                    val client = okhttp3.OkHttpClient()
-                    val request = okhttp3.Request.Builder()
-                        .url("https://astro5star.com/api/astrology/history/$userId")
-                        .build()
                     client.newCall(request).execute()
                 }
                 if (response.isSuccessful) {
@@ -547,7 +540,13 @@ fun HomeScreen(
                 }
                     HomeBottomBar(
                         selectedTab = selectedTab,
-                        onTabSelected = { selectedTab = it }
+                        onTabSelected = {
+                            if (it == 4) {
+                                onWalletClick()
+                            } else {
+                                selectedTab = it
+                            }
+                        }
                     )
                 }
             }
@@ -615,7 +614,7 @@ fun HomeScreen(
                             else -> Localization.get("premium_consultation", isTamil) // Home
                         }
                         Text(
-                            text = if (selectedTab == 4) "Consultation History" else title,
+                            text = if (selectedTab == 5) "Consultation History" else title,
                             style = MaterialTheme.typography.titleLarge,
                             color = CosmicAppTheme.colors.accent,
                             modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
@@ -624,7 +623,7 @@ fun HomeScreen(
                     }
 
                     // 5. Filter Bar (Only for Listing Tabs 1, 2, 3)
-                    if (selectedTab != 0 && selectedTab != 4) {
+                    if (selectedTab != 0 && selectedTab != 4 && selectedTab != 5) {
                         item {
                             FilterBar(
                                 filters = listOf("All", "Love", "Career", "Finance", "Marriage", "Health", "Education"),
@@ -634,7 +633,7 @@ fun HomeScreen(
                         }
                     }
 
-                    if (selectedTab == 4) {
+                    if (selectedTab == 5) {
                         // 6b. History List
                         if (isHistoryLoading) {
                             item {
@@ -1141,7 +1140,8 @@ fun HomeBottomBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {
             Triple("Chat", androidx.compose.material.icons.Icons.Rounded.Chat, 1),
             Triple("Video", androidx.compose.material.icons.Icons.Rounded.VideoCall, 2), // "Live" mapped to Video for now
             Triple("Call", androidx.compose.material.icons.Icons.Rounded.Call, 3),
-            Triple("Profile", androidx.compose.material.icons.Icons.Default.Person, 4)
+            Triple("Wallet", androidx.compose.material.icons.Icons.Rounded.AccountBalanceWallet, 4),
+            Triple("Profile", androidx.compose.material.icons.Icons.Default.Person, 5)
         )
 
         items.forEach { (label, icon, index) ->

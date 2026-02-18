@@ -2215,6 +2215,9 @@
     <div class="nav-item" id="nav-chat" onclick="navSwitch('chat')">
       <i class="fas fa-comment-dots"></i><span>Chat</span>
     </div>
+    <div class="nav-item" id="nav-wallet" onclick="navSwitch('wallet')">
+      <i class="fas fa-wallet"></i><span>Wallet</span>
+    </div>
     <div class="nav-item" id="nav-profile" onclick="navSwitch('profile')">
       <i class="fas fa-user-circle"></i><span>Profile</span>
     </div>
@@ -4178,6 +4181,10 @@
     }
 
     function navSwitch(tab) {
+      if (tab === 'wallet') {
+        initiateRecharge();
+        return;
+      }
       if ((tab === 'chat' || tab === 'profile') && state.me && state.me.role === 'guest') {
         showLogin();
         return;
