@@ -7231,7 +7231,7 @@
 
         if (result.ok && result.token) {
           // Redirect to payment.html with secure token
-          window.location.href = `/ payment.html ? token = ${result.token} `;
+          window.location.href = `/payment.html?token=${result.token}`;
         } else {
           alert(result.error || 'Failed to initiate payment');
           isPaymentInProgress = false; // Reset flag on error
