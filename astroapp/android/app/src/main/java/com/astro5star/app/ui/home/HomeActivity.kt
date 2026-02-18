@@ -166,6 +166,9 @@ class HomeActivity : AppCompatActivity() {
                             "Profile" -> {
                                 startActivity(Intent(this, com.astro5star.app.ui.profile.UserProfileActivity::class.java))
                             }
+                            "Wallet" -> {
+                                startActivity(Intent(this, com.astro5star.app.ui.wallet.WalletActivity::class.java))
+                            }
                             else -> {
                                 // Handle Navigation
                                 // Toast.makeText(context, "$item Clicked", Toast.LENGTH_SHORT).show()
@@ -174,6 +177,9 @@ class HomeActivity : AppCompatActivity() {
                     },
                     onServiceClick = { serviceName ->
                         handleServiceClick(serviceName)
+                    },
+                    onWalletClick = {
+                        startActivity(Intent(this, com.astro5star.app.ui.wallet.WalletActivity::class.java))
                     },
                     referralCode = referralCode,
                     isNewUser = isNewUser,

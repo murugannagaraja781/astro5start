@@ -270,6 +270,7 @@ fun HomeScreen(
     onLogoutClick: () -> Unit,
     onDrawerItemClick: (String) -> Unit = {},
     onServiceClick: (String) -> Unit = {},
+    onWalletClick: () -> Unit,
     isGuest: Boolean = false,
     referralCode: String? = null,
     isNewUser: Boolean = false,
@@ -524,7 +525,7 @@ fun HomeScreen(
                 HomeTopBar(
                     balance = walletBalance,
                     superBalance = superWalletBalance,
-                    onBannerClick = { onBannerClick(Banner(id = "", imageUrl = "")) },
+                    onWalletClick = onWalletClick,
                     onMenuClick = { scope.launch { drawerState.open() } },
                     isGuest = isGuest,
                     isTamil = isTamil,
@@ -797,7 +798,7 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthR
         Spacer(modifier = Modifier.height(8.dp))
 
         // Drawer Items
-        val items = listOf("Home", "Profile", "Terms & Conditions", "Privacy Policy", "Settings", "Logout")
+        val items = listOf("Home", "Profile", "Wallet", "Terms & Conditions", "Privacy Policy", "Settings", "Logout")
         items.forEach { item ->
             NavigationDrawerItem(
                 label = {
@@ -834,7 +835,7 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthR
 fun HomeTopBar(
     balance: Double,
     superBalance: Double = 0.0,
-    onBannerClick: () -> Unit,
+    onWalletClick: () -> Unit,
     onMenuClick: () -> Unit,
     isGuest: Boolean = false,
     isTamil: Boolean,
@@ -893,7 +894,7 @@ fun HomeTopBar(
 
 
                 Row(
-                    modifier = Modifier.clickable { onBannerClick() },
+                    modifier = Modifier.clickable { onWalletClick() },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (superBalance > 0.0) {
@@ -924,7 +925,7 @@ fun HomeTopBar(
                     text = "Login",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = Color.White,
-                    modifier = Modifier.clickable { onBannerClick() }.padding(horizontal = 12.dp)
+                    modifier = Modifier.clickable { onWalletClick() }.padding(horizontal = 12.dp)
                 )
             }
         }

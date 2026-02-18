@@ -68,6 +68,7 @@ class GuestDashboardActivity : AppCompatActivity() {
                          else redirectToLogin() // Guest redirects to login for everything ideally
                     },
                     onServiceClick = { handleServiceClick(it) },
+                    onWalletClick = { redirectToLogin() },
                     isGuest = true
                 )
             }
