@@ -381,16 +381,17 @@ fun WalletScreen(
 
                                     if (superBalance > 0.0) {
                                         Surface(
-                                            color = Color.Black.copy(alpha = 0.1f),
+                                            color = Color(0xFFFF4081).copy(alpha = 0.1f),
                                             shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier.padding(top = 4.dp)
+                                            border = BorderStroke(1.dp, Color(0xFFFF4081)),
+                                            modifier = Modifier.padding(top = 8.dp)
                                         ) {
                                             Text(
                                                 text = "Bonus: ₹ ${superBalance.toInt()}",
-                                                color = Color.Black.copy(alpha = 0.7f),
-                                                fontSize = 12.sp,
+                                                color = Color(0xFFFF4081),
+                                                fontSize = 14.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                             )
                                         }
                                     }

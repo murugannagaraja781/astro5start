@@ -1873,7 +1873,10 @@
           </div>
           <span id="walletContainer" onclick="refreshWallet()"
             style="cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Tap to refresh">
-            <i class="fas fa-wallet"></i> ₹<span id="clientWallet">0</span>
+            <i class="fas fa-wallet"></i>
+            <span id="swHeaderBadge"
+              style="display:none; font-size:0.65rem; background:#FFF1F2; color:#E11D48; border:1px solid #FDA4AF; padding:1px 4px; border-radius:4px; font-weight:bold; margin-right:4px;">Bonus</span>
+            ₹<span id="clientWallet">0</span>
             <i id="walletSpinner" class="fas fa-sync-alt"
               style="display: none; font-size: 0.8rem; animation: spin 1s linear infinite;"></i>
           </span>
@@ -2268,8 +2271,8 @@
                 style="display:none; font-size:1.2rem; animation: spin 1s linear infinite;"></i>
             </div>
             <div id="superWalletContainer"
-              style="display:none; margin-top: 10px; background: rgba(255,255,255,0.15); padding: 8px 15px; border-radius: 10px; font-size: 0.9rem;">
-              <i class="fas fa-magic"></i> Available Super Wallet: <b>₹<span id="dashSuperWalletBalance">0.00</span></b>
+              style="display:none; margin-top: 10px; background: #FFF1F2; border: 1px solid #FDA4AF; color: #E11D48; padding: 8px 15px; border-radius: 10px; font-size: 0.9rem; font-weight: bold; box-shadow: 0 2px 4px rgba(225, 29, 72, 0.1);">
+              <i class="fas fa-magic"></i> Super Wallet: ₹<span id="dashSuperWalletBalance">0.00</span>
             </div>
             <div style="margin-top:15px; font-size: 0.75rem; opacity: 0.8; line-height: 1.4;">
               * Rule: 70% from Main, 30% from Super Wallet. <br> Main Balance required to start.
