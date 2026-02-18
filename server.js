@@ -447,6 +447,7 @@ const UserSchema = new mongoose.Schema({
   skills: [String],
   price: { type: Number, default: 20 },
   walletBalance: { type: Number, default: 108 },
+  superWalletBalance: { type: Number, default: 0 }, // New for promotions
   totalEarnings: { type: Number, default: 0 },
   experience: { type: Number, default: 0 },
   isVerified: { type: Boolean, default: false },
@@ -575,7 +576,9 @@ const PaymentSchema = new mongoose.Schema({
   status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },
   createdAt: { type: Date, default: Date.now },
   providerRefId: String,
-  isApp: { type: Boolean, default: false }
+  isApp: { type: Boolean, default: false },
+  isSuperWallet: { type: Boolean, default: false }, // Promotion trigger
+  offerPercentage: { type: Number, default: 0 }    // Bonus calculation
 });
 const Payment = mongoose.model('Payment', PaymentSchema);
 
@@ -608,6 +611,8 @@ const BannerSchema = new mongoose.Schema({
   ctaText: { type: String, default: 'Learn More' },
   order: { type: Number, default: 0 },
   isActive: { type: Boolean, default: true },
+  offerPercentage: { type: Number, default: 0 }, // e.g. 50 for +50%
+  expiryDate: { type: Date },                     // Optional expiry
   createdAt: { type: Date, default: Date.now }
 });
 const Banner = mongoose.model('Banner', BannerSchema);
@@ -773,6 +778,7 @@ app.get('/api/user/:userId', async (req, res) => {
       phone: user.phone,
       role: user.role,
       walletBalance: user.walletBalance,
+      superWalletBalance: user.superWalletBalance || 0,
       isOnline: user.isOnline,
       isAvailable: user.isAvailable,
       isChatOnline: user.isChatOnline || false,
@@ -958,7 +964,13 @@ app.get('/api/academy/videos', async (req, res) => {
 // Get Active Banners (Public)
 app.get('/api/home/banners', async (req, res) => {
   try {
-    const banners = await Banner.find({ isActive: true }).sort({ order: 1 });
+    const banners = await Banner.find({
+      isActive: true,
+      $or: [
+        { expiryDate: { $gt: new Date() } },
+        { expiryDate: null }
+      ]
+    }).sort({ order: 1 });
     // Fallback if no banners in DB
     if (banners.length === 0) {
       return res.json({
@@ -993,7 +1005,11 @@ app.get('/api/admin/banners', async (req, res) => {
 // Admin: Create Banner
 app.post('/api/admin/banners', async (req, res) => {
   try {
-    const banner = new Banner(req.body);
+    const banner = new Banner({
+      ...req.body,
+      offerPercentage: parseFloat(req.body.offerPercentage || 0),
+      expiryDate: req.body.expiryDate ? new Date(req.body.expiryDate) : null
+    });
     await banner.save();
     res.json({ ok: true, banner });
   } catch (err) {
@@ -1362,6 +1378,7 @@ app.post('/api/verify-otp', async (req, res) => {
       role: user.role,
       phone: user.phone,
       walletBalance: user.walletBalance,
+      superWalletBalance: user.superWalletBalance || 0,
       totalEarnings: user.totalEarnings || 0,
       image: formatImageUrl(user.image, user.name)
     });
@@ -1410,6 +1427,7 @@ app.post('/api/verify-otp', async (req, res) => {
       role: user.role,
       phone: user.phone,
       walletBalance: user.walletBalance,
+      superWalletBalance: user.superWalletBalance || 0,
       totalEarnings: user.totalEarnings || 0,
       image: formatImageUrl(user.image, user.name),
       referralCode: user.referralCode,
@@ -2188,6 +2206,7 @@ io.on('connection', (socket) => {
           role: user.role,
           name: user.name,
           walletBalance: user.walletBalance,
+          superWalletBalance: user.superWalletBalance || 0,
           totalEarnings: user.totalEarnings || 0
         });
         console.log(`User registered: ${user.name} (${user.role})`);
@@ -4047,7 +4066,7 @@ app.get('/api/verify-payment-token', async (req, res) => {
 // 1. Initiate Payment (Supports both token-based and legacy userId-based)
 app.post('/api/payment/create', async (req, res) => {
   try {
-    let { userId, amount, isApp, token } = req.body;
+    let { userId, amount, isApp, token, isSuperWallet, offerPercentage } = req.body;
     let baseAmount = 0, gstAmount = 0;
 
     // Token-based authentication (SECURE - for browser flow)
@@ -4111,7 +4130,9 @@ app.post('/api/payment/create', async (req, res) => {
       gstAmount,
       status: 'pending',
       withGst: true,
-      isApp: !!isApp // Store the source
+      isApp: !!isApp, // Store the source
+      isSuperWallet: !!isSuperWallet,
+      offerPercentage: parseFloat(offerPercentage || 0)
     });
 
     // PhonePe Payload
@@ -4722,15 +4743,30 @@ app.post('/api/phonepe/callback', async (req, res) => {
       const user = await User.findOne({ userId: payment.userId });
       if (user) {
         const creditAmount = payment.withGst ? (payment.baseAmount || payment.amount) : payment.amount;
-        user.walletBalance += creditAmount;
+
+        if (payment.isSuperWallet) {
+          const bonus = creditAmount * (payment.offerPercentage / 100);
+          const totalBonusAmount = creditAmount + bonus;
+          user.superWalletBalance = (user.superWalletBalance || 0) + totalBonusAmount;
+          console.log(`[PhonePe Callback] Super Wallet Credited: ${user.name} +₹${totalBonusAmount} (${payment.offerPercentage}% Offer)`);
+        } else {
+          user.walletBalance += creditAmount;
+          console.log(`[PhonePe Callback] Regular Wallet Credited: ${user.name} +₹${creditAmount}`);
+        }
+
         await user.save();
-        console.log(`[PhonePe Callback] Wallet Credited: ${user.name} +₹${creditAmount} (Total Paid: ₹${payment.amount})`);
 
         // Notify Socket if online
         const sId = userSockets.get(user.userId);
         if (sId) {
-          io.to(sId).emit('wallet-update', { balance: user.walletBalance });
-          io.to(sId).emit('app-notification', { text: `✅ Recharge Successful! +₹${creditAmount}` });
+          io.to(sId).emit('wallet-update', {
+            balance: user.walletBalance,
+            superBalance: user.superWalletBalance
+          });
+          const msg = payment.isSuperWallet ?
+            `✅ Super Recharge Successful! +₹${creditAmount + (creditAmount * payment.offerPercentage / 100)}` :
+            `✅ Recharge Successful! +₹${creditAmount}`;
+          io.to(sId).emit('app-notification', { text: msg });
         }
       }
     } else if (code !== 'PAYMENT_SUCCESS' && payment.status === 'pending') {

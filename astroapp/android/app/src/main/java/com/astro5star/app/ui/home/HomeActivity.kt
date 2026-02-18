@@ -49,6 +49,7 @@ class HomeActivity : AppCompatActivity() {
 
     // State Holders
     private val _walletBalance = MutableStateFlow(0.0)
+    private val _superWalletBalance = MutableStateFlow(0.0)
     private val _horoscope = MutableStateFlow("Loading Horoscope...")
     private val _astrologers = MutableStateFlow<List<Astrologer>>(emptyList())
     private val _isLoading = MutableStateFlow(true)
@@ -77,6 +78,7 @@ class HomeActivity : AppCompatActivity() {
             // Dynamic Cosmic Theme
             com.astro5star.app.ui.theme.CosmicAppTheme {
                 val balance by _walletBalance.collectAsState()
+                val superBalance by _superWalletBalance.collectAsState()
                 val horoscope by _horoscope.collectAsState()
                 val astrologers by _astrologers.collectAsState()
                 val isLoading by _isLoading.collectAsState()
@@ -92,19 +94,28 @@ class HomeActivity : AppCompatActivity() {
 
                 HomeScreen(
                     walletBalance = balance,
+                    superWalletBalance = superBalance,
                     horoscope = horoscope,
                     astrologers = astrologers,
                     isLoading = isLoading,
                     banners = banners,
                     onWalletClick = { banner ->
-                        val intent = Intent(this, com.astro5star.app.ui.wallet.WalletActivity::class.java).apply {
-                            if (banner != null) {
+                        if (banner != null && banner.offerPercentage > 0.0) {
+                            val intent = Intent(this, com.astro5star.app.ui.wallet.SuperWalletActivity::class.java).apply {
                                 putExtra("bannerTitle", banner.title)
-                                putExtra("bannerSubtitle", banner.subtitle)
-                                putExtra("ctaText", banner.ctaText)
+                                putExtra("offerPercentage", banner.offerPercentage)
                             }
+                            startActivity(intent)
+                        } else {
+                            val intent = Intent(this, com.astro5star.app.ui.wallet.WalletActivity::class.java).apply {
+                                if (banner != null) {
+                                    putExtra("bannerTitle", banner.title)
+                                    putExtra("bannerSubtitle", banner.subtitle)
+                                    putExtra("ctaText", banner.ctaText)
+                                }
+                            }
+                            startActivity(intent)
                         }
-                        startActivity(intent)
                     },
                     onChatClick = { astro ->
                         val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
@@ -193,8 +204,8 @@ class HomeActivity : AppCompatActivity() {
 
     private fun loadWalletBalance() {
         val session = tokenManager.getUserSession()
-        val balance = session?.walletBalance ?: 0.0
-        _walletBalance.value = balance
+        _walletBalance.value = session?.walletBalance ?: 0.0
+        _superWalletBalance.value = session?.superWalletBalance ?: 0.0
         _referralCode.value = session?.referralCode
         _isNewUser.value = session?.isNewUser ?: false
     }
@@ -207,9 +218,9 @@ class HomeActivity : AppCompatActivity() {
                 val response = com.astro5star.app.data.api.ApiClient.api.getUserProfile(userId)
                 if (response.isSuccessful && response.body() != null) {
                     val user = response.body()!!
-                    val balance = user.walletBalance ?: 0.0
                     tokenManager.saveUserSession(user)
-                    _walletBalance.value = balance
+                    _walletBalance.value = user.walletBalance ?: 0.0
+                    _superWalletBalance.value = user.superWalletBalance ?: 0.0
                     _referralCode.value = user.referralCode
                     _isNewUser.value = user.isNewUser ?: false
                 }
@@ -398,8 +409,14 @@ class HomeActivity : AppCompatActivity() {
         socket?.on("wallet-update") { args ->
             val data = args[0] as JSONObject
             val balance = data.optDouble("balance", 0.0)
-            _walletBalance.value = balance
+            val superBalance = data.optDouble("superBalance", 0.0)
+
+            lifecycleScope.launch(Dispatchers.Main) {
+                _walletBalance.value = balance
+                _superWalletBalance.value = superBalance
+            }
             tokenManager.updateWalletBalance(balance)
+            tokenManager.updateSuperWalletBalance(superBalance)
         }
 
         socket?.emit("get-astrologers")

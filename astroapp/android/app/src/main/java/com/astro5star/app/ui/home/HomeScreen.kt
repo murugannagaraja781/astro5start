@@ -254,6 +254,7 @@ fun PremiumCard(
 @Composable
 fun HomeScreen(
     walletBalance: Double,
+    superWalletBalance: Double = 0.0,
     horoscope: String,
     astrologers: List<Astrologer>,
     isLoading: Boolean,
@@ -518,6 +519,7 @@ fun HomeScreen(
             topBar = {
                 HomeTopBar(
                     balance = walletBalance,
+                    superBalance = superWalletBalance,
                     onWalletClick = { onWalletClick(null) },
                     onMenuClick = { scope.launch { drawerState.open() } },
                     isGuest = isGuest,
@@ -815,6 +817,7 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthR
 @Composable
 fun HomeTopBar(
     balance: Double,
+    superBalance: Double = 0.0,
     onWalletClick: () -> Unit,
     onMenuClick: () -> Unit,
     isGuest: Boolean = false,
@@ -877,6 +880,22 @@ fun HomeTopBar(
                     modifier = Modifier.clickable { onWalletClick() },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    if (superBalance > 0.0) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = Color(0xFFFF4081).copy(alpha = 0.1f),
+                            border = BorderStroke(1.dp, Color(0xFFFF4081)),
+                            modifier = Modifier.padding(end = 4.dp)
+                        ) {
+                            Text(
+                                text = "Bonus: ₹${"%.1f".format(superBalance)}",
+                                color = Color(0xFFFF4081),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 9.sp,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
                     Text(
                         text = "₹${balance.toInt()}",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),

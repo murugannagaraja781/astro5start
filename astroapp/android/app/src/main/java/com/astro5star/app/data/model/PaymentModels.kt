@@ -4,7 +4,9 @@ data class PaymentInitiateRequest(
     val userId: String,
     val amount: Int,
     val isApp: Boolean = true,
-    val promoCode: String? = null
+    val promoCode: String? = null,
+    val isSuperWallet: Boolean = false,
+    val offerPercentage: Double = 0.0
 )
 
 data class PaymentInitiateResponse(

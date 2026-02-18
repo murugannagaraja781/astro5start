@@ -66,6 +66,12 @@ class TokenManager(context: Context) {
         saveUserSession(updated)
     }
 
+    fun updateSuperWalletBalance(balance: Double) {
+        val session = getUserSession() ?: return
+        val updated = session.copy(superWalletBalance = balance)
+        saveUserSession(updated)
+    }
+
     // Daily Progress Management
     fun getDailyProgress(): Int {
         return sharedPreferences.getInt("daily_progress", 0)

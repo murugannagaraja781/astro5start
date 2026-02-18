@@ -4319,11 +4319,21 @@
 
       socket.on('wallet-update', (data) => {
         const bal = Number(data.balance).toFixed(2);
+        const superBal = Number(data.superBalance || 0);
+
         document.getElementById('clientWallet').innerText = bal;
         if (document.getElementById('dashWalletBalance')) {
           document.getElementById('dashWalletBalance').innerText = bal;
         }
+
+        const swBadge = document.getElementById('swHeaderBadge');
+        if (swBadge) {
+          swBadge.style.display = superBal > 0 ? 'inline-block' : 'none';
+          if (superBal > 0) swBadge.title = "Bonus Balance: ₹" + superBal.toFixed(2);
+        }
+
         state.me.walletBalance = data.balance;
+        state.me.superWalletBalance = superBal;
         saveSession(state.me);
 
         // Hide wallet refresh spinner
@@ -4462,7 +4472,11 @@
     }
 
     function handleBannerClick(banner) {
-      // Logic to handle clicks (e.g. open specific page, or just scroll to astro list)
+      if (banner && banner.offerPercentage > 0) {
+        openSuperWallet(banner);
+        return;
+      }
+
       const title = (banner.title || '').toLowerCase();
       const st = (banner.subtitle || '').toLowerCase();
 
@@ -4470,6 +4484,73 @@
         openPoruthamModal();
       } else {
         document.getElementById('astroList').scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    function openSuperWallet(banner) {
+      const modal = document.getElementById('superWalletModal');
+      if (!modal) return;
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      document.getElementById('swOfferTitle').innerText = banner.title || "Special Offer";
+      document.getElementById('swOfferPercent').innerText = banner.offerPercentage + "% Bonus Value";
+      document.getElementById('swOfferId').value = banner._id || banner.id;
+      document.getElementById('swOfferPercentVal').value = banner.offerPercentage;
+
+      // Default calc
+      updateSuperWalletCalc(100);
+    }
+
+    function closeSuperWallet() {
+      const modal = document.getElementById('superWalletModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function updateSuperWalletCalc(amount) {
+      const percent = parseFloat(document.getElementById('swOfferPercentVal').value || 0);
+      const bonus = amount * (percent / 100);
+      const total = amount + bonus;
+
+      document.getElementById('swBaseAmount').innerText = "₹" + amount;
+      document.getElementById('swBonusAmount').innerText = "+₹" + bonus;
+      document.getElementById('swTotalAmount').innerText = "₹" + total;
+      document.getElementById('swPayButton').innerText = "PAY ₹" + amount + " & GET ₹" + total;
+    }
+
+    async function initiateSuperPayment() {
+      const amount = parseFloat(document.querySelector('input[name="sw_amount"]:checked')?.value || 100);
+      const offerId = document.getElementById('swOfferId').value;
+      const offerPercent = document.getElementById('swOfferPercentVal').value;
+
+      if (!state.me || state.me.role === 'guest') {
+        showLogin();
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/payment/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: state.me.userId,
+            amount: amount,
+            isSuperWallet: true,
+            offerPercentage: offerPercent,
+            isApp: false
+          })
+        }).then(r => r.json());
+
+        if (res.ok) {
+          window.location.href = res.paymentUrl;
+        } else {
+          alert('Payment Init Failed: ' + (res.error || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Connectivity Error');
       }
     }
 
@@ -9261,6 +9342,161 @@
       top: -6px;
     }
   </style>
+  <!-- Super Wallet Promotion Modal (Pink Theme) -->
+  <style>
+    #superWalletModal {
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 10000;
+      backdrop-filter: blur(8px);
+    }
+
+    .sw-container {
+      background: #FFF0F6;
+      /* Light Pink Background */
+      width: 90%;
+      max-width: 450px;
+      border-radius: 24px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 20px 40px rgba(219, 39, 119, 0.2);
+      border: 2px solid #FBCFE8;
+      margin: auto;
+    }
+
+    .sw-header {
+      background: linear-gradient(135deg, #DB2777 0%, #F472B6 100%);
+      padding: 30px 20px;
+      text-align: center;
+      color: white;
+    }
+
+    .sw-body {
+      padding: 24px;
+    }
+
+    .sw-offer-pill {
+      background: #FCE7F3;
+      color: #DB2777;
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+
+    .sw-recharge-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .sw-option {
+      border: 2px solid #F9A8D4;
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .sw-option input {
+      display: none;
+    }
+
+    .sw-option:has(input:checked) {
+      background: #DB2777;
+      color: white;
+      border-color: #DB2777;
+      transform: scale(1.02);
+    }
+
+    .sw-summary {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 20px;
+      border: 1px dashed #F472B6;
+    }
+
+    .sw-pay-btn {
+      background: #DB2777;
+      color: white;
+      width: 100%;
+      padding: 18px;
+      border: none;
+      border-radius: 16px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-top: 24px;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(219, 39, 119, 0.3);
+    }
+  </style>
+
+  <div id="superWalletModal" class="modal-overlay hidden">
+    <div class="sw-container">
+      <div style="position:absolute; right:15px; top:15px; color:white; font-size:1.5rem; cursor:pointer;"
+        onclick="closeSuperWallet()">
+        <i class="fas fa-times-circle"></i>
+      </div>
+
+      <div class="sw-header">
+        <div class="sw-offer-pill" id="swOfferPercent">50% Bonus Value</div>
+        <h2 id="swOfferTitle" style="margin:0; font-size:1.8rem;">Super Wallet recharge</h2>
+        <p style="opacity:0.9; margin-top:8px; font-size:0.9rem;">Exclusive Promotional Offer</p>
+      </div>
+
+      <div class="sw-body">
+        <input type="hidden" id="swOfferId">
+        <input type="hidden" id="swOfferPercentVal">
+
+        <p style="color:#666; font-size:0.85rem; text-align:center;">Select amount to recharge your Super Wallet:</p>
+
+        <div class="sw-recharge-grid">
+          <label class="sw-option">
+            <input type="radio" name="sw_amount" value="100" checked onchange="updateSuperWalletCalc(100)">
+            <div style="font-weight:700;">₹100</div>
+          </label>
+          <label class="sw-option">
+            <input type="radio" name="sw_amount" value="500" onchange="updateSuperWalletCalc(500)">
+            <div style="font-weight:700;">₹500</div>
+          </label>
+          <label class="sw-option">
+            <input type="radio" name="sw_amount" value="1000" onchange="updateSuperWalletCalc(1000)">
+            <div style="font-weight:700;">₹1000</div>
+          </label>
+          <label class="sw-option">
+            <input type="radio" name="sw_amount" value="2000" onchange="updateSuperWalletCalc(2000)">
+            <div style="font-weight:700;">₹2000</div>
+          </label>
+        </div>
+
+        <div class="sw-summary">
+          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <span>Base Recharge:</span>
+            <span id="swBaseAmount" style="font-weight:600;">₹100</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:8px; color:#DB2777;">
+            <span>Promotion Bonus:</span>
+            <span id="swBonusAmount" style="font-weight:700;">+₹50</span>
+          </div>
+          <hr style="border:0; border-top:1px solid #eee; margin:12px 0;">
+          <div style="display:flex; justify-content:space-between; font-size:1.2rem; font-weight:800; color:#111;">
+            <span>Total Credit:</span>
+            <span id="swTotalAmount">₹150</span>
+          </div>
+        </div>
+
+        <button class="sw-pay-btn" id="swPayButton" onclick="initiateSuperPayment()">PAY ₹100 & GET ₹150</button>
+        <p style="text-align:center; font-size:0.7rem; color:#999; margin-top:15px;">
+          <i class="fas fa-shield-alt"></i> Secure SSL Encrypted Payment
+        </p>
+      </div>
+    </div>
+  </div>
 </body>
 
 </html>

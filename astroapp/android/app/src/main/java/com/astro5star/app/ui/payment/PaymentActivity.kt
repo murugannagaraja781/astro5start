@@ -223,16 +223,16 @@ class PaymentActivity : AppCompatActivity() {
         }
 
         if (USE_NATIVE_SDK) {
-            startPayment(amount, intent.getStringExtra("promoCode"))
+            startPayment(amount, intent.getStringExtra("promoCode"), intent.getBooleanExtra("isSuperWallet", false), intent.getDoubleExtra("offerPercentage", 0.0))
         } else {
-            startWebPayment(amount, intent.getStringExtra("promoCode"))
+            startWebPayment(amount, intent.getStringExtra("promoCode"), intent.getBooleanExtra("isSuperWallet", false), intent.getDoubleExtra("offerPercentage", 0.0))
         }
     }
 
     private var pendingTransactionId: String? = null
 
     // --- WEB PAYMENT LOGIC (TOKEN BASED - SAME AS WEB APP) ---
-    private fun startWebPayment(amount: Double, promoCode: String?) {
+    private fun startWebPayment(amount: Double, promoCode: String?, isSuperWallet: Boolean, offerPercentage: Double) {
         val user = tokenManager.getUserSession()
         val userId = user?.userId ?: run {
             showError("User not logged in")
@@ -244,8 +244,14 @@ class PaymentActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 // 1. Get Payment Token (Secure Session)
-                Log.d(TAG, "Requesting token for ₹$amount with promo: $promoCode")
-                val request = PaymentInitiateRequest(userId, amount.toInt(), promoCode = promoCode)
+                Log.d(TAG, "Requesting token for ₹$amount with promo: $promoCode, superWallet: $isSuperWallet")
+                val request = PaymentInitiateRequest(
+                    userId = userId,
+                    amount = amount.toInt(),
+                    promoCode = promoCode,
+                    isSuperWallet = isSuperWallet,
+                    offerPercentage = offerPercentage
+                )
                 val response = ApiClient.api.getPaymentToken(request)
 
                 if (response.isSuccessful && response.body()?.get("ok")?.asBoolean == true) {
@@ -299,7 +305,7 @@ class PaymentActivity : AppCompatActivity() {
         }
     }
 
-    private fun startPayment(amountRupees: Double, promoCode: String?) {
+    private fun startPayment(amountRupees: Double, promoCode: String?, isSuperWallet: Boolean, offerPercentage: Double) {
         val user = tokenManager.getUserSession()
         val userId = user?.userId ?: run {
             showError("User not logged in")
@@ -311,8 +317,14 @@ class PaymentActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 // 1. Get Signed Payload from Server
-                Log.d(TAG, "Requesting signature for ₹$amountRupees with promo: $promoCode")
-                val request = PaymentInitiateRequest(userId, amountRupees.toInt(), promoCode = promoCode)
+                Log.d(TAG, "Requesting signature for ₹$amountRupees with promo: $promoCode, superWallet: $isSuperWallet")
+                val request = PaymentInitiateRequest(
+                    userId = userId,
+                    amount = amountRupees.toInt(),
+                    promoCode = promoCode,
+                    isSuperWallet = isSuperWallet,
+                    offerPercentage = offerPercentage
+                )
                 val response = ApiClient.api.signPhonePe(request)
 
                 if (response.isSuccessful && response.body()?.ok == true) {

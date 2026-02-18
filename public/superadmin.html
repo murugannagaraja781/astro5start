@@ -170,6 +170,11 @@
                         style="margin-bottom:10px;">
                     <input type="number" id="bannerOrder" class="app-input" placeholder="Order"
                         style="margin-bottom:10px;">
+                    <div style="display:flex; gap:10px; margin-bottom:10px;">
+                        <input type="number" id="bannerOffer" class="app-input" placeholder="Offer % (e.g. 50)"
+                            style="flex:1;">
+                        <input type="date" id="bannerExpiry" class="app-input" style="flex:1;">
+                    </div>
                     <button class="cosmic-btn" onclick="addBanner()">Add Banner</button>
                 </div>
                 <div id="adminBannerList">
@@ -701,7 +706,11 @@
             document.getElementById('adminBannerList').innerHTML = banners.map(b => `
         <div class="admin-card" style="display:flex; gap:15px; align-items:center;">
           <img src="${b.imageUrl}" style="width:60px; height:40px; border-radius:4px; object-fit:cover;">
-          <div style="flex:1;"><b>${b.title}</b></div>
+          <div style="flex:1;">
+            <b>${b.title}</b>
+            ${b.offerPercentage ? `<span style="background:#FCE7F3; color:#DB2777; padding:2px 6px; border-radius:4px; font-size:0.7rem; margin-left:10px;">${b.offerPercentage}% Offer</span>` : ''}
+            ${b.expiryDate ? `<div style="font-size:0.7rem; color:#666;">Expires: ${new Date(b.expiryDate).toLocaleDateString()}</div>` : ''}
+          </div>
           <button class="btn-admin btn-delete" style="flex:none; width:auto;" onclick="deleteBanner('${b._id}')"><i class="fas fa-trash"></i></button>
         </div>
       `).join('');
@@ -713,6 +722,8 @@
                 imageUrl: document.getElementById('bannerImageUrl').value,
                 ctaText: document.getElementById('bannerCta').value,
                 order: parseInt(document.getElementById('bannerOrder').value || 0),
+                offerPercentage: parseFloat(document.getElementById('bannerOffer').value || 0),
+                expiryDate: document.getElementById('bannerExpiry').value,
                 isActive: true
             };
             await fetch('/api/admin/banners', {
