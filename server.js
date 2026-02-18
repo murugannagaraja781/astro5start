@@ -393,16 +393,26 @@ mongoose.connection.on('disconnected', () => {
 });
 
 // Graceful shutdown
-process.on('SIGINT', async () => {
+const gracefulShutdown = async (signal) => {
+  console.log(`📡 Received ${signal}. Shutting down gracefully...`);
   try {
-    await mongoose.connection.close();
-    console.log('MongoDB connection closed through app termination');
+    if (mongoose.connection.readyState !== 0) { // 0 = disconnected
+      await mongoose.connection.close();
+      console.log('✅ MongoDB connection closed through app termination');
+    }
     process.exit(0);
   } catch (err) {
-    console.error('Error closing MongoDB connection:', err);
+    if (err.name === 'MongoClientClosedError') {
+      console.log('ℹ️ MongoDB connection was already closed.');
+      process.exit(0);
+    }
+    console.error('❌ Error closing MongoDB connection:', err);
     process.exit(1);
   }
-});
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // Start connection
 connectDB();
