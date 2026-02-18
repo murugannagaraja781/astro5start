@@ -3162,6 +3162,100 @@
     </div>
   </div>
 
+
+  <!-- Screen: Horoscope Match Modal -->
+  <div id="screen-porutham" class="modal-overlay hidden" style="align-items: center;">
+    <div class="chart-modal-content" style="max-width: 800px; height: 90vh;">
+      <div
+        style="padding:20px; background:white; font-weight:700; font-size:1.2rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e5e5; color:#1F2937;">
+        <span>💞 Horoscope Matching (Porutham)</span>
+        <button onclick="closePoruthamModal()"
+          style="background:none; border:none; font-size:1.4rem; color:#6B7280; cursor:pointer;"><i
+            class="fas fa-times"></i></button>
+      </div>
+
+      <div class="chart-body">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <!-- Boy Details -->
+          <div class="input-card">
+            <div style="font-weight:bold; color:#3b82f6; margin-bottom:15px; font-size:1.1rem;">🤵 Boy's
+              Details
+            </div>
+
+            <label style="display:block; margin-bottom:5px; font-size:0.9rem; color:#666;">Date of
+              Birth</label>
+            <input type="date" id="boyDate" class="cosmic-input"
+              style="background:#f9f9f9; color:black; border:1px solid #ddd;">
+
+            <label style="display:block; margin-bottom:5px; margin-top:10px; font-size:0.9rem; color:#666;">Time
+              of Birth</label>
+            <input type="time" id="boyTime" class="cosmic-input"
+              style="background:#f9f9f9; color:black; border:1px solid #ddd;">
+
+            <label style="display:block; margin-bottom:5px; margin-top:10px; font-size:0.9rem; color:#666;">City</label>
+            <div style="position:relative;">
+              <input type="text" id="boyCity" class="app-input" placeholder="Search City..."
+                oninput="handleMatchCitySearch(this, 'boy')"
+                style="width:100%; border:1px solid #D1D5DB; border-radius:10px; padding:12px;">
+              <div id="boyCityResults" class="city-results-dropdown"
+                style="display:none; position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #ddd; z-index:999; max-height:200px; overflow-y:auto; border-radius:10px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin-top:5px;">
+              </div>
+              <input type="hidden" id="boyLat">
+              <input type="hidden" id="boyLon">
+              <input type="hidden" id="boyTz" value="5.5">
+            </div>
+          </div>
+
+          <!-- Girl Details -->
+          <div class="input-card">
+            <div style="font-weight:bold; color:#ec4899; margin-bottom:15px; font-size:1.1rem;">👰 Girl's
+              Details</div>
+
+            <label style="display:block; margin-bottom:5px; font-size:0.9rem; color:#666;">Date of
+              Birth</label>
+            <input type="date" id="girlDate" class="app-input"
+              style="width:100%; border:1px solid #D1D5DB; border-radius:10px; padding:12px;">
+
+            <label style="display:block; margin-bottom:5px; margin-top:10px; font-size:0.9rem; color:#666;">Time
+              of Birth</label>
+            <input type="time" id="girlTime" class="app-input"
+              style="width:100%; border:1px solid #D1D5DB; border-radius:10px; padding:12px;">
+
+            <label style="display:block; margin-bottom:5px; margin-top:10px; font-size:0.9rem; color:#666;">City</label>
+            <div style="position:relative;">
+              <input type="text" id="girlCity" class="app-input" placeholder="Search City..."
+                oninput="handleMatchCitySearch(this, 'girl')"
+                style="width:100%; border:1px solid #D1D5DB; border-radius:10px; padding:12px;">
+              <div id="girlCityResults" class="city-results-dropdown"
+                style="display:none; position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #ddd; z-index:999; max-height:200px; overflow-y:auto; border-radius:10px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin-top:5px;">
+              </div>
+              <input type="hidden" id="girlLat">
+              <input type="hidden" id="girlLon">
+              <input type="hidden" id="girlTz" value="5.5">
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <button onclick="calculatePorutham()" class="cosmic-btn" style="width:100%; padding:15px; font-size:1.1rem;">
+            <i class="fas fa-heart"></i> Calculate Compatibility
+          </button>
+        </div>
+
+        <div id="poruthamLoading" style="display:none; text-align:center; padding:40px; color: var(--primary);">
+          <div class="spinner-astro"></div>
+          <div style="margin-top:15px; font-weight:500;">Calculating Porutham...</div>
+        </div>
+
+        <!-- Results -->
+        <div id="poruthamResults" style="display:none; margin-top:30px;">
+          <!-- Populated by JS -->
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- Screen: Session -->
   <div id="screen-session" class="hidden">
     <div class="video-area">
@@ -3323,101 +3417,6 @@
               </div>
             </div>
           </div>
-          <div id="screen-porutham" class="modal-overlay hidden" style="align-items: center;">
-            <div class="chart-modal-content" style="max-width: 800px; height: 90vh;">
-              <div
-                style="padding:20px; background:white; font-weight:700; font-size:1.2rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e5e5; color:#1F2937;">
-                <span>💞 Horoscope Matching (Porutham)</span>
-                <button onclick="document.getElementById('screen-porutham').classList.add('hidden')"
-                  style="background:none; border:none; font-size:1.4rem; color:#6B7280; cursor:pointer;"><i
-                    class="fas fa-times"></i></button>
-              </div>
-
-              <div class="chart-body">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                  <!-- Boy Details -->
-                  <div class="input-card">
-                    <div style="font-weight:bold; color:#3b82f6; margin-bottom:15px; font-size:1.1rem;">🤵 Boy's
-                      Details
-                    </div>
-
-                    <label style="display:block; margin-bottom:5px; font-size:0.9rem; color:#666;">Date of
-                      Birth</label>
-                    <input type="date" id="boyDate" class="cosmic-input"
-                      style="background:#f9f9f9; color:black; border:1px solid #ddd;">
-
-                    <label style="display:block; margin-bottom:5px; margin-top:10px; font-size:0.9rem; color:#666;">Time
-                      of Birth</label>
-                    <input type="time" id="boyTime" class="cosmic-input"
-                      style="background:#f9f9f9; color:black; border:1px solid #ddd;">
-
-                    <label
-                      style="display:block; margin-bottom:5px; margin-top:10px; font-size:0.9rem; color:#666;">City</label>
-                    <div style="position:relative;">
-                      <input type="text" id="boyCity" class="app-input" placeholder="Search City..."
-                        oninput="handleMatchCitySearch(this, 'boy')"
-                        style="width:100%; border:1px solid #D1D5DB; border-radius:10px; padding:12px;">
-                      <div id="boyCityResults" class="city-results-dropdown"
-                        style="display:none; position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #ddd; z-index:999; max-height:200px; overflow-y:auto; border-radius:10px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin-top:5px;">
-                      </div>
-                      <input type="hidden" id="boyLat">
-                      <input type="hidden" id="boyLon">
-                      <input type="hidden" id="boyTz" value="5.5">
-                    </div>
-                  </div>
-
-                  <!-- Girl Details -->
-                  <div class="input-card">
-                    <div style="font-weight:bold; color:#ec4899; margin-bottom:15px; font-size:1.1rem;">👰 Girl's
-                      Details</div>
-
-                    <label style="display:block; margin-bottom:5px; font-size:0.9rem; color:#666;">Date of
-                      Birth</label>
-                    <input type="date" id="girlDate" class="app-input"
-                      style="width:100%; border:1px solid #D1D5DB; border-radius:10px; padding:12px;">
-
-                    <label style="display:block; margin-bottom:5px; margin-top:10px; font-size:0.9rem; color:#666;">Time
-                      of Birth</label>
-                    <input type="time" id="girlTime" class="app-input"
-                      style="width:100%; border:1px solid #D1D5DB; border-radius:10px; padding:12px;">
-
-                    <label
-                      style="display:block; margin-bottom:5px; margin-top:10px; font-size:0.9rem; color:#666;">City</label>
-                    <div style="position:relative;">
-                      <input type="text" id="girlCity" class="app-input" placeholder="Search City..."
-                        oninput="handleMatchCitySearch(this, 'girl')"
-                        style="width:100%; border:1px solid #D1D5DB; border-radius:10px; padding:12px;">
-                      <div id="girlCityResults" class="city-results-dropdown"
-                        style="display:none; position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #ddd; z-index:999; max-height:200px; overflow-y:auto; border-radius:10px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin-top:5px;">
-                      </div>
-                      <input type="hidden" id="girlLat">
-                      <input type="hidden" id="girlLon">
-                      <input type="hidden" id="girlTz" value="5.5">
-                    </div>
-                  </div>
-                </div>
-
-                <div style="margin-top:20px;">
-                  <button onclick="calculatePorutham()" class="cosmic-btn"
-                    style="width:100%; padding:15px; font-size:1.1rem;">
-                    <i class="fas fa-heart"></i> Calculate Compatibility
-                  </button>
-                </div>
-
-                <div id="poruthamLoading" style="display:none; text-align:center; padding:40px; color: var(--primary);">
-                  <div class="spinner-astro"></div>
-                  <div style="margin-top:15px; font-weight:500;">Calculating Porutham...</div>
-                </div>
-
-                <!-- Results -->
-                <div id="poruthamResults" style="display:none; margin-top:30px;">
-                  <!-- Populated by JS -->
-                </div>
-
-              </div>
-            </div>
-          </div>
-
           <style>
             .chat-input {
               padding: 12px 15px;
@@ -3551,16 +3550,24 @@
     // --- Porutham Logic (Relocated Here) ---
     window.openPoruthamModal = function () {
       try {
-        console.log('openPoruthamModal called (desktop) v3');
+        console.log('openPoruthamModal called (desktop) v4-aggressive');
         const modal = document.getElementById('screen-porutham');
         if (!modal) {
           console.error('Modal screen-porutham not found');
           alert('Modal error: screen-porutham not found');
           return;
         }
-        modal.style.zIndex = "10002"; // Ensure it's on top
+
+        // Move to end of body to ensure it is not trapped in any relative container
+        document.body.appendChild(modal);
+
+        modal.style.setProperty('z-index', '999999', 'important');
         modal.classList.remove('hidden');
         modal.style.setProperty('display', 'flex', 'important');
+        modal.style.setProperty('opacity', '1', 'important');
+        modal.style.setProperty('visibility', 'visible', 'important');
+
+        console.log('Modal visible? classList:', modal.className, 'style:', modal.getAttribute('style'));
 
         const resultsDiv = document.getElementById('poruthamResults');
         if (resultsDiv) {
@@ -3621,6 +3628,17 @@
       } catch (e) {
         console.error('openPoruthamModal error:', e);
         alert('Error opening modal: ' + e.message);
+      }
+    };
+
+    window.closePoruthamModal = function () {
+      const modal = document.getElementById('screen-porutham');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.removeProperty('display');
+        modal.style.removeProperty('opacity');
+        modal.style.removeProperty('visibility');
+        modal.style.removeProperty('z-index');
       }
     };
     window.porutham = window.openPoruthamModal;
