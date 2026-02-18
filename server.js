@@ -187,6 +187,45 @@ function formatImageUrl(imgPath, name) {
   return imgPath;
 }
 
+async function getFormattedAstrologers() {
+  try {
+    const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
+      .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
+      .lean();
+
+    return astros.map(a => ({
+      userId: a.userId,
+      name: a.name,
+      skills: a.skills || [],
+      price: a.price || 15,
+      isOnline: a.isOnline || false,
+      isChatOnline: a.isChatOnline || false,
+      isAudioOnline: a.isAudioOnline || false,
+      isVideoOnline: a.isVideoOnline || false,
+      experience: a.experience || 0,
+      isVerified: a.isVerified || false,
+      isBusy: a.isBusy || false,
+      image: formatImageUrl(a.image, a.name),
+      languages: a.languages || ['Tamil', 'English'],
+      orderCount: a.orderCount || 0,
+      isDocumentVerified: a.isDocumentVerified || false
+    }));
+  } catch (e) {
+    console.error('Error fetching formatted astros:', e);
+    return [];
+  }
+}
+
+async function broadcastAstroUpdate() {
+  try {
+    const formattedAstros = await getFormattedAstrologers();
+    io.emit('astrologer-update', formattedAstros);
+    console.log(`Broadcasting update for ${formattedAstros.length} astrologers.`);
+  } catch (e) {
+    console.error('Broadcast Error:', e);
+  }
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));  // Serve static files
@@ -800,12 +839,6 @@ app.get('/api/user/:userId', async (req, res) => {
 // Astrologer List API (Used by Mobile App)
 app.get('/api/astrology/astrologers', async (req, res) => {
   try {
-    const astrologers = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
-      .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings')
-      .lean();
-
-    // Ensure lists are sorted by Online first (though App also sorts)
-    // and map to ensure compatibility
     const formatted = await getFormattedAstrologers();
     res.json({ ok: true, astrologers: formatted });
   } catch (err) {
@@ -2276,44 +2309,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  async function getFormattedAstrologers() {
-    try {
-      const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
-        .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
-        .lean();
-
-      return astros.map(a => ({
-        userId: a.userId,
-        name: a.name,
-        skills: a.skills || [],
-        price: a.price || 15,
-        isOnline: a.isOnline || false,
-        isChatOnline: a.isChatOnline || false,
-        isAudioOnline: a.isAudioOnline || false,
-        isVideoOnline: a.isVideoOnline || false,
-        experience: a.experience || 0,
-        isVerified: a.isVerified || false,
-        isBusy: a.isBusy || false,
-        image: formatImageUrl(a.image, a.name),
-        languages: a.languages || ['Tamil', 'English'],
-        orderCount: a.orderCount || 0,
-        isDocumentVerified: a.isDocumentVerified || false
-      }));
-    } catch (e) {
-      console.error('Error fetching formatted astros:', e);
-      return [];
-    }
-  }
-
-  async function broadcastAstroUpdate() {
-    try {
-      const formattedAstros = await getFormattedAstrologers();
-      io.emit('astrologer-update', formattedAstros);
-      console.log(`Broadcasting update for ${formattedAstros.length} astrologers.`);
-    } catch (e) {
-      console.error('Broadcast Error:', e);
-    }
-  }
 
   // --- Get Astrologers List ---
   socket.on('get-astrologers', async (cb) => {
