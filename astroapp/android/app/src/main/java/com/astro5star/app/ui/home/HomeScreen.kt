@@ -131,7 +131,10 @@ fun BannerSection(banners: List<Banner>, onBannerClick: (Banner) -> Unit) {
                 Box(modifier = Modifier.fillMaxSize().padding(horizontal = 0.dp)) {
                     // 1. Dynamic Background Image
                     val imageUrl = if (banner.imageUrl.startsWith("http")) banner.imageUrl
-                                  else if (banner.imageUrl.isNotEmpty()) "${com.astro5star.app.utils.Constants.SERVER_URL}/${banner.imageUrl}"
+                                  else if (banner.imageUrl.isNotEmpty()) {
+                                      val path = if (banner.imageUrl.startsWith("/")) banner.imageUrl else "/${banner.imageUrl}"
+                                      "${com.astro5star.app.utils.Constants.SERVER_URL}$path"
+                                  }
                                   else ""
                     AsyncImage(
                         model = imageUrl,
@@ -260,7 +263,7 @@ fun HomeScreen(
     astrologers: List<Astrologer>,
     isLoading: Boolean,
     banners: List<Banner>,
-    onWalletClick: (Banner?) -> Unit,
+    onBannerClick: (Banner) -> Unit,
     onChatClick: (Astrologer) -> Unit,
     onCallClick: (Astrologer, String) -> Unit,
     onRasiClick: (ComposeRasiItem) -> Unit,
@@ -365,8 +368,8 @@ fun HomeScreen(
                 Button(
                     onClick = {
                         showLowBalanceDialog = false
-                    onWalletClick(null)
-                },
+                        onBannerClick(Banner(id = "", imageUrl = "")) // Open default wallet via banner logic
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = PeacockGreen)
                 ) {
                     Text("Add Funds Now", color = Color.White, fontWeight = FontWeight.Bold)
@@ -521,7 +524,7 @@ fun HomeScreen(
                 HomeTopBar(
                     balance = walletBalance,
                     superBalance = superWalletBalance,
-                    onWalletClick = { onWalletClick(null) },
+                    onBannerClick = { onBannerClick(Banner(id = "", imageUrl = "")) },
                     onMenuClick = { scope.launch { drawerState.open() } },
                     isGuest = isGuest,
                     isTamil = isTamil,
@@ -538,7 +541,7 @@ fun HomeScreen(
                     StickyFooterButtons(
                         isGuest = isGuest,
                         onTabSelected = { selectedTab = it },
-                        onLoginClick = { onWalletClick(null) }
+                        onLoginClick = { onBannerClick(Banner(id = "", imageUrl = "")) }
                     )
                 }
                     HomeBottomBar(
@@ -571,7 +574,19 @@ fun HomeScreen(
 
                     // 2. Banner (Only on Home)
                     if (selectedTab == 0) {
-                        item { BannerSection(banners, onBannerClick = { onWalletClick(it) }) }
+                        item {
+                            BannerSection(banners, onBannerClick = { banner ->
+                                if (banner.offerPercentage > 0.0) {
+                                    onBannerClick(banner)
+                                } else {
+                                    scope.launch {
+                                        // Scroll to a reasonable position in the list (e.g., filters/list)
+                                        listState.animateScrollToItem(8)
+                                    }
+                                    onBannerClick(banner)
+                                }
+                            })
+                        }
                     }
 
                     // 3. Rasi Grid Section (Only on Home)
@@ -819,7 +834,7 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthR
 fun HomeTopBar(
     balance: Double,
     superBalance: Double = 0.0,
-    onWalletClick: () -> Unit,
+    onBannerClick: () -> Unit,
     onMenuClick: () -> Unit,
     isGuest: Boolean = false,
     isTamil: Boolean,
@@ -878,7 +893,7 @@ fun HomeTopBar(
 
 
                 Row(
-                    modifier = Modifier.clickable { onWalletClick() },
+                    modifier = Modifier.clickable { onBannerClick() },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (superBalance > 0.0) {
@@ -909,7 +924,7 @@ fun HomeTopBar(
                     text = "Login",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = Color.White,
-                    modifier = Modifier.clickable { onWalletClick() }.padding(horizontal = 12.dp)
+                    modifier = Modifier.clickable { onBannerClick() }.padding(horizontal = 12.dp)
                 )
             }
         }
@@ -1034,7 +1049,10 @@ fun AstrologerCard(
              Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(80.dp)) {
                 Box(contentAlignment = Alignment.BottomEnd) {
                     val imageUrl = if (astro.image.startsWith("http")) astro.image
-                                  else if (astro.image.isNotEmpty()) "${com.astro5star.app.utils.Constants.SERVER_URL}/${astro.image}"
+                                  else if (astro.image.isNotEmpty()) {
+                                      val path = if (astro.image.startsWith("/")) astro.image else "/${astro.image}"
+                                      "${com.astro5star.app.utils.Constants.SERVER_URL}$path"
+                                  }
                                   else ""
                     AsyncImage(
                         model = imageUrl,

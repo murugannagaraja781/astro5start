@@ -150,7 +150,10 @@ fun AstrologerProfileScreen(
                         .shadow(8.dp, CircleShape)
                 ) {
                     val imageUrl = if (image.startsWith("http")) image
-                                  else if (image.isNotEmpty()) "${com.astro5star.app.utils.Constants.SERVER_URL}/$image"
+                                  else if (image.isNotEmpty()) {
+                                      val path = if (image.startsWith("/")) image else "/${image}"
+                                      "${com.astro5star.app.utils.Constants.SERVER_URL}$path"
+                                  }
                                   else ""
                     AsyncImage(
                         model = imageUrl,

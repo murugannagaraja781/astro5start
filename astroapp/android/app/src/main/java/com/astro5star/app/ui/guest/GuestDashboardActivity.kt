@@ -58,7 +58,7 @@ class GuestDashboardActivity : AppCompatActivity() {
                     astrologers = astrologers,
                     isLoading = isLoading,
                     banners = emptyList(),
-                    onWalletClick = { redirectToLogin() },
+                    onBannerClick = { _ -> redirectToLogin() },
                     onChatClick = { redirectToLogin() },
                     onCallClick = { _, _ -> redirectToLogin() },
                     onRasiClick = { item -> selectedRasiItem = item },
@@ -67,6 +67,7 @@ class GuestDashboardActivity : AppCompatActivity() {
                          if (item == "Login" || item == "Logout") redirectToLogin()
                          else redirectToLogin() // Guest redirects to login for everything ideally
                     },
+                    onServiceClick = { handleServiceClick(it) },
                     isGuest = true
                 )
             }

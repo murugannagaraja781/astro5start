@@ -99,22 +99,23 @@ class HomeActivity : AppCompatActivity() {
                     astrologers = astrologers,
                     isLoading = isLoading,
                     banners = banners,
-                    onWalletClick = { banner ->
-                        if (banner != null && banner.offerPercentage > 0.0) {
+                    onBannerClick = { banner ->
+                        if (banner.offerPercentage > 0.0) {
                             val intent = Intent(this, com.astro5star.app.ui.wallet.SuperWalletActivity::class.java).apply {
                                 putExtra("bannerTitle", banner.title)
                                 putExtra("offerPercentage", banner.offerPercentage)
                             }
                             startActivity(intent)
                         } else {
-                            val intent = Intent(this, com.astro5star.app.ui.wallet.WalletActivity::class.java).apply {
-                                if (banner != null) {
-                                    putExtra("bannerTitle", banner.title)
-                                    putExtra("bannerSubtitle", banner.subtitle)
-                                    putExtra("ctaText", banner.ctaText)
-                                }
+                            // Mirror web behavior: scroll to astrologer list
+                            // We can trigger a refresh or just notify the UI to scroll
+                            // For simplicity, let's assume HomeScreen handles state
+                            // or we can show a Toast for now if it's already on Home
+                            lifecycleScope.launch {
+                                // This is a placeholder for actual scroll-to logic if we had a scroll state here
+                                // For now, we'll let HomeScreen handle the click if we want to scroll
                             }
-                            startActivity(intent)
+                            Toast.makeText(this, "Check out our top astrologers!", Toast.LENGTH_SHORT).show()
                         }
                     },
                     onChatClick = { astro ->

@@ -806,22 +806,7 @@ app.get('/api/astrology/astrologers', async (req, res) => {
 
     // Ensure lists are sorted by Online first (though App also sorts)
     // and map to ensure compatibility
-    const formatted = astrologers.map(a => ({
-      userId: a.userId,
-      name: a.name,
-      skills: a.skills || [],
-      price: a.price || 15,
-      isOnline: a.isOnline || false,
-      isChatOnline: a.isChatOnline || false,
-      isAudioOnline: a.isAudioOnline || false,
-      isVideoOnline: a.isVideoOnline || false,
-      experience: a.experience || 0,
-      isVerified: a.isVerified || false,
-      isBusy: a.isBusy || false,
-      image: formatImageUrl(a.image, a.name),
-      walletBalance: a.walletBalance // Optional
-    }));
-
+    const formatted = await getFormattedAstrologers();
     res.json({ ok: true, astrologers: formatted });
   } catch (err) {
     console.error('Error fetching astrologers:', err);
@@ -2291,16 +2276,40 @@ io.on('connection', (socket) => {
     }
   });
 
+  async function getFormattedAstrologers() {
+    try {
+      const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
+        .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
+        .lean();
+
+      return astros.map(a => ({
+        userId: a.userId,
+        name: a.name,
+        skills: a.skills || [],
+        price: a.price || 15,
+        isOnline: a.isOnline || false,
+        isChatOnline: a.isChatOnline || false,
+        isAudioOnline: a.isAudioOnline || false,
+        isVideoOnline: a.isVideoOnline || false,
+        experience: a.experience || 0,
+        isVerified: a.isVerified || false,
+        isBusy: a.isBusy || false,
+        image: formatImageUrl(a.image, a.name),
+        languages: a.languages || ['Tamil', 'English'],
+        orderCount: a.orderCount || 0,
+        isDocumentVerified: a.isDocumentVerified || false
+      }));
+    } catch (e) {
+      console.error('Error fetching formatted astros:', e);
+      return [];
+    }
+  }
+
   async function broadcastAstroUpdate() {
     try {
-      console.log('Fetching astrologers for broadcast...');
-      const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' }).lean();
-      console.log(`Broadcasting update for ${astros.length} astrologers.`);
-      const formattedAstros = astros.map(a => ({
-        ...a,
-        image: formatImageUrl(a.image, a.name)
-      }));
+      const formattedAstros = await getFormattedAstrologers();
       io.emit('astrologer-update', formattedAstros);
+      console.log(`Broadcasting update for ${formattedAstros.length} astrologers.`);
     } catch (e) {
       console.error('Broadcast Error:', e);
     }
@@ -2308,12 +2317,8 @@ io.on('connection', (socket) => {
 
   // --- Get Astrologers List ---
   socket.on('get-astrologers', async (cb) => {
-    try {
-      const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' });
-      if (typeof cb === 'function') cb({ astrologers: astros });
-    } catch (e) {
-      if (typeof cb === 'function') cb({ astrologers: [] });
-    }
+    const formatted = await getFormattedAstrologers();
+    if (typeof cb === 'function') cb({ astrologers: formatted });
   });
 
   // --- Toggle Status (Astrologer Only) ---
@@ -3848,9 +3853,7 @@ app.post('/api/astrologer/online', async (req, res) => {
 
     await User.updateOne({ userId }, update);
 
-    // Broadcast update to real-time clients
-    const astros = await User.find({ role: 'astrologer' });
-    io.emit('astrologer-update', astros);
+    await broadcastAstroUpdate();
     res.json({ ok: true });
   } catch (e) {
     console.error("Online Toggle Error:", e);
@@ -3889,10 +3892,7 @@ app.post('/api/astrologer/service-toggle', async (req, res) => {
 
     await User.updateOne({ userId }, update);
 
-    // Broadcast update
-    const astros = await User.find({ role: 'astrologer' });
-    io.emit('astrologer-update', astros);
-
+    await broadcastAstroUpdate();
     console.log(`[Service Toggle] ${userId}: ${service} = ${enabled}`);
     res.json({ ok: true });
   } catch (e) {
