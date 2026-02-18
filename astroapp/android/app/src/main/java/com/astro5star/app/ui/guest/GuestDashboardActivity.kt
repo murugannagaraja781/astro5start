@@ -57,6 +57,7 @@ class GuestDashboardActivity : AppCompatActivity() {
                     horoscope = horoscope,
                     astrologers = astrologers,
                     isLoading = isLoading,
+                    banners = emptyList(),
                     onWalletClick = { redirectToLogin() },
                     onChatClick = { redirectToLogin() },
                     onCallClick = { _, _ -> redirectToLogin() },

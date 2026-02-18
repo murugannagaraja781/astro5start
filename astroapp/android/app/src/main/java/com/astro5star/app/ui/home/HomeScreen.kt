@@ -336,9 +336,6 @@ fun HomeScreen(
     // Language State (Default Tamil)
     var isTamil by rememberSaveable { mutableStateOf(true) }
 
-    // Language State (Default Tamil)
-    var isTamil by rememberSaveable { mutableStateOf(true) }
-
     // Logic to filter astrologers based on selection
     val filteredAstros = remember(selectedFilter, astrologers) {
         if (selectedFilter == "All") astrologers
