@@ -51,6 +51,7 @@ class WalletActivity : ComponentActivity() {
     // Simple state holding for this screen
     private val transactionsState = mutableStateListOf<JSONObject>()
     private var balanceState by mutableDoubleStateOf(0.0)
+    private var superBalanceState by mutableDoubleStateOf(0.0)
     private var bannerTitle by mutableStateOf<String?>(null)
     private var bannerSubtitle by mutableStateOf<String?>(null)
     private var ctaText by mutableStateOf<String?>(null)
@@ -74,6 +75,7 @@ class WalletActivity : ComponentActivity() {
             CosmicAppTheme {
                 WalletScreen(
                     balance = balanceState,
+                    superBalance = superBalanceState,
                     transactions = transactionsState,
                     bannerTitle = bannerTitle,
                     bannerSubtitle = bannerSubtitle,
@@ -104,10 +106,14 @@ class WalletActivity : ComponentActivity() {
         loadPaymentHistory()
 
         // Listen for real-time updates
-        com.astro5star.app.data.remote.SocketManager.onWalletUpdate { newBalance ->
+        com.astro5star.app.data.remote.SocketManager.onWalletUpdate { data ->
              runOnUiThread {
+                val newBalance = data.optDouble("balance", 0.0)
+                val newSuperBalance = data.optDouble("superBalance", 0.0)
                 tokenManager.updateWalletBalance(newBalance)
+                tokenManager.updateSuperWalletBalance(newSuperBalance)
                 balanceState = newBalance
+                superBalanceState = newSuperBalance
             }
         }
     }
@@ -120,6 +126,7 @@ class WalletActivity : ComponentActivity() {
     private fun updateBalanceFromSession() {
         val user = tokenManager.getUserSession()
         balanceState = user?.walletBalance ?: 0.0
+        superBalanceState = user?.superWalletBalance ?: 0.0
     }
 
     private fun refreshWalletBalance() {
@@ -132,6 +139,7 @@ class WalletActivity : ComponentActivity() {
                     runOnUiThread {
                         tokenManager.saveUserSession(user)
                         balanceState = user.walletBalance ?: 0.0
+                        superBalanceState = user.superWalletBalance ?: 0.0
                     }
                 }
             } catch (e: Exception) {
@@ -181,6 +189,7 @@ class WalletActivity : ComponentActivity() {
 @Composable
 fun WalletScreen(
     balance: Double,
+    superBalance: Double = 0.0,
     transactions: List<JSONObject>,
     bannerTitle: String? = null,
     bannerSubtitle: String? = null,
@@ -369,6 +378,22 @@ fun WalletScreen(
                                         ),
                                         color = Color.Black
                                     )
+
+                                    if (superBalance > 0.0) {
+                                        Surface(
+                                            color = Color.Black.copy(alpha = 0.1f),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = "Bonus: ₹ ${superBalance.toInt()}",
+                                                color = Color.Black.copy(alpha = 0.7f),
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            )
+                                        }
+                                    }
                                 }
                                 Icon(
                                     Icons.Rounded.AccountBalanceWallet,
@@ -398,6 +423,12 @@ fun WalletScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
+                                Text(
+                                    "Rule: 70% Main, 30% Super Wallet",
+                                    color = Color.Black.copy(alpha = 0.6f),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                                 Text(
                                     stringResource(R.string.valid_user),
                                     color = Color.Black.copy(alpha = 0.7f),

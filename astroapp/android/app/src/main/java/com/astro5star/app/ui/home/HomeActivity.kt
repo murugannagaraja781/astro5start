@@ -431,6 +431,12 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun initiateSession(astrologerId: String, type: String, astroName: String, astroImage: String) {
+        if (_walletBalance.value <= 0.0) {
+            Toast.makeText(this, "Insufficient Main Balance. Please recharge to start.", Toast.LENGTH_LONG).show()
+            val intent = Intent(this, com.astro5star.app.ui.wallet.WalletActivity::class.java)
+            startActivity(intent)
+            return
+        }
         val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
             putExtra("partnerId", astrologerId)
             putExtra("partnerName", astroName)

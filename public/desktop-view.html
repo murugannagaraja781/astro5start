@@ -2267,6 +2267,13 @@
               <i id="dashWalletSpinner" class="fas fa-sync-alt"
                 style="display:none; font-size:1.2rem; animation: spin 1s linear infinite;"></i>
             </div>
+            <div id="superWalletContainer"
+              style="display:none; margin-top: 10px; background: rgba(255,255,255,0.15); padding: 8px 15px; border-radius: 10px; font-size: 0.9rem;">
+              <i class="fas fa-magic"></i> Available Super Wallet: <b>₹<span id="dashSuperWalletBalance">0.00</span></b>
+            </div>
+            <div style="margin-top:15px; font-size: 0.75rem; opacity: 0.8; line-height: 1.4;">
+              * Rule: 70% from Main, 30% from Super Wallet. <br> Main Balance required to start.
+            </div>
             <div style="display:flex; justify-content:center; gap:10px;">
               <button
                 style="background:white; color:#e07e0c; border:none; padding:10px 25px; border-radius:25px; font-weight:bold; font-size:1rem; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.1);"
@@ -4324,6 +4331,11 @@
         document.getElementById('clientWallet').innerText = bal;
         if (document.getElementById('dashWalletBalance')) {
           document.getElementById('dashWalletBalance').innerText = bal;
+        }
+        if (document.getElementById('dashSuperWalletBalance')) {
+          document.getElementById('dashSuperWalletBalance').innerText = superBal.toFixed(2);
+          const swCont = document.getElementById('superWalletContainer');
+          if (swCont) swCont.style.display = superBal > 0 ? 'block' : 'none';
         }
 
         const swBadge = document.getElementById('swHeaderBadge');

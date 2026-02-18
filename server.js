@@ -1920,9 +1920,28 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
       return;
     }
 
-    // Deduct from Client
-    if (client.walletBalance >= amountToCharge) {
-      client.walletBalance -= amountToCharge;
+    // Deduct from Client (70/30 Rule)
+    const totalToDeduct = amountToCharge;
+    if (client.walletBalance >= totalToDeduct) {
+      let mainDeduct = totalToDeduct * 0.7;
+      let superDeduct = totalToDeduct * 0.3;
+
+      // Rule: If super wallet has balance, use it for the 30%
+      if (client.superWalletBalance > 0) {
+        if (client.superWalletBalance >= superDeduct) {
+          client.superWalletBalance -= superDeduct;
+        } else {
+          // Take what's available and shift rest to main
+          const availableSuper = client.superWalletBalance;
+          client.superWalletBalance = 0;
+          mainDeduct += (superDeduct - availableSuper);
+        }
+      } else {
+        // No super wallet balance, take 100% from main
+        mainDeduct = totalToDeduct;
+      }
+
+      client.walletBalance -= mainDeduct;
       await client.save();
 
       // Credit Astrologer (if > 0)
@@ -2462,6 +2481,11 @@ io.on('connection', (socket) => {
 
       if (!toUser) {
         return cb({ ok: false, error: 'User not found' });
+      }
+
+      // Rule: Main Balance must be > 0 to start any session
+      if (fromUser && fromUser.role === 'client' && (fromUser.walletBalance || 0) <= 0) {
+        return cb({ ok: false, error: 'Insufficient Main Balance. Please recharge your main wallet to start.' });
       }
 
       // Check if astrologer is available (MANUAL ONLY)
