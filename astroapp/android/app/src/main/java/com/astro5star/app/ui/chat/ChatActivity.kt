@@ -201,31 +201,19 @@ class ChatActivity : ComponentActivity() {
             val durationStr = String.format("%02d:%02d", minutes, seconds)
             androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Chat Summary")
-                .setMessage("Duration: $durationStr\nDeducted: ₹${String.format("%.2f", summary.deducted)}")
-                .setPositiveButton("OK") { _, _ -> finish() }
+                .setMessage("Duration: $durationStr\nAmount: ₹${String.format("%.2f", if (TokenManager(this).getUserSession()?.role == "astrologer") summary.earned else summary.deducted)}")
+                .setPositiveButton("Dismiss") { _, _ -> finishSessionAndNavigate() }
                 .setCancelable(false)
                 .show()
         }
         viewModel.sessionEnded.observe(this) { ended ->
-            if (ended && viewModel.sessionSummary.value == null) {
-                Toast.makeText(this, "Chat Ended by Partner", Toast.LENGTH_SHORT).show()
-
-                // Clear all notifications
-                val notificationManager = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-                notificationManager.cancelAll()
-
-                // Navigate to appropriate dashboard
-                val userSession = TokenManager(this).getUserSession()
-                if (userSession?.role == "astrologer") {
-                    val intent = android.content.Intent(this, com.astro5star.app.ui.astro.AstrologerDashboardActivity::class.java)
-                    intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
-                } else {
-                    val intent = android.content.Intent(this, com.astro5star.app.MainActivity::class.java)
-                    intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
+            if (ended) {
+                // If summary is null, we can finish immediately.
+                // If it's not null, sessionSummary observer will handle it.
+                if (viewModel.sessionSummary.value == null) {
+                    Toast.makeText(this, "Chat Ended", Toast.LENGTH_SHORT).show()
+                    finishSessionAndNavigate()
                 }
-                finish()
             }
         }
         viewModel.availableMinutes.observe(this) { mins ->
@@ -236,35 +224,31 @@ class ChatActivity : ComponentActivity() {
         }
     }
 
+    private fun finishSessionAndNavigate() {
+        // Clear all notifications
+        val notificationManager = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        notificationManager.cancelAll()
+
+        val userSession = TokenManager(this).getUserSession()
+        val intent = if (userSession?.role == "astrologer") {
+            android.content.Intent(this, com.astro5star.app.ui.astro.AstrologerDashboardActivity::class.java)
+        } else {
+            android.content.Intent(this, com.astro5star.app.MainActivity::class.java)
+        }
+        intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
+    }
+
     private fun endChat() {
         android.util.Log.d("ChatActivity", "endChat clicked. SessionId: $sessionId")
         if (sessionId != null) {
             Toast.makeText(this, "Ending Chat...", Toast.LENGTH_SHORT).show()
             viewModel.endSession(sessionId!!)
-
-            // Clear all notifications
-            val notificationManager = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-            notificationManager.cancelAll()
-
-            // Delay to ensure socket emit completes, then navigate
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                // Check if user is Astrologer
-                val userSession = TokenManager(this).getUserSession()
-                if (userSession?.role == "astrologer") {
-                    // Navigate to Astrologer Dashboard
-                    val intent = android.content.Intent(this, com.astro5star.app.ui.astro.AstrologerDashboardActivity::class.java)
-                    intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
-                } else {
-                    // Client - go to MainActivity
-                    val intent = android.content.Intent(this, com.astro5star.app.MainActivity::class.java)
-                    intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
-                }
-                finish()
-            }, 500)
+            // We wait for the session-ended event from socket for both sides to finish gracefully
         } else {
              Toast.makeText(this, "Error: Session ID is null", Toast.LENGTH_SHORT).show()
+             finish()
         }
     }
 
@@ -585,7 +569,13 @@ fun ChatInputBar(
     onViewChart: (() -> Unit)?,
     clientBirthData: JSONObject? = null
 ) {
-    Surface(color = Color.White, shadowElevation = 8.dp) {
+    Surface(
+        color = Color.White,
+        shadowElevation = 8.dp,
+        modifier = Modifier
+            .navigationBarsPadding()
+            .imePadding()
+    ) {
         Column {
             if (replyingTo != null) {
                 Row(
@@ -600,7 +590,7 @@ fun ChatInputBar(
                 }
             }
             Row(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (onViewChart != null) {
@@ -625,12 +615,13 @@ fun ChatInputBar(
                 OutlinedTextField(
                     value = text,
                     onValueChange = onTextChange,
-                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
                     shape = RoundedCornerShape(24.dp),
-                    placeholder = { Text("Type a message") },
+                    placeholder = { Text("Type a message", fontSize = 14.sp) },
+                    maxLines = 4,
                     colors = TextFieldDefaults.colors(
-                       focusedContainerColor = Color.White,
-                       unfocusedContainerColor = Color.White,
+                       focusedContainerColor = Color(0xFFF0F0F0),
+                       unfocusedContainerColor = Color(0xFFF0F0F0),
                        focusedIndicatorColor = Color.Transparent,
                        unfocusedIndicatorColor = Color.Transparent
                     )
@@ -640,9 +631,9 @@ fun ChatInputBar(
                     containerColor = Color(0xFFC9A227),
                     contentColor = Color.White,
                     shape = CircleShape,
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(44.dp)
                 ) {
-                    Icon(Icons.Default.Send, "Send")
+                    Icon(Icons.Default.Send, "Send", modifier = Modifier.size(20.dp))
                 }
             }
         }

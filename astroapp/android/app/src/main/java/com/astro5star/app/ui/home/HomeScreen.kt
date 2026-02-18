@@ -257,6 +257,7 @@ fun HomeScreen(
     horoscope: String,
     astrologers: List<Astrologer>,
     isLoading: Boolean,
+    banners: List<Banner>,
     onWalletClick: (Banner?) -> Unit,
     onChatClick: (Astrologer) -> Unit,
     onCallClick: (Astrologer, String) -> Unit,
@@ -335,20 +336,8 @@ fun HomeScreen(
     // Language State (Default Tamil)
     var isTamil by rememberSaveable { mutableStateOf(true) }
 
-    // Banners State
-    var banners by remember { mutableStateOf<List<Banner>>(emptyList()) }
-
-    // Fetch Banners
-    LaunchedEffect(Unit) {
-        try {
-            val response = ApiClient.api.getBanners()
-            if (response.isSuccessful && response.body()?.ok == true) {
-                banners = response.body()!!.banners
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
+    // Language State (Default Tamil)
+    var isTamil by rememberSaveable { mutableStateOf(true) }
 
     // Logic to filter astrologers based on selection
     val filteredAstros = remember(selectedFilter, astrologers) {

@@ -18,6 +18,9 @@ import com.astro5star.app.utils.showErrorAlert
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.runtime.collectAsState
+import com.astro5star.app.data.model.Banner
+import com.astro5star.app.data.api.ApiClient
+import com.astro5star.app.data.model.BannerResponse
 
 
 import okhttp3.MediaType.Companion.toMediaType
@@ -51,6 +54,7 @@ class HomeActivity : AppCompatActivity() {
     private val _isLoading = MutableStateFlow(true)
     private val _referralCode = MutableStateFlow<String?>(null)
     private val _isNewUser = MutableStateFlow(false)
+    private val _banners = MutableStateFlow<List<Banner>>(emptyList())
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,6 +82,7 @@ class HomeActivity : AppCompatActivity() {
                 val isLoading by _isLoading.collectAsState()
                 val referralCode by _referralCode.collectAsState()
                 val isNewUser by _isNewUser.collectAsState()
+                val banners by _banners.collectAsState()
 
                 var selectedRasiItem by remember { mutableStateOf<ComposeRasiItem?>(null) }
 
@@ -90,6 +95,7 @@ class HomeActivity : AppCompatActivity() {
                     horoscope = horoscope,
                     astrologers = astrologers,
                     isLoading = isLoading,
+                    banners = banners,
                     onWalletClick = { banner ->
                         val intent = Intent(this, com.astro5star.app.ui.wallet.WalletActivity::class.java).apply {
                             if (banner != null) {
@@ -421,8 +427,22 @@ class HomeActivity : AppCompatActivity() {
         super.onResume()
         loadWalletBalance()
         refreshWalletBalance()
+        fetchBanners()
         // Ensure astrologer list is fresh when returning to the screen
         SocketManager.getSocket()?.emit("get-astrologers")
+    }
+
+    private fun fetchBanners() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val response = ApiClient.api.getBanners()
+                if (response.isSuccessful && response.body()?.ok == true) {
+                    _banners.value = response.body()?.banners ?: emptyList()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error fetching banners: ${e.message}")
+            }
+        }
     }
 
     override fun onDestroy() {
