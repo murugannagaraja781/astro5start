@@ -50,6 +50,8 @@ class WalletActivity : ComponentActivity() {
     // Simple state holding for this screen
     private val transactionsState = mutableStateListOf<JSONObject>()
     private var balanceState by mutableDoubleStateOf(0.0)
+    private var bannerTitle by mutableStateOf<String?>(null)
+    private var bannerSubtitle by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,17 +64,25 @@ class WalletActivity : ComponentActivity() {
 
         updateBalanceFromSession()
 
+        bannerTitle = intent.getStringExtra("bannerTitle")
+        bannerSubtitle = intent.getStringExtra("bannerSubtitle")
+
         setContent {
             CosmicAppTheme {
                 WalletScreen(
                     balance = balanceState,
                     transactions = transactionsState,
-                    onAddMoney = { amount ->
+                    bannerTitle = bannerTitle,
+                    bannerSubtitle = bannerSubtitle,
+                    onAddMoney = { amount, promo ->
                          if (amount < 1) {
                             Toast.makeText(this, "Enter valid amount", Toast.LENGTH_SHORT).show()
                         } else {
                             val intent = Intent(this, com.astro5star.app.ui.payment.PaymentActivity::class.java)
                             intent.putExtra("amount", amount.toDouble())
+                            if (promo != null) {
+                                intent.putExtra("promoCode", promo)
+                            }
                             startActivity(intent)
                         }
                     },
@@ -168,10 +178,14 @@ class WalletActivity : ComponentActivity() {
 fun WalletScreen(
     balance: Double,
     transactions: List<JSONObject>,
-    onAddMoney: (Int) -> Unit,
+    bannerTitle: String? = null,
+    bannerSubtitle: String? = null,
+    onAddMoney: (Int, String?) -> Unit,
     onRefreshHistory: () -> Unit
 ) {
     var amountInput by remember { mutableStateOf("") }
+    var isOfferApplied by remember { mutableStateOf(false) }
+    var appliedPromoCode by remember { mutableStateOf<String?>(null) }
 
     // Green Claymorphism Theme
     val clayShape = RoundedCornerShape(24.dp)
@@ -228,6 +242,70 @@ fun WalletScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
+                // 0. Banner Info (Offer)
+                if (!bannerTitle.isNullOrEmpty()) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = clayLightGreen.copy(alpha = 0.1f)),
+                            border = BorderStroke(1.dp, clayGreen.copy(alpha = 0.5f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Rounded.AddCircle,
+                                    contentDescription = null,
+                                    tint = clayDarkGreen,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column {
+                                    Text(
+                                        text = bannerTitle!!,
+                                        fontWeight = FontWeight.Bold,
+                                        color = clayDarkGreen,
+                                        fontSize = 18.sp
+                                    )
+                                    if (!bannerSubtitle.isNullOrEmpty()) {
+                                        Text(
+                                            text = bannerSubtitle!!,
+                                            color = clayDarkGreen.copy(alpha = 0.8f),
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.weight(1f))
+
+                                // Apply Button
+                                Button(
+                                    onClick = {
+                                        isOfferApplied = !isOfferApplied
+                                        appliedPromoCode = if (isOfferApplied) "WELCOME10" else null
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (isOfferApplied) clayDarkGreen else clayWhite,
+                                        contentColor = if (isOfferApplied) Color.White else clayDarkGreen
+                                    ),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.height(40.dp),
+                                    border = BorderStroke(1.dp, clayDarkGreen),
+                                    contentPadding = PaddingValues(horizontal = 12.dp)
+                                ) {
+                                    Text(
+                                        text = if (isOfferApplied) "Applied" else "Apply",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // 1. Balance Card (Claymorphism)
                 item {
                     Box(
@@ -394,13 +472,48 @@ fun WalletScreen(
                                 )
                             }
 
+                            // Discount Summary
+                            if (isOfferApplied && amountInput.isNotEmpty()) {
+                                val originalAmt = amountInput.toIntOrNull() ?: 0
+                                if (originalAmt > 0) {
+                                    val discount = (originalAmt * 0.1).toInt() // 10% Discount
+                                    val finalAmt = originalAmt - discount
+
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text("Original Amount", color = Color.Gray, fontSize = 14.sp)
+                                            Text("₹$originalAmt", color = Color.Gray, fontSize = 14.sp)
+                                        }
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text("Discount (10%)", color = clayDarkGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                            Text("- ₹$discount", color = clayDarkGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = clayGreen.copy(alpha = 0.2f))
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text("Final Amount", color = clayDarkGreen, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+                                            Text("₹$finalAmt", color = clayDarkGreen, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+                                        }
+                                    }
+                                }
+                            }
+
                             // Recharge button with claymorphism
                             Button(
                                 onClick = {
-                                    val amt = amountInput.toIntOrNull() ?: 0
-                                    if (amt >= 1) {
-                                        onAddMoney(amt)
+                                    val originalAmt = amountInput.toIntOrNull() ?: 0
+                                    if (originalAmt >= 1) {
+                                        val finalAmt = if (isOfferApplied) {
+                                            (originalAmt * 0.9).toInt()
+                                        } else {
+                                            originalAmt
+                                        }
+                                        onAddMoney(finalAmt, if (isOfferApplied) appliedPromoCode else null)
                                         amountInput = ""
+                                        isOfferApplied = false
+                                        appliedPromoCode = null
                                     }
                                 },
                                 modifier = Modifier

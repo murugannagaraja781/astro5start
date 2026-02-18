@@ -223,16 +223,16 @@ class PaymentActivity : AppCompatActivity() {
         }
 
         if (USE_NATIVE_SDK) {
-            startPayment(amount)
+            startPayment(amount, intent.getStringExtra("promoCode"))
         } else {
-            startWebPayment(amount)
+            startWebPayment(amount, intent.getStringExtra("promoCode"))
         }
     }
 
     private var pendingTransactionId: String? = null
 
     // --- WEB PAYMENT LOGIC (TOKEN BASED - SAME AS WEB APP) ---
-    private fun startWebPayment(amount: Double) {
+    private fun startWebPayment(amount: Double, promoCode: String?) {
         val user = tokenManager.getUserSession()
         val userId = user?.userId ?: run {
             showError("User not logged in")
@@ -244,8 +244,8 @@ class PaymentActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 // 1. Get Payment Token (Secure Session)
-                Log.d(TAG, "Requesting token for ₹$amount")
-                val request = PaymentInitiateRequest(userId, amount.toInt())
+                Log.d(TAG, "Requesting token for ₹$amount with promo: $promoCode")
+                val request = PaymentInitiateRequest(userId, amount.toInt(), promoCode = promoCode)
                 val response = ApiClient.api.getPaymentToken(request)
 
                 if (response.isSuccessful && response.body()?.get("ok")?.asBoolean == true) {
@@ -299,7 +299,7 @@ class PaymentActivity : AppCompatActivity() {
         }
     }
 
-    private fun startPayment(amountRupees: Double) {
+    private fun startPayment(amountRupees: Double, promoCode: String?) {
         val user = tokenManager.getUserSession()
         val userId = user?.userId ?: run {
             showError("User not logged in")
@@ -311,8 +311,8 @@ class PaymentActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 // 1. Get Signed Payload from Server
-                Log.d(TAG, "Requesting signature for ₹$amountRupees")
-                val request = PaymentInitiateRequest(userId, amountRupees.toInt())
+                Log.d(TAG, "Requesting signature for ₹$amountRupees with promo: $promoCode")
+                val request = PaymentInitiateRequest(userId, amountRupees.toInt(), promoCode = promoCode)
                 val response = ApiClient.api.signPhonePe(request)
 
                 if (response.isSuccessful && response.body()?.ok == true) {

@@ -80,7 +80,7 @@ import com.astro5star.app.data.local.TokenManager
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun BannerSection(banners: List<Banner>) {
+fun BannerSection(banners: List<Banner>, onBannerClick: (Banner) -> Unit) {
     if (banners.isEmpty()) return
 
     val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { banners.size })
@@ -125,6 +125,7 @@ fun BannerSection(banners: List<Banner>) {
                         this.alpha = alpha
                     }
                     .fillMaxSize()
+                    .clickable { onBannerClick(banner) }
             ) {
                 Box(modifier = Modifier.fillMaxSize().padding(horizontal = 0.dp)) {
                     // 1. Dynamic Background Image
@@ -256,7 +257,7 @@ fun HomeScreen(
     horoscope: String,
     astrologers: List<Astrologer>,
     isLoading: Boolean,
-    onWalletClick: () -> Unit,
+    onWalletClick: (Banner?) -> Unit,
     onChatClick: (Astrologer) -> Unit,
     onCallClick: (Astrologer, String) -> Unit,
     onRasiClick: (ComposeRasiItem) -> Unit,
@@ -376,8 +377,8 @@ fun HomeScreen(
                 Button(
                     onClick = {
                         showLowBalanceDialog = false
-                        onWalletClick()
-                    },
+                    onWalletClick(null)
+                },
                     colors = ButtonDefaults.buttonColors(containerColor = PeacockGreen)
                 ) {
                     Text("Add Funds Now", color = Color.White, fontWeight = FontWeight.Bold)
@@ -531,7 +532,7 @@ fun HomeScreen(
             topBar = {
                 HomeTopBar(
                     balance = walletBalance,
-                    onWalletClick = onWalletClick,
+                    onWalletClick = { onWalletClick(null) },
                     onMenuClick = { scope.launch { drawerState.open() } },
                     isGuest = isGuest,
                     isTamil = isTamil,
@@ -581,7 +582,7 @@ fun HomeScreen(
 
                     // 2. Banner (Only on Home)
                     if (selectedTab == 0) {
-                        item { BannerSection(banners) }
+                        item { BannerSection(banners, onBannerClick = { onWalletClick(it) }) }
                     }
 
                     // 3. Rasi Grid Section (Only on Home)

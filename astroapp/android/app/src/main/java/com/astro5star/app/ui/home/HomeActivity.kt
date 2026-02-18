@@ -90,8 +90,14 @@ class HomeActivity : AppCompatActivity() {
                     horoscope = horoscope,
                     astrologers = astrologers,
                     isLoading = isLoading,
-                    onWalletClick = {
-                        startActivity(Intent(this, com.astro5star.app.ui.wallet.WalletActivity::class.java))
+                    onWalletClick = { banner ->
+                        val intent = Intent(this, com.astro5star.app.ui.wallet.WalletActivity::class.java).apply {
+                            if (banner != null) {
+                                putExtra("bannerTitle", banner.title)
+                                putExtra("bannerSubtitle", banner.subtitle)
+                            }
+                        }
+                        startActivity(intent)
                     },
                     onChatClick = { astro ->
                         val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {

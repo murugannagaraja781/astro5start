@@ -3,7 +3,8 @@ package com.astro5star.app.data.model
 data class PaymentInitiateRequest(
     val userId: String,
     val amount: Int,
-    val isApp: Boolean = true
+    val isApp: Boolean = true,
+    val promoCode: String? = null
 )
 
 data class PaymentInitiateResponse(
