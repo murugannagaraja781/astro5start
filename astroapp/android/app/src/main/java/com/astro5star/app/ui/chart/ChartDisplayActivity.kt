@@ -168,6 +168,7 @@ class ChartDisplayActivity : ComponentActivity() {
                     .info-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
                     .info-table td, .info-table th { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
                     .info-table th { background-color: #f2f2f2; }
+                    .highlight { background-color: #fff9c4; font-weight: bold; border: 2px solid #fbc02d; }
                 </style>
             </head>
             <body>
@@ -218,7 +219,7 @@ class ChartDisplayActivity : ComponentActivity() {
 
                 ${if(dasha != null) """
                 <h3>Current Dasha</h3>
-                <table class="info-table">
+                <table class="info-table highlight">
                     <tr><th>Lord</th><td>${dasha.optString("currentLord")}</td></tr>
                     <tr><th>Bhukti</th><td>${dasha.optString("bhuktiName")}</td></tr>
                     <tr><th>Ends At</th><td>${dasha.optString("endsAt").take(10)}</td></tr>

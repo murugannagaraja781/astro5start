@@ -321,13 +321,11 @@ fun SouthIndianGridEnhanced(planets: List<Planet>, ascSign: String, title: Strin
                         Box(Modifier.weight(1f).fillMaxHeight()) {
                             if (signIdx != -1) {
                                 val signEn = signNames[signIdx]
-                                val signNo = signIdx + 1
                                 val occupants = mutableListOf<String>()
                                 if (signEn == ascSign) occupants.add("As")
                                 planets.filter { it.signName == signEn }.forEach { occupants.add(it.name) }
 
                                  Column(Modifier.fillMaxSize().padding(2.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                                    // Removed signNo text as requested
                                     val fontSize = if (occupants.size > 3) 10.sp else 11.sp
                                     val lineHeight = if (occupants.size > 3) 11.sp else 13.sp
 
@@ -447,11 +445,14 @@ fun DashaListTab(mahadashas: List<DashaPeriod>) {
 fun DashaNodeInternal(period: DashaPeriod) {
     var expanded by remember { mutableStateOf(false) }
     val hasSub = !period.subPeriods.isNullOrEmpty()
+    val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+    val isCurrent = todayStr >= period.start.take(10) && todayStr <= period.end.take(10)
 
     Column(Modifier.fillMaxWidth().animateContentSize()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(if (isCurrent) Color(0xFFFFF9C4) else Color.Transparent)
                 .clickable(enabled = hasSub) { expanded = !expanded }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically

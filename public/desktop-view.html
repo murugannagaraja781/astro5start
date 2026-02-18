@@ -6537,8 +6537,8 @@
         if (res.success && res.data) {
           // Normalize to match the display function's expectations if needed
           const normalized = {
-            date: res.data.date,
-            horoscope_data: res.data.forecast_ta, // Main forecast in Tamil
+            date: res.data.date || new Date().toLocaleDateString(),
+            horoscope_data: res.data.prediction_ta || res.data.forecast_ta || 'இன்று உங்களுக்கு நற்பலன்கள் கிடைக்கும்.',
             details: res.data
           };
           horoscopeCache[cacheKey] = normalized;
@@ -6561,9 +6561,10 @@
       if (loading) loading.style.display = 'none';
       if (content) content.classList.remove('hidden');
 
-      document.getElementById('horoscopeDate').innerText = data.date;
+      document.getElementById('horoscopeDate').innerText = data.date || 'இன்று';
 
-      let html = `<p style="margin-bottom:15px;">${data.horoscope_data}</p>`;
+      const prediction = data.horoscope_data || 'இன்று உங்களுக்கு நற்பலன்கள் கிடைக்கும்.';
+      let html = `<p style="margin-bottom:15px; line-height:1.6;">${prediction}</p>`;
 
       if (data.details) {
         html += `
