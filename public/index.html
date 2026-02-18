@@ -7117,7 +7117,7 @@
       // listEl.innerHTML = '<div style="text-align:center; padding:10px; color:#6B7280;">Updating...</div>';
 
       try {
-        const res = await fetch(`/ api / payment / history / ${state.me.userId} `).then(r => r.json());
+        const res = await fetch(`/api/payment/history/${state.me.userId}`).then(r => r.json());
         if (res.ok && res.data) {
           if (res.data.length === 0) {
             listEl.innerHTML = '<div style="text-align:center; padding:20px; color:#6B7280; font-size:0.9rem;">No transactions found.</div>';
