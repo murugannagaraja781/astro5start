@@ -13,21 +13,19 @@ echo "------------------------------------------------"
 echo "🚀 Starting MongoDB Migration: Atlas -> Local"
 echo "------------------------------------------------"
 
-# 1. Load environment variables
+# 1. Extract Atlas URI from .env
 if [ -f "$PROJECT_DIR/.env" ]; then
-    echo "📋 Loading .env from $PROJECT_DIR/.env"
-    # Export vars, ignoring comments and handling spaces
-    export $(grep -v '^#' "$PROJECT_DIR/.env" | xargs)
+    echo "📋 Searching for Atlas URI in $PROJECT_DIR/.env"
+    # Specifically find the line that contains mongodb+srv
+    ATLAS_URI=$(grep "mongodb+srv" "$PROJECT_DIR/.env" | head -n 1 | cut -d'=' -f2-)
 else
     echo "❌ Error: .env file not found in $PROJECT_DIR"
     exit 1
 fi
 
-ATLAS_URI=${MONGODB_URI}
-
-if [[ -z "$ATLAS_URI" || "$ATLAS_URI" != *"mongodb+srv"* ]]; then
-    echo "❌ Error: MONGODB_URI in .env is not an Atlas URI (missing mongodb+srv) or is empty."
-    echo "Current URI: $ATLAS_URI"
+if [[ -z "$ATLAS_URI" ]]; then
+    echo "❌ Error: Could not find an Atlas URI (mongodb+srv) in your .env file."
+    echo "Please ensure the line 'MONGODB_URI=mongodb+srv://...' exists."
     exit 1
 fi
 
