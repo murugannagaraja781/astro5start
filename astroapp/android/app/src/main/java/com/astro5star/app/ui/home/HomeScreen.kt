@@ -549,7 +549,7 @@ fun HomeScreen(
                     StickyFooterButtons(
                         isGuest = isGuest,
                         onTabSelected = { selectedTab = it },
-                        onLoginClick = onWalletClick
+                        onLoginClick = { onWalletClick(null) }
                     )
                 }
                     HomeBottomBar(

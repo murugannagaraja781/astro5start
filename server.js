@@ -428,7 +428,7 @@ const UserSchema = new mongoose.Schema({
   upiId: String, // New
   upiNumber: String, // New
   role: { type: String, enum: ['client', 'astrologer', 'superadmin'], default: 'client' },
-  approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' }, // New
+  approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' }, // New default is pending
   isOnline: { type: Boolean, default: false },
   isChatOnline: { type: Boolean, default: false },
   isAudioOnline: { type: Boolean, default: false },
@@ -784,7 +784,7 @@ app.get('/api/user/:userId', async (req, res) => {
 // Astrologer List API (Used by Mobile App)
 app.get('/api/astrology/astrologers', async (req, res) => {
   try {
-    const astrologers = await User.find({ role: 'astrologer' })
+    const astrologers = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
       .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings')
       .lean();
 
@@ -2246,7 +2246,7 @@ io.on('connection', (socket) => {
   async function broadcastAstroUpdate() {
     try {
       console.log('Fetching astrologers for broadcast...');
-      const astros = await User.find({ role: 'astrologer' }).lean();
+      const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' }).lean();
       console.log(`Broadcasting update for ${astros.length} astrologers.`);
       const formattedAstros = astros.map(a => ({
         ...a,
@@ -2261,7 +2261,7 @@ io.on('connection', (socket) => {
   // --- Get Astrologers List ---
   socket.on('get-astrologers', async (cb) => {
     try {
-      const astros = await User.find({ role: 'astrologer' });
+      const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' });
       if (typeof cb === 'function') cb({ astrologers: astros });
     } catch (e) {
       if (typeof cb === 'function') cb({ astrologers: [] });
@@ -2281,15 +2281,16 @@ io.on('connection', (socket) => {
 
       // We first get the user to calculate global isOnline
       let user = await User.findOne({ userId });
-      if (user) {
-        Object.assign(user, update);
-        user.isOnline = user.isChatOnline || user.isAudioOnline || user.isVideoOnline;
-        user.isAvailable = user.isOnline; // Sync isAvailable with manual toggle
-        user.lastSeen = new Date();
-        await user.save();
-        broadcastAstroUpdate();
-        console.log(`[Presence] ${user.name} toggled ${data.type}: ${data.online}`);
-      }
+      if (!user || user.role !== 'astrologer') return;
+      if (user.approvalStatus !== 'approved') return;
+
+      Object.assign(user, update);
+      user.isOnline = user.isChatOnline || user.isAudioOnline || user.isVideoOnline;
+      user.isAvailable = user.isOnline; // Sync isAvailable with manual toggle
+      user.lastSeen = new Date();
+      await user.save();
+      broadcastAstroUpdate();
+      console.log(`[Presence] ${user.name} toggled ${data.type}: ${data.online}`);
     } catch (e) { console.error(e); }
   });
 
@@ -3309,6 +3310,7 @@ io.on('connection', (socket) => {
       const updates = { role: data.role };
       if (data.role === 'astrologer') {
         updates.walletBalance = 0;
+        updates.approvalStatus = 'pending'; // Require approval when manually set to astrologer
       }
       await User.updateOne({ userId: data.userId }, updates);
 
@@ -3774,6 +3776,10 @@ app.post('/api/astrologer/online', async (req, res) => {
   if (!userId) return res.json({ ok: false, error: 'Missing userId' });
 
   try {
+    const user = await User.findOne({ userId });
+    if (!user || user.role !== 'astrologer') return res.json({ ok: false, error: 'Access denied' });
+    if (user.approvalStatus !== 'approved') return res.json({ ok: false, error: 'Account pending admin approval' });
+
     const update = {
       isAvailable: available,
       isOnline: available, // Sync Master
