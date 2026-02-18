@@ -1852,6 +1852,9 @@
             <div id="nav-chat" class="nav-item" onclick="navSwitch('chat')">
               <i class="fas fa-comment-dots"></i> <span>Chat</span>
             </div>
+            <div id="nav-wallet" class="nav-item" onclick="navSwitch('wallet')">
+              <i class="fas fa-wallet"></i> <span>Wallet</span>
+            </div>
             <div id="nav-profile" class="nav-item" onclick="navSwitch('profile')">
               <i class="fas fa-user-circle"></i> <span>Profile</span>
             </div>
@@ -2905,6 +2908,54 @@
     </div>
   </div>
 
+  <!-- Screen: Main Wallet Modal (New) -->
+  <div id="screen-main-wallet" class="modal-overlay hidden"
+    style="align-items: center; justify-content: center; z-index: 20000; background: rgba(0, 0, 0, 0.7);">
+    <div class="call-popup"
+      style="width: 90%; max-width: 380px; text-align: center; position: relative; padding: 25px; background: white; border-radius: 24px; color: #1f2937;">
+      <button onclick="closeMainWallet()" class="close-btn"
+        style="position: absolute; right: 15px; top: 15px; color: #9ca3af; border:none; background:none; font-size:1.2rem;"><i
+          class="fas fa-times"></i></button>
+
+      <div style="font-size: 3rem; margin-bottom: 10px;">💳</div>
+      <h2 style="margin: 0; color: #111827; font-size: 1.5rem; font-weight: 800;">My Wallet</h2>
+      <p style="color: #6b7280; font-size: 0.9rem; margin-top: 5px;">Manage your cosmic balance</p>
+
+      <div style="margin: 25px 0; display: flex; flex-direction: column; gap: 12px;">
+        <div
+          style="background: #f3f4f6; padding: 15px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="text-align: left;">
+            <div style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">Main Wallet
+            </div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: #111827;">₹<span id="mainWalletVal">0.00</span>
+            </div>
+          </div>
+          <i class="fas fa-wallet" style="color: #059669; font-size: 1.5rem; opacity: 0.2;"></i>
+        </div>
+
+        <div
+          style="background: #fff1f2; padding: 15px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #fecdd3;">
+          <div style="text-align: left;">
+            <div style="font-size: 0.75rem; color: #e11d48; font-weight: 600; text-transform: uppercase;">Super Wallet
+            </div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: #be123f;">₹<span id="superWalletVal">0.00</span>
+            </div>
+          </div>
+          <i class="fas fa-magic" style="color: #e11d48; font-size: 1.5rem; opacity: 0.2;"></i>
+        </div>
+      </div>
+
+      <p style="font-size: 0.75rem; color: #9ca3af; margin-bottom: 20px; line-height: 1.4;">
+        * Rule: 70% from Main, 30% from Super Wallet.<br>Main Balance required to start sessions.
+      </p>
+
+      <button class="cosmic-btn" onclick="openRechargeFromMain()"
+        style="width: 100%; padding: 16px; border-radius: 12px; font-weight: bold; font-size: 1.1rem; border:none; background: #059669; color:white;">
+        <i class="fas fa-plus-circle"></i> Add Money
+      </button>
+    </div>
+  </div>
+
   <!-- Screen: Recharge Wallet Modal (Refined: Royal Indigo & Trust) -->
   <div id="screen-recharge" class="modal-overlay hidden"
     style="align-items: center; justify-content: center; z-index: 20000; background: rgba(2, 6, 23, 0.85);">
@@ -2921,8 +2972,8 @@
         </div>
         <h3 id="txt-recharge-title" style="margin: 0; color: #FACC15; font-size: 1.3rem; font-weight: 800;">Desired
           Wallet Credit</h3>
-        <p id="txt-recharge-subtitle" style="font-size: 0.85rem; color: rgba(255,255,255,0.6); margin-top: 5px;">Secure
-          cosmic consultation credits</p>
+        <p id="txt-recharge-subtitle" style="font-size: 0.85rem; color: rgba(255,255,255,0.6); margin-top: 5px;">
+          Secure cosmic consultation credits</p>
       </div>
 
       <div style="margin-bottom: 15px;">
@@ -2982,8 +3033,8 @@
         </div>
       </div>
 
-      <button id="btn-submit-recharge" class="cosmic-btn" onclick="submitRecharge()"
-        style="width: 100%; border-radius: 12px; font-size: 1.1rem; padding: 16px; background: #22C55E; color: white; border: none; font-weight: 800; box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.3);">
+      <button class="cosmic-btn" id="btn-recharge-submit" onclick="submitRecharge()"
+        style="width: 100%; padding: 16px; border-radius: 12px; font-weight: bold; font-size: 1.1rem; gap: 10px; border:none;">
         ADD CREDIT <i class="fas fa-lock" style="margin-left: 8px; font-size: 0.9rem;"></i>
       </button>
 
@@ -3601,6 +3652,21 @@
     function t(key) {
       if (state.lang === 'en') return key;
       return tamilDict[key] || key;
+    }
+
+    function applyBodyTranslations() {
+      const ids = {
+        'txt-recharge-title': 'Desired Wallet Credit',
+        'txt-recharge-subtitle': 'Secure cosmic consultation credits',
+        'txt-recharge-label': 'Amount to be added',
+        'txt-trust-1': 'Secure SSL Encrypted Payment',
+        'txt-trust-2': 'RBI Licensed Payment Partner',
+        'btn-recharge-submit': 'ADD CREDIT'
+      };
+      for (const [id, key] of Object.entries(ids)) {
+        const el = document.getElementById(id);
+        if (el) el.innerText = t(key);
+      }
     }
 
     window.toggleChartLang = function () {
@@ -4579,6 +4645,10 @@
     }
 
     function navSwitch(tab) {
+      if (tab === 'wallet') {
+        openMainWallet();
+        return;
+      }
       if ((tab === 'chat' || tab === 'profile') && state.me && state.me.role === 'guest') {
         showLogin();
         return;
@@ -7789,6 +7859,32 @@
 
     // Flag to prevent double-clicking
     let isPaymentInProgress = false;
+
+    // --- Main Wallet Modal Logic ---
+    window.openMainWallet = function () {
+      const modal = document.getElementById('screen-main-wallet');
+      if (!modal) return;
+
+      // Update balances
+      document.getElementById('mainWalletVal').innerText = Number(state.me?.walletBalance || 0).toFixed(2);
+      document.getElementById('superWalletVal').innerText = Number(state.me?.superWalletBalance || 0).toFixed(2);
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    };
+
+    window.closeMainWallet = function () {
+      const modal = document.getElementById('screen-main-wallet');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    };
+
+    window.openRechargeFromMain = function () {
+      closeMainWallet();
+      initiateRecharge();
+    };
 
     window.initiateRecharge = async function (amountStr) {
       // Prevent double-click / multiple calls
