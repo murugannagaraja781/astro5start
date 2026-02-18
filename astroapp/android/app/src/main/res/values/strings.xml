@@ -1,4 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Astro 5 Star</string>
+    <string name="wallet_title">My Wallet</string>
+    <string name="total_balance">Total Balance</string>
+    <string name="prosperity_account">PROSPERITY ACCOUNT</string>
+    <string name="valid_user">VALID USER</string>
+    <string name="recharge_wallet">Recharge Your Wallet</string>
+    <string name="enter_amount">Enter Amount</string>
+    <string name="you_pay">You Pay</string>
+    <string name="celestial_bonus">Celestial Bonus</string>
+    <string name="total_wallet_credit">Total Wallet Credit</string>
+    <string name="invest_now">INVEST NOW</string>
+    <string name="pay_amount">PAY ₹%d</string>
+    <string name="recent_transactions">Recent Transactions</string>
+    <string name="wallet_recharge">Wallet Recharge</string>
+    <string name="payment_status">Payment %s</string>
+    <string name="apply">Apply</string>
+    <string name="applied">Applied</string>
+    <string name="enter_valid_amount">Enter valid amount</string>
 </resources>

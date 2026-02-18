@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.lifecycleScope
 import com.astro5star.app.R
 import com.astro5star.app.data.api.ApiClient
@@ -76,7 +77,7 @@ class WalletActivity : ComponentActivity() {
                     bannerSubtitle = bannerSubtitle,
                     onAddMoney = { amount, promo ->
                          if (amount < 1) {
-                            Toast.makeText(this, "Enter valid amount", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, getString(R.string.enter_valid_amount), Toast.LENGTH_SHORT).show()
                         } else {
                             val intent = Intent(this, com.astro5star.app.ui.payment.PaymentActivity::class.java)
                             intent.putExtra("amount", amount.toDouble())
@@ -187,24 +188,25 @@ fun WalletScreen(
     var isOfferApplied by remember { mutableStateOf(false) }
     var appliedPromoCode by remember { mutableStateOf<String?>(null) }
 
-    // Green Claymorphism Theme
-    val clayShape = RoundedCornerShape(24.dp)
-    val clayGreen = Color(0xFF2ECC71) // Emerald green
-    val clayLightGreen = Color(0xFF58D68D) // Light green
-    val clayDarkGreen = Color(0xFF27AE60) // Dark green
-    val clayBg = Color(0xFFE8F5E9) // Very light green background
-    val clayWhite = Color(0xFFF1F8F4) // Soft white with green tint
+    // Premium "Celestial" Theme
+    val indigoDeep = Color(0xFF0F172A)
+    val indigoMedium = Color(0xFF1E293B)
+    val indigoLight = Color(0xFF334155)
+
+    val goldPrimary = Color(0xFFFFD700)
+    val goldGradient = Brush.linearGradient(
+        colors = listOf(Color(0xFFFDE047), Color(0xFFEAB308), Color(0xFFB45309))
+    )
+
+    val successGreen = Color(0xFF22C55E)
+    val glassWhite = Color(0xFFF8FAFC).copy(alpha = 0.95f)
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFE8F5E9),
-                        Color(0xFFC8E6C9),
-                        Color(0xFFA5D6A7)
-                    )
+                    colors = listOf(indigoDeep, indigoMedium)
                 )
             )
     ) {
@@ -214,21 +216,21 @@ fun WalletScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            "My Wallet",
-                            color = clayDarkGreen,
+                            stringResource(R.string.wallet_title),
+                            color = Color.White,
                             fontWeight = FontWeight.Bold
                         )
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
-                        titleContentColor = clayDarkGreen
+                        titleContentColor = Color.White
                     ),
                     actions = {
                         IconButton(onClick = onRefreshHistory) {
                             Icon(
                                 Icons.Rounded.History,
                                 contentDescription = "Refresh",
-                                tint = clayDarkGreen
+                                tint = Color.White
                             )
                         }
                     }
@@ -248,8 +250,8 @@ fun WalletScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = clayLightGreen.copy(alpha = 0.1f)),
-                            border = BorderStroke(1.dp, clayGreen.copy(alpha = 0.5f))
+                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f)),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
                         ) {
                             Row(
                                 modifier = Modifier.padding(16.dp),
@@ -258,7 +260,7 @@ fun WalletScreen(
                                 Icon(
                                     Icons.Rounded.AddCircle,
                                     contentDescription = null,
-                                    tint = clayDarkGreen,
+                                    tint = goldPrimary,
                                     modifier = Modifier.size(32.dp)
                                 )
                                 Spacer(modifier = Modifier.width(16.dp))
@@ -266,13 +268,13 @@ fun WalletScreen(
                                     Text(
                                         text = bannerTitle!!,
                                         fontWeight = FontWeight.Bold,
-                                        color = clayDarkGreen,
+                                        color = Color.White,
                                         fontSize = 18.sp
                                     )
                                     if (!bannerSubtitle.isNullOrEmpty()) {
                                         Text(
                                             text = bannerSubtitle!!,
-                                            color = clayDarkGreen.copy(alpha = 0.8f),
+                                            color = Color.White.copy(alpha = 0.7f),
                                             fontSize = 14.sp
                                         )
                                     }
@@ -287,16 +289,16 @@ fun WalletScreen(
                                         appliedPromoCode = if (isOfferApplied) "WELCOME10" else null
                                     },
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (isOfferApplied) clayDarkGreen else clayWhite,
-                                        contentColor = if (isOfferApplied) Color.White else clayDarkGreen
+                                        containerColor = if (isOfferApplied) successGreen else Color.Transparent,
+                                        contentColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(12.dp),
                                     modifier = Modifier.height(40.dp),
-                                    border = BorderStroke(1.dp, clayDarkGreen),
+                                    border = BorderStroke(1.dp, if (isOfferApplied) successGreen else goldPrimary),
                                     contentPadding = PaddingValues(horizontal = 12.dp)
                                 ) {
                                     Text(
-                                        text = if (isOfferApplied) "Applied" else "Apply",
+                                        text = if (isOfferApplied) stringResource(R.string.applied) else stringResource(R.string.apply),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -306,53 +308,34 @@ fun WalletScreen(
                     }
                 }
 
-                // 1. Balance Card (Claymorphism)
+                // 1. Balance Card (Premium Gold)
                 item {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
+                            .height(210.dp)
                             .shadow(
-                                elevation = 20.dp,
-                                shape = clayShape,
-                                ambientColor = clayGreen.copy(alpha = 0.3f),
-                                spotColor = clayGreen.copy(alpha = 0.3f)
+                                elevation = 24.dp,
+                                shape = RoundedCornerShape(24.dp),
+                                spotColor = goldPrimary.copy(alpha = 0.4f)
                             )
-                            .clip(clayShape)
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        clayLightGreen,
-                                        clayGreen
-                                    )
-                                )
-                            )
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(goldGradient)
                             .border(
-                                width = 2.dp,
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = 0.5f),
-                                        Color.White.copy(alpha = 0.2f)
-                                    )
-                                ),
-                                shape = clayShape
+                                width = 1.dp,
+                                color = Color.White.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(24.dp)
                             )
                     ) {
-                        // Inner shadow effect
+                        // Decorative mesh/pattern effect (simplified as a gradient overlay)
                         Box(
                             modifier = Modifier
                                 .matchParentSize()
-                                .padding(2.dp)
-                                .clip(clayShape)
                                 .background(
-                                    Brush.linearGradient(
-                                        colors = listOf(
-                                            Color.White.copy(alpha = 0.15f),
-                                            Color.Transparent,
-                                            Color.Black.copy(alpha = 0.1f)
-                                        ),
-                                        start = Offset(0f, 0f),
-                                        end = Offset(1000f, 1000f)
+                                    Brush.radialGradient(
+                                        colors = listOf(Color.White.copy(alpha = 0.2f), Color.Transparent),
+                                        center = Offset(0f, 0f),
+                                        radius = 800f
                                     )
                                 )
                         )
@@ -368,149 +351,139 @@ fun WalletScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    "Available Balance",
-                                    color = Color.White.copy(alpha = 0.9f),
-                                    fontSize = 14.sp
-                                )
+                                Column {
+                                    Text(
+                                        stringResource(R.string.total_balance),
+                                        color = Color.Black.copy(alpha = 0.6f),
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = "₹ ${balance.toInt()}",
+                                        style = MaterialTheme.typography.displayMedium.copy(
+                                            fontWeight = FontWeight.Black
+                                        ),
+                                        color = Color.Black
+                                    )
+                                }
                                 Icon(
                                     Icons.Rounded.AccountBalanceWallet,
                                     contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(28.dp)
+                                    tint = Color.Black.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(40.dp)
                                 )
                             }
 
-                            Text(
-                                text = "₹ ${balance.toInt()}",
-                                style = MaterialTheme.typography.displayMedium.copy(
-                                    fontWeight = FontWeight.ExtraBold
-                                ),
-                                color = Color.White
-                            )
-
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Bottom
                             ) {
+                                Column {
+                                    Text(
+                                        "ASTRO 5 STAR",
+                                        color = Color.Black.copy(alpha = 0.8f),
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 18.sp,
+                                        letterSpacing = 2.sp
+                                    )
+                                    Text(
+                                        stringResource(R.string.prosperity_account),
+                                        color = Color.Black.copy(alpha = 0.5f),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                                 Text(
-                                    "Astro 5 Star",
-                                    color = Color.White.copy(alpha = 0.95f),
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 16.sp
-                                )
-                                Text(
-                                    "**** **** 8888",
-                                    color = Color.White.copy(alpha = 0.8f),
-                                    fontSize = 14.sp
+                                    stringResource(R.string.valid_user),
+                                    color = Color.Black.copy(alpha = 0.7f),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
                         }
                     }
                 }
 
-                // 2. Add Money Section (Claymorphism)
+                // 2. Add Money Section
                 item {
-                    Box(
+                    Card(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(
-                                elevation = 15.dp,
-                                shape = clayShape,
-                                ambientColor = clayGreen.copy(alpha = 0.2f),
-                                spotColor = clayGreen.copy(alpha = 0.2f)
-                            )
-                            .clip(clayShape)
-                            .background(clayWhite)
-                            .border(
-                                width = 1.dp,
-                                color = Color.White.copy(alpha = 0.8f),
-                                shape = clayShape
-                            )
-                            .padding(20.dp)
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = indigoMedium),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
                     ) {
                         Column(
+                            modifier = Modifier.padding(24.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             Text(
-                                text = "Recharge Wallet",
+                                text = stringResource(R.string.recharge_wallet),
                                 style = MaterialTheme.typography.titleLarge,
-                                color = clayDarkGreen,
+                                color = goldPrimary,
                                 fontWeight = FontWeight.Bold
                             )
 
-                            // Amount input with claymorphism
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .shadow(
-                                        elevation = 8.dp,
-                                        shape = RoundedCornerShape(16.dp),
-                                        ambientColor = clayGreen.copy(alpha = 0.15f),
-                                        spotColor = clayGreen.copy(alpha = 0.15f)
-                                    )
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(clayBg)
-                            ) {
-                                OutlinedTextField(
-                                    value = amountInput,
-                                    onValueChange = { amountInput = it.filter { char -> char.isDigit() } },
-                                    label = { Text("Enter Amount (₹)", color = clayDarkGreen) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = clayGreen,
-                                        unfocusedBorderColor = clayLightGreen.copy(alpha = 0.5f),
-                                        focusedContainerColor = Color.Transparent,
-                                        unfocusedContainerColor = Color.Transparent,
-                                        focusedTextColor = clayDarkGreen,
-                                        unfocusedTextColor = clayDarkGreen,
-                                        cursorColor = clayGreen
-                                    ),
-                                    singleLine = true
-                                )
-                            }
+                            // Amount input
+                            OutlinedTextField(
+                                value = amountInput,
+                                onValueChange = { amountInput = it.filter { char -> char.isDigit() } },
+                                label = { Text(stringResource(R.string.enter_amount), color = Color.White.copy(alpha = 0.6f)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = goldPrimary,
+                                    unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
+                                    focusedContainerColor = indigoDeep.copy(alpha = 0.5f),
+                                    unfocusedContainerColor = indigoDeep.copy(alpha = 0.3f),
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    cursorColor = goldPrimary
+                                ),
+                                prefix = { Text("₹ ", color = goldPrimary, fontWeight = FontWeight.Bold) },
+                                singleLine = true
+                            )
 
-                            // Discount Summary
+                            // Discount Summary (Refined: Value vs Cost)
                             if (isOfferApplied && amountInput.isNotEmpty()) {
-                                val originalAmt = amountInput.toIntOrNull() ?: 0
-                                if (originalAmt > 0) {
-                                    val discount = (originalAmt * 0.1).toInt() // 10% Discount
-                                    val finalAmt = originalAmt - discount
+                                val payAmount = amountInput.toIntOrNull() ?: 0
+                                if (payAmount > 0) {
+                                    val bonusValue = (payAmount * 0.1).toInt() // 10% Bonus for now
+                                    val totalCredit = payAmount + bonusValue
 
                                     Column(
                                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text("Original Amount", color = Color.Gray, fontSize = 14.sp)
-                                            Text("₹$originalAmt", color = Color.Gray, fontSize = 14.sp)
+                                            Text(stringResource(R.string.you_pay), color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
+                                            Text("₹$payAmount", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
                                         }
                                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text("Discount (10%)", color = clayDarkGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                            Text("- ₹$discount", color = clayDarkGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                            Text(stringResource(R.string.celestial_bonus), color = successGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                            Text("+ ₹$bonusValue", color = successGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                         }
-                                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = clayGreen.copy(alpha = 0.2f))
+                                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = Color.White.copy(alpha = 0.1f))
                                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text("Final Amount", color = clayDarkGreen, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
-                                            Text("₹$finalAmt", color = clayDarkGreen, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+                                            Text(stringResource(R.string.total_wallet_credit), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+                                            Text("₹$totalCredit", color = goldPrimary, fontSize = 20.sp, fontWeight = FontWeight.Black)
                                         }
                                     }
                                 }
                             }
 
-                            // Recharge button with claymorphism
+                            // Recharge button
                             Button(
                                 onClick = {
-                                    val originalAmt = amountInput.toIntOrNull() ?: 0
-                                    if (originalAmt >= 1) {
-                                        val finalAmt = if (isOfferApplied) {
-                                            (originalAmt * 0.9).toInt()
-                                        } else {
-                                            originalAmt
-                                        }
-                                        onAddMoney(finalAmt, if (isOfferApplied) appliedPromoCode else null)
+                                    val payAmount = amountInput.toIntOrNull() ?: 0
+                                    if (payAmount >= 1) {
+                                        // On backend, we need to know the 'actual amount' to charge and the 'promo'
+                                        // If user pays 50 and gets 100, backend needs to handle the bonus.
+                                        // Current logic says 'onAddMoney(finalAmt, promo)'.
+                                        // I will send the payAmount and the promo so backend handles bonus.
+                                        onAddMoney(payAmount, if (isOfferApplied) appliedPromoCode else null)
                                         amountInput = ""
                                         isOfferApplied = false
                                         appliedPromoCode = null
@@ -518,29 +491,24 @@ fun WalletScreen(
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(56.dp)
+                                    .height(60.dp)
                                     .shadow(
-                                        elevation = 12.dp,
+                                        elevation = 16.dp,
                                         shape = RoundedCornerShape(16.dp),
-                                        ambientColor = clayGreen.copy(alpha = 0.4f),
-                                        spotColor = clayGreen.copy(alpha = 0.4f)
+                                        spotColor = successGreen.copy(alpha = 0.5f)
                                     ),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = clayGreen,
+                                    containerColor = successGreen,
                                     contentColor = Color.White
                                 )
                             ) {
-                                Icon(
-                                    Icons.Rounded.AddCircle,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                val payAmount = amountInput.toIntOrNull() ?: 0
                                 Text(
-                                    "Recharge Now",
+                                    if (payAmount > 0) stringResource(R.string.pay_amount, payAmount) else stringResource(R.string.invest_now),
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.sp
                                 )
                             }
 
@@ -550,26 +518,20 @@ fun WalletScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 listOf(100, 500, 1000, 2000).forEach { amount ->
-                                    Button(
+                                    Surface(
                                         onClick = { amountInput = amount.toString() },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .shadow(
-                                                elevation = 6.dp,
-                                                shape = RoundedCornerShape(12.dp),
-                                                ambientColor = clayLightGreen.copy(alpha = 0.3f),
-                                                spotColor = clayLightGreen.copy(alpha = 0.3f)
-                                            ),
+                                        modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = clayWhite,
-                                            contentColor = clayDarkGreen
-                                        )
+                                        color = indigoLight.copy(alpha = 0.4f),
+                                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
                                     ) {
                                         Text(
                                             "₹$amount",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.SemiBold
+                                            modifier = Modifier.padding(vertical = 12.dp),
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                         )
                                     }
                                 }
@@ -578,12 +540,12 @@ fun WalletScreen(
                     }
                 }
 
-                // 3. Transaction History Section (Claymorphism)
+                // 3. Transaction History Section
                 item {
                     Text(
-                        text = "Transaction History",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = clayDarkGreen,
+                        text = stringResource(R.string.recent_transactions),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White.copy(alpha = 0.8f),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -595,22 +557,11 @@ fun WalletScreen(
                     val dateStr = transaction.optString("createdAt", "")
                     val displayDate = if (dateStr.length > 10) dateStr.substring(0, 10) else dateStr
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(
-                                elevation = 10.dp,
-                                shape = RoundedCornerShape(16.dp),
-                                ambientColor = clayGreen.copy(alpha = 0.15f),
-                                spotColor = clayGreen.copy(alpha = 0.15f)
-                            )
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(clayWhite)
-                            .border(
-                                width = 1.dp,
-                                color = Color.White.copy(alpha = 0.6f),
-                                shape = RoundedCornerShape(16.dp)
-                            )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = indigoMedium.copy(alpha = 0.5f)),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
                     ) {
                         Row(
                             modifier = Modifier
@@ -620,31 +571,25 @@ fun WalletScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(48.dp)
-                                    .shadow(
-                                        elevation = 4.dp,
-                                        shape = CircleShape,
-                                        ambientColor = clayGreen.copy(alpha = 0.2f),
-                                        spotColor = clayGreen.copy(alpha = 0.2f)
-                                    )
+                                    .size(44.dp)
                                     .background(
-                                        if (status == "success") clayLightGreen.copy(alpha = 0.3f)
-                                        else Color(0xFFFFCDD2),
+                                        if (status == "success") successGreen.copy(alpha = 0.1f)
+                                        else Color.Red.copy(alpha = 0.1f),
                                         CircleShape
                                     )
                                     .border(
                                         1.dp,
-                                        if (status == "success") clayGreen.copy(alpha = 0.5f)
-                                        else Color(0xFFEF5350).copy(alpha = 0.5f),
+                                        if (status == "success") successGreen.copy(alpha = 0.3f)
+                                        else Color.Red.copy(alpha = 0.3f),
                                         CircleShape
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = if (status == "success") "✓" else "!",
-                                    color = if (status == "success") clayDarkGreen else Color(0xFFD32F2F),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 20.sp
+                                Icon(
+                                    imageVector = if (status == "success") Icons.Rounded.AccountBalanceWallet else Icons.Rounded.History,
+                                    contentDescription = null,
+                                    tint = if (status == "success") successGreen else Color.Red,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
 
@@ -652,24 +597,23 @@ fun WalletScreen(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = status.uppercase(),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = if (status == "success") clayDarkGreen else Color(0xFFD32F2F),
+                                    text = if (status == "success") stringResource(R.string.wallet_recharge) else stringResource(R.string.payment_status, status),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = Color.White,
                                     fontWeight = FontWeight.Bold
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = displayDate,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = clayDarkGreen.copy(alpha = 0.6f)
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.5f)
                                 )
                             }
 
                             Text(
                                 text = "₹${amount.toInt()}",
                                 style = MaterialTheme.typography.titleLarge,
-                                color = clayDarkGreen,
-                                fontWeight = FontWeight.ExtraBold
+                                color = if (status == "success") goldPrimary else Color.White,
+                                fontWeight = FontWeight.Black
                             )
                         }
                     }
