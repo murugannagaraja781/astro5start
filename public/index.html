@@ -2623,6 +2623,20 @@
         </div>
       </div>
 
+      <!-- Coupon Section -->
+      <div style="margin-bottom: 20px;">
+        <label style="font-size: 0.8rem; color: rgba(255,255,255,0.6); display: block; margin-bottom: 5px;">Apply
+          Coupon</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="couponInput" class="app-input"
+            style="flex: 1; padding: 10px; font-size: 0.9rem; color: white; background: rgba(2, 6, 23, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; text-transform: uppercase;"
+            placeholder="WELCOME50">
+          <button onclick="applyCoupon()" id="btnApplyCoupon"
+            style="background: #FACC15; color: #000; border: none; padding: 0 15px; border-radius: 8px; font-weight: bold; font-size: 0.8rem; cursor: pointer;">APPLY</button>
+        </div>
+        <div id="couponMessage" style="font-size: 0.7rem; margin-top: 5px; min-height: 12px;"></div>
+      </div>
+
       <!-- Calculation Summary -->
       <div id="rechargeSummary" style="margin-bottom: 20px; display: none;">
         <div style="display:flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px;">
@@ -5199,6 +5213,11 @@
 
         state.peer = p;
         state.localStream = stream;
+        state.banners = [];
+        state.topAstrologers = [];
+        state.isGuest = false;
+        state.appliedCoupon = null;
+        state.couponBonus = 0;
       } catch (e) {
         console.error(e);
         alert('Device/Connection Error: ' + e.message);
@@ -6139,7 +6158,7 @@
           month: parseInt(month),
           day: parseInt(day),
           hour: parseInt(hour),
-          minute: parseInt(minute),
+          minute: parseInt(min),
           latitude: parseFloat(lat),
           longitude: parseFloat(lon),
           timezone: parseFloat(tz) || 5.5,
@@ -7216,6 +7235,8 @@
         originalBtn.textContent = 'Processing...';
       }
 
+      const couponCode = state.appliedCoupon || "";
+
       try {
         // Generate secure payment token from backend
         const response = await fetch('/api/payment/token', {
@@ -7223,7 +7244,8 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: state.me.userId,
-            amount: amount
+            amount: amount,
+            couponCode: couponCode
           })
         });
 
@@ -7260,6 +7282,51 @@
       updateRechargeSummary();
     };
 
+    window.applyCoupon = async function () {
+      const code = document.getElementById('couponInput').value.trim().toUpperCase();
+      const amount = document.getElementById('rechargeInput').value;
+      const msgElem = document.getElementById('couponMessage');
+      const btnApply = document.getElementById('btnApplyCoupon');
+
+      if (!code) return;
+      if (!amount || amount < 1) {
+        msgElem.innerText = 'Select amount first';
+        msgElem.style.color = '#ef4444';
+        return;
+      }
+
+      btnApply.disabled = true;
+      btnApply.innerText = '...';
+
+      try {
+        const res = await fetch('/api/payment/validate-coupon', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ couponCode: code, amount: amount })
+        }).then(r => r.json());
+
+        if (res.ok) {
+          state.appliedCoupon = code;
+          state.couponBonus = res.bonus;
+          msgElem.innerText = '✅ Applied! ₹' + res.bonus + ' bonus will be added.';
+          msgElem.style.color = '#22c55e';
+          updateRechargeSummary();
+        } else {
+          state.appliedCoupon = null;
+          state.couponBonus = 0;
+          msgElem.innerText = '❌ ' + (res.error || 'Invalid code');
+          msgElem.style.color = '#ef4444';
+          updateRechargeSummary();
+        }
+      } catch (err) {
+        msgElem.innerText = '❌ Error validating coupon';
+        msgElem.style.color = '#ef4444';
+      } finally {
+        btnApply.disabled = false;
+        btnApply.innerText = 'APPLY';
+      }
+    };
+
     window.updateRechargeSummary = function () {
       const amtInput = document.getElementById('rechargeInput').value;
       const summaryElem = document.getElementById('rechargeSummary');
@@ -7273,19 +7340,22 @@
         summaryElem.style.display = 'block';
         walletValElem.innerText = '₹' + targetCredit;
 
-        // Assuming 50% Welcome Offer parity
-        const isWelcomeOffer = true; // Parity with Android logic
-        const finalPay = isWelcomeOffer ? Math.floor(targetCredit * 0.5) : targetCredit;
-        const discountAmount = targetCredit - finalPay;
-
-        if (isWelcomeOffer) {
-          promoRow.style.display = 'flex';
-          discValueElem.innerText = '- ₹' + discountAmount;
-        } else {
-          promoRow.style.display = 'none';
+        let bonusPercent = 0;
+        if (state.appliedCoupon === 'WELCOME50') {
+          bonusPercent = 0.5;
         }
 
-        finalPayElem.innerText = '₹' + finalPay;
+        const finalPay = targetCredit; // Total is always base + GST, but user recharges "Credit"
+        // Wait, the existing logic had: You Pay: ₹50 if Wallet Value is ₹100
+        // The user said: "Welcome Offer (50% Off): wallet la remove pany athu la ah copen code set panu"
+        // This means we should probably show the bonus value instead of "50% Off" price reduction
+        // Let's change the summary to reflect: Recharge ₹100 -> Get ₹100 Main + ₹50 Super
+
+        const bonusVal = Math.floor(targetCredit * bonusPercent);
+        discValueElem.innerText = bonusVal > 0 ? '+ ₹' + bonusVal + ' Bonus' : 'Apply coupon for bonus';
+        promoRow.style.color = bonusVal > 0 ? '#22C55E' : 'rgba(255,255,255,0.4)';
+
+        finalPayElem.innerText = '₹' + Math.floor(targetCredit * 1.18); // Show total with GST
       } else {
         summaryElem.style.display = 'none';
       }

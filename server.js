@@ -617,7 +617,9 @@ const PaymentSchema = new mongoose.Schema({
   providerRefId: String,
   isApp: { type: Boolean, default: false },
   isSuperWallet: { type: Boolean, default: false }, // Promotion trigger
-  offerPercentage: { type: Number, default: 0 }    // Bonus calculation
+  offerPercentage: { type: Number, default: 0 },    // Legacy bonus calculation
+  couponCode: String,                               // Applied coupon
+  couponBonus: { type: Number, default: 0 }         // Bonus amount from coupon
 });
 const Payment = mongoose.model('Payment', PaymentSchema);
 
@@ -4083,10 +4085,49 @@ app.get('/api/verify-payment-token', async (req, res) => {
 });
 
 // 1. Initiate Payment (Supports both token-based and legacy userId-based)
+// Validate Coupon Code
+app.post('/api/payment/validate-coupon', async (req, res) => {
+  try {
+    const { couponCode, amount } = req.body;
+
+    if (!couponCode || !amount) {
+      return res.json({ ok: false, error: 'Missing code or amount' });
+    }
+
+    const code = couponCode.toUpperCase().trim();
+    const baseAmount = parseFloat(amount);
+
+    // Hardcoded logic for WELCOME50 (as per user request "50% Off")
+    if (code === 'WELCOME50') {
+      const bonus = baseAmount * 0.50;
+      return res.json({
+        ok: true,
+        bonus: bonus,
+        message: 'WELCOME50 Applied! 50% Bonus will be added to your Super Wallet.'
+      });
+    }
+
+    return res.json({ ok: false, error: 'Invalid coupon code' });
+  } catch (e) {
+    console.error('Coupon Validation Error:', e);
+    res.json({ ok: false, error: 'Internal Error' });
+  }
+});
+
 app.post('/api/payment/create', async (req, res) => {
   try {
-    let { userId, amount, isApp, token, isSuperWallet, offerPercentage } = req.body;
-    let baseAmount = 0, gstAmount = 0;
+    let { userId, amount, isApp, token, isSuperWallet, offerPercentage, couponCode } = req.body;
+    let baseAmount = 0, gstAmount = 0, couponBonus = 0;
+
+    // Handle Optional Coupon
+    if (couponCode) {
+      const code = couponCode.toUpperCase().trim();
+      if (code === 'WELCOME50') {
+        // We calculate bonus on baseAmount (excluding GST)
+        // For token-based, we get baseAmount later, if legacy we have it now
+        // To be safe, let's just flag it and calculate after amount is finalized
+      }
+    }
 
     // Token-based authentication (SECURE - for browser flow)
     if (token) {
@@ -4139,6 +4180,14 @@ app.post('/api/payment/create', async (req, res) => {
     const merchantTransactionId = "MT" + Date.now() + Math.floor(Math.random() * 1000);
     const redirectUrl = `https://astro5star.com/api/payment/callback`;
 
+    // Finalize Coupon Bonus if any
+    if (couponCode) {
+      const code = couponCode.toUpperCase().trim();
+      if (code === 'WELCOME50') {
+        couponBonus = baseAmount * 0.50;
+      }
+    }
+
     // Create Pending Record
     await Payment.create({
       transactionId: merchantTransactionId,
@@ -4150,8 +4199,10 @@ app.post('/api/payment/create', async (req, res) => {
       status: 'pending',
       withGst: true,
       isApp: !!isApp, // Store the source
-      isSuperWallet: !!isSuperWallet,
-      offerPercentage: parseFloat(offerPercentage || 0)
+      isSuperWallet: !!isSuperWallet || !!couponBonus, // Mark as super wallet if coupon bonus exists
+      offerPercentage: parseFloat(offerPercentage || 0),
+      couponCode: couponCode || null,
+      couponBonus: couponBonus
     });
 
     // PhonePe Payload
@@ -4386,6 +4437,13 @@ app.post('/api/payment/callback', async (req, res) => {
           const creditAmount = payment.withGst ? (payment.baseAmount || payment.amount) : payment.amount;
 
           user.walletBalance += creditAmount;
+
+          // Coupon Bonus - Credit to Super Wallet
+          if (payment.couponBonus > 0) {
+            user.superWalletBalance = (user.superWalletBalance || 0) + payment.couponBonus;
+            console.log(`🎁 Coupon Bonus Applied: ${user.name} +₹${payment.couponBonus} (Code: ${payment.couponCode})`);
+          }
+
           await user.save();
           console.log(`✅ Wallet Credited: ${user.name} +₹${creditAmount} (PhonePe: ${code}, Total Paid: ₹${payment.amount})`);
 
