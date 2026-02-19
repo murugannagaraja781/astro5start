@@ -207,6 +207,14 @@ fun WalletScreen(
     var isOfferApplied by remember { mutableStateOf(false) }
     var appliedPromoCode by remember { mutableStateOf<String?>(null) }
 
+    // Initial banner check
+    LaunchedEffect(ctaText) {
+        if (!ctaText.isNullOrEmpty() && appliedCoupon == null) {
+            // Auto trigger for banner entry if needed
+            // But let's follow the rule: banner kudu offer amount banner madum than apply
+        }
+    }
+
     // Trustworthy "Royal Indigo" Theme
     val indigoDeep = Color(0xFF020617) // Darkest Slate/Indigo for Trust
     val indigoMedium = Color(0xFF0F172A)
@@ -304,20 +312,34 @@ fun WalletScreen(
                                 // Apply Button
                                 Button(
                                     onClick = {
-                                        isOfferApplied = !isOfferApplied
-                                        appliedPromoCode = if (isOfferApplied) "WELCOME10" else null
+                                        if (appliedCoupon == "WELCOME50") {
+                                            appliedCoupon = null
+                                            couponInput = ""
+                                            couponBonus = 0.0
+                                            couponMessage = null
+                                        } else {
+                                            val amt = amountInput.toDoubleOrNull() ?: 100.0 // Default to 100 if empty
+                                            if (amountInput.isEmpty()) {
+                                                amountInput = "100"
+                                            }
+                                            appliedCoupon = "WELCOME50"
+                                            couponInput = "WELCOME50"
+                                            couponBonus = amt * 0.5
+                                            couponMessage = "✅ Applied: ₹${couponBonus.toInt()} Bonus"
+                                        }
                                     },
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (isOfferApplied) successGreen else Color.Transparent,
+                                        containerColor = if (appliedCoupon == "WELCOME50") successGreen else Color.Transparent,
                                         contentColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(12.dp),
                                     modifier = Modifier.height(40.dp),
-                                    border = BorderStroke(1.dp, if (isOfferApplied) successGreen else goldPrimary),
+                                    border = BorderStroke(1.dp, if (appliedCoupon == "WELCOME50") successGreen else goldPrimary),
                                     contentPadding = PaddingValues(horizontal = 12.dp)
                                 ) {
+                                    val isApplied = appliedCoupon == "WELCOME50"
                                     Text(
-                                        text = if (isOfferApplied) stringResource(R.string.applied) else stringResource(R.string.apply),
+                                        text = if (isApplied) stringResource(R.string.applied) else stringResource(R.string.apply),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold
                                     )

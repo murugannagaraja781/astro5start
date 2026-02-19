@@ -4181,7 +4181,24 @@
     function handleBannerClick(id) {
       const banner = allBanners.find(b => (b._id || b.id) == id);
       if (banner && banner.offerPercentage > 0) {
-        openSuperWallet(banner);
+        // Auto-apply WELCOME50 coupon and open standard recharge modal
+        state.appliedCoupon = 'WELCOME50';
+        state.couponBonus = 0; // Will be calculated by updateRechargeSummary
+
+        closeMainWallet();
+        document.getElementById('screen-recharge').classList.remove('hidden');
+
+        // Update UI fields
+        const cInp = document.getElementById('couponInput');
+        if (cInp) cInp.value = state.appliedCoupon;
+
+        const msgElem = document.getElementById('couponMessage');
+        if (msgElem) {
+          msgElem.innerText = '✅ WELCOME50 Auto-Applied!';
+          msgElem.style.color = '#22c55e';
+        }
+
+        updateRechargeSummary();
         return;
       }
       // Default behavior
@@ -7198,6 +7215,16 @@
     };
 
     window.openRechargeFromMain = function () {
+      // Clear any pre-applied coupon when opening normally
+      state.appliedCoupon = null;
+      state.couponBonus = 0;
+
+      const cInp = document.getElementById('couponInput');
+      if (cInp) cInp.value = '';
+
+      const msgElem = document.getElementById('couponMessage');
+      if (msgElem) msgElem.innerText = '';
+
       closeMainWallet();
       initiateRecharge();
     };
@@ -7367,12 +7394,12 @@
       if (targetCredit < 1) return alert(state.language === 'ta' ? "குறைந்தபட்ச தொகை ₹1" : "Minimum amount is ₹1");
 
       const isWelcomeOffer = true;
-      const finalPayAmount = isWelcomeOffer ? Math.floor(targetCredit * 0.5) : targetCredit;
+      const finalPayAmount = targetCredit;
       const promoCode = isWelcomeOffer ? 'WELCOME50' : null;
 
       closeRechargeModal();
       // Use the secure token-based flow
-      initiateRecharge(finalPayAmount, promoCode);
+      initiateRecharge(finalPayAmount);
     };
 
     async function processRecharge(amount) {

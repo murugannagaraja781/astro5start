@@ -4025,6 +4025,7 @@ app.post('/api/payment/token', async (req, res) => {
       baseAmount: baseAmount,
       gstAmount: gstAmount,
       amount: totalAmount, // Total to be paid
+      couponCode: req.body.couponCode || "", // Support coupons
       createdAt: Date.now(),
       used: false,
       userName: user.name,
