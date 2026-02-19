@@ -298,27 +298,42 @@ fun HomeScreen(
     // Fetch History when tab 5 is selected
     LaunchedEffect(selectedTab) {
         if (selectedTab == 5 && !isGuest) {
+            val userId = userSession?.userId ?: return@LaunchedEffect
+            val myRole = userSession?.role ?: "client"
             isHistoryLoading = true
-                    client.newCall(request).execute()
-                }
+
+            try {
+                val response = ApiClient.api.getPaymentHistory(userId)
                 if (response.isSuccessful) {
-                    val json = JSONObject(response.body?.string() ?: "{}")
-                    if (json.optBoolean("ok")) {
-                         val array = json.optJSONArray("sessions") ?: JSONArray()
+                    val json = response.body()
+                    if (json != null && json.has("ok") && json.get("ok").asBoolean) {
+                         val array = json.getAsJsonArray("data")
                          val list = mutableListOf<SessionHistoryItem>()
 
-                         for (i in 0 until array.length()) {
-                             val obj = array.getJSONObject(i)
+                         for (i in 0 until array.size()) {
+                             val obj = array.get(i).asJsonObject
                              val isAstro = myRole == "astrologer"
                              list.add(
                                  SessionHistoryItem(
-                                     id = obj.optString("sessionId"),
-                                     partnerName = if (isAstro) obj.optString("clientName", "Unknown") else obj.optString("astrologerName", "Unknown"),
-                                     type = obj.optString("type", "call"),
-                                     startTime = if (obj.has("actualBillingStart") && obj.optLong("actualBillingStart") > 0) obj.optLong("actualBillingStart") else obj.optLong("startTime", 0),
-                                     endTime = if (obj.has("sessionEndAt") && obj.optLong("sessionEndAt") > 0) obj.optLong("sessionEndAt") else obj.optLong("endTime", 0),
-                                     duration = obj.optInt("duration", 0),
-                                     amount = if (isAstro) obj.optDouble("totalEarned", 0.0) else obj.optDouble("totalCharged", 0.0),
+                                     id = if (obj.has("_id")) obj.get("_id").asString else "unknown",
+                                     partnerName = if (isAstro) {
+                                         if (obj.has("userName")) obj.get("userName").asString else "Unknown"
+                                     } else {
+                                         if (obj.has("astrologerName")) obj.get("astrologerName").asString else "Unknown"
+                                     },
+                                     type = if (obj.has("type")) obj.get("type").asString else "call",
+                                     startTime = if (obj.has("createdAt")) {
+                                         try {
+                                             // Expecting ISO string or long, but server usually gives ISO for createdAt
+                                             // For now, let's just parse it if it's a long or 0
+                                              if (obj.get("createdAt").isJsonPrimitive && obj.get("createdAt").asJsonPrimitive.isNumber)
+                                                  obj.get("createdAt").asLong
+                                              else 0L
+                                         } catch (e: Exception) { 0L }
+                                     } else 0L,
+                                     endTime = if (obj.has("endTime") && obj.get("endTime").isJsonPrimitive && obj.get("endTime").asJsonPrimitive.isNumber) obj.get("endTime").asLong else 0L,
+                                     duration = if (obj.has("duration")) obj.get("duration").asInt else 0,
+                                     amount = if (obj.has("amount")) obj.get("amount").asDouble else 0.0,
                                      isEarned = isAstro
                                  )
                              )
@@ -326,8 +341,11 @@ fun HomeScreen(
                          historySessions = list
                     }
                 }
-            } catch (e: Exception) { e.printStackTrace() }
-            finally { isHistoryLoading = false }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isHistoryLoading = false
+            }
         }
     }
 

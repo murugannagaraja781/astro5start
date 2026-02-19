@@ -16,8 +16,8 @@ android {
         applicationId = "com.astro5star.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 3
-        versionName = "5.5.3"
+        versionCode = 4
+        versionName = "5.5.4"
     }
 
     signingConfigs {
