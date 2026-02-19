@@ -345,13 +345,12 @@ fun WalletScreen(
                                     )
                                 }
                             }
-                        }
-                    }
                 }
+            }
 
-                // 1. Balance Card (Premium Gold)
-                item {
-                    Box(
+            // 1. Balance Card (Premium Gold)
+            item {
+                Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(210.dp)
@@ -464,13 +463,13 @@ fun WalletScreen(
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
-                            }
-                        }
                     }
                 }
+            }
+        }
 
-                // 2. Add Money Section
-                item {
+        // 2. Add Money Section
+            item {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth(),
@@ -774,3 +773,4 @@ fun WalletScreen(
         }
     }
 }
+
