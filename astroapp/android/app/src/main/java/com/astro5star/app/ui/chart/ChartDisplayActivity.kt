@@ -216,7 +216,6 @@ class ChartDisplayActivity : ComponentActivity() {
                     <tr><th>Yoga</th><td>${panchangam.optString("yoga")}</td></tr>
                     <tr><th>Karana</th><td>${panchangam.optString("karana")}</td></tr>
                 </table>
-
                 ${if(dasha != null) """
                 <h3>Current Dasha</h3>
                 <table class="info-table highlight">
@@ -226,6 +225,38 @@ class ChartDisplayActivity : ComponentActivity() {
                     <tr><th>Remaining</th><td>${String.format("%.1f", dasha.optDouble("remainingYearsInCurrentDasha"))} Years</td></tr>
                 </table>
                 """ else ""}
+
+                <h3>நவகிரக பாதசாரம் (Navagraha Pathasaram)</h3>
+                <table class="info-table">
+                    <thead>
+                        <tr>
+                            <th>கிரகம்</th>
+                            <th>ராசி</th>
+                            <th>பாகை</th>
+                            <th>நட்சத்திரம்</th>
+                            <th>பாதம்</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${run {
+                            val sb = StringBuilder()
+                            val keys = listOf("Ascendant", "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu")
+                            keys.forEach { p ->
+                                val pData = planets.optJSONObject(p)
+                                if (pData != null) {
+                                    val name = if(p == "Ascendant") "லக்னம்" else pData.optString("nameTamil", p)
+                                    val rasiColor = "#000"
+                                    val rasi = pData.optString("signTamil", pData.optString("sign"))
+                                    val deg = pData.optString("degreeFormatted", "")
+                                    val naks = pData.optString("nakshatra", "")
+                                    val pada = pData.optInt("nakshatraPada", 1)
+                                    sb.append("<tr><td>$name</td><td>$rasi</td><td>$deg</td><td>$naks</td><td>$pada</td></tr>")
+                                }
+                            }
+                            sb.toString()
+                        }}
+                    </tbody>
+                </table>
 
             </body>
             </html>

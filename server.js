@@ -2138,6 +2138,50 @@ app.post('/api/city-timezone', async (req, res) => {
   }
 });
 
+// ===== Astrologer Registration REST (for Android App) =====
+app.post('/api/astrologer/register', async (req, res) => {
+  try {
+    const data = req.body;
+    const { name, phone, email, experience, price, skills, bio } = data;
+
+    if (!name || !phone) {
+      return res.status(400).json({ ok: false, error: 'Name and phone are required' });
+    }
+
+    const existing = await User.findOne({ phone });
+    if (existing) {
+      return res.json({ ok: false, error: 'Phone number already registered' });
+    }
+
+    const userId = 'ASTRO_' + Date.now() + Math.floor(Math.random() * 1000);
+    const newUser = new User({
+      userId,
+      phone,
+      email,
+      name,
+      realName: name,
+      astrologyExperience: experience,
+      ratePerMinute: price,
+      profession: skills,
+      bio,
+      role: 'astrologer',
+      approvalStatus: 'pending',
+      isVerified: false,
+      isAvailable: false,
+      isOnline: false,
+      walletBalance: 0,
+      totalEarnings: 0
+    });
+
+    await newUser.save();
+    console.log(`[Registration] New Astrologer Registered: ${name} (${userId})`);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ ok: false, error: 'Internal server error' });
+  }
+});
+
 // ===== Socket.IO =====
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);

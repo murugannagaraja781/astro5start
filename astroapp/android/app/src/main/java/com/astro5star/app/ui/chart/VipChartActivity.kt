@@ -201,7 +201,7 @@ fun VipChartScreen(birthData: JSONObject, onBack: () -> Unit) {
                         )
                     }
                 ) {
-                    val tabs = listOf("கட்டங்கள்", "கிரக நிலைகள்", "தசா புக்தி விபரங்கள்")
+                    val tabs = listOf("கட்டங்கள்", "நவகிரக பாதசாரம்", "தசா புக்தி விபரங்கள்")
                     tabs.forEachIndexed { index, title ->
                         Tab(
                             selected = selectedTab == index,
@@ -382,7 +382,7 @@ fun getMonthName(m: Int): String = listOf("", "Jan", "Feb", "Mar", "Apr", "May",
 fun PlanetsTab(data: ChartData) {
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            Text("கிரகங்களின் விரிவான நிலைகள்", fontWeight = FontWeight.Bold, color = TraditionalRed, fontSize = 18.sp)
+            Text("நவகிரக பாதசாரம் (Navagraha Pathasaram)", fontWeight = FontWeight.Bold, color = TraditionalRed, fontSize = 18.sp)
             Spacer(Modifier.height(8.dp))
         }
 
@@ -409,7 +409,7 @@ fun PlanetsTab(data: ChartData) {
                     }
                     Divider(Modifier.padding(vertical = 12.dp), color = TraditionalRed.copy(0.1f))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        PlanetDetailSub("நட்சத்திரம்", planet.nakshatra)
+                        PlanetDetailSub("நட்சத்திரம்", "${planet.nakshatra} - ${planet.nakshatraPada}")
                         PlanetDetailSub("நட்சத்திர அதிபதி", planet.starLord ?: "N/A")
                         PlanetDetailSub("உப அதிபதி", planet.subLord ?: "N/A")
                     }

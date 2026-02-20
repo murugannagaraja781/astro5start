@@ -73,4 +73,13 @@ interface ApiInterface {
     suspend fun generateRasiChart(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
     @retrofit2.http.GET("api/payment/history/{userId}")
     suspend fun getPaymentHistory(@retrofit2.http.Path("userId") userId: String): Response<com.google.gson.JsonObject>
+    @POST("api/astrologer/register")
+    suspend fun registerAstrologer(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.Multipart
+    @POST("api/user/profile-pic")
+    suspend fun uploadProfilePic(
+        @retrofit2.http.Part("userId") userId: okhttp3.RequestBody,
+        @retrofit2.http.Part image: okhttp3.MultipartBody.Part
+    ): Response<com.google.gson.JsonObject>
 }

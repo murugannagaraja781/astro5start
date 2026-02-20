@@ -523,10 +523,11 @@ fun HomeScreen(
                 onItemClick = { item ->
                     scope.launch { drawerState.close() }
                     onDrawerItemClick(item)
-                    if (item == "Logout") onLogoutClick()
+                    if (item == "logout") onLogoutClick()
                 },
                 onClose = { scope.launch { drawerState.close() } },
-                session = userSession
+                session = userSession,
+                isTamil = isTamil
             )
         }
     ) {
@@ -765,7 +766,7 @@ fun PolicyLink(label: String, url: String, context: android.content.Context) {
 
 // --- 1. DRAWER ---
 @Composable
-fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthResponse?) {
+fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthResponse?, isTamil: Boolean = true) {
     val context = LocalContext.current
     ModalDrawerSheet(
         drawerContainerColor = Color(0xFFF8F9FA), // Light Color (User Request)
@@ -815,19 +816,19 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthR
         Spacer(modifier = Modifier.height(8.dp))
 
         // Drawer Items
-        val items = listOf("Home", "Profile", "Wallet", "Terms & Conditions", "Privacy Policy", "Settings", "Logout")
-        items.forEach { item ->
+        val items = listOf("home", "profile", "wallet", "join_as_astrologer", "Terms & Conditions", "Privacy Policy", "settings", "logout")
+        items.forEach { itemKey ->
             NavigationDrawerItem(
                 label = {
                     Text(
-                        text = item,
-                        color = if(item == "Logout") Color.Red else Color.DarkGray, // Strong Gray / Red for logout might be nice, but strict request says "fornt garay color stonrg"
+                        text = if (itemKey.contains(" ")) itemKey else Localization.get(itemKey, isTamil),
+                        color = if(itemKey == "logout") Color.Red else Color.DarkGray,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 selected = false,
                 onClick = {
-                    when (item) {
+                    when (itemKey) {
                         "Terms & Conditions" -> {
                             onClose()
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://astro5star.com/terms-condition.html")))
@@ -836,7 +837,7 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthR
                             onClose()
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://astro5star.com/privacy-policy.html")))
                         }
-                        else -> onItemClick(item)
+                        else -> onItemClick(itemKey)
                     }
                 },
                 colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)

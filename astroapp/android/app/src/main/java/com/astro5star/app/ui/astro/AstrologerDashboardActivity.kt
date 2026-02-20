@@ -56,6 +56,15 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import com.astro5star.app.utils.CallState
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import coil.compose.AsyncImage
+import androidx.compose.ui.res.painterResource
+import com.astro5star.app.data.api.ApiClient
+import com.astro5star.app.R
 
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -68,6 +77,8 @@ import com.astro5star.app.ui.theme.CosmicAppTheme
 
 // REMOVED LOCAL COLORS - Using CosmicTheme
 
+
+import kotlinx.coroutines.withContext
 
 class AstrologerDashboardActivity : ComponentActivity() {
 
@@ -87,6 +98,7 @@ class AstrologerDashboardActivity : ComponentActivity() {
                         sessionName = session?.name ?: "Astrologer",
                         sessionId = session?.userId ?: "ID: ????",
                         initialWallet = session?.walletBalance ?: 0.0,
+                        initialImage = session?.image,
                         onLogout = { performLogout() },
                         onWithdraw = { showWithdrawDialog() }
                     )
@@ -259,9 +271,12 @@ fun AstrologerDashboardScreen(
     sessionId: String,
     initialWallet: Double,
     onLogout: () -> Unit,
-    onWithdraw: () -> Unit
+    onWithdraw: () -> Unit,
+    initialImage: String? = null
 ) {
     var walletBalance by remember { mutableDoubleStateOf(initialWallet) }
+    var profileImage by remember { mutableStateOf(initialImage) }
+    var isUploading by remember { mutableStateOf(false) }
 
     // Separate service states
     var isChatOnline by remember { mutableStateOf(false) }
@@ -322,6 +337,47 @@ fun AstrologerDashboardScreen(
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+            }
+        }
+    }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    isUploading = true
+                    val inputStream = context.contentResolver.openInputStream(it)
+                    val bytes = inputStream?.readBytes() ?: return@launch
+                    val requestFile = bytes.toRequestBody("image/*".toMediaTypeOrNull())
+                    val body = MultipartBody.Part.createFormData("image", "profile.jpg", requestFile)
+                    val userIdBody = sessionId.toRequestBody("text/plain".toMediaTypeOrNull())
+
+                    val response = ApiClient.api.uploadProfilePic(userIdBody, body)
+                    if (response.isSuccessful) {
+                        val newImage = response.body()?.get("image")?.asString
+                        if (newImage != null) {
+                            profileImage = newImage
+                            // Update local session
+                            val session = tokenManager.getUserSession()
+                            if (session != null) {
+                                tokenManager.saveUserSession(session.copy(image = newImage))
+                            }
+                            withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                Toast.makeText(context, "Profile Picture Updated!", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } else {
+                        withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            Toast.makeText(context, "Upload Failed", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                } finally {
+                    isUploading = false
+                }
             }
         }
     }
@@ -435,15 +491,53 @@ fun AstrologerDashboardScreen(
                            ),
                            CircleShape
                         )
-                        .shadow(4.dp, CircleShape),
+                        .shadow(4.dp, CircleShape)
+                        .clickable { if (!isUploading) launcher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        sessionName.take(1),
-                        color = Color.White,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 20.sp
-                    )
+                    if (isUploading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = colors.accent)
+                    } else {
+                        val imageUrl = if (profileImage?.startsWith("http") == true) profileImage
+                        else if (!profileImage.isNullOrEmpty()) {
+                            val path = if (profileImage!!.startsWith("/")) profileImage else "/$profileImage"
+                            "${com.astro5star.app.utils.Constants.SERVER_URL}$path"
+                        } else null
+
+                        if (imageUrl != null) {
+                            AsyncImage(
+                                model = imageUrl,
+                                contentDescription = "Profile",
+                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                placeholder = painterResource(R.drawable.ic_person_placeholder),
+                                error = painterResource(R.drawable.ic_person_placeholder)
+                            )
+                        } else {
+                            Text(
+                                sessionName.take(1),
+                                color = Color.White,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 20.sp
+                            )
+                        }
+                    }
+                    // Edit Icon Overlay
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(18.dp)
+                            .background(colors.accent, CircleShape)
+                            .border(1.dp, Color.White, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person, // Using Person as a placeholder for edit
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(10.dp)
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {

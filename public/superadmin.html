@@ -277,6 +277,18 @@
                 </div>
             </div>
 
+            <!-- Tab 9: Refunds -->
+            <div id="admin-sect-refunds" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-undo"></i> Refund / Client Wallet Add</h2>
+                <div style="margin-bottom:20px;">
+                    <input type="text" id="adminRefundSearch" oninput="searchRefundUsers()"
+                        placeholder="Search clients by name, phone or ID..." class="app-input">
+                </div>
+                <div id="adminRefundList">
+                    <div class="loader"></div>
+                </div>
+            </div>
+
             <div class="admin-footer">
                 <div class="admin-footer-content">
                     <div class="admin-footer-section">
@@ -355,6 +367,8 @@
                     class="fas fa-layer-group"></i><span>Slabs</span></div>
             <div class="admin-nav-item" onclick="navAdmin('offers', event)"><i
                     class="fas fa-bullhorn"></i><span>Offers</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('refunds', event)"><i
+                    class="fas fa-undo"></i><span>Refund</span></div>
             <div class="admin-nav-item" onclick="navAdmin('academy', event)"><i
                     class="fas fa-graduation-cap"></i><span>Academy</span></div>
             <div class="admin-nav-item" onclick="navAdmin('slider', event)"><i
@@ -522,6 +536,7 @@
             if (id === 'withdrawals') loadAllWithdrawals();
             if (id === 'slab') loadSlabRates();
             if (id === 'offers') fetchOfferUsers();
+            if (id === 'refunds') renderRefunds();
 
             document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
             if (ev) ev.currentTarget.classList.add('active');
@@ -638,6 +653,47 @@
                 }
             });
         };
+
+        // --- Refund Logic ---
+        window.renderRefunds = () => {
+            const list = adminUsersCache.filter(u => u.role === 'client');
+            const container = document.getElementById('adminRefundList');
+            container.innerHTML = list.map(u => renderRefundCard(u)).join('');
+        };
+
+        window.searchRefundUsers = () => {
+            const q = document.getElementById('adminRefundSearch').value.toLowerCase();
+            const filtered = adminUsersCache.filter(u =>
+                u.role === 'client' && (u.name?.toLowerCase().includes(q) || u.phone?.includes(q) || u.userId.includes(q))
+            );
+            document.getElementById('adminRefundList').innerHTML = filtered.map(u => renderRefundCard(u)).join('');
+        };
+
+        function renderRefundCard(u) {
+            return `
+                <div class="admin-user-card" style="border-left: 4px solid #10B981;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <img src="${u.image || 'https://ui-avatars.com/api/?name=' + u.name}"
+                                 style="width:45px; height:45px; border-radius:50%; object-fit:cover;">
+                            <div>
+                                <div style="font-weight:700;">${u.name}</div>
+                                <div style="font-size:0.8rem; color:#666;">${u.phone}</div>
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:0.8rem; color:#666;">Balance</div>
+                            <div style="font-weight:800; color:#059669; font-size:1.1rem;">₹${u.walletBalance || 0}</div>
+                        </div>
+                        <div>
+                            <button class="btn-admin btn-wallet" onclick="adminWallet('${u.userId}')" style="width:auto; padding:8px 20px;">
+                                <i class="fas fa-plus"></i> Add Amount
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
 
         // Actions
         window.adminWallet = (uid) => {

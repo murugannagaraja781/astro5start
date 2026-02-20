@@ -153,25 +153,27 @@ class HomeActivity : AppCompatActivity() {
                     },
                     onDrawerItemClick = { item ->
                         when(item) {
-                            "Logout" -> {
+                            "logout" -> {
                                 tokenManager.clearSession()
                                 val intent = Intent(this, com.astro5star.app.ui.auth.LoginActivity::class.java)
                                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                                 startActivity(intent)
                                 finish()
                             }
-                            "Settings" -> {
+                            "settings" -> {
                                 startActivity(Intent(this, com.astro5star.app.ui.settings.SettingsActivity::class.java))
                             }
-                            "Profile" -> {
+                            "profile" -> {
                                 startActivity(Intent(this, com.astro5star.app.ui.profile.UserProfileActivity::class.java))
                             }
-                            "Wallet" -> {
+                            "wallet" -> {
                                 startActivity(Intent(this, com.astro5star.app.ui.wallet.WalletActivity::class.java))
+                            }
+                            "join_as_astrologer" -> {
+                                startActivity(Intent(this, com.astro5star.app.ui.auth.AstrologerRegistrationActivity::class.java))
                             }
                             else -> {
                                 // Handle Navigation
-                                // Toast.makeText(context, "$item Clicked", Toast.LENGTH_SHORT).show()
                             }
                         }
                     },
