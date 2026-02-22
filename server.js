@@ -619,6 +619,7 @@ const PaymentSchema = new mongoose.Schema({
   isSuperWallet: { type: Boolean, default: false }, // Promotion trigger
   offerPercentage: { type: Number, default: 0 },    // Legacy bonus calculation
   couponCode: String,                               // Applied coupon
+  packageName: String,                              // For app-specific redirection
   couponBonus: { type: Number, default: 0 }         // Bonus amount from coupon
 });
 const Payment = mongoose.model('Payment', PaymentSchema);
@@ -4073,7 +4074,8 @@ app.post('/api/payment/token', async (req, res) => {
       createdAt: Date.now(),
       used: false,
       userName: user.name,
-      userPhone: user.phone
+      userPhone: user.phone,
+      packageName: req.body.packageName || "com.astro5star.app" // Store for redirect
     });
 
     console.log(`Payment Token Created: ${token.substring(0, 8)}... for ${user.name} amount ₹${amount}`);
@@ -4528,9 +4530,19 @@ app.post('/api/payment/callback', async (req, res) => {
 });
 
 // --- 3. Public Status Pages ---
-app.get('/payment-success', (req, res) => {
+app.get('/payment-success', async (req, res) => {
   const { amount, txnId } = req.query;
-  const intentUrl = `intent://payment-success?status=success&txnId=${txnId}#Intent;scheme=astro5;package=com.astro5star.app;end`;
+
+  // Resolve package name from DB
+  let pkg = "com.astro5star.app";
+  if (txnId) {
+    const payment = await Payment.findOne({ transactionId: txnId });
+    if (payment && payment.packageName) {
+      pkg = payment.packageName;
+    }
+  }
+
+  const intentUrl = `intent://payment-success?status=success&txnId=${txnId}#Intent;scheme=astro5;package=${pkg};end`;
   const customSchemeUrl = `astro5://payment-success?status=success&txnId=${txnId}`;
 
   res.send(`
@@ -4570,8 +4582,19 @@ app.get('/payment-success', (req, res) => {
   `);
 });
 
-app.get('/payment-failed', (req, res) => {
-  const intentUrl = `intent://payment-failed?status=failed#Intent;scheme=astro5;package=com.astro5star.app;end`;
+app.get('/payment-failed', async (req, res) => {
+  const { txnId } = req.query;
+
+  // Resolve package name from DB
+  let pkg = "com.astro5star.app";
+  if (txnId) {
+    const payment = await Payment.findOne({ transactionId: txnId });
+    if (payment && payment.packageName) {
+      pkg = payment.packageName;
+    }
+  }
+
+  const intentUrl = `intent://payment-failed?status=failed#Intent;scheme=astro5;package=${pkg};end`;
   const customSchemeUrl = `astro5://payment-failed?status=failed`;
   res.send(`
     <!DOCTYPE html>
@@ -4718,7 +4741,8 @@ app.post('/api/phonepe/sign', async (req, res) => {
       merchantTransactionId,
       userId,
       amount,
-      status: 'pending'
+      status: 'pending',
+      packageName: req.body.packageName || "com.astro5star.app"
     });
 
     // Native SDK Payload
