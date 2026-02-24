@@ -1994,14 +1994,15 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
 
       console.log(`Billing: ${reason} | Charge: ${amountToCharge} | Admin: ${adminShare} | Astro: ${astroShare}`);
 
-      // Notify Wallets
-      const s1 = userSockets.get(client.userId);
-      if (s1) io.to(s1).emit('wallet-update', { balance: client.walletBalance });
-
-      const s2 = userSockets.get(astro.userId);
-      if (s2) io.to(s2).emit('wallet-update', {
+      // Notify Wallets via Rooms (more reliable than socketId)
+      io.to(client.userId).emit('wallet-update', {
+        balance: client.walletBalance,
+        superBalance: client.superWalletBalance || 0
+      });
+      io.to(astro.userId).emit('wallet-update', {
         balance: astro.walletBalance,
-        totalEarnings: astro.totalEarnings || 0
+        totalEarnings: astro.totalEarnings || 0,
+        superBalance: astro.superWalletBalance || 0
       });
 
     } else {
@@ -3389,12 +3390,11 @@ io.on('connection', (socket) => {
       }
       await User.updateOne({ userId: data.userId }, updates);
 
-      // Notify user of role/wallet change if online
-      const sId = userSockets.get(data.userId);
-      if (sId) {
-        if (data.role === 'astrologer') io.to(sId).emit('wallet-update', { balance: 0 });
-        io.to(sId).emit('app-notification', { text: `Your role has been updated to ${data.role}!` });
+      // Notify user via Room (more reliable than socketId)
+      if (data.role === 'astrologer') {
+        io.to(data.userId).emit('wallet-update', { balance: 0, superBalance: 0, totalEarnings: 0 });
       }
+      io.to(data.userId).emit('app-notification', { text: `Your role has been updated to ${data.role}!` });
 
       cb({ ok: true });
     } catch (e) { cb({ ok: false }); }
@@ -3407,9 +3407,12 @@ io.on('connection', (socket) => {
       u.walletBalance += parseInt(data.amount);
       await u.save();
 
-      // Notify user
-      const s = userSockets.get(data.userId);
-      if (s) io.to(s).emit('wallet-update', { balance: u.walletBalance });
+      // Notify user via Room
+      io.to(data.userId).emit('wallet-update', {
+        balance: u.walletBalance,
+        totalEarnings: u.totalEarnings || 0,
+        superBalance: u.superWalletBalance || 0
+      });
 
       cb({ ok: true });
     } catch (e) { cb({ ok: false }); }
@@ -3648,11 +3651,13 @@ io.on('connection', (socket) => {
         u.walletBalance += w.amount;
         await u.save();
 
-        const sId = userSockets.get(u.userId);
-        if (sId) {
-          io.to(sId).emit('wallet-update', { balance: u.walletBalance });
-          io.to(sId).emit('app-notification', { text: `❌ Your withdrawal of ₹${w.amount} was rejected. Money refunded.` });
-        }
+        // Notify via Room (more reliable than socketId)
+        io.to(u.userId).emit('wallet-update', {
+          balance: u.walletBalance,
+          totalEarnings: u.totalEarnings || 0,
+          superBalance: u.superWalletBalance || 0
+        });
+        io.to(u.userId).emit('app-notification', { text: `❌ Your withdrawal of ₹${w.amount} was rejected. Money refunded.` });
       }
 
       w.status = 'rejected';
@@ -4468,15 +4473,13 @@ app.post('/api/payment/callback', async (req, res) => {
           await user.save();
           console.log(`✅ Wallet Credited: ${user.name} +₹${creditAmount} (PhonePe: ${code}, Total Paid: ₹${payment.amount})`);
 
-          // Notify Socket if online
-          const sId = userSockets.get(user.userId);
-          if (sId) {
-            io.to(sId).emit('wallet-update', {
-              balance: user.walletBalance,
-              totalEarnings: user.totalEarnings
-            });
-            io.to(sId).emit('app-notification', { text: `✅ Recharge Successful! +₹${creditAmount}` });
-          }
+          // Notify via Room (more reliable than socketId)
+          io.to(user.userId).emit('wallet-update', {
+            balance: user.walletBalance,
+            totalEarnings: user.totalEarnings || 0,
+            superBalance: user.superWalletBalance || 0
+          });
+          io.to(user.userId).emit('app-notification', { text: `✅ Recharge Successful! +₹${creditAmount}` });
         }
       }
 
@@ -4783,12 +4786,13 @@ app.get('/api/phonepe/status/:transactionId', async (req, res) => {
           await user.save();
           console.log(`[PhonePe] Wallet Credited: ${user.name} +₹${creditAmount} (Total Paid: ₹${payment.amount})`);
 
-          // Notify via Socket
-          const sId = userSockets.get(user.userId);
-          if (sId) {
-            io.to(sId).emit('wallet-update', { balance: user.walletBalance });
-            io.to(sId).emit('app-notification', { text: `✅ Recharge Successful! +₹${creditAmount}` });
-          }
+          // Notify via Room
+          io.to(user.userId).emit('wallet-update', {
+            balance: user.walletBalance,
+            totalEarnings: user.totalEarnings || 0,
+            superBalance: user.superWalletBalance || 0
+          });
+          io.to(user.userId).emit('app-notification', { text: `✅ Recharge Successful! +₹${creditAmount}` });
         }
       }
 
@@ -4854,18 +4858,16 @@ app.post('/api/phonepe/callback', async (req, res) => {
 
         await user.save();
 
-        // Notify Socket if online
-        const sId = userSockets.get(user.userId);
-        if (sId) {
-          io.to(sId).emit('wallet-update', {
-            balance: user.walletBalance,
-            superBalance: user.superWalletBalance
-          });
-          const msg = payment.isSuperWallet ?
-            `✅ Super Recharge Successful! +₹${creditAmount + (creditAmount * payment.offerPercentage / 100)}` :
-            `✅ Recharge Successful! +₹${creditAmount}`;
-          io.to(sId).emit('app-notification', { text: msg });
-        }
+        // Notify via Room
+        io.to(user.userId).emit('wallet-update', {
+          balance: user.walletBalance,
+          superBalance: user.superWalletBalance || 0,
+          totalEarnings: user.totalEarnings || 0
+        });
+        const msg = payment.isSuperWallet ?
+          `✅ Super Recharge Successful! +₹${creditAmount + (creditAmount * (payment.offerPercentage || 0) / 100)}` :
+          `✅ Recharge Successful! +₹${creditAmount}`;
+        io.to(user.userId).emit('app-notification', { text: msg });
       }
     } else if (code !== 'PAYMENT_SUCCESS' && payment.status === 'pending') {
       payment.status = 'failed';

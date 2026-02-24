@@ -69,3 +69,4 @@ astroapp/android/gradle-*/
 astroapp/android/build/
 *.jar
 !gradle-wrapper.jar
+firebase-service-account.json
