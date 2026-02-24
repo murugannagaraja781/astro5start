@@ -3293,32 +3293,8 @@ io.on('connection', (socket) => {
     }
   });
 
-  // --- Session end (manual) ---
-  socket.on('session-ended', (data) => {
-    try {
-      const { sessionId, toUserId, type, durationMs } = data || {};
-      const fromUserId = socketToUser.get(socket.id);
-      if (!fromUserId || !sessionId || !toUserId) return;
-
-      endSessionRecord(sessionId);
-
-      const targetSocketId = userSockets.get(toUserId);
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('session-ended', {
-          sessionId,
-          fromUserId,
-          type,
-          durationMs,
-        });
-      }
-
-      console.log(
-        `Session ended (manual): sessionId=${sessionId}, type=${type}, from=${fromUserId}, to=${toUserId}, duration=${durationMs} ms`
-      );
-    } catch (err) {
-      console.error('session-ended error', err);
-    }
-  });
+  // --- Native Android Bridge Fixes ---
+  // (Redundant session-ended handler removed as end-session covers all use cases)
 
   // --- ADMIN API ---
   const checkAdmin = async (sid) => {

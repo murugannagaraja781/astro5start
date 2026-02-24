@@ -1489,7 +1489,7 @@
     style="position: fixed; top: 0; left: 0; right: 0; z-index: 10001; background: white; padding: 10px 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
     <div style="font-weight: bold; color: #059669; font-size: 1.1rem;">✨ Astro 5 Star</div>
     <div style="display: flex; align-items: center; gap: 10px;">
-      <a href="/downloads/astro5star.apk?v=5.5.5" class="download-header-btn">
+      <a href="/downloads/astro5star.apk?v=3.0.0" class="download-header-btn">
         <i class="fas fa-download"></i> App
       </a>
       <button id="staticLoginBtn" onclick="window.location.reload()"
@@ -1792,7 +1792,7 @@
       <div style="font-weight: bold; font-size: 1.2rem;">Astro 5 Star</div>
       <div style="display: flex; align-items: center; gap: 10px;">
 
-        <a href="/downloads/astro5star.apk?v=5.5.5" class="download-header-btn" title="Download Official App (v5.5.5)">
+        <a href="/downloads/astro5star.apk?v=3.0.0" class="download-header-btn" title="Download Official App (v3.0.0)">
           <i class="fas fa-cloud-download-alt"></i> App
         </a>
 
@@ -2273,7 +2273,7 @@
       </div>
 
       <div style="display: flex; align-items: center; gap: 10px;">
-        <a href="/downloads/astro5star.apk?v=5.5.5" class="download-header-btn">
+        <a href="/downloads/astro5star.apk?v=3.0.0" class="download-header-btn">
           <i class="fas fa-download"></i> App
         </a>
       </div>
@@ -4857,7 +4857,11 @@
         clearTimeout(callingTimeout);
         if (document.getElementById('calling-modal')) document.getElementById('calling-modal').remove();
         if (reason) alert(reason);
-        // Also emit end-session if we created one? The server handles timeout usually.
+        // Explicitly end the session to notify the other party
+        if (state.tempSessionId) {
+          socket.emit('end-session', { sessionId: state.tempSessionId });
+          state.tempSessionId = null;
+        }
       }
 
       // 3. Emit Request
@@ -5293,6 +5297,14 @@
         document.getElementById('localVideo').srcObject = null;
       }
       sSes.classList.add('hidden');
+      if (sInc) sInc.classList.add('hidden'); // Fix: Hide incoming screen on session end
+
+      // Also show dashboard based on role
+      if (state.me) {
+        if (state.me.role === 'astrologer' && sAstro) sAstro.classList.remove('hidden');
+        else if (state.me.role === 'client' && sClient) sClient.classList.remove('hidden');
+      }
+
       state.session = null;
 
       if (window.ReactNativeWebView) {
@@ -5461,17 +5473,8 @@
       clearSession();
     });
 
-    socket.on('session-ended', (data) => {
-      console.log('Session ended by partner:', data);
-      alert('The session has been ended by the other party.');
-      // Keep session-screen hidden or reset UI
-      document.getElementById('screen-session').classList.add('hidden');
-      if (document.getElementById('screen-dashboard')) {
-        document.getElementById('screen-dashboard').classList.remove('hidden');
-      }
-      // Also stop local tracks if any
-      endCall();
-    });
+    // Unified session-ended handled by endLocal listener above
+    // Removed duplicate listener that had non-existent endCall()
 
     // Geolocation
     window.useCurrentLocation = function () {
@@ -7716,8 +7719,8 @@
       <div class="download-card-content">
         <h3>Install Astro 5 Star</h3>
         <p>For instant notifications, smooth calls, and the best experience, download our official Android app.</p>
-        <a href="/downloads/astro5star.apk?v=5.5.5" class="download-action-btn" onclick="closeAppDownloadModal()">
-          <i class="fas fa-download"></i> Download Release APK (v5.5.5)
+        <a href="/downloads/astro5star.apk?v=3.0.0" class="download-action-btn" onclick="closeAppDownloadModal()">
+          <i class="fas fa-download"></i> Download Release APK (v3.0.0)
         </a>
         <span class="later-text" onclick="closeAppDownloadModal()">Maybe later</span>
       </div>
