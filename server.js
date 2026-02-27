@@ -2252,7 +2252,10 @@ io.on('connection', (socket) => {
       console.log('New Astrologer Registration:', newUser.name, newUser.userId);
 
       // Notify Super Admin if online
-      io.to('superadmin').emit('admin-notification', { text: `New Astrologer Request: ${newUser.name}` });
+      io.to('superadmin').emit('admin-notification', {
+        text: `New Astrologer Request: ${newUser.name}`,
+        data: { type: 'astro_registration' }
+      });
 
       cb({ ok: true });
     } catch (e) {

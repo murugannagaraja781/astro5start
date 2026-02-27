@@ -89,15 +89,6 @@
             <div id="admin-sect-payouts" class="admin-tab-section">
                 <h2 style="margin-bottom:20px;"><i class="fas fa-user-astronaut"></i> Astrologer Management</h2>
 
-                <div id="adminPendingAstrologersSection" style="display:none; margin-bottom:20px;">
-                    <div class="admin-card" style="background:#ECFDF5; border:1px solid #10B981;">
-                        <h4 style="margin-top:0; color:#065F46;">Pending Registrations</h4>
-                        <div id="adminPendingAstrologersList">
-                            <div class="loader"></div>
-                        </div>
-                    </div>
-                </div>
-
                 <div id="adminWithdrawalsSection" style="display:none; margin-bottom:20px;">
                     <div class="admin-card" style="background:#FEF3C7; border:1px solid #FCD34D;">
                         <h4 style="margin-top:0; color:#92400E;">Pending Withdrawals</h4>
@@ -289,6 +280,14 @@
                 </div>
             </div>
 
+            <!-- Tab 10: New Astrologer Requests -->
+            <div id="admin-sect-registrations" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-user-plus"></i> New Astrologer Requests</h2>
+                <div id="adminFullRegistrationsList">
+                    <div class="loader"></div>
+                </div>
+            </div>
+
             <div class="admin-footer">
                 <div class="admin-footer-content">
                     <div class="admin-footer-section">
@@ -359,6 +358,10 @@
                     class="fas fa-chart-pie"></i><span>Earnings</span></div>
             <div class="admin-nav-item" onclick="navAdmin('payouts', event)"><i
                     class="fas fa-user-astronaut"></i><span>Astros</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('registrations', event)">
+                <i class="fas fa-user-plus"></i><span>New Requests</span>
+                <span id="nav-badge-registrations" class="nav-badge hidden">0</span>
+            </div>
             <div class="admin-nav-item" onclick="navAdmin('users', event)"><i
                     class="fas fa-users"></i><span>Users</span></div>
             <div class="admin-nav-item" onclick="navAdmin('withdrawals', event)"><i
@@ -537,6 +540,7 @@
             if (id === 'slab') loadSlabRates();
             if (id === 'offers') fetchOfferUsers();
             if (id === 'refunds') renderRefunds();
+            if (id === 'registrations') loadPendingAstrologers();
 
             document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
             if (ev) ev.currentTarget.classList.add('active');
@@ -578,6 +582,17 @@
                 else alert('Error: ' + res.error);
             });
         };
+
+        function updateBadges(counts) {
+            if (counts.registrations !== undefined) {
+                const badge = document.getElementById('nav-badge-registrations');
+                if (badge) {
+                    badge.innerText = counts.registrations;
+                    if (counts.registrations > 0) badge.classList.remove('hidden');
+                    else badge.classList.add('hidden');
+                }
+            }
+        }
 
         // --- Offers / FCM Logic ---
         let allUsersForFcm = [];
@@ -923,37 +938,54 @@
         function loadPendingAstrologers() {
             socket.emit('admin-get-pending-requests', (res) => {
                 const sect = document.getElementById('adminPendingAstrologersSection');
+                const fullList = document.getElementById('adminFullRegistrationsList');
+
                 if (res.ok && res.requests && res.requests.length > 0) {
-                    sect.style.display = 'block';
-                    document.getElementById('adminPendingAstrologersList').innerHTML = res.requests.map(u => `
-                        <div class="admin-card" style="margin-bottom:10px; background:white;">
-                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                                <div>
-                                    <div style="font-weight:bold; font-size:1.1rem;">${u.name} (Real: ${u.realName})</div>
-                                    <div style="font-size:0.9rem; color:#555;">📱 ${u.phone}</div>
-                                    <div style="font-size:0.8rem; margin-top:5px;">
-                                        Gender: ${u.intakeDetails?.gender || u.gender}<br>
-                                        Exp: ${u.astrologyExperience} | Prof: ${u.profession}
+                    const html = res.requests.map(u => `
+                        <div class="admin-card" style="margin-bottom:15px; background:white; border-left: 4px solid #10B981;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap: wrap; gap: 15px;">
+                                <div style="flex: 1; min-width: 250px;">
+                                    <div style="font-weight:bold; font-size:1.15rem; color: #111;">${u.name} <span style="font-weight: normal; color: #666; font-size: 0.9rem;">(Real: ${u.realName})</span></div>
+                                    <div style="font-size:0.95rem; color:#1e40af; font-weight: 500; margin-top: 4px;">📱 ${u.phone}</div>
+
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                        <div style="font-size:0.85rem;"><b>Gender:</b> ${u.gender || u.intakeDetails?.gender || 'N/A'}</div>
+                                        <div style="font-size:0.85rem;"><b>Exp:</b> ${u.astrologyExperience} Years</div>
+                                        <div style="font-size:0.85rem;"><b>Profession:</b> ${u.profession}</div>
+                                        <div style="font-size:0.85rem;"><b>Price:</b> ₹${u.price || u.ratePerMinute || 10}/min</div>
                                     </div>
-                                    <div style="font-size:0.8rem; margin-top:5px; color:#666;">
-                                        <i>Address: ${u.address}</i>
+
+                                    <div style="font-size:0.85rem; margin-top:10px; color:#475569;">
+                                        <i class="fas fa-map-marker-alt" style="margin-right: 5px;"></i> ${u.address || 'No address provided'}
                                     </div>
+                                    ${u.email ? `<div style="font-size:0.85rem; margin-top:4px; color:#475569;"><i class="fas fa-envelope" style="margin-right: 5px;"></i> ${u.email}</div>` : ''}
                                 </div>
-                                <div style="text-align:right;">
+                                <div style="text-align:right; display: flex; flex-direction: column; gap: 8px;">
                                     <button onclick="approveRegistration('${u.userId}', 'approve')"
-                                        style="background:#059669; color:white; border:none; padding:8px 12px; border-radius:6px; margin-bottom:5px; cursor:pointer;">
-                                        <i class="fas fa-check"></i> Approve
-                                    </button><br>
+                                        style="background:#059669; color:white; border:none; padding:10px 18px; border-radius:8px; font-weight: 600; cursor:pointer; display: flex; align-items: center; gap: 8px; justify-content: center;">
+                                        <i class="fas fa-check-circle"></i> Approve Astrologer
+                                    </button>
                                     <button onclick="approveRegistration('${u.userId}', 'reject')"
-                                        style="background:#DC2626; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">
-                                        <i class="fas fa-times"></i> Reject
+                                        style="background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; padding:10px 18px; border-radius:8px; font-weight: 600; cursor:pointer; display: flex; align-items: center; gap: 8px; justify-content: center;">
+                                        <i class="fas fa-times-circle"></i> Reject Request
                                     </button>
                                 </div>
                             </div>
                         </div>
                     `).join('');
+
+                    if (sect) {
+                        sect.style.display = 'block';
+                        document.getElementById('adminPendingAstrologersList').innerHTML = html;
+                    }
+                    if (fullList) {
+                        fullList.innerHTML = html;
+                    }
+                    updateBadges({ registrations: res.requests.length });
                 } else {
-                    sect.style.display = 'none';
+                    if (sect) sect.style.display = 'none';
+                    if (fullList) fullList.innerHTML = '<div style="padding:40px; text-align:center; color:#64748b; background: white; border-radius: 12px; border: 1px dashed #cbd5e1;"><i class="fas fa-clipboard-check" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.3;"></i><br>No pending astrologer registration requests at the moment.</div>';
+                    updateBadges({ registrations: 0 });
                 }
             });
         }
@@ -1024,15 +1056,22 @@
         };
 
         socket.on('admin-notification', (msg) => {
+            // Refresh data if it's a registration
+            if (msg.data && msg.data.type === 'astro_registration') {
+                loadPendingAstrologers();
+            }
+
             // Create Popup
             const div = document.createElement('div');
             div.className = 'admin-notification-popup';
-            div.id = `notif-${msg.data ? msg.data.withdrawalId : Date.now()}`;
+            div.id = `notif-${msg.data ? (msg.data.withdrawalId || msg.data.type || Date.now()) : Date.now()}`;
             div.innerHTML = `
                  <div style="font-weight:bold; margin-bottom:5px; color:#111;">🔔 Notification</div>
                  <div style="margin-bottom:10px; color:#555;">${msg.text}</div>
                  ${msg.data && msg.data.withdrawalId ?
                     `<button class="approve" onclick="approveW('${msg.data.withdrawalId}')">Accept & Deduct</button>` : ''}
+                 ${msg.data && msg.data.type === 'astro_registration' ?
+                    `<button class="approve" onclick="navAdmin('registrations'); this.parentElement.remove();">View Request</button>` : ''}
                  <button class="close" onclick="this.parentElement.remove()">Close</button>
               `;
             document.body.appendChild(div);
