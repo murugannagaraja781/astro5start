@@ -3448,6 +3448,36 @@ io.on('connection', (socket) => {
     } catch (e) { cb({ ok: false }); }
   });
 
+  // --- Astrologer: Update Client Birth Details (Task 2) ---
+  socket.on('astrologer-update-client-birth', async (data, cb) => {
+    try {
+      const { clientId, birthDetails } = data;
+      const astroId = socketToUser.get(socket.id);
+      const astro = await User.findOne({ userId: astroId });
+      if (!astro || astro.role !== 'astrologer') return cb({ ok: false, error: 'Unauthorized' });
+
+      const client = await User.findOne({ userId: clientId });
+      if (!client) return cb({ ok: false, error: 'Client not found' });
+
+      client.birthDetails = { ...client.birthDetails, ...birthDetails };
+      await client.save();
+
+      const { calculateBirthChart } = require('./utils/astroCalculations');
+      const [day, month, year] = client.birthDetails.dob.split('/').map(Number);
+      const [hours, minutes] = client.birthDetails.tob.split(':').map(Number);
+      const birthDate = new Date(year, month - 1, day, hours, minutes);
+      const newChart = calculateBirthChart(birthDate, client.birthDetails.lat || 13.08, client.birthDetails.lon || 80.27);
+
+      // Notify client if online
+      io.to(clientId).emit('birth-details-updated', { birthDetails: client.birthDetails, chart: newChart });
+
+      cb({ ok: true, chart: newChart });
+    } catch (e) {
+      console.error('[Socket] Astrologer Edit Error:', e);
+      cb({ ok: false, error: 'Update Failed' });
+    }
+  });
+
   socket.on('admin-add-wallet', async (data, cb) => {
     if (!await checkAdmin(socket.id)) return cb({ ok: false });
     try {
