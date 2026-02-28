@@ -3,6 +3,7 @@ const { DateTime } = require('luxon');
 const { swissEph } = require('./rasiEng/swisseph');
 const { getPlanetsWithDetails, getHouseCusps } = require('./rasiEng/calculations');
 const { getPanchanga } = require('./rasiEng/panchangaCalc');
+const { getCurrentTransits, calculateGochara } = require('./rasiEng/gocharaCalc');
 
 /**
  * Main function to calculate all birth chart data
@@ -39,6 +40,18 @@ function calculateBirthChart(date, lat, lng, timezone = 'Asia/Kolkata') {
     };
 }
 
+/**
+ * Calculate current planetary transit (Gochara) chart
+ * @param {number} birthMoonLongitude - Moon longitude from birth chart
+ * @param {Date} [transitDate] - Date to calculate transits (default: now)
+ * @param {string} [timezone] - Timezone (default: Asia/Kolkata)
+ */
+function calculateTransitChart(birthMoonLongitude, transitDate = new Date(), timezone = 'Asia/Kolkata') {
+    return calculateGochara(birthMoonLongitude, transitDate, timezone);
+}
+
 module.exports = {
-    calculateBirthChart
+    calculateBirthChart,
+    calculateTransitChart,
+    getCurrentTransits
 };

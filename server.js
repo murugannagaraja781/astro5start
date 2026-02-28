@@ -79,27 +79,56 @@ try {
 }
 
 
-// Send FCM v1 Push Notification
-async function sendFcmV1Push(fcmToken, data, notification) {
-  if (!fcmAuth) {
-    console.warn('[FCM v1] Not initialized - skipping push');
-    return { success: false, error: 'FCM not initialized' };
+// FCM Token Cache to avoid fetching on every push (fixes notification delay)
+let fcmAccessToken = null;
+let fcmTokenExpiry = 0;
+
+async function getCachedFcmToken() {
+  const now = Date.now();
+  if (fcmAccessToken && now < fcmTokenExpiry) {
+    return fcmAccessToken;
   }
+  if (!fcmAuth) return null;
 
   try {
-    const accessToken = await fcmAuth.getAccessToken();
+    const token = await fcmAuth.getAccessToken();
+    fcmAccessToken = token.token || token;
+    // Set expiry 5 minutes before actual expiry (usually tokens last 1 hour)
+    fcmTokenExpiry = now + (3540 * 1000);
+    return fcmAccessToken;
+  } catch (e) {
+    console.error('[FCM] Error getting access token:', e.message);
+    return null;
+  }
+}
+
+// Send FCM v1 Push Notification
+async function sendFcmV1Push(fcmToken, data, notification) {
+  if (!fcmAuth) return { success: false, error: 'FCM not initialized' };
+
+  try {
+    const accessToken = await getCachedFcmToken();
+    if (!accessToken) return { success: false, error: 'Failed to get auth token' };
 
     const messagePayload = {
       token: fcmToken,
       data: {
         ...data,
-        // Embed notification content in data to handle it manually in App for speed
         title: notification ? notification.title : '',
-        body: notification ? notification.body : ''
+        body: notification ? notification.body : '',
+        priority: 'high' // Extra hint for data messages
       },
       android: {
         priority: 'high',
-        ttl: '0s' // Instant delivery
+        ttl: '0s'
+      },
+      apns: {
+        payload: {
+          aps: {
+            contentAvailable: true,
+            priority: 10
+          }
+        }
       }
     };
 
@@ -111,23 +140,16 @@ async function sendFcmV1Push(fcmToken, data, notification) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken.token || accessToken}`
+          'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify(message)
       }
     );
 
     const result = await response.json();
-
-    if (response.ok) {
-      console.log('[FCM v1] Push sent successfully:', result.name);
-      return { success: true, messageId: result.name };
-    } else {
-      console.error('[FCM v1] Push failed:', result.error?.message || JSON.stringify(result));
-      return { success: false, error: result.error?.message };
-    }
+    if (response.ok) return { success: true, messageId: result.name };
+    return { success: false, error: result.error?.message };
   } catch (err) {
-    console.error('[FCM v1] Send error:', err.message);
     return { success: false, error: err.message };
   }
 }
@@ -281,11 +303,13 @@ app.get('/shipping-policy', (req, res) => res.sendFile(path.join(__dirname, 'pub
 const rasiEngRouter = require("./routes/rasiEng");
 const rasipalanRouter = require("./routes/rasipalan");
 const freeHoroscopeRouter = require("./routes/freeHoroscope");
+const matchMakingRouter = require("./routes/matchMaking");
 
 app.use("/api/rasi-eng", rasiEngRouter);
 app.use("/api/rasipalan", rasipalanRouter);
 app.use("/api/horoscope/rasi-palan", rasipalanRouter); // Android App specific path
 app.use("/api/horoscope", freeHoroscopeRouter); // Free horoscope chart generation
+app.use("/api/horoscope", matchMakingRouter); // Marriage compatibility matching
 
 // FCM Test Endpoint - Verify Firebase is working
 app.get('/api/test-fcm', async (req, res) => {
@@ -3349,19 +3373,40 @@ io.on('connection', (socket) => {
       const user = await User.findOne({ userId });
       if (!user) return cb({ ok: false, error: 'User not found' });
 
-      // Update allowed fields
+      // Update basic fields
       if (updates.name) user.name = updates.name;
       if (updates.price) user.price = parseInt(updates.price);
       if (updates.image) user.image = updates.image;
       if (typeof updates.isVerified === 'boolean') user.isVerified = updates.isVerified;
       if (updates.documentStatus) {
         user.documentStatus = updates.documentStatus;
-        // Sync legacy boolean for backward compatibility if needed, but UI uses status now
         user.isDocumentVerified = (updates.documentStatus === 'verified');
       }
 
+      // Extended profile fields
+      if (updates.realName !== undefined) user.realName = updates.realName;
+      if (updates.gender !== undefined) user.gender = updates.gender;
+      if (updates.dob !== undefined) user.dob = updates.dob;
+      if (updates.address !== undefined) user.address = updates.address;
+
+      // Astrologer-specific fields
+      if (updates.experience !== undefined) user.experience = parseInt(updates.experience) || 0;
+      if (updates.profession !== undefined) user.profession = updates.profession;
+      if (updates.astrologyExperience !== undefined) user.astrologyExperience = updates.astrologyExperience;
+      if (typeof updates.isDocumentVerified === 'boolean') {
+        user.isDocumentVerified = updates.isDocumentVerified;
+        user.documentStatus = updates.isDocumentVerified ? 'verified' : 'pending';
+      }
+
+      // Bank & Financial fields
+      if (updates.bankDetails !== undefined) user.bankDetails = updates.bankDetails;
+      if (updates.upiId !== undefined) user.upiId = updates.upiId;
+      if (updates.upiNumber !== undefined) user.upiNumber = updates.upiNumber;
+      if (updates.aadharNumber !== undefined) user.aadharNumber = updates.aadharNumber;
+      if (updates.panNumber !== undefined) user.panNumber = updates.panNumber;
+
       await user.save();
-      console.log(`Admin updated user ${user.name}:`, updates);
+      console.log(`Admin updated user ${user.name}:`, Object.keys(updates).join(', '));
 
       if (user.role === 'astrologer') {
         console.log('Broadcasting update for astrologer:', user.name);

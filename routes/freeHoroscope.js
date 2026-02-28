@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { calculateBirthChart } = require('../utils/astroCalculations');
+const { calculateBirthChart, calculateTransitChart, getCurrentTransits } = require('../utils/astroCalculations');
 
 /**
  * POST /api/horoscope/generate-chart
@@ -72,4 +72,72 @@ router.post('/generate-chart', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/horoscope/transit
+ * நவகிரக பாதசாரம் (Navagraha Gochara / Planetary Transit Analysis)
+ *
+ * Body: { birthMoonLongitude, transitDate? (DD/MM/YYYY), timezone? }
+ * OR: { dob (DD/MM/YYYY), time (HH:mm), latitude, longitude, timezone? }
+ */
+router.post('/transit', async (req, res) => {
+    try {
+        let { birthMoonLongitude, dob, time, latitude, longitude, transitDate, timezone } = req.body;
+
+        // If birth details provided instead of moonLongitude, calculate it
+        if (!birthMoonLongitude && dob && time && latitude && longitude) {
+            const [day, month, year] = dob.split('/').map(Number);
+            const [hours, minutes] = time.split(':').map(Number);
+            const birthDate = new Date(year, month - 1, day, hours, minutes);
+            const chart = calculateBirthChart(birthDate, parseFloat(latitude), parseFloat(longitude), timezone || 'Asia/Kolkata');
+            const moon = chart.planets.find(p => p.name === 'Moon');
+            if (!moon) return res.status(500).json({ ok: false, error: 'Could not calculate Moon position' });
+            birthMoonLongitude = moon.longitude;
+        }
+
+        if (birthMoonLongitude === undefined || birthMoonLongitude === null) {
+            return res.status(400).json({
+                ok: false,
+                error: 'Provide birthMoonLongitude OR birth details (dob, time, latitude, longitude)'
+            });
+        }
+
+        // Parse transit date if provided
+        let tDate = new Date();
+        if (transitDate) {
+            const [d, m, y] = transitDate.split('/').map(Number);
+            tDate = new Date(y, m - 1, d, 12, 0);
+        }
+
+        const gocharaResult = calculateTransitChart(
+            parseFloat(birthMoonLongitude),
+            tDate,
+            timezone || 'Asia/Kolkata'
+        );
+
+        res.json({ ok: true, gochara: gocharaResult });
+
+    } catch (error) {
+        console.error('Error calculating transit:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message || 'Failed to calculate transit'
+        });
+    }
+});
+
+/**
+ * GET /api/horoscope/current-transits
+ * Get current planetary positions (no birth data needed)
+ */
+router.get('/current-transits', async (req, res) => {
+    try {
+        const transits = getCurrentTransits(new Date(), req.query.timezone || 'Asia/Kolkata');
+        res.json({ ok: true, transits, date: new Date().toISOString() });
+    } catch (error) {
+        console.error('Error getting current transits:', error);
+        res.status(500).json({ ok: false, error: error.message });
+    }
+});
+
 module.exports = router;
+
