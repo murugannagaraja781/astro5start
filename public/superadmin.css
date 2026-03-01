@@ -1,5 +1,5 @@
 /*
-  Astro5Star Premium Design System - V3 (Ultra-Professional)
+  Astro5Star Premium Design System - V3.1 (Responsive Fix)
   Role: Senior UI/UX Architect
   Principles: Elegance, Clarity, Precision, Premium Feel
 */
@@ -87,6 +87,7 @@ body {
     background-color: var(--clr-bg);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
 }
 
 /* --- Layout --- */
@@ -96,6 +97,7 @@ body {
     grid-template-areas: "sidebar main";
     grid-template-columns: 280px 1fr;
     overflow: hidden;
+    width: 100vw;
 }
 
 @media (max-width: 1023px) {
@@ -109,8 +111,10 @@ body {
 .l-main-content {
     grid-area: main;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: var(--sp-10);
     scroll-behavior: smooth;
+    max-width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -181,16 +185,22 @@ body {
         padding: 0.5rem;
         overflow-x: auto;
         gap: 0.25rem;
+        scrollbar-width: none;
+    }
+
+    .l-sidebar-nav::-webkit-scrollbar {
+        display: none;
     }
 
     .nav-item {
         flex: 1;
-        min-width: 70px;
+        min-width: 75px;
         flex-direction: column;
         padding: 0.5rem;
         gap: 4px;
         font-size: 0.65rem;
         border-radius: 8px;
+        text-align: center;
     }
 
     .nav-item span {
@@ -212,6 +222,7 @@ body {
     padding: var(--sp-6);
     box-shadow: var(--sh-sm);
     transition: var(--tr-base);
+    width: 100%;
 }
 
 .c-card:hover {
@@ -238,12 +249,14 @@ body {
     overflow-x: auto;
     border-radius: var(--rad-base);
     border: 1px solid var(--clr-border);
+    width: 100%;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
     background: white;
+    min-width: 600px;
 }
 
 th {
@@ -344,6 +357,8 @@ tr:hover {
     border-radius: 20px;
     box-shadow: var(--sh-xl);
     animation: modalIn 0.3s ease-out;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 @keyframes modalIn {
@@ -399,7 +414,22 @@ tr:hover {
     color: var(--clr-text-muted);
 }
 
-/* Visibility */
+/* --- Grid & Responsiveness --- */
+.grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
+}
+
+@media (max-width: 640px) {
+    .grid-2 {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+    }
+}
+
+/* Visibility Control */
 @media (max-width: 1023px) {
     .u-hide-mobile {
         display: none !important;
