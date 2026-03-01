@@ -3234,20 +3234,6 @@ io.on('connection', (socket) => {
     }
   });
 
-}
-  }
-
-  // Phase 4 Helper
-  function getSlabBySeconds(seconds) {
-    if (seconds <= 300) return 1;
-    if (seconds <= 600) return 2;
-    if (seconds <= 900) return 3;
-    if (seconds <= 1200) return 4;
-    return 4; // Max slab 4+
-  }
-
-
-
   // --- Client Birth Chart Data ---
   socket.on('client-birth-chart', (data, cb) => {
     try {
@@ -3269,609 +3255,609 @@ io.on('connection', (socket) => {
     }
   });
 
-// --- Native Android Bridge Fixes ---
-// (Redundant session-ended handler removed as end-session covers all use cases)
+  // --- Native Android Bridge Fixes ---
+  // (Redundant session-ended handler removed as end-session covers all use cases)
 
-// --- ADMIN API ---
-const checkAdmin = async (sid) => {
-  const uid = socketToUser.get(sid);
-  if (!uid) return false;
-  const u = await User.findOne({ userId: uid });
-  return u && u.role === 'superadmin';
-};
+  // --- ADMIN API ---
+  const checkAdmin = async (sid) => {
+    const uid = socketToUser.get(sid);
+    if (!uid) return false;
+    const u = await User.findOne({ userId: uid });
+    return u && u.role === 'superadmin';
+  };
 
-// --- Admin: Get All Users ---
-socket.on('get-all-users', async (cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false });
-  try {
-    const users = await User.find({}).sort({ role: 1, name: 1 }); // Sort by role then name
-    cb({ ok: true, users });
-  } catch (e) { cb({ ok: false }); }
-});
-
-// --- Admin: Edit User (Name Only) ---
-socket.on('admin-edit-user', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
-  try {
-    const { targetUserId, updates } = data || {};
-    if (!targetUserId || !updates || !updates.name) return cb({ ok: false, error: 'Invalid Data' });
-
-    const u = await User.findOne({ userId: targetUserId });
-    if (!u) return cb({ ok: false, error: 'User not found' });
-
-    u.name = updates.name;
-    await u.save();
-
-    console.log(`Admin edited user ${u.userId}: Name -> ${u.name}`);
-
-    if (u.role === 'astrologer') broadcastAstroUpdate();
-
-    cb({ ok: true });
-  } catch (e) {
-    console.error(e);
-    cb({ ok: false, error: 'Internal Error' });
-  }
-});
-
-// --- Admin: Update User Details (Unified) ---
-socket.on('admin-update-user-details', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
-  try {
-    const { userId, updates } = data;
-    const user = await User.findOne({ userId });
-    if (!user) return cb({ ok: false, error: 'User not found' });
-
-    // Update basic fields
-    if (updates.name) user.name = updates.name;
-    if (updates.price) user.price = parseInt(updates.price);
-    if (updates.image) user.image = updates.image;
-    if (typeof updates.isVerified === 'boolean') user.isVerified = updates.isVerified;
-    if (updates.documentStatus) {
-      user.documentStatus = updates.documentStatus;
-      user.isDocumentVerified = (updates.documentStatus === 'verified');
-    }
-
-    // Extended profile fields
-    if (updates.realName !== undefined) user.realName = updates.realName;
-    if (updates.gender !== undefined) user.gender = updates.gender;
-    if (updates.dob !== undefined) user.dob = updates.dob;
-    if (updates.address !== undefined) user.address = updates.address;
-
-    // Astrologer-specific fields
-    if (updates.experience !== undefined) user.experience = parseInt(updates.experience) || 0;
-    if (updates.profession !== undefined) user.profession = updates.profession;
-    if (updates.astrologyExperience !== undefined) user.astrologyExperience = updates.astrologyExperience;
-    if (typeof updates.isDocumentVerified === 'boolean') {
-      user.isDocumentVerified = updates.isDocumentVerified;
-      user.documentStatus = updates.isDocumentVerified ? 'verified' : 'pending';
-    }
-
-    // Bank & Financial fields
-    if (updates.bankDetails !== undefined) user.bankDetails = updates.bankDetails;
-    if (updates.upiId !== undefined) user.upiId = updates.upiId;
-    if (updates.upiNumber !== undefined) user.upiNumber = updates.upiNumber;
-    if (updates.aadharNumber !== undefined) user.aadharNumber = updates.aadharNumber;
-    if (updates.panNumber !== undefined) user.panNumber = updates.panNumber;
-
-    await user.save();
-    console.log(`Admin updated user ${user.name}:`, Object.keys(updates).join(', '));
-
-    if (user.role === 'astrologer') {
-      console.log('Broadcasting update for astrologer:', user.name);
-      await broadcastAstroUpdate();
-    }
-
-    // Notify the specific user if online
-    const sId = userSockets.get(user.userId);
-    if (sId) {
-      const formattedUser = user.toObject ? user.toObject() : user;
-      formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
-      io.to(sId).emit('my-profile-updated', formattedUser);
-    }
-
-    cb({ ok: true, user });
-  } catch (e) {
-    console.error(e);
-    cb({ ok: false, error: 'Update Failed' });
-  }
-});
-
-socket.on('admin-update-role', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false });
-  try {
-    const updates = { role: data.role };
-    if (data.role === 'astrologer') {
-      updates.walletBalance = 0;
-      updates.approvalStatus = 'pending'; // Require approval when manually set to astrologer
-    }
-    await User.updateOne({ userId: data.userId }, updates);
-
-    // Notify user via Room (more reliable than socketId)
-    if (data.role === 'astrologer') {
-      io.to(data.userId).emit('wallet-update', { balance: 0, superBalance: 0, totalEarnings: 0 });
-    }
-    io.to(data.userId).emit('app-notification', { text: `Your role has been updated to ${data.role}!` });
-
-    cb({ ok: true });
-  } catch (e) { cb({ ok: false }); }
-});
-
-// --- Astrologer: Update Client Birth Details (Task 2) ---
-socket.on('astrologer-update-client-birth', async (data, cb) => {
-  try {
-    const { clientId, birthDetails } = data;
-    const astroId = socketToUser.get(socket.id);
-    const astro = await User.findOne({ userId: astroId });
-    if (!astro || astro.role !== 'astrologer') return cb({ ok: false, error: 'Unauthorized' });
-
-    const client = await User.findOne({ userId: clientId });
-    if (!client) return cb({ ok: false, error: 'Client not found' });
-
-    client.birthDetails = { ...client.birthDetails, ...birthDetails };
-    await client.save();
-
-    const { calculateBirthChart } = require('./utils/astroCalculations');
-    const [day, month, year] = client.birthDetails.dob.split('/').map(Number);
-    const [hours, minutes] = client.birthDetails.tob.split(':').map(Number);
-    const birthDate = new Date(year, month - 1, day, hours, minutes);
-    const newChart = calculateBirthChart(birthDate, client.birthDetails.lat || 13.08, client.birthDetails.lon || 80.27);
-
-    // Notify client if online
-    io.to(clientId).emit('birth-details-updated', { birthDetails: client.birthDetails, chart: newChart });
-
-    cb({ ok: true, chart: newChart });
-  } catch (e) {
-    console.error('[Socket] Astrologer Edit Error:', e);
-    cb({ ok: false, error: 'Update Failed' });
-  }
-});
-
-socket.on('admin-add-wallet', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false });
-  try {
-    const u = await User.findOne({ userId: data.userId });
-    u.walletBalance += parseInt(data.amount);
-    await u.save();
-
-    // Notify user via Room
-    io.to(data.userId).emit('wallet-update', {
-      balance: u.walletBalance,
-      totalEarnings: u.totalEarnings || 0,
-      superBalance: u.superWalletBalance || 0
-    });
-
-    cb({ ok: true });
-  } catch (e) { cb({ ok: false }); }
-});
-
-socket.on('admin-toggle-ban', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false });
-  try {
-    await User.updateOne({ userId: data.userId }, { isBanned: data.isBanned });
-    cb({ ok: true });
-    // If banned, disconnect socket?
-    if (data.isBanned) {
-      const s = userSockets.get(data.userId);
-      if (s) io.to(s).emit('force-logout'); // Need to handle client side
-    }
-  } catch (e) { cb({ ok: false }); }
-});
-
-socket.on('admin-get-pending-requests', async (cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false });
-  try {
-    const pending = await User.find({ approvalStatus: 'pending', role: 'astrologer' });
-    cb({ ok: true, requests: pending });
-  } catch (e) {
-    console.error(e);
-    cb({ ok: false });
-  }
-});
-
-socket.on('admin-approve-astrologer', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false });
-  try {
-    const { userId, action } = data; // action: 'approve' | 'reject'
-    const user = await User.findOne({ userId });
-    if (!user) return cb({ ok: false, error: 'User not found' });
-
-    if (action === 'approve') {
-      user.approvalStatus = 'approved';
-      user.isVerified = true;
-      user.documentStatus = 'verified';
-      await user.save();
-
-      // Notify user via WhatsApp (Manual step or automated script if API exists)
-      // For now, if they try to login, they will see dashboard
-    } else if (action === 'reject') {
-      user.approvalStatus = 'rejected';
-      await user.save();
-    }
-
-    console.log(`Admin ${action}ed astrologer: ${user.name}`);
-    cb({ ok: true });
-  } catch (e) {
-    console.error(e);
-    cb({ ok: false });
-  }
-});
-
-// Phase 10: Ledger Stats
-socket.on('admin-get-ledger-stats', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false });
-  try {
-    // Get billing stats
-    const billingStats = await BillingLedger.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: '$chargedToClient' },
-          totalAstroPayout: { $sum: '$creditedToAstrologer' },
-          totalAdminRevenue: { $sum: '$adminAmount' },
-          totalMinutes: { $sum: 1 }
-        }
-      }
-    ]);
-
-    // Get user counts
-    const totalUsers = await User.countDocuments();
-    const activeSessionCount = activeSessions.size;
-
-    // Get full ledger for breakdown
-    const fullLedger = await BillingLedger.find({}).sort({ createdAt: -1 }).limit(100);
-
-    const billing = billingStats[0] || {};
-
-    // Map to expected format
-    const stats = {
-      totalRevenue: billing.totalRevenue || 0,
-      adminProfit: billing.totalAdminRevenue || 0,
-      astroPayout: billing.totalAstroPayout || 0,
-      totalDuration: (billing.totalMinutes || 0) * 60, // Convert minutes to seconds
-      totalUsers: totalUsers,
-      activeSessions: activeSessionCount
-    };
-
-    cb({ ok: true, stats, fullLedger });
-  } catch (e) {
-    console.error(e);
-    cb({ ok: false });
-  }
-});
-
-// --- Save FCM Token (for push notifications) ---
-socket.on('save-fcm-token', async ({ fcmToken }) => {
-  const userId = socketToUser.get(socket.id);
-  if (!userId || !fcmToken) return;
-
-  try {
-    await User.updateOne({ userId }, { fcmToken });
-    console.log(`[FCM] Token saved for user: ${userId.substring(0, 8)}...`);
-  } catch (e) {
-    console.error('[FCM] Error saving token:', e);
-  }
-});
-
-// --- Get Wallet (Manual Refresh) ---
-socket.on('get-wallet', async (data) => {
-  const userId = socketToUser.get(socket.id);
-  if (!userId) return;
-  try {
-    const u = await User.findOne({ userId });
-    if (u) {
-      socket.emit('wallet-update', {
-        balance: u.walletBalance,
-        totalEarnings: u.totalEarnings || 0
-      });
-    }
-  } catch (e) { }
-});
-
-// --- Withdrawal Logic ---
-socket.on('request-withdrawal', async (data, cb) => {
-  const userId = socketToUser.get(socket.id);
-  if (!userId) return;
-  try {
-    const amount = parseInt(data.amount);
-    if (!amount || amount < 100) return cb({ ok: false, error: 'Minimum limit 100' });
-
-    // Attempt atomic deduction to prevent race conditions
-    const u = await User.findOneAndUpdate(
-      { userId, walletBalance: { $gte: amount } },
-      { $inc: { walletBalance: -amount } },
-      { new: true }
-    );
-
-    if (!u) {
-      // Either user not found OR insufficient balance
-      return cb({ ok: false, error: 'Insufficient Balance' });
-    }
-
-    let w;
+  // --- Admin: Get All Users ---
+  socket.on('get-all-users', async (cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
     try {
-      w = await Withdrawal.create({
-        astroId: userId,
-        amount,
-        status: 'pending',
-        requestedAt: Date.now()
-      });
-    } catch (dbErr) {
-      // Rollback if DB creation fails
-      console.error("DB Error creating withdrawal, rolling back wallet:", dbErr);
-      // Refund seamlessly
-      await User.updateOne({ userId }, { $inc: { walletBalance: amount } });
-      return cb({ ok: false, error: 'Database Error - Try Again' });
-    }
+      const users = await User.find({}).sort({ role: 1, name: 1 }); // Sort by role then name
+      cb({ ok: true, users });
+    } catch (e) { cb({ ok: false }); }
+  });
 
-    // Emit wallet update to self
-    io.to(socket.id).emit('wallet-update', { balance: u.walletBalance });
+  // --- Admin: Edit User (Name Only) ---
+  socket.on('admin-edit-user', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    try {
+      const { targetUserId, updates } = data || {};
+      if (!targetUserId || !updates || !updates.name) return cb({ ok: false, error: 'Invalid Data' });
 
-    // Notify Super Admins
-    io.to('superadmin').emit('admin-notification', {
-      type: 'withdrawal_request',
-      text: `💰 New Withdrawal Request: ${u.name} requested ₹${amount}`,
-      data: { withdrawalId: w._id, astroName: u.name, amount }
-    });
+      const u = await User.findOne({ userId: targetUserId });
+      if (!u) return cb({ ok: false, error: 'User not found' });
 
-    cb({ ok: true, balance: u.walletBalance });
-  } catch (e) {
-    console.error(e);
-    cb({ ok: false, error: 'Error' });
-  }
-});
-
-socket.on('approve-withdrawal', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false });
-  try {
-    const { withdrawalId } = data;
-    const w = await Withdrawal.findById(withdrawalId);
-    if (!w || w.status !== 'pending') return cb({ ok: false, error: 'Invalid Request' });
-
-    const u = await User.findOne({ userId: w.astroId });
-    if (!u) return cb({ ok: false, error: 'User not found' });
-
-    // Balance already deducted at request time
-
-    // Update Request
-    w.status = 'approved';
-    w.processedAt = Date.now();
-    await w.save();
-
-    // Notify Astro via Socket
-    const sId = userSockets.get(u.userId);
-    if (sId) {
-      io.to(sId).emit('app-notification', { text: `✅ Your withdrawal of ₹${w.amount} is approved! 2 working days logic applied.` });
-    }
-
-    // Notify Astro via FCM (Push Notification)
-    if (u.fcmToken) {
-      const fcmData = {
-        type: "withdrawal_approved",
-        withdrawalId: w._id.toString(),
-        amount: w.amount.toString()
-      };
-      const fcmNotification = {
-        title: "Withdrawal Approved! 💰",
-        body: `Your withdrawal of ₹${w.amount} has been approved. The amount will be credited to your bank account within 2 working days.`
-      };
-      sendFcmV1Push(u.fcmToken, fcmData, fcmNotification).catch(e => console.error("FCM Error:", e));
-    }
-
-    cb({ ok: true, balance: u.walletBalance });
-  } catch (e) {
-    console.error(e);
-    cb({ ok: false, error: 'Error' });
-  }
-});
-
-socket.on('reject-withdrawal', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return cb({ ok: false });
-  try {
-    const { withdrawalId } = data;
-    const w = await Withdrawal.findById(withdrawalId);
-    if (!w || w.status !== 'pending') return cb({ ok: false, error: 'Invalid Request' });
-
-    const u = await User.findOne({ userId: w.astroId });
-    if (u) {
-      // REFUND
-      u.walletBalance += w.amount;
+      u.name = updates.name;
       await u.save();
 
-      // Notify via Room (more reliable than socketId)
-      io.to(u.userId).emit('wallet-update', {
+      console.log(`Admin edited user ${u.userId}: Name -> ${u.name}`);
+
+      if (u.role === 'astrologer') broadcastAstroUpdate();
+
+      cb({ ok: true });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false, error: 'Internal Error' });
+    }
+  });
+
+  // --- Admin: Update User Details (Unified) ---
+  socket.on('admin-update-user-details', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    try {
+      const { userId, updates } = data;
+      const user = await User.findOne({ userId });
+      if (!user) return cb({ ok: false, error: 'User not found' });
+
+      // Update basic fields
+      if (updates.name) user.name = updates.name;
+      if (updates.price) user.price = parseInt(updates.price);
+      if (updates.image) user.image = updates.image;
+      if (typeof updates.isVerified === 'boolean') user.isVerified = updates.isVerified;
+      if (updates.documentStatus) {
+        user.documentStatus = updates.documentStatus;
+        user.isDocumentVerified = (updates.documentStatus === 'verified');
+      }
+
+      // Extended profile fields
+      if (updates.realName !== undefined) user.realName = updates.realName;
+      if (updates.gender !== undefined) user.gender = updates.gender;
+      if (updates.dob !== undefined) user.dob = updates.dob;
+      if (updates.address !== undefined) user.address = updates.address;
+
+      // Astrologer-specific fields
+      if (updates.experience !== undefined) user.experience = parseInt(updates.experience) || 0;
+      if (updates.profession !== undefined) user.profession = updates.profession;
+      if (updates.astrologyExperience !== undefined) user.astrologyExperience = updates.astrologyExperience;
+      if (typeof updates.isDocumentVerified === 'boolean') {
+        user.isDocumentVerified = updates.isDocumentVerified;
+        user.documentStatus = updates.isDocumentVerified ? 'verified' : 'pending';
+      }
+
+      // Bank & Financial fields
+      if (updates.bankDetails !== undefined) user.bankDetails = updates.bankDetails;
+      if (updates.upiId !== undefined) user.upiId = updates.upiId;
+      if (updates.upiNumber !== undefined) user.upiNumber = updates.upiNumber;
+      if (updates.aadharNumber !== undefined) user.aadharNumber = updates.aadharNumber;
+      if (updates.panNumber !== undefined) user.panNumber = updates.panNumber;
+
+      await user.save();
+      console.log(`Admin updated user ${user.name}:`, Object.keys(updates).join(', '));
+
+      if (user.role === 'astrologer') {
+        console.log('Broadcasting update for astrologer:', user.name);
+        await broadcastAstroUpdate();
+      }
+
+      // Notify the specific user if online
+      const sId = userSockets.get(user.userId);
+      if (sId) {
+        const formattedUser = user.toObject ? user.toObject() : user;
+        formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
+        io.to(sId).emit('my-profile-updated', formattedUser);
+      }
+
+      cb({ ok: true, user });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false, error: 'Update Failed' });
+    }
+  });
+
+  socket.on('admin-update-role', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    try {
+      const updates = { role: data.role };
+      if (data.role === 'astrologer') {
+        updates.walletBalance = 0;
+        updates.approvalStatus = 'pending'; // Require approval when manually set to astrologer
+      }
+      await User.updateOne({ userId: data.userId }, updates);
+
+      // Notify user via Room (more reliable than socketId)
+      if (data.role === 'astrologer') {
+        io.to(data.userId).emit('wallet-update', { balance: 0, superBalance: 0, totalEarnings: 0 });
+      }
+      io.to(data.userId).emit('app-notification', { text: `Your role has been updated to ${data.role}!` });
+
+      cb({ ok: true });
+    } catch (e) { cb({ ok: false }); }
+  });
+
+  // --- Astrologer: Update Client Birth Details (Task 2) ---
+  socket.on('astrologer-update-client-birth', async (data, cb) => {
+    try {
+      const { clientId, birthDetails } = data;
+      const astroId = socketToUser.get(socket.id);
+      const astro = await User.findOne({ userId: astroId });
+      if (!astro || astro.role !== 'astrologer') return cb({ ok: false, error: 'Unauthorized' });
+
+      const client = await User.findOne({ userId: clientId });
+      if (!client) return cb({ ok: false, error: 'Client not found' });
+
+      client.birthDetails = { ...client.birthDetails, ...birthDetails };
+      await client.save();
+
+      const { calculateBirthChart } = require('./utils/astroCalculations');
+      const [day, month, year] = client.birthDetails.dob.split('/').map(Number);
+      const [hours, minutes] = client.birthDetails.tob.split(':').map(Number);
+      const birthDate = new Date(year, month - 1, day, hours, minutes);
+      const newChart = calculateBirthChart(birthDate, client.birthDetails.lat || 13.08, client.birthDetails.lon || 80.27);
+
+      // Notify client if online
+      io.to(clientId).emit('birth-details-updated', { birthDetails: client.birthDetails, chart: newChart });
+
+      cb({ ok: true, chart: newChart });
+    } catch (e) {
+      console.error('[Socket] Astrologer Edit Error:', e);
+      cb({ ok: false, error: 'Update Failed' });
+    }
+  });
+
+  socket.on('admin-add-wallet', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    try {
+      const u = await User.findOne({ userId: data.userId });
+      u.walletBalance += parseInt(data.amount);
+      await u.save();
+
+      // Notify user via Room
+      io.to(data.userId).emit('wallet-update', {
         balance: u.walletBalance,
         totalEarnings: u.totalEarnings || 0,
         superBalance: u.superWalletBalance || 0
       });
-      io.to(u.userId).emit('app-notification', { text: `❌ Your withdrawal of ₹${w.amount} was rejected. Money refunded.` });
-    }
 
-    w.status = 'rejected';
-    w.processedAt = Date.now();
-    await w.save();
+      cb({ ok: true });
+    } catch (e) { cb({ ok: false }); }
+  });
 
-    cb({ ok: true });
-  } catch (e) {
-    console.error(e);
-    cb({ ok: false });
-  }
-});
-
-socket.on('get-withdrawals', async (cb) => {
-  try {
-    const list = await Withdrawal.find().sort({ requestedAt: -1 }).limit(50);
-    const enriched = [];
-    for (const w of list) {
-      const u = await User.findOne({ userId: w.astroId });
-      enriched.push({
-        ...w.toObject(),
-        astroName: u ? u.name : 'Unknown',
-        bankingDetails: u ? {
-          bankName: 'Details Below',
-          accountNumber: u.bankDetails || 'N/A', // Mapping free-text bank details here
-          accountHolderName: u.realName || u.name,
-          ifscCode: '-',
-          upiId: `${u.upiId || ''} ${u.upiNumber ? '(' + u.upiNumber + ')' : ''}`
-        } : null
-      });
-    }
-    if (typeof cb === 'function') cb({ ok: true, list: enriched });
-  } catch (e) {
-    console.error(e);
-    if (typeof cb === 'function') cb({ ok: false, list: [] });
-  }
-});
-
-socket.on('get-my-withdrawals', async (cb) => {
-  const userId = socketToUser.get(socket.id);
-  if (!userId) return;
-  try {
-    const list = await Withdrawal.find({ astroId: userId }).sort({ requestedAt: -1 }).limit(10);
-    if (typeof cb === 'function') cb({ ok: true, list });
-  } catch (e) {
-    if (typeof cb === 'function') cb({ ok: false });
-  }
-});
-
-socket.on('get-payout-status', async (data, cb) => {
-  try {
-    const userId = socketToUser.get(socket.id);
-    if (!userId) return cb({ ok: false });
-
-    const pending = await Withdrawal.find({ astroId: userId, status: 'pending' });
-    const totalPending = pending.reduce((sum, w) => sum + (w.amount || 0), 0);
-
-    cb({ ok: true, pendingAmount: totalPending, count: pending.length });
-  } catch (e) {
-    console.error(e);
-    cb({ ok: false, error: 'Error' });
-  }
-});
-
-socket.on('get-slab-rates', async (cb) => {
-  if (!await checkAdmin(socket.id)) return;
-  cb({ ok: true, rates: SLAB_RATES });
-});
-
-socket.on('update-slab-rates', async (rates, cb) => {
-  if (!await checkAdmin(socket.id)) return;
-  try {
-    await GlobalSettings.updateOne({ key: 'slab_rates' }, { value: rates }, { upsert: true });
-    SLAB_RATES = rates;
-    console.log('[Admin] Slab Rates updated:', SLAB_RATES);
-    cb({ ok: true });
-  } catch (e) {
-    cb({ ok: false, error: e.message });
-  }
-});
-
-socket.on('send-bulk-fcm', async (data, cb) => {
-  if (!await checkAdmin(socket.id)) return;
-  try {
-    const { userIds, title, body, allUsers } = data;
-    let query = {};
-
-    if (!allUsers) {
-      if (!userIds || userIds.length === 0) return cb({ ok: false, error: 'No users selected' });
-      query = { userId: { $in: userIds } };
-    } else {
-      query = { fcmToken: { $exists: true, $ne: '' } };
-    }
-
-    const users = await User.find(query, 'userId fcmToken name');
-    const validUsers = users.filter(u => u.fcmToken);
-    let sentCount = 0;
-    let failCount = 0;
-
-    // Batch processing (Chunk size 20)
-    const chunkSize = 20;
-    for (let i = 0; i < validUsers.length; i += chunkSize) {
-      const chunk = validUsers.slice(i, i + chunkSize);
-      const promises = chunk.map(u => {
-        const fcmData = { type: 'marketing_offer', title, body };
-        const fcmNotif = { title, body };
-        return sendFcmV1Push(u.fcmToken, fcmData, fcmNotif)
-          .then(res => res.success ? 1 : 0)
-          .catch(() => 0);
-      });
-
-      const results = await Promise.all(promises);
-      const chunkSuccess = results.reduce((a, b) => a + b, 0);
-      sentCount += chunkSuccess;
-      failCount += (chunk.length - chunkSuccess);
-    }
-
-    cb({ ok: true, sentCount, failCount });
-  } catch (e) {
-    cb({ ok: false, error: e.message });
-  }
-});
-// --- End Withdrawal Logic ---
-
-// --- Disconnect ---
-socket.on('disconnect', async () => {
-  const userId = socketToUser.get(socket.id);
-  if (userId) {
-    console.log(`Socket disconnected: ${socket.id}, userId=${userId}`);
-    socketToUser.delete(socket.id);
-
-    if (userSockets.get(userId) === socket.id) {
-      userSockets.delete(userId);
-    }
-
+  socket.on('admin-toggle-ban', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
     try {
-      // If Astrologer, use grace period before marking offline
+      await User.updateOne({ userId: data.userId }, { isBanned: data.isBanned });
+      cb({ ok: true });
+      // If banned, disconnect socket?
+      if (data.isBanned) {
+        const s = userSockets.get(data.userId);
+        if (s) io.to(s).emit('force-logout'); // Need to handle client side
+      }
+    } catch (e) { cb({ ok: false }); }
+  });
+
+  socket.on('admin-get-pending-requests', async (cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    try {
+      const pending = await User.find({ approvalStatus: 'pending', role: 'astrologer' });
+      cb({ ok: true, requests: pending });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false });
+    }
+  });
+
+  socket.on('admin-approve-astrologer', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    try {
+      const { userId, action } = data; // action: 'approve' | 'reject'
       const user = await User.findOne({ userId });
-      if (user && user.role === 'astrologer') {
-        // Save current status before potential offline
-        return; // Manual Toggle Rule: Skip offline marking
+      if (!user) return cb({ ok: false, error: 'User not found' });
 
-      }
-    } catch (e) { console.error('Disconnect DB error', e); }
+      if (action === 'approve') {
+        user.approvalStatus = 'approved';
+        user.isVerified = true;
+        user.documentStatus = 'verified';
+        await user.save();
 
-    const sid = userActiveSession.get(userId);
-    if (sid) {
-      // --- FIX: Don't end session immediately. Give grace period. ---
-      console.log(`[Session] User ${userId} disconnected. Starting grace period for Session ${sid}`);
-
-      // Clear existing if any (debounce)
-      if (sessionDisconnectTimeouts.has(userId)) {
-        clearTimeout(sessionDisconnectTimeouts.get(userId));
+        // Notify user via WhatsApp (Manual step or automated script if API exists)
+        // For now, if they try to login, they will see dashboard
+      } else if (action === 'reject') {
+        user.approvalStatus = 'rejected';
+        await user.save();
       }
 
-      const timeoutId = setTimeout(() => {
-        // If this runs, it means user didn't reconnect in time
-        console.log(`[Session] Grace period expired for ${userId}. Ending Session ${sid}`);
+      console.log(`Admin ${action}ed astrologer: ${user.name}`);
+      cb({ ok: true });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false });
+    }
+  });
 
-        sessionDisconnectTimeouts.delete(userId);
-
-        // Double check if session still active (maybe other user ended it?)
-        const s = activeSessions.get(sid);
-        if (s) {
-          // We can optionally update Session end time in DB here
-          Session.updateOne({ sessionId: sid }, { endTime: Date.now(), duration: Date.now() - s.startedAt }).catch(() => { });
-
-          const otherUserId = getOtherUserIdFromSession(sid, userId);
-
-          // NOW we end it
-          endSessionRecord(sid);
-
-          if (otherUserId) {
-            // Notify other user that partner dropped
-            io.to(otherUserId).emit('session-ended', {
-              sessionId: sid,
-              reason: 'partner_disconnected'
-            });
+  // Phase 10: Ledger Stats
+  socket.on('admin-get-ledger-stats', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    try {
+      // Get billing stats
+      const billingStats = await BillingLedger.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalRevenue: { $sum: '$chargedToClient' },
+            totalAstroPayout: { $sum: '$creditedToAstrologer' },
+            totalAdminRevenue: { $sum: '$adminAmount' },
+            totalMinutes: { $sum: 1 }
           }
         }
-      }, SESSION_GRACE_PERIOD);
+      ]);
 
-      sessionDisconnectTimeouts.set(userId, timeoutId);
+      // Get user counts
+      const totalUsers = await User.countDocuments();
+      const activeSessionCount = activeSessions.size;
+
+      // Get full ledger for breakdown
+      const fullLedger = await BillingLedger.find({}).sort({ createdAt: -1 }).limit(100);
+
+      const billing = billingStats[0] || {};
+
+      // Map to expected format
+      const stats = {
+        totalRevenue: billing.totalRevenue || 0,
+        adminProfit: billing.totalAdminRevenue || 0,
+        astroPayout: billing.totalAstroPayout || 0,
+        totalDuration: (billing.totalMinutes || 0) * 60, // Convert minutes to seconds
+        totalUsers: totalUsers,
+        activeSessions: activeSessionCount
+      };
+
+      cb({ ok: true, stats, fullLedger });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false });
     }
-  } else {
-    console.log('Socket disconnected (no user):', socket.id);
-  }
-});
+  });
+
+  // --- Save FCM Token (for push notifications) ---
+  socket.on('save-fcm-token', async ({ fcmToken }) => {
+    const userId = socketToUser.get(socket.id);
+    if (!userId || !fcmToken) return;
+
+    try {
+      await User.updateOne({ userId }, { fcmToken });
+      console.log(`[FCM] Token saved for user: ${userId.substring(0, 8)}...`);
+    } catch (e) {
+      console.error('[FCM] Error saving token:', e);
+    }
+  });
+
+  // --- Get Wallet (Manual Refresh) ---
+  socket.on('get-wallet', async (data) => {
+    const userId = socketToUser.get(socket.id);
+    if (!userId) return;
+    try {
+      const u = await User.findOne({ userId });
+      if (u) {
+        socket.emit('wallet-update', {
+          balance: u.walletBalance,
+          totalEarnings: u.totalEarnings || 0
+        });
+      }
+    } catch (e) { }
+  });
+
+  // --- Withdrawal Logic ---
+  socket.on('request-withdrawal', async (data, cb) => {
+    const userId = socketToUser.get(socket.id);
+    if (!userId) return;
+    try {
+      const amount = parseInt(data.amount);
+      if (!amount || amount < 100) return cb({ ok: false, error: 'Minimum limit 100' });
+
+      // Attempt atomic deduction to prevent race conditions
+      const u = await User.findOneAndUpdate(
+        { userId, walletBalance: { $gte: amount } },
+        { $inc: { walletBalance: -amount } },
+        { new: true }
+      );
+
+      if (!u) {
+        // Either user not found OR insufficient balance
+        return cb({ ok: false, error: 'Insufficient Balance' });
+      }
+
+      let w;
+      try {
+        w = await Withdrawal.create({
+          astroId: userId,
+          amount,
+          status: 'pending',
+          requestedAt: Date.now()
+        });
+      } catch (dbErr) {
+        // Rollback if DB creation fails
+        console.error("DB Error creating withdrawal, rolling back wallet:", dbErr);
+        // Refund seamlessly
+        await User.updateOne({ userId }, { $inc: { walletBalance: amount } });
+        return cb({ ok: false, error: 'Database Error - Try Again' });
+      }
+
+      // Emit wallet update to self
+      io.to(socket.id).emit('wallet-update', { balance: u.walletBalance });
+
+      // Notify Super Admins
+      io.to('superadmin').emit('admin-notification', {
+        type: 'withdrawal_request',
+        text: `💰 New Withdrawal Request: ${u.name} requested ₹${amount}`,
+        data: { withdrawalId: w._id, astroName: u.name, amount }
+      });
+
+      cb({ ok: true, balance: u.walletBalance });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false, error: 'Error' });
+    }
+  });
+
+  socket.on('approve-withdrawal', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    try {
+      const { withdrawalId } = data;
+      const w = await Withdrawal.findById(withdrawalId);
+      if (!w || w.status !== 'pending') return cb({ ok: false, error: 'Invalid Request' });
+
+      const u = await User.findOne({ userId: w.astroId });
+      if (!u) return cb({ ok: false, error: 'User not found' });
+
+      // Balance already deducted at request time
+
+      // Update Request
+      w.status = 'approved';
+      w.processedAt = Date.now();
+      await w.save();
+
+      // Notify Astro via Socket
+      const sId = userSockets.get(u.userId);
+      if (sId) {
+        io.to(sId).emit('app-notification', { text: `✅ Your withdrawal of ₹${w.amount} is approved! 2 working days logic applied.` });
+      }
+
+      // Notify Astro via FCM (Push Notification)
+      if (u.fcmToken) {
+        const fcmData = {
+          type: "withdrawal_approved",
+          withdrawalId: w._id.toString(),
+          amount: w.amount.toString()
+        };
+        const fcmNotification = {
+          title: "Withdrawal Approved! 💰",
+          body: `Your withdrawal of ₹${w.amount} has been approved. The amount will be credited to your bank account within 2 working days.`
+        };
+        sendFcmV1Push(u.fcmToken, fcmData, fcmNotification).catch(e => console.error("FCM Error:", e));
+      }
+
+      cb({ ok: true, balance: u.walletBalance });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false, error: 'Error' });
+    }
+  });
+
+  socket.on('reject-withdrawal', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    try {
+      const { withdrawalId } = data;
+      const w = await Withdrawal.findById(withdrawalId);
+      if (!w || w.status !== 'pending') return cb({ ok: false, error: 'Invalid Request' });
+
+      const u = await User.findOne({ userId: w.astroId });
+      if (u) {
+        // REFUND
+        u.walletBalance += w.amount;
+        await u.save();
+
+        // Notify via Room (more reliable than socketId)
+        io.to(u.userId).emit('wallet-update', {
+          balance: u.walletBalance,
+          totalEarnings: u.totalEarnings || 0,
+          superBalance: u.superWalletBalance || 0
+        });
+        io.to(u.userId).emit('app-notification', { text: `❌ Your withdrawal of ₹${w.amount} was rejected. Money refunded.` });
+      }
+
+      w.status = 'rejected';
+      w.processedAt = Date.now();
+      await w.save();
+
+      cb({ ok: true });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false });
+    }
+  });
+
+  socket.on('get-withdrawals', async (cb) => {
+    try {
+      const list = await Withdrawal.find().sort({ requestedAt: -1 }).limit(50);
+      const enriched = [];
+      for (const w of list) {
+        const u = await User.findOne({ userId: w.astroId });
+        enriched.push({
+          ...w.toObject(),
+          astroName: u ? u.name : 'Unknown',
+          bankingDetails: u ? {
+            bankName: 'Details Below',
+            accountNumber: u.bankDetails || 'N/A', // Mapping free-text bank details here
+            accountHolderName: u.realName || u.name,
+            ifscCode: '-',
+            upiId: `${u.upiId || ''} ${u.upiNumber ? '(' + u.upiNumber + ')' : ''}`
+          } : null
+        });
+      }
+      if (typeof cb === 'function') cb({ ok: true, list: enriched });
+    } catch (e) {
+      console.error(e);
+      if (typeof cb === 'function') cb({ ok: false, list: [] });
+    }
+  });
+
+  socket.on('get-my-withdrawals', async (cb) => {
+    const userId = socketToUser.get(socket.id);
+    if (!userId) return;
+    try {
+      const list = await Withdrawal.find({ astroId: userId }).sort({ requestedAt: -1 }).limit(10);
+      if (typeof cb === 'function') cb({ ok: true, list });
+    } catch (e) {
+      if (typeof cb === 'function') cb({ ok: false });
+    }
+  });
+
+  socket.on('get-payout-status', async (data, cb) => {
+    try {
+      const userId = socketToUser.get(socket.id);
+      if (!userId) return cb({ ok: false });
+
+      const pending = await Withdrawal.find({ astroId: userId, status: 'pending' });
+      const totalPending = pending.reduce((sum, w) => sum + (w.amount || 0), 0);
+
+      cb({ ok: true, pendingAmount: totalPending, count: pending.length });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false, error: 'Error' });
+    }
+  });
+
+  socket.on('get-slab-rates', async (cb) => {
+    if (!await checkAdmin(socket.id)) return;
+    cb({ ok: true, rates: SLAB_RATES });
+  });
+
+  socket.on('update-slab-rates', async (rates, cb) => {
+    if (!await checkAdmin(socket.id)) return;
+    try {
+      await GlobalSettings.updateOne({ key: 'slab_rates' }, { value: rates }, { upsert: true });
+      SLAB_RATES = rates;
+      console.log('[Admin] Slab Rates updated:', SLAB_RATES);
+      cb({ ok: true });
+    } catch (e) {
+      cb({ ok: false, error: e.message });
+    }
+  });
+
+  socket.on('send-bulk-fcm', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return;
+    try {
+      const { userIds, title, body, allUsers } = data;
+      let query = {};
+
+      if (!allUsers) {
+        if (!userIds || userIds.length === 0) return cb({ ok: false, error: 'No users selected' });
+        query = { userId: { $in: userIds } };
+      } else {
+        query = { fcmToken: { $exists: true, $ne: '' } };
+      }
+
+      const users = await User.find(query, 'userId fcmToken name');
+      const validUsers = users.filter(u => u.fcmToken);
+      let sentCount = 0;
+      let failCount = 0;
+
+      // Batch processing (Chunk size 20)
+      const chunkSize = 20;
+      for (let i = 0; i < validUsers.length; i += chunkSize) {
+        const chunk = validUsers.slice(i, i + chunkSize);
+        const promises = chunk.map(u => {
+          const fcmData = { type: 'marketing_offer', title, body };
+          const fcmNotif = { title, body };
+          return sendFcmV1Push(u.fcmToken, fcmData, fcmNotif)
+            .then(res => res.success ? 1 : 0)
+            .catch(() => 0);
+        });
+
+        const results = await Promise.all(promises);
+        const chunkSuccess = results.reduce((a, b) => a + b, 0);
+        sentCount += chunkSuccess;
+        failCount += (chunk.length - chunkSuccess);
+      }
+
+      cb({ ok: true, sentCount, failCount });
+    } catch (e) {
+      cb({ ok: false, error: e.message });
+    }
+  });
+  // --- End Withdrawal Logic ---
+
+  // --- Disconnect ---
+  socket.on('disconnect', async () => {
+    const userId = socketToUser.get(socket.id);
+    if (userId) {
+      console.log(`Socket disconnected: ${socket.id}, userId=${userId}`);
+      socketToUser.delete(socket.id);
+
+      if (userSockets.get(userId) === socket.id) {
+        userSockets.delete(userId);
+      }
+
+      try {
+        // If Astrologer, use grace period before marking offline
+        const user = await User.findOne({ userId });
+        if (user && user.role === 'astrologer') {
+          // Save current status before potential offline
+          return; // Manual Toggle Rule: Skip offline marking
+
+        }
+      } catch (e) { console.error('Disconnect DB error', e); }
+
+      const sid = userActiveSession.get(userId);
+      if (sid) {
+        // --- FIX: Don't end session immediately. Give grace period. ---
+        console.log(`[Session] User ${userId} disconnected. Starting grace period for Session ${sid}`);
+
+        // Clear existing if any (debounce)
+        if (sessionDisconnectTimeouts.has(userId)) {
+          clearTimeout(sessionDisconnectTimeouts.get(userId));
+        }
+
+        const timeoutId = setTimeout(() => {
+          // If this runs, it means user didn't reconnect in time
+          console.log(`[Session] Grace period expired for ${userId}. Ending Session ${sid}`);
+
+          sessionDisconnectTimeouts.delete(userId);
+
+          // Double check if session still active (maybe other user ended it?)
+          const s = activeSessions.get(sid);
+          if (s) {
+            // We can optionally update Session end time in DB here
+            Session.updateOne({ sessionId: sid }, { endTime: Date.now(), duration: Date.now() - s.startedAt }).catch(() => { });
+
+            const otherUserId = getOtherUserIdFromSession(sid, userId);
+
+            // NOW we end it
+            endSessionRecord(sid);
+
+            if (otherUserId) {
+              // Notify other user that partner dropped
+              io.to(otherUserId).emit('session-ended', {
+                sessionId: sid,
+                reason: 'partner_disconnected'
+              });
+            }
+          }
+        }, SESSION_GRACE_PERIOD);
+
+        sessionDisconnectTimeouts.set(userId, timeoutId);
+      }
+    } else {
+      console.log('Socket disconnected (no user):', socket.id);
+    }
+  });
 });
 
 // ===== Reliable Calling System (DB + FCM) =====
