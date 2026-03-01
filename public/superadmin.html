@@ -24,6 +24,10 @@
             <div class="nav-item is-active" onclick="showTab('dashboard')">
                 <i class="fas fa-chart-line"></i> <span>Dashboard</span>
             </div>
+            <div class="nav-item" onclick="showTab('requests')">
+                <i class="fas fa-user-clock"></i> <span>Requests</span>
+                <span id="pending-count-badge" class="badge-dot hidden"></span>
+            </div>
             <div class="nav-item" onclick="showTab('astrologers')">
                 <i class="fas fa-magic"></i> <span>Astrologers</span>
             </div>
@@ -33,13 +37,16 @@
             <div class="nav-item" onclick="showTab('withdrawals')">
                 <i class="fas fa-wallet"></i> <span>Withdrawals</span>
             </div>
+            <div class="nav-item" onclick="showTab('ledger')">
+                <i class="fas fa-file-invoice-dollar"></i> <span>Ledger</span>
+            </div>
             <div class="nav-item" onclick="showTab('banner')">
                 <i class="fas fa-image"></i> <span>Banner Mgmt</span>
             </div>
         </nav>
 
         <div style="padding: 2rem; opacity: 0.5; font-size: 0.8rem;">
-            V 2.0.4 Premium Admin
+            V 2.1.0 Premium Admin
         </div>
     </aside>
 
@@ -53,23 +60,49 @@
                 <p class="t-muted">Real-time stats across all user segments</p>
             </header>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
                 <div class="c-card c-stat-card">
-                    <div class="t-muted fs-xs">TOTAL REVENUE</div>
+                    <div class="t-muted fs-xs">PLATFORM REVENUE</div>
                     <div class="fs-2xl fw-bold">₹<span id="stat-total-revenue">0</span></div>
+                    <p class="fs-xs t-muted" style="margin-top: 0.5rem;">Total money charged to clients</p>
                     <i class="fas fa-indian-rupee-sign"
                         style="position:absolute; right:1rem; bottom:1rem; opacity:0.1; font-size: 3rem;"></i>
                 </div>
                 <div class="c-card c-stat-card">
-                    <div class="t-muted fs-xs">ACTIVE ASTROLOGERS</div>
-                    <div class="fs-2xl fw-bold" id="stat-active-astros">0</div>
-                    <i class="fas fa-star"
-                        style="position:absolute; right:1rem; bottom:1rem; opacity:0.1; font-size: 3rem; color: #fbbf24"></i>
+                    <div class="t-muted fs-xs">ADMIN PROFIT</div>
+                    <div class="fs-2xl fw-bold t-success">₹<span id="stat-admin-profit">0</span></div>
+                    <p class="fs-xs t-muted" style="margin-top: 0.5rem;">Platform service fee revenue</p>
+                    <i class="fas fa-shield-alt"
+                        style="position:absolute; right:1rem; bottom:1rem; opacity:0.1; font-size: 3rem;"></i>
                 </div>
                 <div class="c-card c-stat-card">
-                    <div class="t-muted fs-xs">PENDING WITHDRAWALS</div>
-                    <div class="fs-2xl fw-bold t-error" id="stat-pending-payouts">0</div>
+                    <div class="t-muted fs-xs">ACTIVE SESSIONS</div>
+                    <div class="fs-2xl fw-bold" id="stat-active-sessions">0</div>
+                    <p class="fs-xs t-muted" style="margin-top: 0.5rem;">Ongoing calls/chats</p>
+                    <i class="fas fa-headset"
+                        style="position:absolute; right:1rem; bottom:1rem; opacity:0.1; font-size: 3rem;"></i>
                 </div>
+                <div class="c-card c-stat-card">
+                    <div class="t-muted fs-xs">TOTAL USERS</div>
+                    <div class="fs-2xl fw-bold" id="stat-total-users">0</div>
+                    <p class="fs-xs t-muted" style="margin-top: 0.5rem;">Registered base</p>
+                    <i class="fas fa-users"
+                        style="position:absolute; right:1rem; bottom:1rem; opacity:0.1; font-size: 3rem;"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Requests Tab (Pending Approvals) -->
+        <section id="tab-requests" class="tab-content hidden animate-up">
+            <header style="margin-bottom: 2rem;">
+                <h1 style="margin:0;">Pending Approvals</h1>
+                <p class="t-muted">Review and verify new astrologer applications</p>
+            </header>
+
+            <div id="pending-requests-list"
+                style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
+                <!-- Pending items injected here -->
+                <div class="t-muted" id="no-requests-msg">No pending registrations found.</div>
             </div>
         </section>
 
@@ -88,18 +121,43 @@
                 </div>
             </header>
 
-            <!-- Pending Requests -->
-            <div id="pending-astrologers-section" class="hidden">
-                <h3 class="t-warning"><i class="fas fa-clock"></i> Pending Approval</h3>
-                <div id="pending-astrologers-list"
-                    style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 3rem;">
-                </div>
-            </div>
-
-            <!-- Main list -->
             <div id="astrologers-list"
                 style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
-                <!-- User Cards will be injected by JS -->
+            </div>
+        </section>
+
+        <!-- Client Users Tab -->
+        <section id="tab-users" class="tab-content hidden animate-up">
+            <header style="margin-bottom: 2rem;">
+                <h1 style="margin:0;">Client Management</h1>
+                <p class="t-muted">View client balances and session history</p>
+            </header>
+            <div id="users-list"
+                style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;"></div>
+        </section>
+
+        <!-- Ledger Tab -->
+        <section id="tab-ledger" class="tab-content hidden animate-up">
+            <header style="margin-bottom: 2rem;">
+                <h1 style="margin:0;">Billing Ledger</h1>
+                <p class="t-muted">Transaction audit and earnings breakdown</p>
+            </header>
+            <div class="c-card" style="padding:0; overflow:hidden;">
+                <table style="width:100%; border-collapse: collapse; text-align: left;">
+                    <thead
+                        style="background: var(--clr-surface-muted); font-size: 0.75rem; text-transform: uppercase; color: var(--clr-text-muted);">
+                        <tr>
+                            <th style="padding: 1rem;">Time</th>
+                            <th style="padding: 1rem;">Client -> Astro</th>
+                            <th style="padding: 1rem;">Charge</th>
+                            <th style="padding: 1rem;">Astro Get</th>
+                            <th style="padding: 1rem;">Admin Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-table-body" style="font-size: 0.875rem;">
+                        <!-- Ledger rows injected here -->
+                    </tbody>
+                </table>
             </div>
         </section>
 
@@ -109,7 +167,7 @@
     <div id="adminEditModal" class="modal-overlay hidden">
         <div class="modal-content animate-up">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--sp-6);">
-                <h2 style="margin:0" id="editModalTitle">Edit Profile</h2>
+                <h2 style="margin:0" id="editModalTitle">Edit User</h2>
                 <button class="btn btn-ghost" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
             </div>
 
@@ -122,8 +180,8 @@
                         <input type="text" id="editUserName" class="input">
                     </div>
                     <div>
-                        <label class="detail-label">Calling Price (₹/min)</label>
-                        <input type="number" id="editUserPrice" class="input">
+                        <label class="detail-label">Wallet Action (Add ₹)</label>
+                        <input type="number" id="walletAction" class="input" placeholder="0" value="0">
                     </div>
                 </div>
 
@@ -137,6 +195,10 @@
                             <input type="text" id="editRealName" class="input">
                         </div>
                         <div>
+                            <label class="detail-label">Calling Price (₹/min)</label>
+                            <input type="number" id="editUserPrice" class="input">
+                        </div>
+                        <div>
                             <label class="detail-label">Aadhar Number</label>
                             <input type="text" id="editAadhar" class="input">
                         </div>
@@ -144,7 +206,7 @@
                             <label class="detail-label">Bank Info</label>
                             <input type="text" id="editBank" class="input" placeholder="Acc No, IFSC, Bank Name">
                         </div>
-                        <div>
+                        <div style="grid-column: span 2">
                             <label class="detail-label">UPI ID</label>
                             <input type="text" id="editUpiId" class="input">
                         </div>
@@ -153,7 +215,7 @@
 
                 <div style="margin-top: 2rem; display:flex; justify-content: flex-end; gap: 1rem;">
                     <button type="button" class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="submit" class="btn btn-success">Update Records</button>
                 </div>
             </form>
         </div>
@@ -161,63 +223,151 @@
 
     <!-- Scripts -->
     <script>
-        // Use a Proxy-based state manager for scalability? Not needed yet, but we'll use clean functions
         const socket = io();
         let currentUsers = [];
+        let activeTab = 'dashboard';
 
         socket.on('connect', () => {
+            refreshData();
+        });
+
+        function refreshData() {
             socket.emit('get-all-users', (res) => {
                 if (res.ok) {
                     currentUsers = res.users;
                     renderAstrologers();
+                    renderRequests();
+                    renderClients();
                 }
             });
-        });
+            fetchLedger();
+        }
 
-        function renderAstrologers() {
-            const list = document.getElementById('astrologers-list');
-            list.innerHTML = '';
+        function fetchLedger() {
+            socket.emit('admin-get-ledger-stats', {}, (res) => {
+                if (res.ok) {
+                    document.getElementById('stat-total-revenue').innerText = Math.round(res.stats.totalRevenue);
+                    document.getElementById('stat-admin-profit').innerText = Math.round(res.stats.adminProfit);
+                    document.getElementById('stat-active-sessions').innerText = res.stats.activeSessions;
+                    document.getElementById('stat-total-users').innerText = res.stats.totalUsers;
 
-            const astros = currentUsers.filter(u => u.role === 'astrologer');
-
-            astros.forEach(u => {
-                const card = document.createElement('div');
-                card.className = 'c-card c-user-card';
-                card.innerHTML = `
-                    <div style="display:flex; gap: 1rem; align-items:center;">
-                        <img src="${u.image || 'https://via.placeholder.com/60'}" style="width:60px; height:60px; border-radius:var(--rad-base); object-fit:cover;">
-                        <div style="flex:1">
-                            <h4 style="margin:0">${u.name}</h4>
-                            <div class="t-muted fs-xs">ID: ${u.userId}</div>
-                        </div>
-                        <div class="status-badge" style="background:${u.isOnline ? 'var(--clr-success)' : 'var(--clr-text-muted)'}; color:white; font-size:0.6rem; padding: 2px 8px; border-radius: 4px;">
-                            ${u.isOnline ? 'ONLINE' : 'OFFLINE'}
-                        </div>
-                    </div>
-
-                    <div class="details-grid" id="details-${u.userId}" style="display:none">
-                        <div class="detail-item"><span class="detail-label">Price</span><span class="detail-value">₹${u.price}/min</span></div>
-                        <div class="detail-item"><span class="detail-label">Earning</span><span class="detail-value">₹${u.totalEarnings || 0}</span></div>
-                        <div class="detail-item"><span class="detail-label">UPI</span><span class="detail-value">${u.upiId || 'N/A'}</span></div>
-                        <div class="detail-item"><span class="detail-label">Wallet</span><span class="detail-value">₹${u.walletBalance || 0}</span></div>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
-                        <button class="btn btn-ghost" onclick="toggleDetails('${u.userId}')">
-                            <i class="fas fa-info-circle"></i> Details
-                        </button>
-                        <button class="btn btn-primary" onclick="openEditModal('${u.userId}')">
-                            <i class="fas fa-edit"></i> Edit
-                        </button>
-                    </div>
-                `;
-                list.appendChild(card);
+                    const tbody = document.getElementById('ledger-table-body');
+                    tbody.innerHTML = res.fullLedger.map(l => `
+                        <tr style="border-bottom: 1px solid var(--clr-surface-muted);">
+                            <td style="padding:1rem;">${new Date(l.createdAt).toLocaleString()}</td>
+                            <td style="padding:1rem;">${l.clientId.slice(0, 6)} -> ${l.astrologerId.slice(0, 6)}</td>
+                            <td style="padding:1rem;">₹${l.chargedToClient}</td>
+                            <td style="padding:1rem;">₹${l.creditedToAstrologer}</td>
+                            <td style="padding:1rem; color:var(--clr-success)" class="fw-bold">₹${l.adminAmount}</td>
+                        </tr>
+                    `).join('');
+                }
             });
         }
 
-        function toggleDetails(uid) {
-            const el = document.getElementById(`details-${uid}`);
-            el.style.display = el.style.display === 'none' ? 'grid' : 'none';
+        function renderRequests() {
+            const list = document.getElementById('pending-requests-list');
+            const placeholder = document.getElementById('no-requests-msg');
+            const pending = currentUsers.filter(u => u.role === 'astrologer' && u.approvalStatus === 'pending');
+
+            document.getElementById('pending-count-badge').classList.toggle('hidden', pending.length === 0);
+
+            if (pending.length === 0) {
+                list.innerHTML = '';
+                placeholder.classList.remove('hidden');
+                return;
+            }
+            placeholder.classList.add('hidden');
+            list.innerHTML = pending.map(u => `
+                <div class="c-card">
+                    <div style="display:flex; gap:1rem; align-items:flex-start;">
+                        <img src="${u.image || 'https://via.placeholder.com/60'}" style="width:64px; height:64px; border-radius:8px;">
+                        <div style="flex:1">
+                            <h3 style="margin:0">${u.name}</h3>
+                            <div class="t-muted fs-xs">${u.phone}</div>
+                            <div style="margin-top:0.5rem; font-size:0.8rem;">
+                                <div><b>Skills:</b> ${u.skills?.join(', ') || 'N/A'}</div>
+                                <div><b>UPI:</b> ${u.upiId || 'N/A'}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem; margin-top:1.5rem;">
+                        <button class="btn btn-warning btn-ghost" onclick="processAstro('${u.userId}', 'reject')">Reject</button>
+                        <button class="btn btn-success" onclick="processAstro('${u.userId}', 'approve')">Approve</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function processAstro(userId, action) {
+            if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+            socket.emit('admin-approve-astrologer', { userId, action }, (res) => {
+                if (res.ok) refreshData();
+                else alert('Action failed');
+            });
+        }
+
+        function renderAstrologers() {
+            const list = document.getElementById('astrologers-list');
+            const astros = currentUsers.filter(u => u.role === 'astrologer' && u.approvalStatus === 'approved');
+            document.getElementById('online-astro-count').innerText = astros.filter(a => a.isOnline).length;
+
+            list.innerHTML = astros.map(u => `
+                <div class="c-card c-user-card">
+                    <div style="display:flex; gap: 1rem; align-items:center;">
+                        <div style="position:relative">
+                            <img src="${u.image || 'https://via.placeholder.com/60'}" style="width:50px; height:50px; border-radius:12px; object-fit:cover;">
+                            <div style="position:absolute; bottom:-4px; right:-4px; width:12px; height:12px; border-radius:50%; background:${u.isOnline ? 'var(--clr-success)' : '#cbd5e1'}; border:2px solid white;"></div>
+                        </div>
+                        <div style="flex:1">
+                            <h4 style="margin:0">${u.name}</h4>
+                            <div class="t-muted fs-xs">${u.phone}</div>
+                        </div>
+                        <div class="fw-bold t-success">₹${u.price}</div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem; margin-top:0.5rem;">
+                         <button class="btn btn-ghost btn-sm" onclick="openEditModal('${u.userId}')"><i class="fas fa-cog"></i> Manage</button>
+                         <button class="btn btn-ghost btn-danger btn-sm" onclick="toggleBan('${u.userId}', ${!u.isBanned})">
+                            <i class="fas fa-ban"></i> ${u.isBanned ? 'Unban' : 'Ban'}
+                         </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderClients() {
+            const list = document.getElementById('users-list');
+            const clients = currentUsers.filter(u => u.role === 'client');
+            list.innerHTML = clients.map(u => `
+                <div class="c-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h4 style="margin:0">${u.name || 'User'}</h4>
+                            <div class="t-muted fs-xs">${u.phone}</div>
+                        </div>
+                        <div class="fw-bold">₹${u.walletBalance}</div>
+                    </div>
+                    <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:1rem;" onclick="openEditModal('${u.userId}')">Edit Wallet / Name</button>
+                </div>
+            `).join('');
+        }
+
+        function toggleBan(userId, isBanned) {
+            if (!confirm(`Are you sure you want to ${isBanned ? 'BAN' : 'UNBAN'} this user?`)) return;
+            socket.emit('admin-toggle-ban', { userId, isBanned }, (res) => {
+                if (res.ok) refreshData();
+            });
+        }
+
+        function showTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('is-active'));
+            document.querySelectorAll('.nav-item').forEach(el => {
+                if (el.getAttribute('onclick').includes(`'${tab}'`)) el.classList.add('is-active');
+            });
         }
 
         function openEditModal(uid) {
@@ -225,12 +375,13 @@
             if (!u) return;
 
             document.getElementById('editUserId').value = u.userId;
-            document.getElementById('editUserName').value = u.name;
-            document.getElementById('editUserPrice').value = u.price || 0;
+            document.getElementById('editUserName').value = u.name || '';
+            document.getElementById('walletAction').value = 0;
 
             if (u.role === 'astrologer') {
                 document.getElementById('astro-extended-fields').classList.remove('hidden');
                 document.getElementById('editRealName').value = u.realName || '';
+                document.getElementById('editUserPrice').value = u.price || 0;
                 document.getElementById('editAadhar').value = u.aadharNumber || '';
                 document.getElementById('editBank').value = u.bankDetails || '';
                 document.getElementById('editUpiId').value = u.upiId || '';
@@ -248,36 +399,38 @@
         function saveAdminEditUser(e) {
             e.preventDefault();
             const userId = document.getElementById('editUserId').value;
+            const walletAmt = parseInt(document.getElementById('walletAction').value);
+
             const updates = {
-                name: document.getElementById('editUserName').value,
-                price: document.getElementById('editUserPrice').value
+                name: document.getElementById('editUserName').value
             };
 
             const u = currentUsers.find(x => x.userId === userId);
             if (u.role === 'astrologer') {
                 updates.realName = document.getElementById('editRealName').value;
+                updates.price = parseInt(document.getElementById('editUserPrice').value);
                 updates.aadharNumber = document.getElementById('editAadhar').value;
                 updates.bankDetails = document.getElementById('editBank').value;
                 updates.upiId = document.getElementById('editUpiId').value;
             }
 
-            socket.emit('admin-update-user-details', { userId, updates }, (res) => {
-                if (res.ok) {
-                    alert('Profile Updated Successfully!');
-                    location.reload();
+            // 1. Update Details
+            socket.emit('admin-update-user-details', { userId, updates }, (res1) => {
+                // 2. Add Wallet if needed
+                if (walletAmt !== 0) {
+                    socket.emit('admin-add-wallet', { userId, amount: walletAmt }, (res2) => {
+                        finishUpdate();
+                    });
                 } else {
-                    alert('Update Failed');
+                    finishUpdate();
                 }
             });
-        }
 
-        function showTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`tab-${tab}`).classList.remove('hidden');
-
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('is-active'));
-            const activeNav = Array.from(document.querySelectorAll('.nav-item')).find(el => el.textContent.toLowerCase().includes(tab));
-            if (activeNav) activeNav.classList.add('is-active');
+            function finishUpdate() {
+                alert('Records Updated Successfully!');
+                closeEditModal();
+                refreshData();
+            }
         }
     </script>
 </body>
