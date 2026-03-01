@@ -112,23 +112,23 @@ async function sendFcmV1Push(fcmToken, data, notification) {
 
     const messagePayload = {
       token: fcmToken,
-      notification: notification ? {
+      notification: notification && notification.image ? {
         title: notification.title,
         body: notification.body,
-        image: notification.image || '' // Standard FCM v1 image field
-      } : undefined,
+        image: notification.image
+      } : (notification ? { title: notification.title, body: notification.body } : undefined),
       data: {
         ...data,
         title: notification ? notification.title : '',
         body: notification ? notification.body : '',
-        image: notification ? (notification.image || '') : '',
+        image: notification && notification.image ? notification.image : '',
         priority: 'high'
       },
       android: {
         priority: 'high',
         ttl: '0s',
-        notification: notification ? {
-          image: notification.image || ''
+        notification: notification && notification.image ? {
+          image: notification.image
         } : undefined
       },
       apns: {
@@ -138,7 +138,10 @@ async function sendFcmV1Push(fcmToken, data, notification) {
             mutableContent: true,
             priority: 10
           }
-        }
+        },
+        fcm_options: notification && notification.image ? {
+          image: notification.image
+        } : undefined
       }
     };
 
