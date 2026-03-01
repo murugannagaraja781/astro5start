@@ -245,6 +245,8 @@
                 <div class="c-card">
                     <h3>Message</h3>
                     <input type="text" id="fcmTitle" class="input" placeholder="Title" style="margin-bottom:10px;">
+                    <input type="text" id="fcmImage" class="input" placeholder="Image URL (Optional)"
+                        value="/images/offer_icon.png" style="margin-bottom:10px;">
                     <textarea id="fcmBody" class="input" placeholder="Message..."
                         style="height:80px; margin-bottom:15px;"></textarea>
                     <button id="btnSendFcm" class="btn btn-primary" onclick="sendOfferFCM()">Send Push</button>
@@ -497,8 +499,14 @@
         }
 
         function sendOfferFCM() {
-            const data = { title: document.getElementById('fcmTitle').value, body: document.getElementById('fcmBody').value, allUsers: document.getElementById('fcmAllUsers').checked, userIds: Array.from(document.querySelectorAll('.fcm-user-chk:checked')).map(i => i.value) };
-            socket.emit('send-bulk-fcm', data, (res) => res.ok ? alert('Push Sent') : alert('Error'));
+            const data = {
+                title: document.getElementById('fcmTitle').value,
+                body: document.getElementById('fcmBody').value,
+                imageUrl: document.getElementById('fcmImage').value,
+                allUsers: document.getElementById('fcmAllUsers').checked,
+                userIds: Array.from(document.querySelectorAll('.fcm-user-chk:checked')).map(i => i.value)
+            };
+            socket.emit('send-bulk-fcm', data, (res) => res.ok ? alert('Push Sent: ' + res.sentCount + ' success') : alert('Error'));
         }
 
         function fetchLedger() {

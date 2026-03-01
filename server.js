@@ -112,20 +112,30 @@ async function sendFcmV1Push(fcmToken, data, notification) {
 
     const messagePayload = {
       token: fcmToken,
+      notification: notification ? {
+        title: notification.title,
+        body: notification.body,
+        image: notification.image || '' // Standard FCM v1 image field
+      } : undefined,
       data: {
         ...data,
         title: notification ? notification.title : '',
         body: notification ? notification.body : '',
-        priority: 'high' // Extra hint for data messages
+        image: notification ? (notification.image || '') : '',
+        priority: 'high'
       },
       android: {
         priority: 'high',
-        ttl: '0s'
+        ttl: '0s',
+        notification: notification ? {
+          image: notification.image || ''
+        } : undefined
       },
       apns: {
         payload: {
           aps: {
             contentAvailable: true,
+            mutableContent: true,
             priority: 10
           }
         }
@@ -3756,7 +3766,7 @@ io.on('connection', (socket) => {
   socket.on('send-bulk-fcm', async (data, cb) => {
     if (!await checkAdmin(socket.id)) return;
     try {
-      const { userIds, title, body, allUsers } = data;
+      const { userIds, title, body, imageUrl, allUsers } = data;
       let query = {};
 
       if (!allUsers) {
@@ -3776,8 +3786,8 @@ io.on('connection', (socket) => {
       for (let i = 0; i < validUsers.length; i += chunkSize) {
         const chunk = validUsers.slice(i, i + chunkSize);
         const promises = chunk.map(u => {
-          const fcmData = { type: 'marketing_offer', title, body };
-          const fcmNotif = { title, body };
+          const fcmData = { type: 'marketing_offer', title, body, image: imageUrl || '' };
+          const fcmNotif = { title, body, image: imageUrl || '' };
           return sendFcmV1Push(u.fcmToken, fcmData, fcmNotif)
             .then(res => res.success ? 1 : 0)
             .catch(() => 0);
