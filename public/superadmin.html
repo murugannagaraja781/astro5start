@@ -15,50 +15,62 @@
 
     <!-- Sidebar Navigation -->
     <aside class="c-sidebar">
-        <div class="u-hide-mobile" style="padding: 2rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <h2 style="margin:0; font-size: 1.5rem; letter-spacing: -1px;">Astro<span
-                    style="color:var(--clr-success)">5</span>Star</h2>
+        <div class="u-hide-mobile" style="padding: 2.5rem 2rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <h2
+                style="margin:0; font-size: 1.75rem; font-weight: 800; letter-spacing: -1px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-hand-sparkles" style="color:var(--clr-success); font-size: 1.5rem;"></i>
+                Astro<span style="color:var(--clr-success)">5</span>Star
+            </h2>
+            <p
+                style="font-size: 0.65rem; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
+                Super Administration Panel</p>
         </div>
 
         <nav class="l-sidebar-nav">
             <div class="nav-item is-active" data-tab="dashboard" onclick="showTab('dashboard')">
-                <i class="fas fa-chart-line"></i> <span>Dashboard</span>
+                <i class="fas fa-layer-group"></i> <span>Overview</span>
             </div>
             <div class="nav-item" data-tab="requests" onclick="showTab('requests')">
-                <i class="fas fa-user-clock"></i> <span>Requests</span>
+                <i class="fas fa-clock-rotate-left"></i> <span>Join Requests</span>
                 <span id="pending-count-badge" class="badge-dot hidden"></span>
             </div>
             <div class="nav-item" data-tab="astrologers" onclick="showTab('astrologers')">
-                <i class="fas fa-magic"></i> <span>Astrologers</span>
+                <i class="fas fa-user-tie"></i> <span>Astrologers</span>
             </div>
             <div class="nav-item" data-tab="users" onclick="showTab('users')">
-                <i class="fas fa-users"></i> <span>Client Users</span>
+                <i class="fas fa-users"></i> <span>Clients</span>
             </div>
             <div class="nav-item" data-tab="withdrawals" onclick="showTab('withdrawals')">
-                <i class="fas fa-wallet"></i> <span>Withdrawals</span>
+                <i class="fas fa-money-bill-transfer"></i> <span>Payouts</span>
             </div>
             <div class="nav-item" data-tab="ledger" onclick="showTab('ledger')">
-                <i class="fas fa-file-invoice-dollar"></i> <span>Ledger</span>
+                <i class="fas fa-receipt"></i> <span>Transaction Log</span>
             </div>
             <div class="nav-item" data-tab="slabs" onclick="showTab('slabs')">
-                <i class="fas fa-layer-group"></i> <span>Slab Rates</span>
+                <i class="fas fa-sliders"></i> <span>Commission</span>
             </div>
             <div class="nav-item" data-tab="academy" onclick="showTab('academy')">
-                <i class="fas fa-graduation-cap"></i> <span>Academy</span>
+                <i class="fas fa-video"></i> <span>Academy</span>
             </div>
             <div class="nav-item" data-tab="offers" onclick="showTab('offers')">
-                <i class="fas fa-bullhorn"></i> <span>Offers & FCM</span>
+                <i class="fas fa-paper-plane"></i> <span>Push Tools</span>
             </div>
             <div class="nav-item" data-tab="banner" onclick="showTab('banner')">
-                <i class="fas fa-image"></i> <span>Banner Mgmt</span>
+                <i class="fas fa-images"></i> <span>Banners</span>
             </div>
-            <div class="nav-item" style="margin-top: auto; color: var(--clr-error);" onclick="logout()">
-                <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+            <div class="nav-item" style="margin-top: auto; color: var(--clr-error); padding-top: 2rem;"
+                onclick="logout()">
+                <i class="fas fa-power-off"></i> <span>Sign Out</span>
             </div>
         </nav>
 
-        <div class="u-hide-mobile" style="padding: 2rem; opacity: 0.5; font-size: 0.8rem;">
-            V 2.2.0 Premium Admin
+        <div class="u-hide-mobile"
+            style="padding: 1.5rem 2rem; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.7rem; color: #475569;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Version 2.3.1</span>
+                <span class="pulse-icon"
+                    style="width: 6px; height: 6px; background: var(--clr-success); border-radius: 50%;"></span>
+            </div>
         </div>
     </aside>
 
@@ -67,46 +79,74 @@
 
         <!-- Dashboard Tab -->
         <section id="tab-dashboard" class="tab-content animate-up">
-            <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0; font-size: 2rem;">Platform Overview</h1>
-                <p class="t-muted">Real-time stats across all user segments</p>
+            <header style="margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 style="margin:0; font-size: 2.25rem; font-weight: 800; letter-spacing: -1px;">Platform Overview
+                    </h1>
+                    <p class="t-muted" style="font-size: var(--fs-base);">Real-time performance across all segments</p>
+                </div>
+                <div class="u-hide-mobile"
+                    style="background: white; padding: 0.5rem 1rem; border-radius: 99px; border: 1px solid var(--clr-border); display: flex; align-items: center; gap: 8px;">
+                    <span class="pulse-icon"
+                        style="width: 8px; height: 8px; background: var(--clr-success); border-radius: 50%;"></span>
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #475569;">LIVE SYSTEM STATUS</span>
+                </div>
             </header>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem;">
                 <div class="c-card c-stat-card">
-                    <div class="t-muted fs-xs">PLATFORM REVENUE</div>
-                    <div class="fs-2xl fw-bold">₹<span id="stat-total-revenue">0</span></div>
-                    <p class="fs-xs t-muted" style="margin-top: 0.5rem;">Total money charged to clients</p>
-                    <i class="fas fa-indian-rupee-sign"
-                        style="position:absolute; right:1rem; bottom:1rem; opacity:0.1; font-size: 3rem;"></i>
+                    <div class="t-muted fs-xs fw-bold" style="letter-spacing: 0.05em; text-transform: uppercase;">Total
+                        Revenue</div>
+                    <div class="fs-2xl fw-bold" style="margin: 0.5rem 0;">₹<span id="stat-total-revenue">0</span></div>
+                    <div
+                        style="display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: var(--clr-success);">
+                        <i class="fas fa-arrow-trend-up"></i> <span>Platform Scale</span>
+                    </div>
+                    <i class="fas fa-indian-rupee-sign"></i>
                 </div>
                 <div class="c-card c-stat-card">
-                    <div class="t-muted fs-xs">ADMIN PROFIT</div>
-                    <div class="fs-2xl fw-bold t-success">₹<span id="stat-admin-profit">0</span></div>
-                    <p class="fs-xs t-muted" style="margin-top: 0.5rem;">Platform service fee revenue</p>
-                    <i class="fas fa-shield-alt"
-                        style="position:absolute; right:1rem; bottom:1rem; opacity:0.1; font-size: 3rem;"></i>
+                    <div class="t-muted fs-xs fw-bold" style="letter-spacing: 0.05em; text-transform: uppercase;">Admin
+                        Profit</div>
+                    <div class="fs-2xl fw-bold t-success" style="margin: 0.5rem 0;">₹<span
+                            id="stat-admin-profit">0</span></div>
+                    <div
+                        style="display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: var(--clr-text-muted);">
+                        <span>Service Fee Earnings</span>
+                    </div>
+                    <i class="fas fa-shield-halved"></i>
                 </div>
                 <div class="c-card c-stat-card">
-                    <div class="t-muted fs-xs">ASTRO PAYOUT</div>
-                    <div class="fs-2xl fw-bold t-error">₹<span id="stat-astro-payout">0</span></div>
-                    <p class="fs-xs t-muted" style="margin-top: 0.5rem;">Total credited to astrologers</p>
-                    <i class="fas fa-wallet"
-                        style="position:absolute; right:1rem; bottom:1rem; opacity:0.1; font-size: 3rem;"></i>
+                    <div class="t-muted fs-xs fw-bold" style="letter-spacing: 0.05em; text-transform: uppercase;">Astro
+                        Payout</div>
+                    <div class="fs-2xl fw-bold" style="margin: 0.5rem 0; color: #6366f1;">₹<span
+                            id="stat-astro-payout">0</span></div>
+                    <div
+                        style="display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: var(--clr-text-muted);">
+                        <span>Astrologer Earnings</span>
+                    </div>
+                    <i class="fas fa-wallet"></i>
                 </div>
                 <div class="c-card c-stat-card">
-                    <div class="t-muted fs-xs">ACTIVE SESSIONS</div>
-                    <div class="fs-2xl fw-bold" id="stat-active-sessions">0</div>
-                    <p class="fs-xs t-muted" style="margin-top: 0.5rem;">Ongoing calls/chats</p>
-                    <i class="fas fa-headset"
-                        style="position:absolute; right:1rem; bottom:1rem; opacity:0.1; font-size: 3rem;"></i>
+                    <div class="t-muted fs-xs fw-bold" style="letter-spacing: 0.05em; text-transform: uppercase;">Live
+                        Calls</div>
+                    <div class="fs-2xl fw-bold" id="stat-active-sessions" style="margin: 0.5rem 0;">0</div>
+                    <div
+                        style="display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: var(--clr-error);">
+                        <span class="pulse-icon"
+                            style="width: 6px; height: 6px; background: red; border-radius: 50%;"></span>
+                        <span>Active Now</span>
+                    </div>
+                    <i class="fas fa-headset"></i>
                 </div>
                 <div class="c-card c-stat-card">
-                    <div class="t-muted fs-xs">TOTAL USERS</div>
-                    <div class="fs-2xl fw-bold" id="stat-total-users">0</div>
-                    <p class="fs-xs t-muted" style="margin-top: 0.5rem;">Registered base</p>
-                    <i class="fas fa-users"
-                        style="position:absolute; right:1rem; bottom:1rem; opacity:0.1; font-size: 3rem;"></i>
+                    <div class="t-muted fs-xs fw-bold" style="letter-spacing: 0.05em; text-transform: uppercase;">Total
+                        Base</div>
+                    <div class="fs-2xl fw-bold" id="stat-total-users" style="margin: 0.5rem 0;">0</div>
+                    <div
+                        style="display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: var(--clr-text-muted);">
+                        <span>Registered Users</span>
+                    </div>
+                    <i class="fas fa-users-viewfinder"></i>
                 </div>
             </div>
         </section>
@@ -114,12 +154,14 @@
         <!-- Requests Tab -->
         <section id="tab-requests" class="tab-content hidden animate-up">
             <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0;">Pending Approvals</h1>
-                <p class="t-muted">Review and verify new astrologer applications</p>
+                <h1 style="margin:0; font-weight: 800;">Pending Applications</h1>
+                <p class="t-muted">Review and verify new astrologer registrations</p>
             </header>
             <div id="pending-requests-list"
-                style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
-                <div class="t-muted" id="no-requests-msg">No pending registrations found.</div>
+                style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
+                <div class="t-muted" id="no-requests-msg"
+                    style="background: white; padding: 2rem; border-radius: 12px; border: 1px dashed var(--clr-border); text-align: center;">
+                    No pending registrations found.</div>
             </div>
         </section>
 
@@ -127,14 +169,15 @@
         <section id="tab-astrologers" class="tab-content hidden animate-up">
             <header style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
                 <div>
-                    <h1 style="margin:0;">Astrologer Network</h1>
+                    <h1 style="margin:0; font-weight: 800;">Astrologer Network</h1>
                     <p class="t-muted">Manage profile, pricing, and documentation</p>
                 </div>
-                <div class="status-badge"
-                    style="background:var(--clr-brand-surface); padding: 0.5rem 1rem; border-radius: var(--rad-base); border: 1px solid var(--clr-brand-border);">
+                <div class="u-hide-mobile"
+                    style="background: white; padding: 0.5rem 1rem; border-radius: 99px; border: 1px solid var(--clr-border);">
                     <span class="pulse-icon"
                         style="display:inline-block; width:8px; height:8px; background:var(--clr-success); border-radius:50%; margin-right:8px;"></span>
-                    <span id="online-astro-count" class="fw-semibold">0</span> Online
+                    <span id="online-astro-count" class="fw-bold" style="font-size: 0.85rem;">0</span> <span
+                        style="font-size: 0.85rem; color: #64748b;">Astrologers Live</span>
                 </div>
             </header>
             <div id="astrologer-list"
@@ -144,8 +187,8 @@
         <!-- Client Users Tab -->
         <section id="tab-users" class="tab-content hidden animate-up">
             <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0;">Client Management</h1>
-                <p class="t-muted">View client balances and session history</p>
+                <h1 style="margin:0; font-weight: 800;">Client Management</h1>
+                <p class="t-muted">View user balances and history</p>
             </header>
             <div id="client-list"
                 style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;"></div>
@@ -154,33 +197,34 @@
         <!-- Withdrawals Tab -->
         <section id="tab-withdrawals" class="tab-content hidden animate-up">
             <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0;">Withdrawal Requests</h1>
-                <p class="t-muted">Process astrologer payout requests</p>
+                <h1 style="margin:0; font-weight: 800;">Payout Processing</h1>
+                <p class="t-muted">Manage astrologer withdrawal requests</p>
             </header>
-            <div id="withdrawal-list">
-                <div class="t-muted">No pending withdrawals.</div>
+            <div id="withdrawal-list" style="display: flex; flex-direction: column; gap: 1rem;">
+                <div class="t-muted"
+                    style="background: white; padding: 2rem; border-radius: 12px; border: 1px dashed var(--clr-border); text-align: center;">
+                    No pending withdrawals.</div>
             </div>
         </section>
 
         <!-- Ledger Tab -->
         <section id="tab-ledger" class="tab-content hidden animate-up">
             <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0;">Billing Ledger</h1>
-                <p class="t-muted">Transaction audit and earnings breakdown</p>
+                <h1 style="margin:0; font-weight: 800;">Billing Records</h1>
+                <p class="t-muted">Platform-wide transaction audit trail</p>
             </header>
-            <div class="c-card" style="padding:0; overflow-x:auto; -webkit-overflow-scrolling: touch;">
-                <table style="width:100%; border-collapse: collapse; text-align: left; min-width: 600px;">
-                    <thead
-                        style="background: var(--clr-surface-muted); font-size: 0.75rem; text-transform: uppercase; color: var(--clr-text-muted);">
+            <div class="table-container">
+                <table id="ledger-table">
+                    <thead>
                         <tr>
-                            <th style="padding: 1rem;">Time</th>
-                            <th style="padding: 1rem;">Reason / Session</th>
-                            <th style="padding: 1rem;">Charged</th>
-                            <th style="padding: 1rem;">Astro Get</th>
-                            <th style="padding: 1rem;">Admin Profit</th>
+                            <th>Transaction Time</th>
+                            <th>Service Category</th>
+                            <th>Charged</th>
+                            <th>Astro Profit</th>
+                            <th>Admin Margin</th>
                         </tr>
                     </thead>
-                    <tbody id="ledger-table-body" style="font-size: 0.875rem;"></tbody>
+                    <tbody id="ledger-table-body"></tbody>
                 </table>
             </div>
         </section>
@@ -188,21 +232,35 @@
         <!-- Slab Rates Tab -->
         <section id="tab-slabs" class="tab-content hidden animate-up">
             <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0;">Commission Slabs</h1>
-                <p class="t-muted">Set percentage share for different session durations</p>
+                <h1 style="margin:0; font-weight: 800;">Revenue Structure</h1>
+                <p class="t-muted">Configure platform commission across session durations</p>
             </header>
             <div class="grid-2">
                 <div class="c-card">
-                    <h3 style="margin-top:0;">Update Rates</h3>
+                    <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-percentage" style="color: var(--clr-brand);"></i> Platform Slabs
+                    </h3>
                     <div id="slab-inputs-container">
                         <div class="loader"></div>
                     </div>
-                    <button class="btn btn-primary" style="width:100%; margin-top:1.5rem;"
-                        onclick="saveSlabRates()">Save Rates</button>
+                    <button class="btn btn-primary" style="width:100%; margin-top:1.5rem;" onclick="saveSlabRates()">
+                        <i class="fas fa-save"></i> Synchronize Rates
+                    </button>
                 </div>
-                <div class="info-box">
-                    <h4>Definition</h4>
-                    <p>Slab 1: 0-5m | Slab 2: 6-10m | Slab 3: 11-15m | Slab 4: 16m+</p>
+                <div style="background: #eff6ff; padding: 2rem; border-radius: 20px; border: 1px solid #dbeafe;">
+                    <h4 style="color: #1e40af; display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
+                        <i class="fas fa-circle-info"></i> Configuration Logic
+                    </h4>
+                    <p style="font-size: 0.85rem; color: #1e3a8a; line-height: 1.7;">
+                        Slab settings determine the percentage share allocated to the platform.
+                        Adjustments take effect immediately for all subsequent sessions.
+                    </p>
+                    <ul style="margin-top: 1rem; font-size: 0.8rem; color: #1e3a8a; list-style: none; padding: 0;">
+                        <li style="margin-bottom: 0.5rem;">• <b>Slab 1:</b> Initial 5 mins</li>
+                        <li style="margin-bottom: 0.5rem;">• <b>Slab 2:</b> 6 to 10 mins</li>
+                        <li style="margin-bottom: 0.5rem;">• <b>Slab 3:</b> 11 to 15 mins</li>
+                        <li>• <b>Slab 4:</b> Beyond 16 mins</li>
+                    </ul>
                 </div>
             </div>
         </section>
@@ -210,52 +268,70 @@
         <!-- Academy Tab -->
         <section id="tab-academy" class="tab-content hidden animate-up">
             <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0;">Academy Videos</h1>
-                <p class="t-muted">Educational content for astrologers</p>
+                <h1 style="margin:0; font-weight: 800;">Astro Academy</h1>
+                <p class="t-muted">Manage educational video library for astrologers</p>
             </header>
             <div class="c-card" style="margin-bottom:1.5rem;">
-                <h3 style="margin-top:0;">Add Video</h3>
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:0.5rem;">
-                    <input type="text" id="academyTitle" class="input" placeholder="Title">
-                    <input type="text" id="academyUrl" class="input" placeholder="YouTube URL">
-                    <input type="text" id="academyCategory" class="input" placeholder="Category">
-                    <button class="btn btn-primary" onclick="addAcademyVideo()" style="width:100%;">Add</button>
+                <h3 style="margin-bottom: 1.5rem;">Upload Content</h3>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
+                    <input type="text" id="academyTitle" class="input" placeholder="Video Title">
+                    <input type="text" id="academyUrl" class="input" placeholder="YouTube Video ID or URL">
+                    <input type="text" id="academyCategory" class="input" placeholder="Category (e.g. Tutorial)">
+                    <button class="btn btn-primary" onclick="addAcademyVideo()"><i class="fas fa-plus"></i> Add
+                        Video</button>
                 </div>
             </div>
-            <div id="admin-academy-list"></div>
+            <div id="admin-academy-list"
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;"></div>
         </section>
 
         <!-- Offers Tab -->
         <section id="tab-offers" class="tab-content hidden animate-up">
             <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0;">Notifications</h1>
-                <p class="t-muted">Bulk FCM Push tool</p>
+                <h1 style="margin:0; font-weight: 800;">FCM Broadcast Center</h1>
+                <p class="t-muted">Send mass push notifications to targeted users</p>
             </header>
             <div class="grid-2">
                 <div class="c-card">
-                    <h3>Audience</h3>
-                    <label><input type="checkbox" id="fcmAllUsers" onchange="toggleFcmSelection()"> All Users</label>
+                    <h3 style="margin-bottom: 1.5rem;">Target Audience</h3>
+                    <label
+                        style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer; font-weight: 600;">
+                        <input type="checkbox" id="fcmAllUsers" onchange="toggleFcmSelection()"
+                            style="width: 18px; height: 18px;">
+                        Broadcast to All Registered Users
+                    </label>
                     <div id="fcm-user-search-box">
-                        <input type="text" id="fcmUserSearch" class="input" placeholder="Search..."
-                            oninput="searchFcmUsers()">
+                        <div style="position: relative;">
+                            <i class="fas fa-search"
+                                style="position: absolute; left: 12px; top: 14px; color: #94a3b8;"></i>
+                            <input type="text" id="fcmUserSearch" class="input"
+                                placeholder="Filter users by name or phone..." oninput="searchFcmUsers()"
+                                style="padding-left: 2.5rem;">
+                        </div>
                         <div id="fcm-user-selection-list"
-                            style="max-height:250px; overflow-y:auto; border:1px solid #eee; margin-top:10px;"></div>
+                            style="max-height:300px; overflow-y:auto; border:1px solid #f1f5f9; border-radius: 8px; margin-top:1rem; background: #f8fafc;">
+                        </div>
                     </div>
                 </div>
                 <div class="c-card">
-                    <h3>Message</h3>
-                    <input type="text" id="fcmTitle" class="input" placeholder="Title" style="margin-bottom:10px;">
-                    <div style="display:flex; gap:5px; margin-bottom:10px;">
-                        <input type="text" id="fcmImage" class="input" placeholder="Image URL (Optional)"
-                            value="/images/offer_icon.png">
-                        <button class="btn btn-ghost" onclick="triggerFcmUpload()" title="Upload Image">
-                            <i class="fas fa-camera"></i>
+                    <h3 style="margin-bottom: 1.5rem;">Notification Payload</h3>
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <input type="text" id="fcmTitle" class="input" placeholder="Push Title (e.g. Weekly Offer!)">
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="fcmImage" class="input" placeholder="Banner URL (Optional)"
+                                value="/images/offer_icon.png">
+                            <button class="btn btn-ghost" onclick="triggerFcmUpload()" title="Upload Custom Banner">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                            <input type="file" id="fcmFileInput" hidden accept="image/*"
+                                onchange="handleFcmUpload(this)">
+                        </div>
+                        <textarea id="fcmBody" class="input" placeholder="Compose your message here..."
+                            style="height:120px;"></textarea>
+                        <button id="btnSendFcm" class="btn btn-primary" onclick="sendOfferFCM()" style="padding: 1rem;">
+                            <i class="fas fa-paper-plane"></i> Dispatch Notification
                         </button>
-                        <input type="file" id="fcmFileInput" hidden accept="image/*" onchange="handleFcmUpload(this)">
                     </div>
-                    <textarea id="fcmBody" class="input" placeholder="Message..."
-                        style="height:80px; margin-bottom:15px;"></textarea>
-                    <button id="btnSendFcm" class="btn btn-primary" onclick="sendOfferFCM()">Send Push</button>
                 </div>
             </div>
         </section>
@@ -263,19 +339,21 @@
         <!-- Banner Tab -->
         <section id="tab-banner" class="tab-content hidden animate-up">
             <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0;">App Banners</h1>
-                <p class="t-muted">Manage home screen slider</p>
+                <h1 style="margin:0; font-weight: 800;">App Real Estate</h1>
+                <p class="t-muted">Manage visuals for the main application carousel</p>
             </header>
             <div class="c-card" style="margin-bottom:1.5rem;">
+                <h4 style="margin-bottom: 1rem;">Create New Banner</h4>
                 <form id="banner-form" onsubmit="createBanner(event)"
-                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:0.5rem;">
-                    <input type="text" id="banner-title" class="input" placeholder="Title" required>
-                    <input type="text" id="banner-image" class="input" placeholder="Image URL" required>
-                    <input type="number" id="banner-order" class="input" placeholder="Order" value="0">
-                    <button type="submit" class="btn btn-primary" style="width:100%;">Add Banner</button>
+                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
+                    <input type="text" id="banner-title" class="input" placeholder="Banner Title" required>
+                    <input type="text" id="banner-image" class="input" placeholder="Image Resource URL" required>
+                    <input type="number" id="banner-order" class="input" placeholder="Priority Order (0-9)" value="0">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-upload"></i> Publish Banner</button>
                 </form>
             </div>
-            <div id="banner-list"></div>
+            <div id="banner-list"
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;"></div>
         </section>
 
     </main>
