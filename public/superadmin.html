@@ -499,10 +499,16 @@
         }
 
         function sendOfferFCM() {
+            let imageUrl = document.getElementById('fcmImage').value;
+            // FCM requires absolute URLs for images to show up on mobile
+            if (imageUrl && imageUrl.startsWith('/')) {
+                imageUrl = window.location.origin + imageUrl;
+            }
+
             const data = {
                 title: document.getElementById('fcmTitle').value,
                 body: document.getElementById('fcmBody').value,
-                imageUrl: document.getElementById('fcmImage').value,
+                imageUrl: imageUrl,
                 allUsers: document.getElementById('fcmAllUsers').checked,
                 userIds: Array.from(document.querySelectorAll('.fcm-user-chk:checked')).map(i => i.value)
             };
