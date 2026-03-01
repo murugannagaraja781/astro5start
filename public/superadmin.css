@@ -227,6 +227,11 @@ body {
     color: var(--clr-text-muted);
 }
 
+.btn-sm {
+    padding: var(--sp-1) var(--sp-3);
+    font-size: 0.8rem;
+}
+
 .btn:hover:not(:disabled) {
     filter: brightness(1.1);
     transform: translateY(-1px);
@@ -255,7 +260,8 @@ body {
 }
 
 /* --- Modals (Glassmorphism) --- */
-.modal-overlay {
+.modal-overlay,
+.c-modal {
     position: fixed;
     inset: 0;
     background: rgba(15, 23, 42, 0.4);
@@ -267,7 +273,8 @@ body {
     padding: var(--sp-4);
 }
 
-.modal-content {
+.modal-content,
+.c-modal-content {
     background: var(--clr-surface);
     width: 100%;
     max-width: 650px;
@@ -276,6 +283,16 @@ body {
     max-height: 90vh;
     overflow-y: auto;
     padding: var(--sp-8);
+    position: relative;
+}
+
+.c-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--sp-4);
+    border-bottom: 1px solid var(--clr-brand-border);
+    padding-bottom: var(--sp-2);
 }
 
 /* --- Details Panel --- */
@@ -339,4 +356,112 @@ body {
 
 .animate-up {
     animation: slideInUp 0.4s ease-out;
+}
+
+/* --- Academy & Media --- */
+.c-video-card {
+    background: var(--clr-surface);
+    border: 1px solid var(--clr-brand-border);
+    border-radius: var(--rad-base);
+    padding: var(--sp-4);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--sp-3);
+    transition: var(--tr-base);
+}
+
+.c-video-card:hover {
+    border-color: var(--clr-brand);
+    background: var(--clr-brand-surface);
+}
+
+/* --- Slab Management --- */
+.slab-input-group {
+    background: var(--clr-surface-muted);
+    padding: var(--sp-4);
+    border-radius: var(--rad-base);
+    border: 1px solid var(--clr-brand-border);
+    margin-bottom: var(--sp-4);
+}
+
+.slab-badge {
+    background: var(--clr-brand);
+    color: white;
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-bold);
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+/* --- Badge & Pills --- */
+.badge-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--clr-error);
+    border: 2px solid white;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.user-pill {
+    background: var(--clr-brand-light);
+    color: var(--clr-brand);
+    padding: 2px 8px;
+    border-radius: var(--rad-full);
+    font-size: 10px;
+    font-weight: var(--fw-bold);
+    text-transform: uppercase;
+}
+
+/* --- Layout Utils --- */
+.grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--sp-6);
+}
+
+.info-box {
+    padding: var(--sp-3) var(--sp-4);
+    background: hsl(38, 92%, 96%);
+    border: 1px solid hsl(38, 92%, 85%);
+    border-radius: var(--rad-base);
+    color: hsl(38, 92%, 30%);
+    font-size: var(--fs-sm);
+}
+
+/* --- Loader --- */
+.loader {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--clr-brand-border);
+    border-bottom-color: var(--clr-brand);
+    border-radius: 50%;
+    display: inline-block;
+    animation: rotation 1s linear infinite;
+}
+
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* --- FCM User List --- */
+.fcm-user-item {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-3);
+    border-bottom: 1px solid var(--clr-brand-border);
+    transition: var(--tr-base);
+}
+
+.fcm-user-item:hover {
+    background: var(--clr-brand-surface);
 }

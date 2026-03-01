@@ -40,13 +40,25 @@
             <div class="nav-item" onclick="showTab('ledger')">
                 <i class="fas fa-file-invoice-dollar"></i> <span>Ledger</span>
             </div>
+            <div class="nav-item" onclick="showTab('slabs')">
+                <i class="fas fa-layer-group"></i> <span>Slab Rates</span>
+            </div>
+            <div class="nav-item" onclick="showTab('academy')">
+                <i class="fas fa-graduation-cap"></i> <span>Academy</span>
+            </div>
+            <div class="nav-item" onclick="showTab('offers')">
+                <i class="fas fa-bullhorn"></i> <span>Offers & FCM</span>
+            </div>
             <div class="nav-item" onclick="showTab('banner')">
                 <i class="fas fa-image"></i> <span>Banner Mgmt</span>
+            </div>
+            <div class="nav-item" style="margin-top: auto; color: var(--clr-error);" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
             </div>
         </nav>
 
         <div style="padding: 2rem; opacity: 0.5; font-size: 0.8rem;">
-            V 2.1.0 Premium Admin
+            V 2.2.0 Premium Admin
         </div>
     </aside>
 
@@ -76,6 +88,13 @@
                         style="position:absolute; right:1rem; bottom:1rem; opacity:0.1; font-size: 3rem;"></i>
                 </div>
                 <div class="c-card c-stat-card">
+                    <div class="t-muted fs-xs">ASTRO PAYOUT</div>
+                    <div class="fs-2xl fw-bold t-error">₹<span id="stat-astro-payout">0</span></div>
+                    <p class="fs-xs t-muted" style="margin-top: 0.5rem;">Total credited to astrologers</p>
+                    <i class="fas fa-wallet"
+                        style="position:absolute; right:1rem; bottom:1rem; opacity:0.1; font-size: 3rem;"></i>
+                </div>
+                <div class="c-card c-stat-card">
                     <div class="t-muted fs-xs">ACTIVE SESSIONS</div>
                     <div class="fs-2xl fw-bold" id="stat-active-sessions">0</div>
                     <p class="fs-xs t-muted" style="margin-top: 0.5rem;">Ongoing calls/chats</p>
@@ -92,16 +111,14 @@
             </div>
         </section>
 
-        <!-- Requests Tab (Pending Approvals) -->
+        <!-- Requests Tab -->
         <section id="tab-requests" class="tab-content hidden animate-up">
             <header style="margin-bottom: 2rem;">
                 <h1 style="margin:0;">Pending Approvals</h1>
                 <p class="t-muted">Review and verify new astrologer applications</p>
             </header>
-
             <div id="pending-requests-list"
                 style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
-                <!-- Pending items injected here -->
                 <div class="t-muted" id="no-requests-msg">No pending registrations found.</div>
             </div>
         </section>
@@ -120,10 +137,8 @@
                     <span id="online-astro-count" class="fw-semibold">0</span> Online
                 </div>
             </header>
-
-            <div id="astrologers-list"
-                style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
-            </div>
+            <div id="astrologer-list"
+                style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;"></div>
         </section>
 
         <!-- Client Users Tab -->
@@ -132,8 +147,19 @@
                 <h1 style="margin:0;">Client Management</h1>
                 <p class="t-muted">View client balances and session history</p>
             </header>
-            <div id="users-list"
+            <div id="client-list"
                 style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;"></div>
+        </section>
+
+        <!-- Withdrawals Tab -->
+        <section id="tab-withdrawals" class="tab-content hidden animate-up">
+            <header style="margin-bottom: 2rem;">
+                <h1 style="margin:0;">Withdrawal Requests</h1>
+                <p class="t-muted">Process astrologer payout requests</p>
+            </header>
+            <div id="withdrawal-list">
+                <div class="t-muted">No pending withdrawals.</div>
+            </div>
         </section>
 
         <!-- Ledger Tab -->
@@ -148,290 +174,426 @@
                         style="background: var(--clr-surface-muted); font-size: 0.75rem; text-transform: uppercase; color: var(--clr-text-muted);">
                         <tr>
                             <th style="padding: 1rem;">Time</th>
-                            <th style="padding: 1rem;">Client -> Astro</th>
-                            <th style="padding: 1rem;">Charge</th>
-                            <th style="padding: 1rem;">Astro Get</th>
-                            <th style="padding: 1rem;">Admin Profit</th>
+                            <th style="padding: 1rem;">Description</th>
+                            <th style="padding: 1rem;">Amount</th>
+                            <th style="padding: 1rem;">User ID</th>
                         </tr>
                     </thead>
-                    <tbody id="ledger-table-body" style="font-size: 0.875rem;">
-                        <!-- Ledger rows injected here -->
-                    </tbody>
+                    <tbody id="ledger-table-body" style="font-size: 0.875rem;"></tbody>
                 </table>
             </div>
         </section>
 
+        <!-- Slab Rates Tab -->
+        <section id="tab-slabs" class="tab-content hidden animate-up">
+            <header style="margin-bottom: 2rem;">
+                <h1 style="margin:0;">Commission Slabs</h1>
+                <p class="t-muted">Set percentage share for different session durations</p>
+            </header>
+            <div class="grid-2">
+                <div class="c-card">
+                    <h3 style="margin-top:0;">Update Rates</h3>
+                    <div id="slab-inputs-container">
+                        <div class="loader"></div>
+                    </div>
+                    <button class="btn btn-primary" style="width:100%; margin-top:1.5rem;"
+                        onclick="saveSlabRates()">Save Rates</button>
+                </div>
+                <div class="info-box">
+                    <h4>Definition</h4>
+                    <p>Slab 1: 0-5m | Slab 2: 6-10m | Slab 3: 11-15m | Slab 4: 16m+</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Academy Tab -->
+        <section id="tab-academy" class="tab-content hidden animate-up">
+            <header style="margin-bottom: 2rem;">
+                <h1 style="margin:0;">Academy Videos</h1>
+                <p class="t-muted">Educational content for astrologers</p>
+            </header>
+            <div class="c-card" style="margin-bottom:1.5rem;">
+                <h3 style="margin-top:0;">Add Video</h3>
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr auto; gap:0.5rem;">
+                    <input type="text" id="academyTitle" class="input" placeholder="Title">
+                    <input type="text" id="academyUrl" class="input" placeholder="YouTube URL">
+                    <input type="text" id="academyCategory" class="input" placeholder="Category">
+                    <button class="btn btn-primary" onclick="addAcademyVideo()">Add</button>
+                </div>
+            </div>
+            <div id="admin-academy-list"></div>
+        </section>
+
+        <!-- Offers Tab -->
+        <section id="tab-offers" class="tab-content hidden animate-up">
+            <header style="margin-bottom: 2rem;">
+                <h1 style="margin:0;">Notifications</h1>
+                <p class="t-muted">Bulk FCM Push tool</p>
+            </header>
+            <div class="grid-2">
+                <div class="c-card">
+                    <h3>Audience</h3>
+                    <label><input type="checkbox" id="fcmAllUsers" onchange="toggleFcmSelection()"> All Users</label>
+                    <div id="fcm-user-search-box">
+                        <input type="text" id="fcmUserSearch" class="input" placeholder="Search..."
+                            oninput="searchFcmUsers()">
+                        <div id="fcm-user-selection-list"
+                            style="max-height:250px; overflow-y:auto; border:1px solid #eee; margin-top:10px;"></div>
+                    </div>
+                </div>
+                <div class="c-card">
+                    <h3>Message</h3>
+                    <input type="text" id="fcmTitle" class="input" placeholder="Title" style="margin-bottom:10px;">
+                    <textarea id="fcmBody" class="input" placeholder="Message..."
+                        style="height:80px; margin-bottom:15px;"></textarea>
+                    <button id="btnSendFcm" class="btn btn-primary" onclick="sendOfferFCM()">Send Push</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Banner Tab -->
+        <section id="tab-banner" class="tab-content hidden animate-up">
+            <header style="margin-bottom: 2rem;">
+                <h1 style="margin:0;">App Banners</h1>
+                <p class="t-muted">Manage home screen slider</p>
+            </header>
+            <div class="c-card" style="margin-bottom:1.5rem;">
+                <form id="banner-form" onsubmit="createBanner(event)"
+                    style="display:grid; grid-template-columns: 1fr 1fr 100px auto; gap:0.5rem;">
+                    <input type="text" id="banner-title" class="input" placeholder="Title" required>
+                    <input type="text" id="banner-image" class="input" placeholder="Image URL" required>
+                    <input type="number" id="banner-order" class="input" placeholder="Order" value="0">
+                    <button type="submit" class="btn btn-primary">Add Banner</button>
+                </form>
+            </div>
+            <div id="banner-list"></div>
+        </section>
+
     </main>
 
-    <!-- Global Edit Modal -->
-    <div id="adminEditModal" class="modal-overlay hidden">
-        <div class="modal-content animate-up">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--sp-6);">
-                <h2 style="margin:0" id="editModalTitle">Edit User</h2>
-                <button class="btn btn-ghost" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
+    <!-- Modals -->
+    <div id="modal-edit-user" class="c-modal hidden">
+        <div class="c-modal-content" style="max-width:400px;">
+            <header class="c-modal-header">
+                <h3>Edit Profile</h3><button onclick="closeModal('modal-edit-user')">&times;</button>
+            </header>
+            <div style="padding:1.5rem;">
+                <input type="hidden" id="edit-user-id">
+                <input type="text" id="edit-user-name" class="input" placeholder="Name" style="margin-bottom:1rem;">
+                <div id="edit-astro-fields" class="hidden">
+                    <input type="number" id="edit-user-price" class="input" placeholder="Price/min"
+                        style="margin-bottom:1rem;">
+                    <label style="display:block; margin-bottom:1rem;"><input type="checkbox" id="edit-user-verified">
+                        Verified Badge</label>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; margin-bottom:1rem;">
+                    <label class="fs-xs t-muted">Wallet Adjustment (₹)</label>
+                    <input type="number" id="edit-user-wallet-adj" class="input" placeholder="e.g. 100 or -50">
+                </div>
+                <button class="btn btn-primary" style="width:100%;" onclick="saveAdminEditUser(event)">Save
+                    Changes</button>
             </div>
-
-            <form id="editUserForm" onsubmit="saveAdminEditUser(event)">
-                <input type="hidden" id="editUserId">
-
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-                    <div>
-                        <label class="detail-label">Display Name</label>
-                        <input type="text" id="editUserName" class="input">
-                    </div>
-                    <div>
-                        <label class="detail-label">Wallet Action (Add ₹)</label>
-                        <input type="number" id="walletAction" class="input" placeholder="0" value="0">
-                    </div>
-                </div>
-
-                <div id="astro-extended-fields" class="hidden">
-                    <h4
-                        style="border-bottom: 1px solid var(--clr-brand-border); padding-bottom: 0.5rem; margin: 1.5rem 0 1rem 0;">
-                        Identity & Bank Details</h4>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div>
-                            <label class="detail-label">Real Name</label>
-                            <input type="text" id="editRealName" class="input">
-                        </div>
-                        <div>
-                            <label class="detail-label">Calling Price (₹/min)</label>
-                            <input type="number" id="editUserPrice" class="input">
-                        </div>
-                        <div>
-                            <label class="detail-label">Aadhar Number</label>
-                            <input type="text" id="editAadhar" class="input">
-                        </div>
-                        <div>
-                            <label class="detail-label">Bank Info</label>
-                            <input type="text" id="editBank" class="input" placeholder="Acc No, IFSC, Bank Name">
-                        </div>
-                        <div style="grid-column: span 2">
-                            <label class="detail-label">UPI ID</label>
-                            <input type="text" id="editUpiId" class="input">
-                        </div>
-                    </div>
-                </div>
-
-                <div style="margin-top: 2rem; display:flex; justify-content: flex-end; gap: 1rem;">
-                    <button type="button" class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
-                    <button type="submit" class="btn btn-success">Update Records</button>
-                </div>
-            </form>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <div id="modal-role-change" class="c-modal hidden">
+        <div class="c-modal-content" style="max-width:300px;">
+            <header class="c-modal-header">
+                <h3>Change Role</h3><button onclick="closeModal('modal-role-change')">&times;</button>
+            </header>
+            <div style="padding:1.5rem;">
+                <input type="hidden" id="role-change-user-id">
+                <select id="select-new-role" class="input" style="margin-bottom:1rem;">
+                    <option value="client">Client</option>
+                    <option value="astrologer">Astrologer</option>
+                    <option value="superadmin">Admin</option>
+                </select>
+                <button class="btn btn-primary" style="width:100%;" onclick="submitRoleChange()">Update Role</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const socket = io();
-        let currentUsers = [];
+        let usersCache = [];
+        let fcmUsersCache = [];
         let activeTab = 'dashboard';
 
-        socket.on('connect', () => {
-            refreshData();
+        document.addEventListener('DOMContentLoaded', () => {
+            const session = JSON.parse(localStorage.getItem('astro_session') || '{}');
+            if (!session || session.role !== 'superadmin') return window.location.href = '/';
+            socket.emit('register', { userId: session.userId, phone: session.phone }, (ack) => {
+                if (!ack || !ack.ok) logout();
+                else refreshData();
+            });
         });
 
         function refreshData() {
-            socket.emit('get-all-users', (res) => {
-                if (res.ok) {
-                    currentUsers = res.users;
-                    renderAstrologers();
-                    renderRequests();
-                    renderClients();
-                }
-            });
-            fetchLedger();
+            fetchStats();
+            fetchAllUsers();
+            renderRequests();
+            if (activeTab === 'slabs') loadSlabRates();
+            if (activeTab === 'academy') fetchAcademyVideos();
+            if (activeTab === 'offers') fetchFcmUsers();
+            if (activeTab === 'banner') fetchBanners();
         }
 
-        function fetchLedger() {
+        function showTab(id) {
+            activeTab = id;
+            document.querySelectorAll('.tab-content').forEach(s => s.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('is-active'));
+            document.getElementById('tab-' + id).classList.remove('hidden');
+            const nav = Array.from(document.querySelectorAll('.nav-item')).find(n => n.outerHTML.includes("'" + id + "'"));
+            if (nav) nav.classList.add('is-active');
+            refreshData();
+            if (id === 'ledger') fetchLedger();
+        }
+
+        function fetchStats() {
             socket.emit('admin-get-ledger-stats', {}, (res) => {
                 if (res.ok) {
-                    document.getElementById('stat-total-revenue').innerText = Math.round(res.stats.totalRevenue);
-                    document.getElementById('stat-admin-profit').innerText = Math.round(res.stats.adminProfit);
-                    document.getElementById('stat-active-sessions').innerText = res.stats.activeSessions;
-                    document.getElementById('stat-total-users').innerText = res.stats.totalUsers;
+                    const s = res.stats;
+                    document.getElementById('stat-total-revenue').innerText = s.totalRevenue.toLocaleString();
+                    document.getElementById('stat-admin-profit').innerText = s.adminProfit.toLocaleString();
+                    document.getElementById('stat-astro-payout').innerText = (s.totalRevenue - s.adminProfit).toLocaleString();
+                    document.getElementById('stat-active-sessions').innerText = s.activeSessions || 0;
+                    document.getElementById('stat-total-users').innerText = s.totalUsers || 0;
+                    document.getElementById('pending-count-badge').classList.toggle('hidden', s.pendingRequests === 0);
+                }
+            });
+        }
 
-                    const tbody = document.getElementById('ledger-table-body');
-                    tbody.innerHTML = res.fullLedger.map(l => `
-                        <tr style="border-bottom: 1px solid var(--clr-surface-muted);">
-                            <td style="padding:1rem;">${new Date(l.createdAt).toLocaleString()}</td>
-                            <td style="padding:1rem;">${l.clientId.slice(0, 6)} -> ${l.astrologerId.slice(0, 6)}</td>
-                            <td style="padding:1rem;">₹${l.chargedToClient}</td>
-                            <td style="padding:1rem;">₹${l.creditedToAstrologer}</td>
-                            <td style="padding:1rem; color:var(--clr-success)" class="fw-bold">₹${l.adminAmount}</td>
-                        </tr>
+        function fetchAllUsers() {
+            socket.emit('get-all-users', (res) => {
+                if (res.ok) {
+                    usersCache = res.users;
+                    document.getElementById('astrologer-list').innerHTML = usersCache.filter(u => u.role === 'astrologer' && u.approvalStatus === 'approved').map(u => renderUserCard(u)).join('');
+                    document.getElementById('client-list').innerHTML = usersCache.filter(u => u.role === 'client').map(u => renderUserCard(u)).join('');
+                    document.getElementById('online-astro-count').innerText = usersCache.filter(u => (u.role === 'astrologer' && (new Date() - new Date(u.lastSeen)) < 300000)).length;
+                }
+            });
+        }
+
+        function renderUserCard(u) {
+            const isAstro = u.role === 'astrologer';
+            const isOnline = (new Date() - new Date(u.lastSeen)) < 300000;
+            return `
+                <div class="c-card animate-up">
+                    <div style="display:flex; justify-content:space-between;">
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <img src="${u.image || 'https://ui-avatars.com/api/?name=' + u.name}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                            <div>
+                                <div class="fw-bold">${u.name} ${u.isVerified ? '✅' : ''}</div>
+                                <div class="fs-xs t-muted">${u.phone}</div>
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div class="fw-bold t-success">₹${u.walletBalance.toFixed(1)}</div>
+                            <div class="fs-xs ${isOnline ? 't-success' : 't-muted'}">${isOnline ? 'Online' : 'Offline'}</div>
+                        </div>
+                    </div>
+                    <div style="margin-top:1rem; border-top:1px solid #f1f5f9; padding-top:10px; display:flex; gap:5px;">
+                        <button class="btn btn-sm" style="flex:1" onclick="openEditUser('${u.userId}')">Edit</button>
+                        <button class="btn btn-sm" onclick="openRoleModal('${u.userId}', '${u.role}')">Role</button>
+                        <button class="btn btn-sm ${u.isBanned ? 'btn-success' : 'btn-error'}" onclick="toggleBan('${u.userId}', ${!u.isBanned})">${u.isBanned ? 'Unban' : 'Ban'}</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderRequests() {
+            socket.emit('admin-get-pending-requests', (res) => {
+                const list = document.getElementById('pending-requests-list');
+                if (res.ok && res.requests.length > 0) {
+                    list.innerHTML = res.requests.map(u => `
+                        <div class="c-card">
+                            <div class="fw-bold fs-lg">${u.name}</div>
+                            <div class="t-muted fs-sm">${u.phone}</div>
+                            <div style="margin-top:10px; display:flex; gap:5px;">
+                                <button class="btn btn-success" style="flex:1" onclick="processAstro('${u.userId}', 'approve')">Approve</button>
+                                <button class="btn btn-error" style="flex:1" onclick="processAstro('${u.userId}', 'reject')">Reject</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else { list.innerHTML = 'No pending requests.'; }
+            });
+        }
+
+        function processAstro(userId, action) {
+            if (confirm('Confirm ' + action + '?')) socket.emit('admin-approve-astrologer', { userId, action }, () => refreshData());
+        }
+
+        function loadSlabRates() {
+            socket.emit('get-slab-rates', (res) => {
+                if (res.ok) {
+                    document.getElementById('slab-inputs-container').innerHTML = Object.keys(res.rates).map(k => `
+                        <div class="slab-input-group" style="margin-bottom:10px; padding:10px; background:#f8fafc; border-radius:8px;">
+                            <div class="fw-bold mb-1">Slab ${k}</div>
+                            <input type="number" step="0.01" class="input slab-rate-val" data-slab="${k}" value="${res.rates[k]}">
+                        </div>
                     `).join('');
                 }
             });
         }
 
-        function renderRequests() {
-            const list = document.getElementById('pending-requests-list');
-            const placeholder = document.getElementById('no-requests-msg');
-            const pending = currentUsers.filter(u => u.role === 'astrologer' && u.approvalStatus === 'pending');
+        function saveSlabRates() {
+            const rates = {};
+            document.querySelectorAll('.slab-rate-val').forEach(i => rates[i.dataset.slab] = parseFloat(i.value));
+            socket.emit('update-slab-rates', rates, (res) => res.ok ? alert('Saved') : alert('Error'));
+        }
 
-            document.getElementById('pending-count-badge').classList.toggle('hidden', pending.length === 0);
-
-            if (pending.length === 0) {
-                list.innerHTML = '';
-                placeholder.classList.remove('hidden');
-                return;
-            }
-            placeholder.classList.add('hidden');
-            list.innerHTML = pending.map(u => `
-                <div class="c-card">
-                    <div style="display:flex; gap:1rem; align-items:flex-start;">
-                        <img src="${u.image || 'https://via.placeholder.com/60'}" style="width:64px; height:64px; border-radius:8px;">
-                        <div style="flex:1">
-                            <h3 style="margin:0">${u.name}</h3>
-                            <div class="t-muted fs-xs">${u.phone}</div>
-                            <div style="margin-top:0.5rem; font-size:0.8rem;">
-                                <div><b>Skills:</b> ${u.skills?.join(', ') || 'N/A'}</div>
-                                <div><b>UPI:</b> ${u.upiId || 'N/A'}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem; margin-top:1.5rem;">
-                        <button class="btn btn-warning btn-ghost" onclick="processAstro('${u.userId}', 'reject')">Reject</button>
-                        <button class="btn btn-success" onclick="processAstro('${u.userId}', 'approve')">Approve</button>
-                    </div>
+        async function fetchAcademyVideos() {
+            const res = await fetch('/api/academy/videos').then(r => r.json());
+            if (res.ok) document.getElementById('admin-academy-list').innerHTML = res.videos.map(v => `
+                <div class="c-video-card" style="margin-bottom:5px; padding:10px; background:#f8fafc; border-radius:8px; display:flex; justify-content:space-between;">
+                    <div><b>${v.title}</b> (${v.category})</div>
+                    <button class="t-error" onclick="deleteAcademyVideo('${v._id}')">&times;</button>
                 </div>
             `).join('');
         }
 
-        function processAstro(userId, action) {
-            if (!confirm(`Are you sure you want to ${action} this user?`)) return;
-            socket.emit('admin-approve-astrologer', { userId, action }, (res) => {
-                if (res.ok) refreshData();
-                else alert('Action failed');
+        async function addAcademyVideo() {
+            const titleEl = document.getElementById('academyTitle');
+            const urlEl = document.getElementById('academyUrl');
+            const catEl = document.getElementById('academyCategory');
+            const data = { title: titleEl.value, youtubeUrl: urlEl.value, category: catEl.value };
+            if (!data.title || !data.youtubeUrl) return alert('Title and URL required');
+            const res = await fetch('/api/admin/academy/videos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json());
+            if (res.ok) { titleEl.value = ''; urlEl.value = ''; catEl.value = ''; fetchAcademyVideos(); }
+            else alert('Error');
+        }
+
+        async function deleteAcademyVideo(id) {
+            if (confirm('Delete?')) { await fetch('/api/admin/academy/videos/' + id, { method: 'DELETE' }); fetchAcademyVideos(); }
+        }
+
+        function fetchFcmUsers() {
+            socket.emit('get-all-users', (res) => {
+                if (res.ok) {
+                    fcmUsersCache = res.users.filter(u => u.fcmToken);
+                    renderFcmList(fcmUsersCache);
+                }
             });
         }
 
-        function renderAstrologers() {
-            const list = document.getElementById('astrologers-list');
-            const astros = currentUsers.filter(u => u.role === 'astrologer' && u.approvalStatus === 'approved');
-            document.getElementById('online-astro-count').innerText = astros.filter(a => a.isOnline).length;
-
-            list.innerHTML = astros.map(u => `
-                <div class="c-card c-user-card">
-                    <div style="display:flex; gap: 1rem; align-items:center;">
-                        <div style="position:relative">
-                            <img src="${u.image || 'https://via.placeholder.com/60'}" style="width:50px; height:50px; border-radius:12px; object-fit:cover;">
-                            <div style="position:absolute; bottom:-4px; right:-4px; width:12px; height:12px; border-radius:50%; background:${u.isOnline ? 'var(--clr-success)' : '#cbd5e1'}; border:2px solid white;"></div>
-                        </div>
-                        <div style="flex:1">
-                            <h4 style="margin:0">${u.name}</h4>
-                            <div class="t-muted fs-xs">${u.phone}</div>
-                        </div>
-                        <div class="fw-bold t-success">₹${u.price}</div>
-                    </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem; margin-top:0.5rem;">
-                         <button class="btn btn-ghost btn-sm" onclick="openEditModal('${u.userId}')"><i class="fas fa-cog"></i> Manage</button>
-                         <button class="btn btn-ghost btn-danger btn-sm" onclick="toggleBan('${u.userId}', ${!u.isBanned})">
-                            <i class="fas fa-ban"></i> ${u.isBanned ? 'Unban' : 'Ban'}
-                         </button>
-                    </div>
+        function renderFcmList(list) {
+            document.getElementById('fcm-user-selection-list').innerHTML = list.map(u => `
+                <div style="padding:5px; border-bottom:1px solid #eee;">
+                    <label><input type="checkbox" class="fcm-user-chk" value="${u.userId}"> ${u.name} (${u.phone})</label>
                 </div>
             `).join('');
         }
 
-        function renderClients() {
-            const list = document.getElementById('users-list');
-            const clients = currentUsers.filter(u => u.role === 'client');
-            list.innerHTML = clients.map(u => `
-                <div class="c-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <h4 style="margin:0">${u.name || 'User'}</h4>
-                            <div class="t-muted fs-xs">${u.phone}</div>
-                        </div>
-                        <div class="fw-bold">₹${u.walletBalance}</div>
-                    </div>
-                    <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:1rem;" onclick="openEditModal('${u.userId}')">Edit Wallet / Name</button>
+        function searchFcmUsers() {
+            const q = document.getElementById('fcmUserSearch').value.toLowerCase();
+            renderFcmList(fcmUsersCache.filter(u => u.name.toLowerCase().includes(q) || u.phone.includes(q)));
+        }
+
+        function toggleFcmSelection() {
+            const all = document.getElementById('fcmAllUsers').checked;
+            document.getElementById('fcm-user-search-box').style.display = all ? 'none' : 'block';
+        }
+
+        function sendOfferFCM() {
+            const data = { title: document.getElementById('fcmTitle').value, body: document.getElementById('fcmBody').value, allUsers: document.getElementById('fcmAllUsers').checked, userIds: Array.from(document.querySelectorAll('.fcm-user-chk:checked')).map(i => i.value) };
+            socket.emit('send-bulk-fcm', data, (res) => res.ok ? alert('Push Sent') : alert('Error'));
+        }
+
+        function fetchLedger() {
+            socket.emit('admin-get-ledger-stats', {}, (res) => {
+                if (res.ok) document.getElementById('ledger-table-body').innerHTML = res.fullLedger.slice(0, 50).map(l => `
+                    <tr style="border-bottom:1px solid #eee;">
+                        <td style="padding:10px;">${new Date(l.timestamp).toLocaleDateString()}</td>
+                        <td style="padding:10px;">${l.description || l.type}</td>
+                        <td style="padding:10px;" class="${l.amount > 0 ? 't-success' : 't-error'}">₹${l.amount.toFixed(1)}</td>
+                        <td style="padding:10px;">${l.userId?.slice(-6)}</td>
+                    </tr>
+                `).join('');
+            });
+        }
+
+        async function fetchBanners() {
+            const res = await fetch('/api/admin/banners').then(r => r.json());
+            if (res.ok) document.getElementById('banner-list').innerHTML = res.banners.map(b => `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:10px; margin-bottom:5px;">
+                    <img src="${b.imageUrl}" style="height:40px; border-radius:4px;">
+                    <b>${b.title}</b>
+                    <button class="t-error" onclick="deleteBanner('${b._id}')">&times;</button>
                 </div>
             `).join('');
         }
 
-        function toggleBan(userId, isBanned) {
-            if (!confirm(`Are you sure you want to ${isBanned ? 'BAN' : 'UNBAN'} this user?`)) return;
-            socket.emit('admin-toggle-ban', { userId, isBanned }, (res) => {
-                if (res.ok) refreshData();
-            });
+        async function createBanner(e) {
+            e.preventDefault();
+            const data = { title: document.getElementById('banner-title').value, imageUrl: document.getElementById('banner-image').value, order: parseInt(document.getElementById('banner-order').value), ctaText: '' };
+            await fetch('/api/admin/banners', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            fetchBanners();
         }
 
-        function showTab(tab) {
-            activeTab = tab;
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`tab-${tab}`).classList.remove('hidden');
-
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('is-active'));
-            document.querySelectorAll('.nav-item').forEach(el => {
-                if (el.getAttribute('onclick').includes(`'${tab}'`)) el.classList.add('is-active');
-            });
+        async function deleteBanner(id) {
+            if (confirm('Delete banner?')) { await fetch('/api/admin/banners/' + id, { method: 'DELETE' }); fetchBanners(); }
         }
 
-        function openEditModal(uid) {
-            const u = currentUsers.find(x => x.userId === uid);
+        function openEditUser(id) {
+            const u = usersCache.find(x => x.userId === id);
             if (!u) return;
-
-            document.getElementById('editUserId').value = u.userId;
-            document.getElementById('editUserName').value = u.name || '';
-            document.getElementById('walletAction').value = 0;
-
+            document.getElementById('edit-user-id').value = u.userId;
+            document.getElementById('edit-user-name').value = u.name;
+            document.getElementById('edit-user-wallet-adj').value = '';
+            document.getElementById('edit-astro-fields').classList.toggle('hidden', u.role !== 'astrologer');
             if (u.role === 'astrologer') {
-                document.getElementById('astro-extended-fields').classList.remove('hidden');
-                document.getElementById('editRealName').value = u.realName || '';
-                document.getElementById('editUserPrice').value = u.price || 0;
-                document.getElementById('editAadhar').value = u.aadharNumber || '';
-                document.getElementById('editBank').value = u.bankDetails || '';
-                document.getElementById('editUpiId').value = u.upiId || '';
-            } else {
-                document.getElementById('astro-extended-fields').classList.add('hidden');
+                document.getElementById('edit-user-price').value = u.pricePerMinute || 0;
+                document.getElementById('edit-user-verified').checked = u.isVerified || false;
             }
-
-            document.getElementById('adminEditModal').classList.remove('hidden');
-        }
-
-        function closeEditModal() {
-            document.getElementById('adminEditModal').classList.add('hidden');
+            document.getElementById('modal-edit-user').classList.remove('hidden');
         }
 
         function saveAdminEditUser(e) {
             e.preventDefault();
-            const userId = document.getElementById('editUserId').value;
-            const walletAmt = parseInt(document.getElementById('walletAction').value);
+            const userId = document.getElementById('edit-user-id').value;
+            const walletAdj = parseFloat(document.getElementById('edit-user-wallet-adj').value || 0);
+            const updates = { name: document.getElementById('edit-user-name').value };
 
-            const updates = {
-                name: document.getElementById('editUserName').value
-            };
-
-            const u = currentUsers.find(x => x.userId === userId);
-            if (u.role === 'astrologer') {
-                updates.realName = document.getElementById('editRealName').value;
-                updates.price = parseInt(document.getElementById('editUserPrice').value);
-                updates.aadharNumber = document.getElementById('editAadhar').value;
-                updates.bankDetails = document.getElementById('editBank').value;
-                updates.upiId = document.getElementById('editUpiId').value;
+            if (!document.getElementById('edit-astro-fields').classList.contains('hidden')) {
+                updates.price = parseFloat(document.getElementById('edit-user-price').value);
+                updates.isVerified = document.getElementById('edit-user-verified').checked;
             }
 
-            // 1. Update Details
-            socket.emit('admin-update-user-details', { userId, updates }, (res1) => {
-                // 2. Add Wallet if needed
-                if (walletAmt !== 0) {
-                    socket.emit('admin-add-wallet', { userId, amount: walletAmt }, (res2) => {
-                        finishUpdate();
-                    });
-                } else {
-                    finishUpdate();
-                }
+            socket.emit('admin-update-user-details', { userId, updates }, (res) => {
+                if (res.ok) {
+                    if (walletAdj !== 0) {
+                        socket.emit('admin-add-wallet', { userId, amount: walletAdj }, (res2) => {
+                            closeModal('modal-edit-user');
+                            refreshData();
+                        });
+                    } else {
+                        closeModal('modal-edit-user');
+                        refreshData();
+                    }
+                } else alert(res.error || 'Update failed');
             });
-
-            function finishUpdate() {
-                alert('Records Updated Successfully!');
-                closeEditModal();
-                refreshData();
-            }
         }
+
+        function openRoleModal(id, role) {
+            document.getElementById('role-change-user-id').value = id;
+            document.getElementById('select-new-role').value = role;
+            document.getElementById('modal-role-change').classList.remove('hidden');
+        }
+
+        function submitRoleChange() {
+            const userId = document.getElementById('role-change-user-id').value;
+            const role = document.getElementById('select-new-role').value;
+            socket.emit('admin-update-role', { userId, role }, (res) => {
+                if (res.ok) { closeModal('modal-role-change'); refreshData(); }
+            });
+        }
+
+        function toggleBan(userId, isBanned) {
+            if (confirm('Confirm?')) socket.emit('admin-toggle-ban', { userId, isBanned }, () => refreshData());
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function logout() { localStorage.removeItem('astro_session'); window.location.href = '/'; }
     </script>
 </body>
 
