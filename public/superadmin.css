@@ -137,6 +137,11 @@ body {
         scrollbar-width: none;
         -ms-overflow-style: none;
         box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.1);
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
     }
 
     .c-sidebar::-webkit-scrollbar {
@@ -144,7 +149,7 @@ body {
     }
 
     .nav-item {
-        flex: 0 0 auto;
+        flex: 1 0 auto;
         padding: 0.8rem 1.2rem;
         flex-direction: column;
         gap: 4px;
@@ -152,13 +157,15 @@ body {
         border-left: none;
         border-bottom: 3px solid transparent;
         opacity: 0.8;
+        justify-content: center;
+        min-width: 80px;
     }
 
     .nav-item.is-active {
-        border-left-color: transparent;
         border-bottom-color: white;
         background: rgba(255, 255, 255, 0.1);
         opacity: 1;
+        color: white;
     }
 
     .nav-item i {
@@ -181,6 +188,27 @@ body {
     background: rgba(255, 255, 255, 0.08);
     border-left-color: var(--clr-success);
     font-weight: var(--fw-bold);
+}
+
+.l-sidebar-nav {
+    flex: 1;
+    padding-top: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 1023px) {
+    .l-sidebar-nav {
+        flex-direction: row;
+        padding-top: 0;
+        width: 100%;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .l-sidebar-nav::-webkit-scrollbar {
+        display: none;
+    }
 }
 
 /* --- Components: Cards --- */
@@ -296,6 +324,7 @@ body {
     inset: 0;
     background: rgba(15, 23, 42, 0.4);
     backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 1000;
     display: flex;
     align-items: center;
@@ -369,6 +398,18 @@ body {
 
 .t-muted {
     color: var(--clr-text-muted);
+}
+
+.u-hide-mobile {
+    @media (max-width: 1023px) {
+        display: none !important;
+    }
+}
+
+.u-hide-desktop {
+    @media (min-width: 1024px) {
+        display: none !important;
+    }
 }
 
 /* --- Animation Keyframes --- */

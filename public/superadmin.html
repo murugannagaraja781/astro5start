@@ -15,41 +15,41 @@
 
     <!-- Sidebar Navigation -->
     <aside class="c-sidebar">
-        <div style="padding: 2rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div class="u-hide-mobile" style="padding: 2rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
             <h2 style="margin:0; font-size: 1.5rem; letter-spacing: -1px;">Astro<span
                     style="color:var(--clr-success)">5</span>Star</h2>
         </div>
 
-        <nav style="flex:1; padding-top: 1rem;">
-            <div class="nav-item is-active" onclick="showTab('dashboard')">
+        <nav class="l-sidebar-nav">
+            <div class="nav-item is-active" data-tab="dashboard" onclick="showTab('dashboard')">
                 <i class="fas fa-chart-line"></i> <span>Dashboard</span>
             </div>
-            <div class="nav-item" onclick="showTab('requests')">
+            <div class="nav-item" data-tab="requests" onclick="showTab('requests')">
                 <i class="fas fa-user-clock"></i> <span>Requests</span>
                 <span id="pending-count-badge" class="badge-dot hidden"></span>
             </div>
-            <div class="nav-item" onclick="showTab('astrologers')">
+            <div class="nav-item" data-tab="astrologers" onclick="showTab('astrologers')">
                 <i class="fas fa-magic"></i> <span>Astrologers</span>
             </div>
-            <div class="nav-item" onclick="showTab('users')">
+            <div class="nav-item" data-tab="users" onclick="showTab('users')">
                 <i class="fas fa-users"></i> <span>Client Users</span>
             </div>
-            <div class="nav-item" onclick="showTab('withdrawals')">
+            <div class="nav-item" data-tab="withdrawals" onclick="showTab('withdrawals')">
                 <i class="fas fa-wallet"></i> <span>Withdrawals</span>
             </div>
-            <div class="nav-item" onclick="showTab('ledger')">
+            <div class="nav-item" data-tab="ledger" onclick="showTab('ledger')">
                 <i class="fas fa-file-invoice-dollar"></i> <span>Ledger</span>
             </div>
-            <div class="nav-item" onclick="showTab('slabs')">
+            <div class="nav-item" data-tab="slabs" onclick="showTab('slabs')">
                 <i class="fas fa-layer-group"></i> <span>Slab Rates</span>
             </div>
-            <div class="nav-item" onclick="showTab('academy')">
+            <div class="nav-item" data-tab="academy" onclick="showTab('academy')">
                 <i class="fas fa-graduation-cap"></i> <span>Academy</span>
             </div>
-            <div class="nav-item" onclick="showTab('offers')">
+            <div class="nav-item" data-tab="offers" onclick="showTab('offers')">
                 <i class="fas fa-bullhorn"></i> <span>Offers & FCM</span>
             </div>
-            <div class="nav-item" onclick="showTab('banner')">
+            <div class="nav-item" data-tab="banner" onclick="showTab('banner')">
                 <i class="fas fa-image"></i> <span>Banner Mgmt</span>
             </div>
             <div class="nav-item" style="margin-top: auto; color: var(--clr-error);" onclick="logout()">
@@ -57,7 +57,7 @@
             </div>
         </nav>
 
-        <div style="padding: 2rem; opacity: 0.5; font-size: 0.8rem;">
+        <div class="u-hide-mobile" style="padding: 2rem; opacity: 0.5; font-size: 0.8rem;">
             V 2.2.0 Premium Admin
         </div>
     </aside>
@@ -352,7 +352,7 @@
             document.querySelectorAll('.tab-content').forEach(s => s.classList.add('hidden'));
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('is-active'));
             document.getElementById('tab-' + id).classList.remove('hidden');
-            const nav = Array.from(document.querySelectorAll('.nav-item')).find(n => n.outerHTML.includes("'" + id + "'"));
+            const nav = document.querySelector(`.nav-item[data-tab="${id}"]`);
             if (nav) nav.classList.add('is-active');
             refreshData();
             if (id === 'ledger') fetchLedger();
