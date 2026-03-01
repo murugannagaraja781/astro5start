@@ -3501,6 +3501,7 @@ io.on('connection', (socket) => {
 
       // Get user counts
       const totalUsers = await User.countDocuments();
+      const pendingRequests = await User.countDocuments({ role: 'astrologer', approvalStatus: 'pending' });
       const activeSessionCount = activeSessions.size;
 
       // Get full ledger for breakdown
@@ -3515,6 +3516,7 @@ io.on('connection', (socket) => {
         astroPayout: billing.totalAstroPayout || 0,
         totalDuration: (billing.totalMinutes || 0) * 60, // Convert minutes to seconds
         totalUsers: totalUsers,
+        pendingRequests: pendingRequests,
         activeSessions: activeSessionCount
       };
 

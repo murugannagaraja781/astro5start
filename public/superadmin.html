@@ -168,15 +168,16 @@
                 <h1 style="margin:0;">Billing Ledger</h1>
                 <p class="t-muted">Transaction audit and earnings breakdown</p>
             </header>
-            <div class="c-card" style="padding:0; overflow:hidden;">
-                <table style="width:100%; border-collapse: collapse; text-align: left;">
+            <div class="c-card" style="padding:0; overflow-x:auto; -webkit-overflow-scrolling: touch;">
+                <table style="width:100%; border-collapse: collapse; text-align: left; min-width: 600px;">
                     <thead
                         style="background: var(--clr-surface-muted); font-size: 0.75rem; text-transform: uppercase; color: var(--clr-text-muted);">
                         <tr>
                             <th style="padding: 1rem;">Time</th>
-                            <th style="padding: 1rem;">Description</th>
-                            <th style="padding: 1rem;">Amount</th>
-                            <th style="padding: 1rem;">User ID</th>
+                            <th style="padding: 1rem;">Reason / Session</th>
+                            <th style="padding: 1rem;">Charged</th>
+                            <th style="padding: 1rem;">Astro Get</th>
+                            <th style="padding: 1rem;">Admin Profit</th>
                         </tr>
                     </thead>
                     <tbody id="ledger-table-body" style="font-size: 0.875rem;"></tbody>
@@ -214,11 +215,11 @@
             </header>
             <div class="c-card" style="margin-bottom:1.5rem;">
                 <h3 style="margin-top:0;">Add Video</h3>
-                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr auto; gap:0.5rem;">
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:0.5rem;">
                     <input type="text" id="academyTitle" class="input" placeholder="Title">
                     <input type="text" id="academyUrl" class="input" placeholder="YouTube URL">
                     <input type="text" id="academyCategory" class="input" placeholder="Category">
-                    <button class="btn btn-primary" onclick="addAcademyVideo()">Add</button>
+                    <button class="btn btn-primary" onclick="addAcademyVideo()" style="width:100%;">Add</button>
                 </div>
             </div>
             <div id="admin-academy-list"></div>
@@ -259,11 +260,11 @@
             </header>
             <div class="c-card" style="margin-bottom:1.5rem;">
                 <form id="banner-form" onsubmit="createBanner(event)"
-                    style="display:grid; grid-template-columns: 1fr 1fr 100px auto; gap:0.5rem;">
+                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:0.5rem;">
                     <input type="text" id="banner-title" class="input" placeholder="Title" required>
                     <input type="text" id="banner-image" class="input" placeholder="Image URL" required>
                     <input type="number" id="banner-order" class="input" placeholder="Order" value="0">
-                    <button type="submit" class="btn btn-primary">Add Banner</button>
+                    <button type="submit" class="btn btn-primary" style="width:100%;">Add Banner</button>
                 </form>
             </div>
             <div id="banner-list"></div>
@@ -347,6 +348,7 @@
             if (nav) nav.classList.add('is-active');
             refreshData();
             if (id === 'ledger') fetchLedger();
+            if (id === 'withdrawals') fetchWithdrawals();
         }
 
         function fetchStats() {
@@ -355,10 +357,10 @@
                     const s = res.stats;
                     document.getElementById('stat-total-revenue').innerText = s.totalRevenue.toLocaleString();
                     document.getElementById('stat-admin-profit').innerText = s.adminProfit.toLocaleString();
-                    document.getElementById('stat-astro-payout').innerText = (s.totalRevenue - s.adminProfit).toLocaleString();
+                    document.getElementById('stat-astro-payout').innerText = s.astroPayout.toLocaleString();
                     document.getElementById('stat-active-sessions').innerText = s.activeSessions || 0;
                     document.getElementById('stat-total-users').innerText = s.totalUsers || 0;
-                    document.getElementById('pending-count-badge').classList.toggle('hidden', s.pendingRequests === 0);
+                    document.getElementById('pending-count-badge').classList.toggle('hidden', (s.pendingRequests || 0) === 0);
                 }
             });
         }
@@ -388,7 +390,7 @@
                             </div>
                         </div>
                         <div style="text-align:right;">
-                            <div class="fw-bold t-success">₹${u.walletBalance.toFixed(1)}</div>
+                            <div class="fw-bold t-success">₹${(u.walletBalance || 0).toFixed(1)}</div>
                             <div class="fs-xs ${isOnline ? 't-success' : 't-muted'}">${isOnline ? 'Online' : 'Offline'}</div>
                         </div>
                     </div>
@@ -501,14 +503,56 @@
 
         function fetchLedger() {
             socket.emit('admin-get-ledger-stats', {}, (res) => {
-                if (res.ok) document.getElementById('ledger-table-body').innerHTML = res.fullLedger.slice(0, 50).map(l => `
+                if (res.ok) document.getElementById('ledger-table-body').innerHTML = res.fullLedger.slice(0, 100).map(l => `
                     <tr style="border-bottom:1px solid #eee;">
-                        <td style="padding:10px;">${new Date(l.timestamp).toLocaleDateString()}</td>
-                        <td style="padding:10px;">${l.description || l.type}</td>
-                        <td style="padding:10px;" class="${l.amount > 0 ? 't-success' : 't-error'}">₹${l.amount.toFixed(1)}</td>
-                        <td style="padding:10px;">${l.userId?.slice(-6)}</td>
+                        <td style="padding:10px;">${new Date(l.createdAt).toLocaleString()}</td>
+                        <td style="padding:10px;">
+                            <div class="fw-bold">${(l.reason || 'session').toUpperCase()}</div>
+                            <div class="fs-xs t-muted">ID: ${l.sessionId?.slice(-8) || 'N/A'}</div>
+                        </td>
+                        <td style="padding:10px;">₹${(l.chargedToClient || 0).toFixed(2)}</td>
+                        <td style="padding:10px;">₹${(l.creditedToAstrologer || 0).toFixed(2)}</td>
+                        <td style="padding:10px;" class="t-success fw-bold">₹${(l.adminAmount || 0).toFixed(2)}</td>
                     </tr>
                 `).join('');
+            });
+        }
+
+        function fetchWithdrawals() {
+            socket.emit('get-withdrawals', (res) => {
+                const list = document.getElementById('withdrawal-list');
+                if (res.ok && res.list.length > 0) {
+                    list.innerHTML = res.list.map(w => `
+                        <div class="c-card animate-up" style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div class="fw-bold" style="font-size:1.1rem;">${w.astroName} - <span class="t-success">₹${w.amount}</span></div>
+                                <div class="fs-xs t-muted" style="margin-top:4px;">
+                                    <div>UPI/Bank: ${w.bankingDetails?.upiId || w.bankingDetails?.accountNumber || 'N/A'}</div>
+                                    <div>Timestamp: ${new Date(w.requestedAt).toLocaleString()}</div>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:0.5rem; align-items:center;">
+                                ${w.status === 'pending' ? `
+                                    <button class="btn btn-sm btn-success" onclick="processWithdrawal('${w._id}', 'approve')">Approve</button>
+                                    <button class="btn btn-sm btn-error" onclick="processWithdrawal('${w._id}', 'reject')">Reject</button>
+                                ` : `<span class="user-pill ${w.status}">${w.status.toUpperCase()}</span>`}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = '<div class="t-muted">No payout requests currently.</div>';
+                }
+            });
+        }
+
+        function processWithdrawal(id, action) {
+            if (!confirm(`Are you sure you want to ${action} this withdrawal?`)) return;
+            const event = action === 'approve' ? 'approve-withdrawal' : 'reject-withdrawal';
+            socket.emit(event, { withdrawalId: id }, (res) => {
+                if (res.ok) {
+                    alert(`Withdrawal ${action}d successfully`);
+                    fetchWithdrawals();
+                } else alert(res.error || 'Operation failed');
             });
         }
 

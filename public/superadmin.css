@@ -102,6 +102,15 @@ body {
     padding: var(--sp-8);
     background: var(--clr-bg);
     scroll-behavior: smooth;
+    padding-bottom: 5rem;
+    /* Space for bottom nav */
+}
+
+@media (max-width: 768px) {
+    .l-main-content {
+        padding: 1rem;
+        padding-bottom: 6rem;
+    }
 }
 
 /* --- Components: Sidebar/Nav --- */
@@ -112,7 +121,7 @@ body {
     display: flex;
     flex-direction: column;
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
-    z-index: 50;
+    z-index: 100;
 }
 
 @media (max-width: 1023px) {
@@ -120,24 +129,45 @@ body {
         grid-area: nav;
         flex-direction: row;
         height: auto;
-        padding: var(--sp-2) 0;
-        justify-content: space-around;
-        background: var(--clr-surface);
-        color: var(--clr-text-muted);
-        border-top: 1px solid var(--clr-brand-border);
+        padding: 0;
+        background: var(--clr-brand);
+        color: white;
+        border-top: none;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.1);
     }
-}
 
-.nav-item {
-    padding: var(--sp-4) var(--sp-6);
-    display: flex;
-    align-items: center;
-    gap: var(--sp-4);
-    cursor: pointer;
-    color: inherit;
-    opacity: 0.7;
-    transition: var(--tr-base);
-    border-left: 4px solid transparent;
+    .c-sidebar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .nav-item {
+        flex: 0 0 auto;
+        padding: 0.8rem 1.2rem;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 0.7rem;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        opacity: 0.8;
+    }
+
+    .nav-item.is-active {
+        border-left-color: transparent;
+        border-bottom-color: white;
+        background: rgba(255, 255, 255, 0.1);
+        opacity: 1;
+    }
+
+    .nav-item i {
+        font-size: 1.2rem;
+    }
+
+    .nav-item span {
+        display: block;
+    }
 }
 
 .nav-item:hover {
