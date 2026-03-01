@@ -389,16 +389,23 @@ function sendMsg91(phoneNumber, otp) {
   req.end();
 }
 
-// ===== File upload setup =====
 const uploadDir = path.join(__dirname, 'uploads');
-const upload = multer({ dest: uploadDir });
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
 
 app.use('/uploads', express.static(uploadDir));
 
-
 app.post('/upload', upload.single('file'), (req, res) => {
-  // ... (keeping upload logic if valid) ...
-  return res.json({ ok: true, url: req.file ? '/uploads/' + req.file.filename : '' });
+  if (!req.file) return res.json({ ok: false, error: 'No file' });
+  return res.json({ ok: true, url: '/uploads/' + req.file.filename });
 });
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/astrofive';
 

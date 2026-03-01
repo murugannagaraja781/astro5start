@@ -245,8 +245,14 @@
                 <div class="c-card">
                     <h3>Message</h3>
                     <input type="text" id="fcmTitle" class="input" placeholder="Title" style="margin-bottom:10px;">
-                    <input type="text" id="fcmImage" class="input" placeholder="Image URL (Optional)"
-                        value="/images/offer_icon.png" style="margin-bottom:10px;">
+                    <div style="display:flex; gap:5px; margin-bottom:10px;">
+                        <input type="text" id="fcmImage" class="input" placeholder="Image URL (Optional)"
+                            value="/images/offer_icon.png">
+                        <button class="btn btn-ghost" onclick="triggerFcmUpload()" title="Upload Image">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                        <input type="file" id="fcmFileInput" hidden accept="image/*" onchange="handleFcmUpload(this)">
+                    </div>
                     <textarea id="fcmBody" class="input" placeholder="Message..."
                         style="height:80px; margin-bottom:15px;"></textarea>
                     <button id="btnSendFcm" class="btn btn-primary" onclick="sendOfferFCM()">Send Push</button>
@@ -496,6 +502,22 @@
         function toggleFcmSelection() {
             const all = document.getElementById('fcmAllUsers').checked;
             document.getElementById('fcm-user-search-box').style.display = all ? 'none' : 'block';
+        }
+
+        function triggerFcmUpload() { document.getElementById('fcmFileInput').click(); }
+
+        async function handleFcmUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData }).then(r => r.json());
+                if (res.ok) {
+                    document.getElementById('fcmImage').value = res.url;
+                    alert('Image uploaded successfully!');
+                } else alert('Upload failed');
+            } catch (e) { console.error(e); alert('Upload error'); }
         }
 
         function sendOfferFCM() {
