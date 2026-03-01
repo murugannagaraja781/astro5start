@@ -4,7 +4,7 @@
 # Run this on server: curl -fsSL https://raw.githubusercontent.com/murugannagaraja781/astro5start/main/autodeploy.sh | bash
 
 echo "=========================================="
-echo "    Astro 5 Star Auto Deploy"
+echo "    Astro 5 Star Auto Deploy - Robust v2"
 echo "=========================================="
 
 # Variables
@@ -12,119 +12,116 @@ APP_DIR="/var/www/astro5start"
 REPO_URL="https://github.com/murugannagaraja781/astro5start.git"
 APP_NAME="astro-app"
 
-# Step 1.5: Setup Swap if memory is low (Mandatory for 512MB RAM)
+# Step 1: Ensure Node.js & PM2 are installed
+echo "[1/6] Checking system requirements..."
+
+if ! command -v node &> /dev/null; then
+    echo "Node.js not found. Installing Node.js 20..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+else
+    echo "✅ Node.js $(node -v) found."
+fi
+
+if ! command -v pm2 &> /dev/null; then
+    echo "PM2 not found. Installing PM2..."
+    sudo npm install -g pm2
+else
+    echo "✅ PM2 found."
+fi
+
+# Step 1.5: Setup Swap if memory is low (Mandatory for 512MB/1GB RAM)
 total_mem=$(free -m | awk '/^Mem:/{print $2}')
 swap_count=$(swapon --show | wc -l)
 
-if [ "$total_mem" -lt 1000 ] && [ "$swap_count" -le 1 ]; then
-    echo "[1.5/6] Low memory detected ($total_mem MB). Creating 1GB swap file..."
+if [ "$total_mem" -lt 1500 ] && [ "$swap_count" -le 1 ]; then
+    echo "[1.5/6] Low memory detected ($total_mem MB). Ensuring 2GB swap file..."
     if [ ! -f "/swapfile" ]; then
-        sudo fallocate -l 1G /swapfile
+        sudo fallocate -l 2G /swapfile
         sudo chmod 600 /swapfile
         sudo mkswap /swapfile
         sudo swapon /swapfile
         echo "/swapfile none swap sw 0 0" | sudo tee -a /etc/fstab
-        echo "Swap file created and activated."
+        echo "✅ Swap file created and activated."
     else
         sudo swapon /swapfile 2>/dev/null || true
-        echo "Existing swap file activated."
+        echo "✅ Existing swap file activated."
     fi
 fi
 
 # Step 2: Clone or pull latest code
-echo "[2/6] Getting latest code..."
+echo "[2/6] Syncing code repository..."
 
 # Optimization for low memory npm
 export NODE_OPTIONS="--max-old-space-size=448"
 
-# Define SSH Key Command if key exists
-if [ -f "github_action_key" ]; then
-    echo "Found github_action_key. Configuring Git to use it..."
-    chmod 600 github_action_key
-    # Important: Use full path for key
-    export GIT_SSH_COMMAND="ssh -i $(pwd)/github_action_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no"
-
-    # Ensure remote is SSH if we have key
-    if [ -d ".git" ]; then
-        current_url=$(git remote get-url origin)
-        if [[ "$current_url" == https* ]]; then
-             echo "Switching remote to SSH..."
-             git remote set-url origin git@github.com:murugannagaraja781/astro5start.git
-        fi
-    fi
+if [ ! -d "/var/www" ]; then
+    sudo mkdir -p /var/www
 fi
 
-if [ -d ".git" ]; then
-    echo "Pulling latest changes..."
-    # Reset any local changes (like the manual fix user might have attempted)
-    git reset --hard
-    git fetch origin main
-    git reset --hard origin/main
+cd /var/www
+
+if [ -d "$APP_DIR/.git" ]; then
+    echo "Updating existing repository..."
+    cd $APP_DIR
+    # Reset any local changes to avoid merge conflicts
+    sudo git reset --hard
+    sudo git fetch origin main
+    sudo git reset --hard origin/main
 else
-    echo "Cloning repository..."
-    cd /var/www
-    sudo rm -rf astro5start
-
-    # If freshly cloning, we might fail if we don't have the key yet (Chicken & Egg).
-    # But user likely has the repo already.
-    # Fallback to HTTPS for initial clone if key not present outside?
-    # Getting key for initial clone is tricky via script if script is curl'd.
-    # Assessing current state: User HAS repo.
-
-    git clone $REPO_URL astro5start
+    echo "Performing fresh clone..."
+    sudo rm -rf $APP_DIR
+    sudo git clone $REPO_URL $APP_DIR
     cd $APP_DIR
 fi
 
 # Step 3: Set permissions
 echo "[3/6] Setting permissions..."
 sudo chown -R $USER:$USER $APP_DIR
-chmod -R 755 $APP_DIR
-# IMPORTANT: Reset private key to 600 or SSH will fail next time
-if [ -f "$APP_DIR/github_action_key" ]; then
-    chmod 600 "$APP_DIR/github_action_key"
-    echo "Secured github_action_key (600)"
-fi
+sudo chmod -R 755 $APP_DIR
 
 # Step 3.5: Check for critical configuration files
+if [ ! -f ".env" ]; then
+    echo "⚠️  CRITICAL: .env file missing in $APP_DIR"
+    echo "Writing basic .env template... (Update this manually!)"
+    cat <<EOT >> .env
+PORT=3000
+MONGODB_URI=mongodb://localhost:27017/astrofive
+NODE_ENV=production
+EOT
+fi
+
 if [ ! -f "firebase-service-account.json" ]; then
-    echo "=========================================="
-    echo "⚠️  CRITICAL WARNING: firebase-service-account.json MISSING"
-    echo "------------------------------------------"
-    echo "This file is ignored by Git for security."
-    echo "You MUST upload it manually to: $APP_DIR"
-    echo "Example: scp firebase-service-account.json user@server:$APP_DIR"
-    echo "=========================================="
+    echo "⚠️  WARNING: firebase-service-account.json MISSING. Push notifications may fail."
 fi
 
 # Step 4: Install dependencies
-echo "[4/6] Installing dependencies..."
-# Clean up if previous install failed
-if [ -d "node_modules" ]; then
-    echo "Existing node_modules found. Pruning..."
-fi
+echo "[4/6] Installing dependencies (This may take a minute)..."
 
-# Use memory-efficient npm install
+# Clear cache if there were issues
+# npm cache clean --force
+
+# Using memory-efficient install to prevent hangs on small droplets
 npm install --production --no-audit --no-fund --prefer-offline || {
-    echo "Initial npm install failed. Retrying with --no-package-lock..."
-    rm -rf node_modules
+    echo "❌ Initial npm install failed. Retrying with --no-package-lock..."
+    rm -rf node_modules package-lock.json
     npm install --production --no-audit --no-fund --no-package-lock
 }
 
 # Step 5: Setup PM2
-echo "[5/6] Setting up PM2..."
+echo "[5/6] Starting application with PM2..."
 pm2 delete $APP_NAME 2>/dev/null || true
-pm2 start server.js --name $APP_NAME
+pm2 start server.js --name $APP_NAME --exp-backoff-restart-delay 100
 
 # Step 6: Save PM2 config
-echo "[6/6] Saving PM2 configuration..."
+echo "[6/6] Finalizing deployment..."
 pm2 save
+sudo pm2 startup | tail -n 1 | bash 2>/dev/null || true
 
 echo ""
 echo "=========================================="
-echo "    Deployment Complete!11"
+echo "    Deployment Complete!"
 echo "=========================================="
-echo ""
-echo "App running on port 3000"
-echo "PM2 status: pm2 status"
-echo "PM2 logs: pm2 logs $APP_NAME"
-echo ""
+echo "Status: pm2 status"
+echo "Logs:   pm2 logs $APP_NAME"
+echo "=========================================="
