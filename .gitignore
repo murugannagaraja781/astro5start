@@ -70,3 +70,8 @@ astroapp/android/build/
 *.jar
 !gradle-wrapper.jar
 firebase-service-account.json
+
+# Large binary folders
+releases/
+build_tools/
+tailwindcss-macos-arm64

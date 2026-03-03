@@ -4,332 +4,412 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Astro5Star | Super Admin Control</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/images/astro_5_star_logo.png">
+  <title>Astro5Star | Super Admin Control</title>
     <link rel="stylesheet" href="superadmin.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="tailwind-admin-built.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
 
-<body class="l-dashboard">
+<body class="bg-milk text-slate-900 font-sans h-screen flex flex-col lg:flex-row overflow-hidden">
 
     <!-- Sidebar Navigation -->
-    <aside class="c-sidebar">
-        <div class="u-hide-mobile" style="padding: 2.5rem 2rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
-            <h2
-                style="margin:0; font-size: 1.75rem; font-weight: 800; letter-spacing: -1px; display: flex; align-items: center; gap: 8px;">
-                <i class="fas fa-hand-sparkles" style="color:var(--clr-success); font-size: 1.5rem;"></i>
-                Astro<span style="color:var(--clr-success)">5</span>Star
+    <aside
+        class="w-full lg:w-72 bg-deep-green text-white flex flex-col z-50 lg:h-screen lg:sticky lg:top-0 transition-all duration-300">
+        <div class="hidden lg:block p-8 border-b border-white/10">
+            <h2 class="text-2xl font-extrabold flex items-center gap-3 tracking-tight">
+                <i class="fas fa-hand-sparkles text-accent-green text-3xl"></i>
+                <span>Astro<span class="text-accent-green text-4xl">5</span>Star</span>
             </h2>
-            <p
-                style="font-size: 0.65rem; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
+            <p class="text-[0.65rem] text-white/50 mt-2 uppercase tracking-widest font-bold">
                 Super Administration Panel</p>
         </div>
 
-        <nav class="l-sidebar-nav">
-            <div class="nav-item is-active" data-tab="dashboard" onclick="showTab('dashboard')">
-                <i class="fas fa-layer-group"></i> <span>Overview</span>
+        <nav class="flex lg:flex-col p-2 lg:p-4 gap-1 overflow-x-auto lg:overflow-y-auto scrollbar-hide flex-1">
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="dashboard" onclick="showTab('dashboard')">
+                <i class="fas fa-layer-group text-lg lg:w-5 text-center"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Overview</span>
             </div>
-            <div class="nav-item" data-tab="requests" onclick="showTab('requests')">
-                <i class="fas fa-clock-rotate-left"></i> <span>Join Requests</span>
-                <span id="pending-count-badge" class="badge-dot hidden"></span>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="requests" onclick="showTab('requests')">
+                <div class="relative">
+                    <i class="fas fa-clock-rotate-left text-lg lg:w-5 text-center"></i>
+                    <span id="pending-count-badge"
+                        class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full hidden"></span>
+                </div>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Join Requests</span>
             </div>
-            <div class="nav-item" data-tab="astrologers" onclick="showTab('astrologers')">
-                <i class="fas fa-user-tie"></i> <span>Astrologers</span>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="astrologers" onclick="showTab('astrologers')">
+                <i class="fas fa-user-tie text-lg lg:w-5 text-center"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Astrologers</span>
             </div>
-            <div class="nav-item" data-tab="users" onclick="showTab('users')">
-                <i class="fas fa-users"></i> <span>Clients</span>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="users" onclick="showTab('users')">
+                <i class="fas fa-users text-lg lg:w-5 text-center"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Clients</span>
             </div>
-            <div class="nav-item" data-tab="withdrawals" onclick="showTab('withdrawals')">
-                <i class="fas fa-money-bill-transfer"></i> <span>Payouts</span>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="withdrawals" onclick="showTab('withdrawals')">
+                <i class="fas fa-money-bill-transfer text-lg lg:w-5 text-center"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Payouts</span>
             </div>
-            <div class="nav-item" data-tab="ledger" onclick="showTab('ledger')">
-                <i class="fas fa-receipt"></i> <span>Transaction Log</span>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="ledger" onclick="showTab('ledger')">
+                <i class="fas fa-receipt text-lg lg:w-5 text-center"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">History</span>
             </div>
-            <div class="nav-item" data-tab="slabs" onclick="showTab('slabs')">
-                <i class="fas fa-sliders"></i> <span>Commission</span>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="slabs" onclick="showTab('slabs')">
+                <i class="fas fa-sliders text-lg lg:w-5 text-center"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Commission</span>
             </div>
-            <div class="nav-item" data-tab="academy" onclick="showTab('academy')">
-                <i class="fas fa-video"></i> <span>Academy</span>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="academy" onclick="showTab('academy')">
+                <i class="fas fa-video text-lg lg:w-5 text-center"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Academy</span>
             </div>
-            <div class="nav-item" data-tab="offers" onclick="showTab('offers')">
-                <i class="fas fa-paper-plane"></i> <span>Push Tools</span>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="offers" onclick="showTab('offers')">
+                <i class="fas fa-paper-plane text-lg lg:w-5 text-center"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Broadcast</span>
             </div>
-            <div class="nav-item" data-tab="banner" onclick="showTab('banner')">
-                <i class="fas fa-images"></i> <span>Banners</span>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="banner" onclick="showTab('banner')">
+                <i class="fas fa-images text-lg lg:w-5 text-center"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Banners</span>
             </div>
-            <div class="nav-item" style="margin-top: auto; color: var(--clr-error); padding-top: 2rem;"
-                onclick="logout()">
-                <i class="fas fa-power-off"></i> <span>Sign Out</span>
+
+            <div class="mt-auto hidden lg:flex flex-col gap-4 p-4 border-t border-white/10">
+                <div class="flex justify-between items-center text-[0.7rem] text-white/40">
+                    <span>Version 3.4.0</span>
+                    <span class="flex h-2 w-2 rounded-full bg-accent-green shadow-[0_0_8px_rgba(16,185,129,1)]"></span>
+                </div>
+                <button onclick="logout()"
+                    class="flex items-center gap-3 p-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors w-full font-bold uppercase tracking-wider text-xs">
+                    <i class="fas fa-power-off"></i> <span>Sign Out System</span>
+                </button>
             </div>
         </nav>
-
-        <div class="u-hide-mobile"
-            style="padding: 1.5rem 2rem; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.7rem; color: #475569;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>Version 2.3.1</span>
-                <span class="pulse-icon"
-                    style="width: 6px; height: 6px; background: var(--clr-success); border-radius: 50%;"></span>
-            </div>
-        </div>
     </aside>
 
     <!-- Main Content Area -->
-    <main class="l-main-content">
+    <main class="flex-1 h-screen overflow-y-auto p-4 lg:p-10 scroll-smooth">
 
         <!-- Dashboard Tab -->
-        <section id="tab-dashboard" class="tab-content animate-up">
-            <header style="margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: center;">
+        <section id="tab-dashboard" class="tab-content animate-up space-y-8">
+            <header class="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 style="margin:0; font-size: 2.25rem; font-weight: 800; letter-spacing: -1px;">Platform Overview
+                    <h1 class="text-3xl lg:text-4xl font-extrabold tracking-tight text-deep-green">Platform Overview
                     </h1>
-                    <p class="t-muted" style="font-size: var(--fs-base);">Real-time performance across all segments</p>
+                    <p class="text-slate-500 font-medium mt-1">Real-time performance across all segments</p>
                 </div>
-                <div class="u-hide-mobile"
-                    style="background: white; padding: 0.5rem 1rem; border-radius: 99px; border: 1px solid var(--clr-border); display: flex; align-items: center; gap: 8px;">
-                    <span class="pulse-icon"
-                        style="width: 8px; height: 8px; background: var(--clr-success); border-radius: 50%;"></span>
-                    <span style="font-size: 0.75rem; font-weight: 700; color: #475569;">LIVE SYSTEM STATUS</span>
+                <div
+                    class="hidden md:flex items-center gap-3 bg-white px-5 py-2.5 rounded-full border border-emerald-100 shadow-sm">
+                    <span
+                        class="flex h-2 w-2 rounded-full bg-accent-green animate-pulse shadow-[0_0_8px_rgba(16,185,129,1)]"></span>
+                    <span class="text-[0.8rem] font-bold text-slate-600 uppercase tracking-wider text-xs">System Live
+                        Status</span>
                 </div>
             </header>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem;">
-                <div class="c-card c-stat-card">
-                    <div class="t-muted fs-xs fw-bold" style="letter-spacing: 0.05em; text-transform: uppercase;">Total
-                        Revenue</div>
-                    <div class="fs-2xl fw-bold" style="margin: 0.5rem 0;">₹<span id="stat-total-revenue">0</span></div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                <!-- Stat Card 1 -->
+                <div
+                    class="bg-white p-6 rounded-3xl border border-emerald-50 shadow-premium relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+                    <div class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">Total Revenue</div>
+                    <div class="text-3xl font-black text-slate-800 tracking-tighter self-center">₹<span
+                            id="stat-total-revenue">0</span></div>
                     <div
-                        style="display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: var(--clr-success);">
-                        <i class="fas fa-arrow-trend-up"></i> <span>Platform Scale</span>
+                        class="mt-4 flex items-center gap-2 text-brand-green font-bold text-[0.7rem] bg-emerald-50 w-fit px-2 py-1 rounded-lg">
+                        <i class="fas fa-arrow-trend-up"></i> <span>Scale Status</span>
                     </div>
-                    <i class="fas fa-indian-rupee-sign"></i>
+                    <i
+                        class="fas fa-indian-rupee-sign absolute -right-4 -bottom-4 text-7xl opacity-[0.03] group-hover:opacity-[0.08] transition-opacity -rotate-12"></i>
                 </div>
-                <div class="c-card c-stat-card">
-                    <div class="t-muted fs-xs fw-bold" style="letter-spacing: 0.05em; text-transform: uppercase;">Admin
-                        Profit</div>
-                    <div class="fs-2xl fw-bold t-success" style="margin: 0.5rem 0;">₹<span
+                <!-- Stat Card 2 -->
+                <div
+                    class="bg-white p-6 rounded-3xl border border-emerald-50 shadow-premium relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+                    <div class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">Admin Profit</div>
+                    <div class="text-3xl font-black text-brand-green tracking-tighter self-center">₹<span
                             id="stat-admin-profit">0</span></div>
                     <div
-                        style="display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: var(--clr-text-muted);">
-                        <span>Service Fee Earnings</span>
+                        class="mt-4 flex items-center gap-2 text-slate-500 font-bold text-[0.7rem] bg-slate-50 w-fit px-2 py-1 rounded-lg">
+                        <i class="fas fa-shield-halved"></i> <span>Service Earnings</span>
                     </div>
-                    <i class="fas fa-shield-halved"></i>
+                    <i
+                        class="fas fa-shield-halved absolute -right-4 -bottom-4 text-7xl opacity-[0.03] group-hover:opacity-[0.08] transition-opacity -rotate-12"></i>
                 </div>
-                <div class="c-card c-stat-card">
-                    <div class="t-muted fs-xs fw-bold" style="letter-spacing: 0.05em; text-transform: uppercase;">Astro
-                        Payout</div>
-                    <div class="fs-2xl fw-bold" style="margin: 0.5rem 0; color: #6366f1;">₹<span
+                <!-- Stat Card 3 -->
+                <div
+                    class="bg-white p-6 rounded-3xl border border-emerald-50 shadow-premium relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+                    <div class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">Astro Payout</div>
+                    <div class="text-3xl font-black text-indigo-600 tracking-tighter self-center">₹<span
                             id="stat-astro-payout">0</span></div>
                     <div
-                        style="display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: var(--clr-text-muted);">
-                        <span>Astrologer Earnings</span>
+                        class="mt-4 flex items-center gap-2 text-slate-500 font-bold text-[0.7rem] bg-indigo-50/50 w-fit px-2 py-1 rounded-lg">
+                        <i class="fas fa-wallet"></i> <span>Astro Earnings</span>
                     </div>
-                    <i class="fas fa-wallet"></i>
+                    <i
+                        class="fas fa-wallet absolute -right-4 -bottom-4 text-7xl opacity-[0.03] group-hover:opacity-[0.08] transition-opacity -rotate-12"></i>
                 </div>
-                <div class="c-card c-stat-card">
-                    <div class="t-muted fs-xs fw-bold" style="letter-spacing: 0.05em; text-transform: uppercase;">Live
-                        Calls</div>
-                    <div class="fs-2xl fw-bold" id="stat-active-sessions" style="margin: 0.5rem 0;">0</div>
+                <!-- Stat Card 4 -->
+                <div
+                    class="bg-white p-6 rounded-3xl border border-emerald-50 shadow-premium relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+                    <div class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">Live Calls</div>
+                    <div class="text-3xl font-black text-slate-800 tracking-tighter self-center"
+                        id="stat-active-sessions">0</div>
                     <div
-                        style="display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: var(--clr-error);">
-                        <span class="pulse-icon"
-                            style="width: 6px; height: 6px; background: red; border-radius: 50%;"></span>
+                        class="mt-4 flex items-center gap-2 text-red-500 font-bold text-[0.7rem] bg-red-50 w-fit px-2 py-1 rounded-lg">
+                        <span class="flex h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse"></span>
                         <span>Active Now</span>
                     </div>
-                    <i class="fas fa-headset"></i>
+                    <i
+                        class="fas fa-headset absolute -right-4 -bottom-4 text-7xl opacity-[0.03] group-hover:opacity-[0.08] transition-opacity -rotate-12"></i>
                 </div>
-                <div class="c-card c-stat-card">
-                    <div class="t-muted fs-xs fw-bold" style="letter-spacing: 0.05em; text-transform: uppercase;">Total
-                        Base</div>
-                    <div class="fs-2xl fw-bold" id="stat-total-users" style="margin: 0.5rem 0;">0</div>
-                    <div
-                        style="display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: var(--clr-text-muted);">
-                        <span>Registered Users</span>
+                <!-- Stat Card 5 -->
+                <div
+                    class="bg-white p-6 rounded-3xl border border-emerald-50 shadow-premium relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+                    <div class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">Total Base</div>
+                    <div class="text-3xl font-black text-slate-800 tracking-tighter self-center" id="stat-total-users">0
                     </div>
-                    <i class="fas fa-users-viewfinder"></i>
+                    <div
+                        class="mt-4 flex items-center gap-2 text-slate-500 font-bold text-[0.7rem] bg-slate-50 w-fit px-2 py-1 rounded-lg">
+                        <i class="fas fa-users-viewfinder"></i> <span>Client Users</span>
+                    </div>
+                    <i
+                        class="fas fa-users-viewfinder absolute -right-4 -bottom-4 text-7xl opacity-[0.03] group-hover:opacity-[0.08] transition-opacity -rotate-12"></i>
                 </div>
             </div>
         </section>
 
         <!-- Requests Tab -->
-        <section id="tab-requests" class="tab-content hidden animate-up">
-            <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0; font-weight: 800;">Pending Applications</h1>
-                <p class="t-muted">Review and verify new astrologer registrations</p>
+        <section id="tab-requests" class="tab-content hidden animate-up space-y-6">
+            <header>
+                <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Pending Applications</h1>
+                <p class="text-slate-500 font-medium">Review and verify new astrologer registrations</p>
             </header>
-            <div id="pending-requests-list"
-                style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
-                <div class="t-muted" id="no-requests-msg"
-                    style="background: white; padding: 2rem; border-radius: 12px; border: 1px dashed var(--clr-border); text-align: center;">
-                    No pending registrations found.</div>
+            <div id="pending-requests-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="col-span-full bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium"
+                    id="no-requests-msg">
+                    No pending registrations found.
+                </div>
             </div>
         </section>
 
         <!-- Astrologers Tab -->
-        <section id="tab-astrologers" class="tab-content hidden animate-up">
-            <header style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+        <section id="tab-astrologers" class="tab-content hidden animate-up space-y-6">
+            <header class="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 style="margin:0; font-weight: 800;">Astrologer Network</h1>
-                    <p class="t-muted">Manage profile, pricing, and documentation</p>
+                    <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Astrologer Network</h1>
+                    <p class="text-slate-500 font-medium">Manage profile, pricing, and documentation</p>
                 </div>
-                <div class="u-hide-mobile"
-                    style="background: white; padding: 0.5rem 1rem; border-radius: 99px; border: 1px solid var(--clr-border);">
-                    <span class="pulse-icon"
-                        style="display:inline-block; width:8px; height:8px; background:var(--clr-success); border-radius:50%; margin-right:8px;"></span>
-                    <span id="online-astro-count" class="fw-bold" style="font-size: 0.85rem;">0</span> <span
-                        style="font-size: 0.85rem; color: #64748b;">Astrologers Live</span>
+                <div
+                    class="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-2xl border border-emerald-50 shadow-sm flex items-center gap-2">
+                    <span class="h-2 w-2 rounded-full bg-accent-green shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+                    <span id="online-astro-count" class="font-black text-slate-800 text-sm">0</span>
+                    <span class="text-xs font-bold text-slate-500 uppercase">Astrologers Live</span>
                 </div>
             </header>
-            <div id="astrologer-list"
-                style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;"></div>
+            <div id="astrologer-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
         </section>
 
         <!-- Client Users Tab -->
-        <section id="tab-users" class="tab-content hidden animate-up">
-            <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0; font-weight: 800;">Client Management</h1>
-                <p class="t-muted">View user balances and history</p>
+        <section id="tab-users" class="tab-content hidden animate-up space-y-6">
+            <header>
+                <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Client Management</h1>
+                <p class="text-slate-500 font-medium">View user balances and history</p>
             </header>
-            <div id="client-list"
-                style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;"></div>
+            <div id="client-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
         </section>
 
         <!-- Withdrawals Tab -->
-        <section id="tab-withdrawals" class="tab-content hidden animate-up">
-            <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0; font-weight: 800;">Payout Processing</h1>
-                <p class="t-muted">Manage astrologer withdrawal requests</p>
+        <section id="tab-withdrawals" class="tab-content hidden animate-up space-y-6">
+            <header>
+                <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Payout Processing</h1>
+                <p class="text-slate-500 font-medium">Manage astrologer withdrawal requests</p>
             </header>
-            <div id="withdrawal-list" style="display: flex; flex-direction: column; gap: 1rem;">
-                <div class="t-muted"
-                    style="background: white; padding: 2rem; border-radius: 12px; border: 1px dashed var(--clr-border); text-align: center;">
-                    No pending withdrawals.</div>
+            <div id="withdrawal-list" class="flex flex-col gap-4">
+                <div
+                    class="bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium">
+                    No pending withdrawals.
+                </div>
             </div>
         </section>
 
         <!-- Ledger Tab -->
-        <section id="tab-ledger" class="tab-content hidden animate-up">
-            <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0; font-weight: 800;">Billing Records</h1>
-                <p class="t-muted">Platform-wide transaction audit trail</p>
+        <section id="tab-ledger" class="tab-content hidden animate-up space-y-6">
+            <header>
+                <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Billing Records</h1>
+                <p class="text-slate-500 font-medium">Platform-wide transaction audit trail</p>
             </header>
-            <div class="table-container">
-                <table id="ledger-table">
-                    <thead>
-                        <tr>
-                            <th>Transaction Time</th>
-                            <th>Service Category</th>
-                            <th>Charged</th>
-                            <th>Astro Profit</th>
-                            <th>Admin Margin</th>
-                        </tr>
-                    </thead>
-                    <tbody id="ledger-table-body"></tbody>
-                </table>
+            <div class="bg-white rounded-3xl border border-emerald-50 shadow-premium overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50">
+                                <th
+                                    class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                    Transaction Time</th>
+                                <th
+                                    class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                    Service Category</th>
+                                <th
+                                    class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                    Charged</th>
+                                <th
+                                    class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                    Astro Profit</th>
+                                <th
+                                    class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                    Admin Margin</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledger-table-body" class="divide-y divide-slate-50"></tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
         <!-- Slab Rates Tab -->
-        <section id="tab-slabs" class="tab-content hidden animate-up">
-            <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0; font-weight: 800;">Revenue Structure</h1>
-                <p class="t-muted">Configure platform commission across session durations</p>
+        <section id="tab-slabs" class="tab-content hidden animate-up space-y-6">
+            <header>
+                <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Revenue Structure</h1>
+                <p class="text-slate-500 font-medium">Configure platform commission across session durations</p>
             </header>
-            <div class="grid-2">
-                <div class="c-card">
-                    <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 8px;">
-                        <i class="fas fa-percentage" style="color: var(--clr-brand);"></i> Platform Slabs
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-8 rounded-3xl shadow-premium border border-emerald-50">
+                    <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <i class="fas fa-percentage text-brand-green"></i> Platform Slabs
                     </h3>
-                    <div id="slab-inputs-container">
-                        <div class="loader"></div>
+                    <div id="slab-inputs-container" class="space-y-4">
+                        <div class="animate-pulse flex space-x-4">
+                            <div class="flex-1 space-y-4 py-1">
+                                <div class="h-4 bg-slate-200 rounded w-3/4"></div>
+                                <div class="h-10 bg-slate-100 rounded"></div>
+                            </div>
+                        </div>
                     </div>
-                    <button class="btn btn-primary" style="width:100%; margin-top:1.5rem;" onclick="saveSlabRates()">
-                        <i class="fas fa-save"></i> Synchronize Rates
+                    <button
+                        class="w-full mt-8 bg-brand-green text-white font-bold py-4 rounded-2xl shadow-lg shadow-emerald-200 hover:bg-deep-green transition-all"
+                        onclick="saveSlabRates()">
+                        <i class="fas fa-save mr-2"></i> Synchronize Rates
                     </button>
                 </div>
-                <div style="background: #eff6ff; padding: 2rem; border-radius: 20px; border: 1px solid #dbeafe;">
-                    <h4 style="color: #1e40af; display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
+                <div class="bg-emerald-50 p-8 rounded-3xl border border-emerald-100">
+                    <h4 class="text-emerald-800 font-bold flex items-center gap-2 mb-4 text-lg">
                         <i class="fas fa-circle-info"></i> Configuration Logic
                     </h4>
-                    <p style="font-size: 0.85rem; color: #1e3a8a; line-height: 1.7;">
+                    <p class="text-emerald-700 font-medium leading-relaxed">
                         Slab settings determine the percentage share allocated to the platform.
                         Adjustments take effect immediately for all subsequent sessions.
                     </p>
-                    <ul style="margin-top: 1rem; font-size: 0.8rem; color: #1e3a8a; list-style: none; padding: 0;">
-                        <li style="margin-bottom: 0.5rem;">• <b>Slab 1:</b> Initial 5 mins</li>
-                        <li style="margin-bottom: 0.5rem;">• <b>Slab 2:</b> 6 to 10 mins</li>
-                        <li style="margin-bottom: 0.5rem;">• <b>Slab 3:</b> 11 to 15 mins</li>
-                        <li>• <b>Slab 4:</b> Beyond 16 mins</li>
+                    <ul class="mt-6 space-y-3 text-emerald-800/80 font-medium">
+                        <li class="flex items-center gap-3">
+                            <span
+                                class="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-xs font-black">01</span>
+                            <span><b>Slab 1:</b> Initial 5 mins</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <span
+                                class="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-xs font-black">02</span>
+                            <span><b>Slab 2:</b> 6 to 10 mins</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <span
+                                class="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-xs font-black">03</span>
+                            <span><b>Slab 3:</b> 11 to 15 mins</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <span
+                                class="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-xs font-black">04</span>
+                            <span><b>Slab 4:</b> Beyond 16 mins</span>
+                        </li>
                     </ul>
                 </div>
             </div>
         </section>
 
         <!-- Academy Tab -->
-        <section id="tab-academy" class="tab-content hidden animate-up">
-            <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0; font-weight: 800;">Astro Academy</h1>
-                <p class="t-muted">Manage educational video library for astrologers</p>
+        <section id="tab-academy" class="tab-content hidden animate-up space-y-6">
+            <header>
+                <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Astro Academy</h1>
+                <p class="text-slate-500 font-medium">Manage educational video library for astrologers</p>
             </header>
-            <div class="c-card" style="margin-bottom:1.5rem;">
-                <h3 style="margin-bottom: 1.5rem;">Upload Content</h3>
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
-                    <input type="text" id="academyTitle" class="input" placeholder="Video Title">
-                    <input type="text" id="academyUrl" class="input" placeholder="YouTube Video ID or URL">
-                    <input type="text" id="academyCategory" class="input" placeholder="Category (e.g. Tutorial)">
-                    <button class="btn btn-primary" onclick="addAcademyVideo()"><i class="fas fa-plus"></i> Add
-                        Video</button>
+            <div class="bg-white p-8 rounded-3xl shadow-premium border border-emerald-50">
+                <h3 class="text-xl font-bold text-slate-800 mb-6">Upload Content</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <input type="text" id="academyTitle"
+                        class="w-full bg-slate-50 border-0 focus:ring-2 focus:ring-brand-green rounded-2xl p-4 font-medium"
+                        placeholder="Video Title">
+                    <input type="text" id="academyUrl"
+                        class="w-full bg-slate-50 border-0 focus:ring-2 focus:ring-brand-green rounded-2xl p-4 font-medium"
+                        placeholder="YouTube URL/ID">
+                    <input type="text" id="academyCategory"
+                        class="w-full bg-slate-50 border-0 focus:ring-2 focus:ring-brand-green rounded-2xl p-4 font-medium"
+                        placeholder="Category">
+                    <button
+                        class="bg-brand-green text-white font-bold rounded-2xl hover:bg-deep-green transition-all shadow-lg shadow-emerald-100"
+                        onclick="addAcademyVideo()"><i class="fas fa-plus mr-2"></i> Add Video</button>
                 </div>
             </div>
-            <div id="admin-academy-list"
-                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;"></div>
+            <div id="admin-academy-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 font-medium"></div>
         </section>
 
         <!-- Offers Tab -->
-        <section id="tab-offers" class="tab-content hidden animate-up">
-            <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0; font-weight: 800;">FCM Broadcast Center</h1>
-                <p class="t-muted">Send mass push notifications to targeted users</p>
+        <section id="tab-offers" class="tab-content hidden animate-up space-y-6">
+            <header>
+                <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">FCM Broadcast Center</h1>
+                <p class="text-slate-500 font-medium">Send mass push notifications to targeted users</p>
             </header>
-            <div class="grid-2">
-                <div class="c-card">
-                    <h3 style="margin-bottom: 1.5rem;">Target Audience</h3>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 font-medium">
+                <div class="bg-white p-8 rounded-3xl shadow-premium border border-emerald-50">
+                    <h3 class="text-xl font-bold text-slate-800 mb-6">Target Audience</h3>
                     <label
-                        style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer; font-weight: 600;">
+                        class="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl cursor-pointer border border-emerald-100 group">
                         <input type="checkbox" id="fcmAllUsers" onchange="toggleFcmSelection()"
-                            style="width: 18px; height: 18px;">
-                        Broadcast to All Registered Users
+                            class="w-6 h-6 rounded-lg text-brand-green focus:ring-brand-green border-emerald-200">
+                        <span class="font-bold text-emerald-900">Broadcast to All Users</span>
                     </label>
-                    <div id="fcm-user-search-box">
-                        <div style="position: relative;">
-                            <i class="fas fa-search"
-                                style="position: absolute; left: 12px; top: 14px; color: #94a3b8;"></i>
-                            <input type="text" id="fcmUserSearch" class="input"
-                                placeholder="Filter users by name or phone..." oninput="searchFcmUsers()"
-                                style="padding-left: 2.5rem;">
+                    <div id="fcm-user-search-box" class="mt-6 space-y-4">
+                        <div class="relative group">
+                            <i
+                                class="fas fa-search absolute left-5 top-5 text-slate-400 group-focus-within:text-brand-green transition-colors"></i>
+                            <input type="text" id="fcmUserSearch"
+                                class="w-full bg-slate-50 pl-14 pr-6 py-4 border-0 focus:ring-2 focus:ring-brand-green rounded-2xl transition-all"
+                                placeholder="Search users by name or phone..." oninput="searchFcmUsers()">
                         </div>
                         <div id="fcm-user-selection-list"
-                            style="max-height:300px; overflow-y:auto; border:1px solid #f1f5f9; border-radius: 8px; margin-top:1rem; background: #f8fafc;">
+                            class="max-h-[400px] overflow-y-auto rounded-3xl border border-slate-100 bg-slate-50 p-4 space-y-2">
                         </div>
                     </div>
                 </div>
-                <div class="c-card">
-                    <h3 style="margin-bottom: 1.5rem;">Notification Payload</h3>
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <input type="text" id="fcmTitle" class="input" placeholder="Push Title (e.g. Weekly Offer!)">
-                        <div style="display:flex; gap:8px;">
-                            <input type="text" id="fcmImage" class="input" placeholder="Banner URL (Optional)"
-                                value="/images/offer_icon.png">
-                            <button class="btn btn-ghost" onclick="triggerFcmUpload()" title="Upload Custom Banner">
-                                <i class="fas fa-camera"></i>
-                            </button>
+                <div class="bg-white p-8 rounded-3xl shadow-premium border border-emerald-50">
+                    <h3 class="text-xl font-bold text-slate-800 mb-6 font-bold">Notification Payload</h3>
+                    <div class="space-y-4">
+                        <input type="text" id="fcmTitle"
+                            class="w-full bg-slate-50 p-4 border-0 focus:ring-2 focus:ring-brand-green rounded-2xl font-bold"
+                            placeholder="Push Title (e.g. Weekly Offer!)">
+                        <div class="flex gap-2">
+                            <input type="text" id="fcmImage"
+                                class="flex-1 bg-slate-50 p-4 border-0 focus:ring-2 focus:ring-brand-green rounded-2xl text-slate-500 italic text-sm"
+                                placeholder="Banner URL" value="/images/offer_icon.png">
+                            <button class="bg-slate-100 p-4 rounded-2xl text-slate-600 hover:bg-slate-200"
+                                onclick="triggerFcmUpload()"><i class="fas fa-camera"></i></button>
                             <input type="file" id="fcmFileInput" hidden accept="image/*"
                                 onchange="handleFcmUpload(this)">
                         </div>
-                        <textarea id="fcmBody" class="input" placeholder="Compose your message here..."
-                            style="height:120px;"></textarea>
-                        <button id="btnSendFcm" class="btn btn-primary" onclick="sendOfferFCM()" style="padding: 1rem;">
-                            <i class="fas fa-paper-plane"></i> Dispatch Notification
+                        <textarea id="fcmBody"
+                            class="w-full bg-slate-50 p-4 border-0 focus:ring-2 focus:ring-brand-green rounded-2xl min-h-[150px]"
+                            placeholder="Compose your message here..."></textarea>
+                        <button id="btnSendFcm"
+                            class="w-full bg-brand-green text-white font-black py-5 rounded-2xl shadow-xl shadow-emerald-100 hover:bg-deep-green transition-all uppercase tracking-widest text-sm"
+                            onclick="sendOfferFCM()">
+                            <i class="fas fa-paper-plane mr-2"></i> Dispatch Notification
                         </button>
                     </div>
                 </div>
@@ -337,65 +417,99 @@
         </section>
 
         <!-- Banner Tab -->
-        <section id="tab-banner" class="tab-content hidden animate-up">
-            <header style="margin-bottom: 2rem;">
-                <h1 style="margin:0; font-weight: 800;">App Real Estate</h1>
-                <p class="t-muted">Manage visuals for the main application carousel</p>
+        <section id="tab-banner" class="tab-content hidden animate-up space-y-6">
+            <header>
+                <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">App Real Estate</h1>
+                <p class="text-slate-500 font-medium">Manage visuals for the main application carousel</p>
             </header>
-            <div class="c-card" style="margin-bottom:1.5rem;">
-                <h4 style="margin-bottom: 1rem;">Create New Banner</h4>
-                <form id="banner-form" onsubmit="createBanner(event)"
-                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
-                    <input type="text" id="banner-title" class="input" placeholder="Banner Title" required>
-                    <input type="text" id="banner-image" class="input" placeholder="Image Resource URL" required>
-                    <input type="number" id="banner-order" class="input" placeholder="Priority Order (0-9)" value="0">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-upload"></i> Publish Banner</button>
+            <div class="bg-white p-8 rounded-3xl shadow-premium border border-emerald-50">
+                <h4 class="text-lg font-bold text-slate-800 mb-6">Create New Banner</h4>
+                <form id="banner-form" onsubmit="createBanner(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <input type="text" id="banner-title"
+                        class="bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold"
+                        placeholder="Banner Title" required>
+                    <input type="text" id="banner-image"
+                        class="bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green"
+                        placeholder="Image Resource URL" required>
+                    <input type="number" id="banner-order"
+                        class="bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green"
+                        placeholder="Order (0-9)" value="0">
+                    <button type="submit"
+                        class="bg-brand-green text-white font-bold rounded-2xl hover:bg-deep-green transition-all shadow-lg"><i
+                            class="fas fa-upload mr-2"></i> Publish Banner</button>
                 </form>
             </div>
-            <div id="banner-list"
-                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;"></div>
+            <div id="banner-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
         </section>
 
     </main>
 
     <!-- Modals -->
-    <div id="modal-edit-user" class="c-modal hidden">
-        <div class="c-modal-content" style="max-width:400px;">
-            <header class="c-modal-header">
-                <h3>Edit Profile</h3><button onclick="closeModal('modal-edit-user')">&times;</button>
+    <div id="modal-edit-user"
+        class="fixed inset-0 bg-deep-green/60 backdrop-blur-xl z-[100] flex items-center justify-center p-4 transition-all duration-300 hidden">
+        <div
+            class="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+            <header class="p-8 border-b border-slate-50 flex justify-between items-center bg-emerald-50/50">
+                <h3 class="text-2xl font-black text-deep-green tracking-tight">Edit Profile</h3>
+                <button onclick="closeModal('modal-edit-user')"
+                    class="w-10 h-10 rounded-full hover:bg-white flex items-center justify-center text-slate-400 transition-colors">&times;</button>
             </header>
-            <div style="padding:1.5rem;">
+            <div class="p-8 space-y-6">
                 <input type="hidden" id="edit-user-id">
-                <input type="text" id="edit-user-name" class="input" placeholder="Name" style="margin-bottom:1rem;">
-                <div id="edit-astro-fields" class="hidden">
-                    <input type="number" id="edit-user-price" class="input" placeholder="Price/min"
-                        style="margin-bottom:1rem;">
-                    <label style="display:block; margin-bottom:1rem;"><input type="checkbox" id="edit-user-verified">
-                        Verified Badge</label>
+                <div class="space-y-2">
+                    <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Full Name</label>
+                    <input type="text" id="edit-user-name"
+                        class="w-full bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold">
                 </div>
-                <div style="background:#f8fafc; padding:10px; border-radius:8px; margin-bottom:1rem;">
-                    <label class="fs-xs t-muted">Wallet Adjustment (₹)</label>
-                    <input type="number" id="edit-user-wallet-adj" class="input" placeholder="e.g. 100 or -50">
+                <div id="edit-astro-fields" class="hidden space-y-6">
+                    <div class="space-y-2">
+                        <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Price per Minute
+                            (₹)</label>
+                        <input type="number" id="edit-user-price"
+                            class="w-full bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold">
+                    </div>
+                    <label class="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl cursor-pointer">
+                        <input type="checkbox" id="edit-user-verified"
+                            class="w-6 h-6 rounded-lg text-brand-green focus:ring-brand-green border-emerald-200">
+                        <span class="font-bold text-emerald-900">Verified Professional Badge</span>
+                    </label>
                 </div>
-                <button class="btn btn-primary" style="width:100%;" onclick="saveAdminEditUser(event)">Save
-                    Changes</button>
+                <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                    <label class="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">Wallet
+                        Adjustment (₹)</label>
+                    <input type="number" id="edit-user-wallet-adj"
+                        class="w-full bg-white p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-black text-xl shadow-sm"
+                        placeholder="e.g. 100 or -50">
+                    <p class="text-[0.65rem] text-slate-400 mt-2 font-medium">Positive adds balance, negative subtracts.
+                    </p>
+                </div>
+                <button
+                    class="w-full bg-brand-green text-white font-black py-5 rounded-2xl shadow-xl shadow-emerald-100 hover:bg-deep-green transition-all"
+                    onclick="saveAdminEditUser(event)">Apply Changes</button>
             </div>
         </div>
     </div>
 
-    <div id="modal-role-change" class="c-modal hidden">
-        <div class="c-modal-content" style="max-width:300px;">
-            <header class="c-modal-header">
-                <h3>Change Role</h3><button onclick="closeModal('modal-role-change')">&times;</button>
+    <div id="modal-role-change"
+        class="fixed inset-0 bg-deep-green/60 backdrop-blur-xl z-[100] flex items-center justify-center p-4 transition-all duration-300 hidden">
+        <div
+            class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+            <header class="p-6 border-b border-slate-50 flex justify-between items-center text-center">
+                <h3 class="text-xl font-black text-deep-green w-full">Change System Role</h3>
             </header>
-            <div style="padding:1.5rem;">
+            <div class="p-8 space-y-6 text-center">
                 <input type="hidden" id="role-change-user-id">
-                <select id="select-new-role" class="input" style="margin-bottom:1rem;">
-                    <option value="client">Client</option>
-                    <option value="astrologer">Astrologer</option>
-                    <option value="superadmin">Admin</option>
+                <select id="select-new-role"
+                    class="w-full bg-slate-50 p-5 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-lg text-center appearance-none">
+                    <option value="client">👦 Standard Client</option>
+                    <option value="astrologer">✨ Pro Astrologer</option>
+                    <option value="superadmin">🛡️ System Admin</option>
                 </select>
-                <button class="btn btn-primary" style="width:100%;" onclick="submitRoleChange()">Update Role</button>
+                <button
+                    class="w-full bg-brand-green text-white font-black py-5 rounded-2xl shadow-xl shadow-emerald-100 hover:bg-deep-green transition-all"
+                    onclick="submitRoleChange()">Update Access Level</button>
+                <button onclick="closeModal('modal-role-change')"
+                    class="text-slate-400 font-bold text-sm hover:text-slate-600">Cancel</button>
             </div>
         </div>
     </div>
@@ -411,7 +525,10 @@
             if (!session || session.role !== 'superadmin') return window.location.href = '/';
             socket.emit('register', { userId: session.userId, phone: session.phone }, (ack) => {
                 if (!ack || !ack.ok) logout();
-                else refreshData();
+                else {
+                    refreshData();
+                    showTab('dashboard'); // Set initial active state
+                }
             });
         });
 
@@ -428,10 +545,20 @@
         function showTab(id) {
             activeTab = id;
             document.querySelectorAll('.tab-content').forEach(s => s.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('is-active'));
-            document.getElementById('tab-' + id).classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(i => {
+                i.classList.remove('bg-white/15', 'text-white', 'shadow-lg');
+                i.classList.add('text-white/60');
+            });
+
+            const content = document.getElementById('tab-' + id);
+            if (content) content.classList.remove('hidden');
+
             const nav = document.querySelector(`.nav-item[data-tab="${id}"]`);
-            if (nav) nav.classList.add('is-active');
+            if (nav) {
+                nav.classList.remove('text-white/60');
+                nav.classList.add('bg-white/15', 'text-white', 'shadow-lg');
+            }
+
             refreshData();
             if (id === 'ledger') fetchLedger();
             if (id === 'withdrawals') fetchWithdrawals();
@@ -446,7 +573,8 @@
                     document.getElementById('stat-astro-payout').innerText = s.astroPayout.toLocaleString();
                     document.getElementById('stat-active-sessions').innerText = s.activeSessions || 0;
                     document.getElementById('stat-total-users').innerText = s.totalUsers || 0;
-                    document.getElementById('pending-count-badge').classList.toggle('hidden', (s.pendingRequests || 0) === 0);
+                    const badge = document.getElementById('pending-count-badge');
+                    if (badge) badge.classList.toggle('hidden', (s.pendingRequests || 0) === 0);
                 }
             });
         }
@@ -455,7 +583,7 @@
             socket.emit('get-all-users', (res) => {
                 if (res.ok) {
                     usersCache = res.users;
-                    document.getElementById('astrologer-list').innerHTML = usersCache.filter(u => u.role === 'astrologer' && u.approvalStatus === 'approved').map(u => renderUserCard(u)).join('');
+                    document.getElementById('astrologer-list').innerHTML = usersCache.filter(u => u.role === 'astrologer').map(u => renderUserCard(u)).join('');
                     document.getElementById('client-list').innerHTML = usersCache.filter(u => u.role === 'client').map(u => renderUserCard(u)).join('');
                     document.getElementById('online-astro-count').innerText = usersCache.filter(u => (u.role === 'astrologer' && (new Date() - new Date(u.lastSeen)) < 300000)).length;
                 }
@@ -466,24 +594,38 @@
             const isAstro = u.role === 'astrologer';
             const isOnline = (new Date() - new Date(u.lastSeen)) < 300000;
             return `
-                <div class="c-card animate-up">
-                    <div style="display:flex; justify-content:space-between;">
-                        <div style="display:flex; gap:10px; align-items:center;">
-                            <img src="${u.image || 'https://ui-avatars.com/api/?name=' + u.name}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                <div class="bg-white p-5 rounded-[2rem] border border-emerald-50 shadow-premium group hover:scale-[1.03] transition-all duration-300">
+                    <div class="flex justify-between items-start">
+                        <div class="flex gap-4 items-center">
+                            <div class="relative">
+                                <img src="${u.image || 'https://ui-avatars.com/api/?background=f0fdf4&color=059669&bold=true&name=' + u.name}" class="w-14 h-14 rounded-2xl object-cover ring-4 ring-emerald-50">
+                                <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${isOnline ? 'bg-accent-green' : 'bg-slate-300'}"></span>
+                            </div>
                             <div>
-                                <div class="fw-bold">${u.name} ${u.isVerified ? '✅' : ''}</div>
-                                <div class="fs-xs t-muted">${u.phone}</div>
+                                <div class="font-black text-slate-800 flex items-center gap-1">
+                                    ${u.name} ${u.isVerified ? '<i class="fas fa-certificate text-blue-500 text-[0.6rem]"></i>' : ''}
+                                </div>
+                                <div class="text-[0.65rem] font-bold text-slate-400 tracking-wider">${u.phone}</div>
                             </div>
                         </div>
-                        <div style="text-align:right;">
-                            <div class="fw-bold t-success">₹${(u.walletBalance || 0).toFixed(1)}</div>
-                            <div class="fs-xs ${isOnline ? 't-success' : 't-muted'}">${isOnline ? 'Online' : 'Offline'}</div>
+                        <div class="text-right">
+                            <div class="font-black text-brand-green text-sm">₹${(u.walletBalance || 0).toFixed(1)}</div>
+                            <div class="flex flex-col items-end gap-1 mt-1">
+                                <div class="text-[0.6rem] font-black uppercase tracking-tighter ${isOnline ? 'text-accent-green' : 'text-slate-400'}">
+                                    ${isOnline ? 'Active' : 'Offline'}
+                                </div>
+                                ${isAstro ? `<div class="text-[0.55rem] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest ${u.approvalStatus === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                                    ${u.approvalStatus === 'approved' ? 'Approved' : 'Pending'}
+                                </div>` : ''}
+                            </div>
                         </div>
                     </div>
-                    <div style="margin-top:1rem; border-top:1px solid #f1f5f9; padding-top:10px; display:flex; gap:5px;">
-                        <button class="btn btn-sm" style="flex:1" onclick="openEditUser('${u.userId}')">Edit</button>
-                        <button class="btn btn-sm" onclick="openRoleModal('${u.userId}', '${u.role}')">Role</button>
-                        <button class="btn btn-sm ${u.isBanned ? 'btn-success' : 'btn-error'}" onclick="toggleBan('${u.userId}', ${!u.isBanned})">${u.isBanned ? 'Unban' : 'Ban'}</button>
+                    <div class="mt-6 flex gap-2 border-t border-slate-50 pt-4">
+                        <button class="flex-1 bg-slate-50 text-slate-600 font-bold py-2.5 rounded-xl hover:bg-slate-100 transition-colors text-xs" onclick="openEditUser('${u.userId}')">Edit</button>
+                        <button class="bg-slate-50 text-slate-400 p-2.5 rounded-xl hover:bg-emerald-50 hover:text-brand-green transition-all" onclick="openRoleModal('${u.userId}', '${u.role}')"><i class="fas fa-shield"></i></button>
+                        <button class="p-2.5 rounded-xl transition-all ${u.isBanned ? 'bg-red-50 text-red-500 hover:bg-emerald-50 hover:text-brand-green' : 'bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500'}" onclick="toggleBan('${u.userId}', ${!u.isBanned})">
+                            <i class="fas ${u.isBanned ? 'fa-unlock' : 'fa-ban'}"></i>
+                        </button>
                     </div>
                 </div>
             `;
@@ -494,30 +636,36 @@
                 const list = document.getElementById('pending-requests-list');
                 if (res.ok && res.requests.length > 0) {
                     list.innerHTML = res.requests.map(u => `
-                        <div class="c-card">
-                            <div class="fw-bold fs-lg">${u.name}</div>
-                            <div class="t-muted fs-sm">${u.phone}</div>
-                            <div style="margin-top:10px; display:flex; gap:5px;">
-                                <button class="btn btn-success" style="flex:1" onclick="processAstro('${u.userId}', 'approve')">Approve</button>
-                                <button class="btn btn-error" style="flex:1" onclick="processAstro('${u.userId}', 'reject')">Reject</button>
+                        <div class="bg-white p-6 rounded-[2rem] border border-emerald-50 shadow-premium relative overflow-hidden">
+                            <div class="font-black text-slate-800 text-lg">${u.name}</div>
+                            <div class="text-slate-400 font-bold text-sm tracking-widest">${u.phone}</div>
+                            <div class="mt-6 flex gap-3 relative z-10">
+                                <button class="flex-1 bg-brand-green text-white font-black py-3 rounded-2xl shadow-lg shadow-emerald-100 hover:scale-[1.02] active:scale-95 transition-all text-xs uppercase" onclick="processAstro('${u.userId}', 'approve')">Approve Request</button>
+                                <button class="bg-red-50 text-red-500 font-black px-6 py-3 rounded-2xl hover:bg-red-100 transition-all text-xs" onclick="processAstro('${u.userId}', 'reject')">Reject</button>
                             </div>
+                            <i class="fas fa-clock-rotate-left absolute -right-6 -bottom-6 text-7xl opacity-[0.03] -rotate-12"></i>
                         </div>
                     `).join('');
-                } else { list.innerHTML = 'No pending requests.'; }
+                } else {
+                    list.innerHTML = '<div class="col-span-full bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium">No pending registrations found.</div>';
+                }
             });
         }
 
         function processAstro(userId, action) {
-            if (confirm('Confirm ' + action + '?')) socket.emit('admin-approve-astrologer', { userId, action }, () => refreshData());
+            if (confirm('Confirm ' + action + ' for this professional?')) socket.emit('admin-approve-astrologer', { userId, action }, () => refreshData());
         }
 
         function loadSlabRates() {
             socket.emit('get-slab-rates', (res) => {
                 if (res.ok) {
                     document.getElementById('slab-inputs-container').innerHTML = Object.keys(res.rates).map(k => `
-                        <div class="slab-input-group" style="margin-bottom:10px; padding:10px; background:#f8fafc; border-radius:8px;">
-                            <div class="fw-bold mb-1">Slab ${k}</div>
-                            <input type="number" step="0.01" class="input slab-rate-val" data-slab="${k}" value="${res.rates[k]}">
+                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 transition-all hover:bg-white hover:shadow-sm">
+                            <div class="text-[0.65rem] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">SLAB ${k} REVENUE (%)</div>
+                            <div class="relative">
+                                <input type="number" step="0.01" class="w-full bg-white px-5 py-4 rounded-xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-black text-xl text-slate-800 slab-rate-val" data-slab="${k}" value="${res.rates[k]}">
+                                <span class="absolute right-5 top-4 text-slate-400 font-bold">%</span>
+                            </div>
                         </div>
                     `).join('');
                 }
@@ -527,15 +675,23 @@
         function saveSlabRates() {
             const rates = {};
             document.querySelectorAll('.slab-rate-val').forEach(i => rates[i.dataset.slab] = parseFloat(i.value));
-            socket.emit('update-slab-rates', rates, (res) => res.ok ? alert('Saved') : alert('Error'));
+            socket.emit('update-slab-rates', rates, (res) => res.ok ? alert('Rates Synchronized Successfully') : alert('Hardware Sync Error'));
         }
 
         async function fetchAcademyVideos() {
             const res = await fetch('/api/academy/videos').then(r => r.json());
             if (res.ok) document.getElementById('admin-academy-list').innerHTML = res.videos.map(v => `
-                <div class="c-video-card" style="margin-bottom:5px; padding:10px; background:#f8fafc; border-radius:8px; display:flex; justify-content:space-between;">
-                    <div><b>${v.title}</b> (${v.category})</div>
-                    <button class="t-error" onclick="deleteAcademyVideo('${v._id}')">&times;</button>
+                <div class="bg-white p-4 rounded-2xl border border-slate-50 shadow-sm flex items-center justify-between group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-brand-green">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-slate-800 text-sm leading-tight">${v.title}</div>
+                            <div class="text-[0.6rem] font-black text-slate-400 uppercase tracking-tighter">${v.category}</div>
+                        </div>
+                    </div>
+                    <button class="w-8 h-8 rounded-lg bg-red-50 text-red-500 opacity-0 group-hover:opacity-100 transition-all" onclick="deleteAcademyVideo('${v._id}')">&times;</button>
                 </div>
             `).join('');
         }
@@ -545,14 +701,14 @@
             const urlEl = document.getElementById('academyUrl');
             const catEl = document.getElementById('academyCategory');
             const data = { title: titleEl.value, youtubeUrl: urlEl.value, category: catEl.value };
-            if (!data.title || !data.youtubeUrl) return alert('Title and URL required');
+            if (!data.title || !data.youtubeUrl) return alert('Mandatory fields missing');
             const res = await fetch('/api/admin/academy/videos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json());
             if (res.ok) { titleEl.value = ''; urlEl.value = ''; catEl.value = ''; fetchAcademyVideos(); }
-            else alert('Error');
+            else alert('Broadcast Error');
         }
 
         async function deleteAcademyVideo(id) {
-            if (confirm('Delete?')) { await fetch('/api/admin/academy/videos/' + id, { method: 'DELETE' }); fetchAcademyVideos(); }
+            if (confirm('Delete this resource permanently?')) { await fetch('/api/admin/academy/videos/' + id, { method: 'DELETE' }); fetchAcademyVideos(); }
         }
 
         function fetchFcmUsers() {
@@ -566,9 +722,13 @@
 
         function renderFcmList(list) {
             document.getElementById('fcm-user-selection-list').innerHTML = list.map(u => `
-                <div style="padding:5px; border-bottom:1px solid #eee;">
-                    <label><input type="checkbox" class="fcm-user-chk" value="${u.userId}"> ${u.name} (${u.phone})</label>
-                </div>
+                <label class="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-50 cursor-pointer hover:bg-emerald-50/50 transition-all">
+                    <input type="checkbox" class="fcm-user-chk w-5 h-5 rounded text-brand-green focus:ring-brand-green border-slate-200" value="${u.userId}">
+                    <div>
+                        <div class="font-bold text-slate-800 text-sm">${u.name}</div>
+                        <div class="text-[0.6rem] text-slate-400 font-bold font-mono tracking-widest">${u.phone}</div>
+                    </div>
+                </label>
             `).join('');
         }
 
@@ -579,7 +739,8 @@
 
         function toggleFcmSelection() {
             const all = document.getElementById('fcmAllUsers').checked;
-            document.getElementById('fcm-user-search-box').style.display = all ? 'none' : 'block';
+            document.getElementById('fcm-user-search-box').style.opacity = all ? '0.3' : '1';
+            document.getElementById('fcm-user-search-box').style.pointerEvents = all ? 'none' : 'auto';
         }
 
         function triggerFcmUpload() { document.getElementById('fcmFileInput').click(); }
@@ -593,17 +754,19 @@
                 const res = await fetch('/upload', { method: 'POST', body: formData }).then(r => r.json());
                 if (res.ok) {
                     document.getElementById('fcmImage').value = res.url;
-                    alert('Image uploaded successfully!');
-                } else alert('Upload failed');
-            } catch (e) { console.error(e); alert('Upload error'); }
+                    alert('Premium Header Uploaded');
+                } else alert('Upload Infrastructure Failure');
+            } catch (e) { console.error(e); alert('Asset Hub Error'); }
         }
 
         function sendOfferFCM() {
+            const btn = document.getElementById('btnSendFcm');
+            const oldHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Dispatched...';
+
             let imageUrl = document.getElementById('fcmImage').value;
-            // FCM requires absolute URLs for images to show up on mobile
-            if (imageUrl && imageUrl.startsWith('/')) {
-                imageUrl = window.location.origin + imageUrl;
-            }
+            if (imageUrl && imageUrl.startsWith('/')) imageUrl = window.location.origin + imageUrl;
 
             const data = {
                 title: document.getElementById('fcmTitle').value,
@@ -612,21 +775,28 @@
                 allUsers: document.getElementById('fcmAllUsers').checked,
                 userIds: Array.from(document.querySelectorAll('.fcm-user-chk:checked')).map(i => i.value)
             };
-            socket.emit('send-bulk-fcm', data, (res) => res.ok ? alert('Push Sent: ' + res.sentCount + ' success') : alert('Error'));
+            socket.emit('send-bulk-fcm', data, (res) => {
+                btn.disabled = false;
+                btn.innerHTML = oldHtml;
+                res.ok ? alert('Dispatch Successful: ' + res.sentCount + ' deliveries') : alert('FCM Node Error');
+            });
         }
 
         function fetchLedger() {
             socket.emit('admin-get-ledger-stats', {}, (res) => {
                 if (res.ok) document.getElementById('ledger-table-body').innerHTML = res.fullLedger.slice(0, 100).map(l => `
-                    <tr style="border-bottom:1px solid #eee;">
-                        <td style="padding:10px;">${new Date(l.createdAt).toLocaleString()}</td>
-                        <td style="padding:10px;">
-                            <div class="fw-bold">${(l.reason || 'session').toUpperCase()}</div>
-                            <div class="fs-xs t-muted">ID: ${l.sessionId?.slice(-8) || 'N/A'}</div>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-5">
+                            <div class="font-bold text-slate-800 text-sm whitespace-nowrap">${new Date(l.createdAt).toLocaleDateString()}</div>
+                            <div class="text-[0.6rem] font-black text-slate-400 font-mono tracking-tighter">${new Date(l.createdAt).toLocaleTimeString()}</div>
                         </td>
-                        <td style="padding:10px;">₹${(l.chargedToClient || 0).toFixed(2)}</td>
-                        <td style="padding:10px;">₹${(l.creditedToAstrologer || 0).toFixed(2)}</td>
-                        <td style="padding:10px;" class="t-success fw-bold">₹${(l.adminAmount || 0).toFixed(2)}</td>
+                        <td class="px-6 py-5">
+                            <div class="px-2 py-1 rounded-lg bg-emerald-50 text-brand-green text-[0.6rem] font-black uppercase tracking-widest w-fit mb-1">${l.reason || 'session'}</div>
+                            <div class="text-[0.6rem] font-bold text-slate-400 uppercase tracking-tighter">ID: ${l.sessionId?.slice(-8) || 'N/A'}</div>
+                        </td>
+                        <td class="px-6 py-5 font-black text-slate-700 text-sm font-mono">₹${(l.chargedToClient || 0).toFixed(2)}</td>
+                        <td class="px-6 py-5 font-black text-indigo-600 text-sm font-mono">₹${(l.creditedToAstrologer || 0).toFixed(2)}</td>
+                        <td class="px-6 py-5"><span class="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-xl font-black text-sm font-mono tracking-tighter shadow-sm">₹${(l.adminAmount || 0).toFixed(2)}</span></td>
                     </tr>
                 `).join('');
             });
@@ -637,59 +807,70 @@
                 const list = document.getElementById('withdrawal-list');
                 if (res.ok && res.list.length > 0) {
                     list.innerHTML = res.list.map(w => `
-                        <div class="c-card animate-up" style="display:flex; justify-content:space-between; align-items:center;">
-                            <div>
-                                <div class="fw-bold" style="font-size:1.1rem;">${w.astroName} - <span class="t-success">₹${w.amount}</span></div>
-                                <div class="fs-xs t-muted" style="margin-top:4px;">
-                                    <div>UPI/Bank: ${w.bankingDetails?.upiId || w.bankingDetails?.accountNumber || 'N/A'}</div>
-                                    <div>Timestamp: ${new Date(w.requestedAt).toLocaleString()}</div>
+                        <div class="bg-white p-6 rounded-[2rem] border border-emerald-50 shadow-premium flex flex-col md:flex-row justify-between items-center gap-6 group hover:scale-[1.01] transition-all">
+                            <div class="flex items-center gap-5 w-full md:w-auto">
+                                <div class="w-16 h-16 bg-emerald-100/50 rounded-2xl flex items-center justify-center text-brand-green text-3xl">
+                                    <i class="fas fa-money-bill-transfer"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-black text-slate-800 text-xl">${w.astroName}</div>
+                                    <div class="text-[0.65rem] font-bold text-brand-green uppercase tracking-widest mt-1">Requested Amount: ₹${w.amount}</div>
+                                    <div class="text-[0.6rem] text-slate-400 font-bold mt-2 font-mono">${w.bankingDetails?.upiId || w.bankingDetails?.accountNumber || 'N/A'}</div>
                                 </div>
                             </div>
-                            <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <div class="flex gap-3 w-full md:w-auto">
                                 ${w.status === 'pending' ? `
-                                    <button class="btn btn-sm btn-success" onclick="processWithdrawal('${w._id}', 'approve')">Approve</button>
-                                    <button class="btn btn-sm btn-error" onclick="processWithdrawal('${w._id}', 'reject')">Reject</button>
-                                ` : `<span class="user-pill ${w.status}">${w.status.toUpperCase()}</span>`}
+                                    <button class="flex-1 md:flex-none bg-brand-green text-white font-black px-8 py-4 rounded-2xl shadow-lg shadow-emerald-100 hover:scale-[1.05] transition-all uppercase text-xs" onclick="processWithdrawal('${w._id}', 'approve')">Approve Pay</button>
+                                    <button class="bg-red-50 text-red-500 font-bold px-6 py-4 rounded-2xl hover:bg-red-100 transition-all text-xs" onclick="processWithdrawal('${w._id}', 'reject')">Reject</button>
+                                ` : `<span class="px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest ${w.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">${w.status}</span>`}
                             </div>
                         </div>
                     `).join('');
                 } else {
-                    list.innerHTML = '<div class="t-muted">No payout requests currently.</div>';
+                    list.innerHTML = '<div class="bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium font-bold">No active payout requests.</div>';
                 }
             });
         }
 
         function processWithdrawal(id, action) {
-            if (!confirm(`Are you sure you want to ${action} this withdrawal?`)) return;
+            if (!confirm(`Are you sure you want to ${action} this ledger entry?`)) return;
             const event = action === 'approve' ? 'approve-withdrawal' : 'reject-withdrawal';
             socket.emit(event, { withdrawalId: id }, (res) => {
                 if (res.ok) {
-                    alert(`Withdrawal ${action}d successfully`);
+                    alert(`Payout Node ${action}ed`);
                     fetchWithdrawals();
-                } else alert(res.error || 'Operation failed');
+                    fetchStats();
+                } else alert(res.error || 'System Node Error');
             });
         }
 
         async function fetchBanners() {
             const res = await fetch('/api/admin/banners').then(r => r.json());
             if (res.ok) document.getElementById('banner-list').innerHTML = res.banners.map(b => `
-                <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:10px; margin-bottom:5px;">
-                    <img src="${b.imageUrl}" style="height:40px; border-radius:4px;">
-                    <b>${b.title}</b>
-                    <button class="t-error" onclick="deleteBanner('${b._id}')">&times;</button>
+                <div class="bg-white p-4 rounded-3xl border border-slate-50 shadow-sm relative group overflow-hidden">
+                    <img src="${b.imageUrl}" class="w-full h-32 object-cover rounded-2xl mb-4 group-hover:scale-110 transition-transform duration-500">
+                    <div class="font-black text-slate-800 text-sm tracking-tight">${b.title}</div>
+                    <div class="text-[0.6rem] text-slate-400 font-black uppercase mt-1">Priority: ${b.order}</div>
+                    <button class="absolute top-2 right-2 w-8 h-8 rounded-full bg-red-500 text-white shadow-xl opacity-0 group-hover:opacity-100 transition-all scale-0 group-hover:scale-100" onclick="deleteBanner('${b._id}')">&times;</button>
                 </div>
             `).join('');
         }
 
         async function createBanner(e) {
             e.preventDefault();
-            const data = { title: document.getElementById('banner-title').value, imageUrl: document.getElementById('banner-image').value, order: parseInt(document.getElementById('banner-order').value), ctaText: '' };
+            const data = {
+                title: document.getElementById('banner-title').value,
+                imageUrl: document.getElementById('banner-image').value,
+                order: parseInt(document.getElementById('banner-order').value),
+                ctaText: ''
+            };
             await fetch('/api/admin/banners', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            alert('Banner Synchronized');
             fetchBanners();
         }
 
         async function deleteBanner(id) {
-            if (confirm('Delete banner?')) { await fetch('/api/admin/banners/' + id, { method: 'DELETE' }); fetchBanners(); }
+            if (confirm('Erase this visual asset?')) { await fetch('/api/admin/banners/' + id, { method: 'DELETE' }); fetchBanners(); }
         }
 
         function openEditUser(id) {
@@ -728,7 +909,7 @@
                         closeModal('modal-edit-user');
                         refreshData();
                     }
-                } else alert(res.error || 'Update failed');
+                } else alert(res.error || 'Infrastructure Failure');
             });
         }
 
@@ -747,7 +928,7 @@
         }
 
         function toggleBan(userId, isBanned) {
-            if (confirm('Confirm?')) socket.emit('admin-toggle-ban', { userId, isBanned }, () => refreshData());
+            if (confirm('Confirm protocol modification for this endpoint?')) socket.emit('admin-toggle-ban', { userId, isBanned }, () => refreshData());
         }
 
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }

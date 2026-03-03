@@ -15,11 +15,154 @@ const { DateTime } = require('luxon');
 const { fetchDailyHoroscope } = require("./utils/rasiEng/horoscopeData");
 
 // PhonePe Config
-// PhonePe Config
-const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID;
-const PHONEPE_SALT_KEY = process.env.PHONEPE_SALT_KEY;
-const PHONEPE_SALT_INDEX = process.env.PHONEPE_SALT_INDEX;
-const PHONEPE_HOST_URL = process.env.PHONEPE_HOST_URL;
+const PHONEPE_MERCHANT_ID = (process.env.PHONEPE_MERCHANT_ID || "").trim();
+const PHONEPE_SALT_KEY = (process.env.PHONEPE_SALT_KEY || "").trim();
+const PHONEPE_SALT_INDEX = (process.env.PHONEPE_SALT_INDEX || "").trim();
+const PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis/hermes").trim();
+
+// PhonePe OAuth Config
+const PHONEPE_CLIENT_ID = (process.env.PHONEPE_CLIENT_ID || "").trim();
+const PHONEPE_CLIENT_VERSION = (process.env.PHONEPE_CLIENT_VERSION || "1").trim();
+const PHONEPE_CLIENT_SECRET = (process.env.PHONEPE_CLIENT_SECRET || "").trim();
+
+let phonepeTokenStore = {
+  accessToken: null,
+  expiresAt: 0 // epoch seconds
+};
+
+
+async function getPhonePeOAuthToken() {
+  try {
+    // Global PhonePe Identity Manager
+    let oauthUrl = "https://api.phonepe.com/apis/identity-manager/v1/oauth/token";
+
+    // Fallback logic if we want to honor sandbox flag
+    if (PHONEPE_HOST_URL.includes("sandbox") && !PHONEPE_HOST_URL.includes("hermes")) {
+      oauthUrl = "https://api-preprod.phonepe.com/apis/pg-sandbox/v1/oauth/token";
+    }
+
+
+    const params = new URLSearchParams();
+    params.append('client_id', PHONEPE_CLIENT_ID);
+    params.append('client_version', PHONEPE_CLIENT_VERSION);
+    params.append('client_secret', PHONEPE_CLIENT_SECRET);
+    params.append('grant_type', 'client_credentials');
+
+    console.log(`[PhonePe OAuth] Requesting token from: ${oauthUrl}`);
+
+    const response = await fetch(oauthUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: params
+    });
+
+    console.log(`[PhonePe OAuth] Status: ${response.status}`);
+
+
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error("[PhonePe OAuth] Non-JSON Response:", text.substring(0, 500));
+      return null;
+    }
+
+    if (response.ok && data.access_token) {
+      phonepeTokenStore = {
+        accessToken: data.access_token,
+        expiresAt: data.expires_at || (Math.floor(Date.now() / 1000) + 3600) // Default 1 hour if not provided
+      };
+      console.log(`[PhonePe OAuth] New Token Generated. Expires at: ${new Date(phonepeTokenStore.expiresAt * 1000).toISOString()}`);
+      return data.access_token;
+    } else {
+      console.error("[PhonePe OAuth] Token Generation Failed:", data);
+      return null;
+    }
+  } catch (err) {
+    console.error("[PhonePe OAuth] Error:", err.message);
+    return null;
+  }
+}
+
+async function getValidPhonePeToken() {
+  const now = Math.floor(Date.now() / 1000);
+  // Refresh if missing or expiring within 5 minutes
+  if (!phonepeTokenStore.accessToken || phonepeTokenStore.expiresAt < (now + 300)) {
+    return await getPhonePeOAuthToken();
+  }
+  return phonepeTokenStore.accessToken;
+}
+
+// ===== PhonePe Standard Checkout v2 =====
+async function callPhonePePayV2(merchantOrderId, amount, redirectUrl, userMobile) {
+  const endpoint = "https://api.phonepe.com/apis/pg/checkout/v2/pay";
+
+  // Get OAuth token
+  const oauthToken = await getValidPhonePeToken();
+  if (!oauthToken) {
+    console.error("[PhonePe v2] Failed to get OAuth token");
+    return { success: false, data: { message: "OAuth token generation failed" }, status: 401 };
+  }
+
+  // Standard Checkout v2 payload
+  const payload = {
+    merchantOrderId: merchantOrderId,
+    amount: amount, // amount in paisa
+    expireAfter: 1200, // 20 minutes
+    metaInfo: {
+      udf1: userMobile || "9999999999"
+    },
+    paymentFlow: {
+      type: "PG_CHECKOUT",
+      merchantUrls: {
+        redirectUrl: redirectUrl
+      }
+    }
+  };
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `O-Bearer ${oauthToken}`,
+    'accept': 'application/json'
+  };
+
+  console.log(`[PhonePe v2] Requesting: ${endpoint}`);
+  console.log(`[PhonePe v2] OrderId: ${merchantOrderId}, Amount: ${amount} paisa`);
+
+  let response, data;
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(payload)
+    });
+    const text = await response.text();
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error("[PhonePe v2] Non-JSON Response:", text.substring(0, 500));
+      return { success: false, data: { message: "External API returned invalid response" }, status: response.status };
+    }
+  } catch (err) {
+    console.error("[PhonePe v2] Fetch Error:", err.message);
+    return { success: false, data: { message: "Failed to connect to PhonePe" }, status: 500 };
+  }
+
+  // Debug Log
+  try {
+    const fs = require('fs');
+    const logMsg = `\n--- ${new Date().toISOString()} ---\n[v2 INIT] URL: ${endpoint}\nOrderId: ${merchantOrderId}\nAmount: ${amount}\nStatus: ${response.status}\nRes: ${JSON.stringify(data)}\n`;
+    fs.appendFileSync('phonepe_debug.log', logMsg);
+  } catch (err) { }
+
+  const isSuccess = response.ok && data.orderId && data.redirectUrl;
+  console.log(`[PhonePe v2] Response Status: ${response.status}, Success: ${isSuccess}`);
+
+  return { success: isSuccess, data, status: response.status };
+}
 
 
 // Polyfill for fetch (Node.js 18+ has it built-in)
@@ -4264,129 +4407,53 @@ app.post('/api/payment/create', async (req, res) => {
       couponCode: couponCode || null,
       couponBonus: couponBonus
     });
-
     // PhonePe Payload
     // FIX: Sanitize UserID (Only Alphanumeric) and Use Valid Mobile
     const cleanUserId = userId.replace(/[^a-zA-Z0-9]/g, '') || "User";
 
-    // --- NATIVE APP FLOW (Use Web Payment via External Browser) ---
-    // Native SDK has issues, so we use browser redirect which is more reliable
-    if (isApp) {
-      console.log('App Payment Request:', { userId, amount, cleanUserId });
+    // PhonePe Standard Checkout v2
+    const amountInPaisa = Math.round(amount * 100);
+    const callbackRedirectUrl = isApp
+      ? `https://astroluna.in/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`
+      : `https://astroluna.in/api/payment/callback?txnId=${merchantTransactionId}`;
 
-      // Use PAY_PAGE type - same as web, opens in browser
-      const appPayload = {
-        merchantId: PHONEPE_MERCHANT_ID,
-        merchantTransactionId: merchantTransactionId,
-        merchantUserId: cleanUserId,
-        amount: amount * 100, // Amount in Paise
-        redirectUrl: "astro5://payment-success",
-        redirectMode: "GET", // Use GET for deep links
-        callbackUrl: `https://astro5star.com/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`,
-        mobileNumber: userMobile,
-        paymentInstrument: {
-          type: "PAY_PAGE"
-        }
-      };
+    const phonepeResult = await callPhonePePayV2(
+      merchantTransactionId,
+      amountInPaisa,
+      callbackRedirectUrl,
+      userMobile
+    );
 
-      console.log('App Payload:', JSON.stringify(appPayload));
+    if (phonepeResult.success) {
+      const payUrl = phonepeResult.data.redirectUrl;
+      const orderId = phonepeResult.data.orderId;
 
-      const appBase64Payload = Buffer.from(JSON.stringify(appPayload)).toString('base64');
-      const appStringToSign = appBase64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY;
-      const appSha256 = crypto.createHash('sha256').update(appStringToSign).digest('hex');
-      const appChecksum = appSha256 + "###" + PHONEPE_SALT_INDEX;
+      console.log(`[PhonePe v2] Payment created: orderId=${orderId}, redirectUrl=${payUrl ? 'YES' : 'NO'}`);
 
-      // Call PhonePe API to get payment URL
-      const appOptions = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-VERIFY': appChecksum,
-          'accept': 'application/json'
-        },
-        body: JSON.stringify({ request: appBase64Payload })
-      };
-
-      try {
-        console.log('Calling PhonePe API for app...');
-        const appFetchRes = await fetch(`${PHONEPE_HOST_URL}/pg/v1/pay`, appOptions);
-        const appResponse = await appFetchRes.json();
-        console.log('PhonePe App Response:', JSON.stringify(appResponse));
-
-        if (appResponse.success) {
-          const payUrl = appResponse.data.instrumentResponse?.redirectInfo?.url;
-          console.log('Payment URL:', payUrl);
-
-          if (!payUrl) {
-            console.error('No payment URL in response');
-            return res.json({ ok: false, error: 'No payment URL received' });
-          }
-
-          return res.json({
-            ok: true,
-            merchantTransactionId: merchantTransactionId,
-            paymentUrl: payUrl,  // App will open this in external browser
-            useWebFlow: true
-          });
-        } else {
-          const errorMsg = appResponse.data?.message || appResponse.message || 'Payment Init Failed';
-          console.error("PhonePe App Initiation Failed:", errorMsg, JSON.stringify(appResponse));
-          return res.json({ ok: false, error: errorMsg });
-        }
-      } catch (appErr) {
-        console.error("PhonePe App Error:", appErr);
-        return res.json({ ok: false, error: 'Payment service temporarily unavailable' });
+      if (!payUrl) {
+        return res.json({
+          ok: false,
+          payload: null,
+          error: 'No payment URL received from PhonePe'
+        });
       }
-    }
-
-    // --- WEB FLOW PAYLOAD ---
-    const payload = {
-      merchantId: PHONEPE_MERCHANT_ID,
-      merchantTransactionId: merchantTransactionId,
-      merchantUserId: cleanUserId,
-      amount: amount * 100, // Amount in Paise
-      redirectUrl: redirectUrl,
-      redirectMode: "POST",
-      callbackUrl: `https://astro5star.com/api/payment/callback`,
-      mobileNumber: "9000090000",
-      paymentInstrument: {
-        type: "PAY_PAGE"
-      }
-    };
-
-    const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-    const stringToSign = base64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY;
-    const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
-    const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
-
-    // --- WEB FLOW ---
-    const options = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-VERIFY': checksum,
-        'accept': 'application/json'
-      },
-      body: JSON.stringify({ request: base64Payload })
-    };
-
-    const fetchRes = await fetch(`${PHONEPE_HOST_URL}/pg/v1/pay`, options);
-    const response = await fetchRes.json();
-
-    if (response.success) {
-      const payUrl = response.data.instrumentResponse?.redirectInfo?.url || response.data.instrumentResponse?.intentUrl;
-      const intentUrl = response.data.instrumentResponse?.intentUrl; // Specifically for UPI_INTENT
 
       res.json({
         ok: true,
-        merchantTransactionId: merchantTransactionId,
-        paymentUrl: payUrl,
-        intentUrl: intentUrl // Pass this to Frontend for Deep Link
+        payload: {
+          merchantTransactionId: merchantTransactionId,
+          paymentUrl: payUrl,
+          orderId: orderId
+        }
       });
     } else {
-      console.error("PhonePe Initiation Failed:", JSON.stringify(response));
-      // Return specific error from PhonePe if available
-      res.json({ ok: false, error: response.data?.message || response.message || 'Payment Init Failed' });
+      console.error("PhonePe v2 Initiation Failed:", JSON.stringify(phonepeResult.data));
+      const errorMsg = phonepeResult.data?.message || phonepeResult.data?.code || 'Payment Init Failed';
+      res.json({
+        ok: false,
+        payload: null,
+        error: errorMsg
+      });
     }
 
   } catch (e) {

@@ -4,6 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/images/astro_5_star_logo.png">
   <title>Astro 5 Star</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -23,12 +25,13 @@
   </script>
   <style>
     :root {
-      --primary: #047857;
-      --secondary: #6EE7B7;
-      --bg-body: #F0FDF4;
-      --accent-gold: #D4AF37;
-      --surface: #FFFFFF;
-      --border: #A7F3D0;
+      --primary: #059669;
+      --primary-dark: #064e3b;
+      --secondary: #10b981;
+      --bg-body: #f0fdf4;
+      --accent-gold: #d97706;
+      --surface: #ffffff;
+      --border: #d1fae5;
     }
 
     * {
@@ -64,22 +67,21 @@
     #screen-login {
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, #065F46, #059669, #34D399);
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary), var(--secondary));
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 1000;
       padding-bottom: 80px;
-      /* Space for fixed app-footer */
       color: white;
     }
 
     .form-box {
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+      border-radius: 24px;
       padding: 30px;
       width: 90%;
       max-width: 400px;
@@ -88,26 +90,32 @@
 
     .cosmic-input {
       width: 100%;
-      padding: 12px;
+      padding: 14px;
       margin: 10px 0;
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
+      border-radius: 12px;
       color: white;
+      font-size: 1rem;
     }
 
     .cosmic-btn {
       width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      border-radius: 8px;
+      padding: 14px;
+      margin-top: 15px;
+      border-radius: 12px;
       border: none;
-      background: linear-gradient(to right, #059669, #047857);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      color: white;
+      background: white;
+      color: var(--primary-dark);
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 700;
+      font-size: 1rem;
       letter-spacing: 0.5px;
+      transition: all 0.2s ease;
+    }
+
+    .cosmic-btn:active {
+      transform: scale(0.98);
     }
 
 
@@ -355,6 +363,211 @@
 
     .cta-btn.active-video:hover {
       background: #FEF3C7;
+    }
+
+    /* =========================================
+       ASTROTALK-STYLE ASTROLOGER CARD (Mobile)
+       ========================================= */
+    .at-card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      margin-bottom: 10px;
+    }
+
+    .at-card:active {
+      transform: scale(0.99);
+    }
+
+    .at-card-inner {
+      display: flex;
+      align-items: flex-start;
+      padding: 12px;
+      gap: 10px;
+    }
+
+    .at-profile-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .at-img-wrap {
+      position: relative;
+      width: 60px;
+      height: 60px;
+    }
+
+    .at-img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #d1fae5;
+    }
+
+    .at-status-dot {
+      position: absolute;
+      bottom: 1px;
+      right: 1px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+    }
+
+    .at-status-dot.online {
+      background: #10b981;
+    }
+
+    .at-status-dot.busy {
+      background: #f59e0b;
+    }
+
+    .at-status-dot.offline {
+      background: #d1d5db;
+    }
+
+    .at-rating {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #f59e0b;
+      background: #fffbeb;
+      padding: 1px 6px;
+      border-radius: 8px;
+      border: 1px solid #fef3c7;
+    }
+
+    .at-rating i {
+      font-size: 0.6rem;
+    }
+
+    .at-details-col {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .at-name-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .at-name {
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1f2937;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .at-verified {
+      color: #059669;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+
+    .at-skills {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .at-lang {
+      font-size: 0.7rem;
+      color: #9ca3af;
+      margin: 0;
+    }
+
+    .at-exp {
+      font-size: 0.7rem;
+      color: #059669;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .at-price-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .at-price {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .at-orders {
+      font-size: 0.65rem;
+      color: #9ca3af;
+    }
+
+    .at-action-col {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+      align-self: center;
+    }
+
+    .at-btn-call,
+    .at-btn-chat {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 72px;
+    }
+
+    .at-btn-call {
+      background: #059669;
+      color: #fff;
+    }
+
+    .at-btn-chat {
+      background: #fff;
+      color: #059669;
+      border: 1.5px solid #059669;
+    }
+
+    .at-btn-call.wait {
+      background: #f3f4f6;
+      color: #9ca3af;
+      border: 1px solid #e5e7eb;
+    }
+
+    .at-btn-chat.wait {
+      background: #f9fafb;
+      color: #9ca3af;
+      border-color: #e5e7eb;
     }
 
     .astro-dash-header {
@@ -4429,79 +4642,62 @@
       });
 
       if (astrologers.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding:20px; color:#A7F3D0;">No astrologers online right now.</div>';
+        container.innerHTML = '<div style="text-align:center; padding:40px; color:#9CA3AF; font-size:1rem;"><i class="fas fa-user-astronaut" style="font-size:2rem; margin-bottom:10px; display:block; color:#d1fae5;"></i>No astrologers available right now.</div>';
         return;
       }
 
       astrologers.forEach(a => {
         const div = document.createElement('div');
-        div.className = 'astro-card';
+        div.className = 'at-card';
         div.onclick = () => openAstroProfile(a);
 
-        // REAL Trust Markers from DB
-        const orderCount = a.orderCount || Math.floor(Math.random() * 500) + 100; // Fallback if not in DB yet
+        const orderCount = a.orderCount || Math.floor(Math.random() * 500) + 100;
         const languages = a.languages || ['Tamil', 'English'];
-        const isVerified = a.isVerified; // Real DB Value
-        const isDocsVerified = a.isDocumentVerified; // Real DB Value
-        const isTopChoice = a.isTopChoice; // Optional extra field if added later
+        const skills = a.skills || ['Vedic', 'Prashana'];
+        const skillsText = skills.slice(0, 3).join(', ');
+        const rating = (4 + Math.random() * 0.9).toFixed(1);
+        const isOnline = a.isOnline || a.isAudioOnline || a.isChatOnline;
+        const statusClass = isOnline ? 'online' : (a.isBusy ? 'busy' : 'offline');
 
         div.innerHTML = `
-          ${isTopChoice ? '<div class="ribbon"><span>Top Choice</span></div>' : ''}
-
-          <!-- Top Row: Image & Info -->
-          <div class="card-top-row">
-              <div class="astro-img-wrapper">
-                  <img src="${a.image || 'https://ui-avatars.com/api/?name=' + a.name + '&background=random'}"
-                       class="astro-img ${a.isOnline ? 'online-active' : ''}">
-                  <div class="status-badge ${a.isOnline ? 'online' : 'busy'}"></div>
+          <div class="at-card-inner">
+            <div class="at-profile-col">
+              <div class="at-img-wrap">
+                <img src="${a.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(a.name) + '&background=d1fae5&color=059669&bold=true'}"
+                     alt="${a.name}" class="at-img" loading="lazy">
+                <span class="at-status-dot ${statusClass}"></span>
               </div>
-
-              <div class="astro-details">
-                  <div class="astro-name">
-                    ${a.name}
-                    ${isVerified ? '<i class="fas fa-check-circle" style="color:#3B82F6; font-size:0.9rem; margin-left:4px;" title="Verified Astrologer"></i>' : ''}
-                  </div>
-
-                  <div class="astro-expertise">${a.skills ? a.skills.join(', ') : 'Vedic, Prashana'}</div>
-
-                  <!-- Document Verified Badge (Conditional) -->
-                  ${isDocsVerified ? `
-                  <div style="display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; color:#059669; background:#ECFDF5; padding:2px 6px; border-radius:4px; border:1px solid #D1FAE5; margin-bottom:4px;">
-                    <i class="fas fa-check-circle"></i> Document Verified
-                  </div>` : ''}
-
-                  <div style="font-size:0.8rem; color:#4B5563; margin-bottom:4px;">
-                    <i class="fas fa-language" style="color:#F59E0B;"></i> ${languages.join(', ')}
-                  </div>
-
-                  <div class="rating-row">
-                      <span class="star-rating">★ 4.9</span>
-                      <span style="color:#6B7280; font-size:0.75rem;">(${orderCount} + orders)</span>
-                  </div>
+              <div class="at-rating">
+                <i class="fas fa-star"></i> ${rating}
               </div>
+            </div>
 
-              <div class="price-tag">₹${a.price}/min</div>
-          </div>
-
-          <!-- Bottom Row: Action Buttons -->
-          <div class="card-actions">
-              <div class="cta-btn ${a.isChatOnline ? 'active-chat' : ''}"
-                   onclick="event.stopPropagation(); checkGuestAction('chat', '${a.userId}')">
-                  <i class="fas fa-comment-dots"></i>
-                  <span>Chat</span>
+            <div class="at-details-col">
+              <div class="at-name-row">
+                <h3 class="at-name">${a.name}</h3>
+                ${a.isVerified ? '<i class="fas fa-check-circle at-verified"></i>' : ''}
               </div>
+              <p class="at-skills">${skillsText}</p>
+              <p class="at-lang">${languages.join(', ')}</p>
+              <p class="at-exp">Exp: ${a.experience || 5} Years</p>
+              <div class="at-price-row">
+                <span class="at-price">₹${a.price}/min</span>
+                <span class="at-orders">${orderCount} orders</span>
+              </div>
+            </div>
 
-              <div class="cta-btn ${a.isAudioOnline ? 'active-audio' : ''}"
+            <div class="at-action-col">
+              <button class="at-btn-call ${a.isAudioOnline ? '' : 'wait'}"
                    onclick="event.stopPropagation(); checkGuestAction('call', '${a.userId}')">
-                  <i class="fas fa-phone-alt"></i>
-                  <span>Call</span>
-              </div>
-
-              <div class="cta-btn ${a.isVideoOnline ? 'active-video' : ''}"
-                   onclick="event.stopPropagation(); checkGuestAction('video', '${a.userId}')">
-                  <i class="fas fa-video"></i>
-                  <span>Video</span>
-              </div>
+                <i class="fas fa-phone-alt"></i>
+                ${a.isAudioOnline ? 'Call' : 'Wait'}
+              </button>
+              <button class="at-btn-chat ${a.isChatOnline ? '' : 'wait'}"
+                   onclick="event.stopPropagation(); checkGuestAction('chat', '${a.userId}')">
+                <i class="fas fa-comment-dots"></i>
+                ${a.isChatOnline ? 'Chat' : 'Wait'}
+              </button>
+            </div>
           </div>
         `;
         container.appendChild(div);

@@ -4,6 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/images/astro_5_star_logo.png">
   <title>Astro 5 Star</title>
   <link
     href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;600;700&family=Playfair+Display:wght@400;700&display=swap"
@@ -25,32 +27,33 @@
   </script>
   <style>
     :root {
-      /* Premium Light Teal Palette */
-      --bg-body: #F0FDFA;
-      /* Azure White */
-      --bg-card: #FFFFFF;
-      --bg-glass: rgba(255, 255, 255, 0.9);
+      /* Premium Milk Green Palette */
+      --bg-body: #f0fdf4;
+      --bg-card: #ffffff;
+      --bg-glass: rgba(255, 255, 255, 0.95);
 
-      --primary: #0D9488;
-      /* Rich Teal */
-      --primary-glow: rgba(13, 148, 136, 0.3);
-      --secondary: #D4AF37;
-      /* Gold Accent */
-      --accent: #14B8A6;
-      /* Bright Teal */
+      --primary: #059669;
+      /* Emerald 600 */
+      --primary-dark: #064e3b;
+      /* Emerald 900 */
+      --primary-glow: rgba(5, 150, 105, 0.15);
+      --secondary: #10b981;
+      /* Emerald 500 */
+      --accent: #d97706;
+      /* Keep gold for subtle highlights like ratings */
 
-      --text-main: #111827;
-      /* Dark Grey */
-      --text-muted: #4B5563;
-      /* Medium Grey */
+      --text-main: #0f172a;
+      /* Slate 900 */
+      --text-muted: #475569;
+      /* Slate 600 */
 
-      --border: rgba(13, 148, 136, 0.2);
-      --border-glass: rgba(13, 148, 136, 0.1);
+      --border: rgba(5, 150, 105, 0.1);
+      --border-glass: rgba(5, 150, 105, 0.05);
 
-      --success: #10B981;
-      --danger: #EF4444;
+      --success: #10b981;
+      --danger: #ef4444;
 
-      --font-heading: 'Cinzel', serif;
+      --font-heading: 'Outfit', sans-serif;
       --font-body: 'Outfit', sans-serif;
     }
 
@@ -58,23 +61,21 @@
       box-sizing: border-box;
     }
 
-
+    html,
     body {
-      font-family: var(--font-body);
-      background: var(--bg-body);
-      color: var(--text-main);
-      background-image:
-        radial-gradient(circle at 10% 20%, rgba(13, 148, 136, 0.05) 0%, transparent 40%),
-        radial-gradient(circle at 90% 80%, rgba(245, 158, 11, 0.05) 0%, transparent 40%);
+      width: 100%;
+      height: 100%;
+      overflow-x: hidden;
     }
 
+
     body {
       font-family: var(--font-body);
       background: var(--bg-body);
       color: var(--text-main);
       background-image:
-        radial-gradient(circle at 10% 20%, rgba(190, 24, 93, 0.05) 0%, transparent 40%),
-        radial-gradient(circle at 90% 80%, rgba(212, 175, 55, 0.08) 0%, transparent 40%);
+        radial-gradient(circle at 10% 20%, rgba(5, 150, 105, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(5, 150, 105, 0.03) 0%, transparent 40%);
     }
 
     input,
@@ -159,17 +160,8 @@
       height: 100%;
       display: flex;
       flex-direction: column;
-      max-width: 1200px;
-      margin: 0 auto;
-      background: var(--bg-body);
-      position: relative;
-    }
-
-    .dashboard-container {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      max-width: 1200px;
+      max-width: 100%;
+      width: 100%;
       margin: 0 auto;
       background: var(--bg-body);
       position: relative;
@@ -1835,59 +1827,42 @@
 
     <div class="main-content-wrapper">
       <div class="app-header">
-        <div style="display: flex; align-items: center; gap: 40px;">
-          <div class="logo-text"><i class="fas fa-star-half-alt"></i> Astro 5 Star</div>
-
-          <!-- Desktop Header Nav -->
-          <div class="desktop-header-nav" style="display: flex; gap: 15px; margin-left: 20px;">
-            <div id="nav-home" class="nav-item active" onclick="navSwitch('home')">
-              <i class="fas fa-home"></i> <span>Home</span>
-            </div>
-            <div id="nav-dash" class="nav-item" onclick="navSwitch('dash')">
-              <i class="fas fa-th-large"></i> <span>Dashboard</span>
-            </div>
-            <div id="nav-call" class="nav-item" onclick="navSwitch('call')">
-              <i class="fas fa-phone-alt"></i> <span>Call</span>
-            </div>
-            <div id="nav-chat" class="nav-item" onclick="navSwitch('chat')">
-              <i class="fas fa-comment-dots"></i> <span>Chat</span>
-            </div>
-            <div id="nav-wallet" class="nav-item" onclick="navSwitch('wallet')">
-              <i class="fas fa-wallet"></i> <span>Wallet</span>
-            </div>
-            <div id="nav-profile" class="nav-item" onclick="navSwitch('profile')">
-              <i class="fas fa-user-circle"></i> <span>Profile</span>
-            </div>
-          </div>
+        <div class="logo-text" onclick="navSwitch('home')">
+          <i class="fas fa-hand-sparkles"></i> Astro 5 Star
         </div>
 
-        <div style="display: flex; align-items: center; gap: 10px;">
+        <nav class="desktop-header-nav">
+          <div id="nav-home" class="nav-item active" onclick="navSwitch('home')">Home</div>
+          <div id="nav-call" class="nav-item" onclick="navSwitch('call')">Talk to Astrologer</div>
+          <div id="nav-chat" class="nav-item" onclick="navSwitch('chat')">Chat with Astrologer</div>
+          <div id="nav-kundli" class="nav-item" onclick="openUniversalChartModal()">Free Kundli</div>
+          <div id="nav-horoscope" class="nav-item"
+            onclick="document.getElementById('dailyHoroscopeSection').scrollIntoView({behavior:'smooth'})">Horoscope
+          </div>
+        </nav>
 
-          <a href="/downloads/astro5star.apk?v=3.0.0" class="download-header-btn"
-            title="Download Official App (v3.0.0)">
-            <i class="fas fa-cloud-download-alt"></i> App
+        <div class="header-actions">
+          <a href="/downloads/astro5star.apk" class="download-header-btn"
+            style="text-decoration:none; color: #4b5563; font-size: 0.9rem;">
+            <i class="fas fa-mobile-alt"></i> Get App
           </a>
 
-          <!-- Login Button (Visible when Guest) -->
-          <button id="headerLoginBtn" onclick="showLogin()"
-            style="background:#F59E0B; color:white; border:none; padding:6px 15px; border-radius:20px; cursor:pointer; font-weight:bold; font-size:0.9rem; display:none;">Login</button>
-
-          <div id="headerReferBtn" class="refer-icon-btn" onclick="showReferralModal()" title="Refer & Earn">
-            <i class="fas fa-gift"></i> <span style="font-size: 0.8rem;">Refer</span>
-          </div>
-          <span id="walletContainer" onclick="refreshWallet()"
-            style="cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Tap to refresh">
-            <i class="fas fa-wallet"></i>
-            <span id="swHeaderBadge"
-              style="display:none; font-size:0.65rem; background:#FFF1F2; color:#E11D48; border:1px solid #FDA4AF; padding:1px 4px; border-radius:4px; font-weight:bold; margin-right:4px;">Bonus</span>
-            ₹<span id="clientWallet">0</span>
+          <div id="walletContainer" class="wallet-pill" onclick="refreshWallet()">
+            <i class="fas fa-wallet" style="margin-right: 4px;"></i> ₹<span id="clientWallet">0.00</span>
             <i id="walletSpinner" class="fas fa-sync-alt"
-              style="display: none; font-size: 0.8rem; animation: spin 1s linear infinite;"></i>
-          </span>
-          <i id="headerLogoutBtn" class="fas fa-sign-out-alt" style="cursor: pointer; font-size: 1.2rem;"
-            onclick="clearSession()"></i>
-        </div>
+              style="display: none; font-size: 0.8rem; animation: spin 1s linear infinite; margin-left: 4px;"></i>
+          </div>
 
+          <button id="headerLoginBtn" onclick="showLogin()"
+            style="background:#d97706; color:white; border:none; padding:8px 20px; border-radius:50px; cursor:pointer; font-weight:bold; font-size:0.9rem; display:none;">Login</button>
+
+          <div id="headerProfileBtn" class="profile-circle" onclick="navSwitch('profile')">
+            <i class="fas fa-user"></i>
+          </div>
+
+          <i id="headerLogoutBtn" class="fas fa-sign-out-alt"
+            style="cursor: pointer; font-size: 1.1rem; color: #6b7280;" onclick="clearSession()" title="Sign Out"></i>
+        </div>
       </div>
       <div class="content-area">
         <!-- Section: Home -->
@@ -1897,46 +1872,25 @@
           <!-- Premium Hero Section -->
           <div class="hero-section">
             <div class="hero-content">
-              <div class="hero-badge"><i class="fas fa-star"></i> #1 Trusted Astrology Platform</div>
-              <h1>Discover Your Destiny <br>with <span class="text-gradient">Precision</span></h1>
-              <p>Connect with India's top astrologers for instant clarity on love, career, and relationships. 100%
-                Private & Confidential.</p>
+              <div class="hero-badge"><i class="fas fa-certificate"></i> India's #1 Astrology Community</div>
+              <h1>Talk to Best <br><span class="text-gradient">Astrologers Live</span></h1>
+              <p>Consult our highly experienced astrologers instantly over Chat or Call. Resolve your life problems with
+                100% privacy and accuracy.</p>
               <div class="hero-actions">
-                <button class="hero-btn-primary"
-                  onclick="document.getElementById('section-consult').scrollIntoView({ behavior: 'smooth' })">
-                  Chat with Astrologer <i class="fas fa-arrow-right"></i>
+                <button class="hero-btn-primary" onclick="navSwitch('call')">
+                  Consult Now <i class="fas fa-bolt" style="margin-left:8px;"></i>
                 </button>
-                <button class="hero-btn-secondary" onclick="document.getElementById('headerReferBtn').click()">
-                  <i class="fas fa-gift"></i> Get Free Minutes
+                <button class="hero-btn-secondary" onclick="openPoruthamModal()">
+                  Free Matching
                 </button>
-              </div>
-              <div class="hero-stats">
-                <div class="stat-item">
-                  <span class="stat-val">50k+</span>
-                  <span class="stat-label">Happy Users</span>
-                </div>
-                <div class="stat-divider"></div>
-                <div class="stat-item">
-                  <span class="stat-val">4.8/5</span>
-                  <span class="stat-label">Rating</span>
-                </div>
-                <div class="stat-divider"></div>
-                <div class="stat-item">
-                  <span class="stat-val">24/7</span>
-                  <span class="stat-label">Live Support</span>
-                </div>
               </div>
             </div>
             <div class="hero-visual">
-              <div class="zodiac-circle">
-                <div class="zodiac-icon" style="top:0; left:50%; transform:translate(-50%, -50%)">♈</div>
-                <div class="zodiac-icon" style="top:50%; right:0; transform:translate(50%, -50%)">♋</div>
-                <div class="zodiac-icon" style="bottom:0; left:50%; transform:translate(-50%, 50%)">♎</div>
-                <div class="zodiac-icon" style="top:50%; left:0; transform:translate(-50%, -50%)">♑</div>
-                <div class="center-glow"></div>
-              </div>
+              <img src="astrology_hero_premium_1772488374025.png" alt="Astrology Hero"
+                style="width: 100%; max-width: 550px; border-radius: 40px; box-shadow: 0 30px 60px rgba(0,0,0,0.15);">
             </div>
           </div>
+
 
           <div id="homeSliderContainer" style="display:none;"></div>
 
@@ -2052,9 +2006,91 @@
             }
           </style>
 
+          <style>
+            /* Section Headers */
+            .section-header {
+              margin-bottom: 30px;
+              display: flex;
+              align-items: center;
+              gap: 15px;
+              padding: 0 20px;
+            }
+
+            .section-header h2 {
+              font-family: var(--font-heading);
+              font-size: 1.8rem;
+              color: var(--primary);
+              margin: 0;
+              font-weight: 800;
+            }
+
+            .section-line {
+              height: 1px;
+              flex: 1;
+              background: linear-gradient(90deg, rgba(5, 150, 105, 0.3) 0%, transparent 100%);
+            }
+
+            .services-grid-container::-webkit-scrollbar {
+              display: none;
+            }
+
+            .service-item-card {
+              min-width: 130px;
+              background: #f0fdf4;
+              border: 1px solid #d1fae5;
+              border-radius: 20px;
+              padding: 20px 15px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              text-align: center;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            }
+
+            .service-item-card:hover {
+              transform: translateY(-5px);
+              background: #dcfce7;
+              border-color: var(--primary);
+              box-shadow: 0 10px 25px rgba(5, 150, 105, 0.1);
+            }
+
+            .service-item-card .service-icon-wrapper {
+              width: 60px;
+              height: 60px;
+              background: rgba(5, 150, 105, 0.08);
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin-bottom: 12px;
+              transition: all 0.3s;
+            }
+
+            .service-item-card:hover .service-icon-wrapper {
+              background: rgba(5, 150, 105, 0.15);
+              transform: scale(1.1);
+            }
+
+            .service-item-card img {
+              width: 35px;
+              height: 35px;
+              object-fit: contain;
+            }
+
+            .service-item-card span {
+              font-size: 0.9rem;
+              font-weight: 600;
+              color: var(--text-main);
+              line-height: 1.3;
+            }
+          </style>
+
           <!-- Premium Services Grid -->
           <!-- Premium Services Grid -->
-          <div class="section-header">
+          <div class="section-header" id="exploreServicesHeader">
             <h2>Explore Services</h2>
             <div class="section-line"></div>
           </div>
@@ -2103,91 +2139,9 @@
             </div>
           </div>
 
-          <style>
-            /* Section Headers */
-            .section-header {
-              margin-bottom: 30px;
-              display: flex;
-              align-items: center;
-              gap: 15px;
-            }
-
-            .section-header h2 {
-              font-family: var(--font-heading);
-              font-size: 1.8rem;
-              color: var(--secondary);
-              margin: 0;
-            }
-
-            .section-line {
-              height: 1px;
-              flex: 1;
-              background: linear-gradient(90deg, rgba(212, 175, 55, 0.5) 0%, transparent 100%);
-            }
-
-            .services-grid-container::-webkit-scrollbar {
-              display: none;
-            }
-
-            .service-item-card {
-              min-width: 130px;
-              background: rgba(30, 41, 59, 0.6);
-              backdrop-filter: blur(10px);
-              border: 1px solid rgba(255, 255, 255, 0.05);
-              border-radius: 20px;
-              padding: 20px 15px;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              text-align: center;
-              cursor: pointer;
-              transition: all 0.3s ease;
-              box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            }
-
-            .service-item-card:hover {
-              transform: translateY(-5px);
-              background: rgba(30, 41, 59, 0.8);
-              border-color: rgba(212, 175, 55, 0.3);
-              box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            }
-
-            .service-icon-wrapper {
-              width: 60px;
-              height: 60px;
-              background: rgba(255, 255, 255, 0.05);
-              border-radius: 50%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              margin-bottom: 12px;
-              transition: all 0.3s;
-            }
-
-            .service-item-card:hover .service-icon-wrapper {
-              background: rgba(212, 175, 55, 0.1);
-              transform: scale(1.1);
-            }
-
-            .service-item-card img {
-              width: 35px;
-              height: 35px;
-              object-fit: contain;
-              filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-            }
-
-            .service-item-card span {
-              font-size: 0.9rem;
-              font-weight: 500;
-              color: var(--text-main);
-              line-height: 1.3;
-            }
-          </style>
-
           <!-- Horoscope Section -->
           <!-- Horoscope Section -->
-          <div id="dailyHoroscopeSection" style="margin-bottom: 60px;">
+          <div id="dailyHoroscopeSection" style="margin-bottom: 60px; padding: 0 20px;">
             <div class="section-header">
               <h2>Daily Insights</h2>
               <div class="section-line"></div>
@@ -2217,7 +2171,7 @@
             </div>
           </div>
 
-          <div class="filter-section" id="section-consult">
+          <div class="filter-section" id="section-consult" style="padding: 20px 5% 0;">
             <div class="filter-tabs" id="topFilterTabs">
               <div class="tab active" onclick="filterAstros('all')">All</div>
               <div class="tab" onclick="filterAstros('love')">Love</div>
@@ -2226,9 +2180,9 @@
               <div class="tab" onclick="filterAstros('health')">Health</div>
             </div>
           </div>
-          <div id="astroList">
+          <div id="astroList" style="padding: 20px 5%;">
             <div class="loading-spinner" style="padding: 40px; text-align: center;">
-              <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: #D4AF37;"></i>
+              <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: var(--primary);"></i>
               <p style="margin-top: 10px; color: #9CA3AF;">Loading Astrologers...</p>
             </div>
           </div>
@@ -2451,24 +2405,28 @@
             style="display:none; margin-top:10px; padding:15px; background:#F9FAFB; border-radius:12px; border:1px solid #E5E7EB;">
             <div style="display:flex; gap:10px; margin-bottom:10px;">
               <div style="flex:1;">
-                <label style="display:block; font-size:0.75rem; color:#6B7280; margin-bottom:4px;">Partner Name</label>
+                <label style="display:block; font-size:0.75rem; color:#6B7280; margin-bottom:4px;">Partner
+                  Name</label>
                 <input type="text" id="dashboardPartnerName" class="app-input"
                   style="width:100%; padding:10px; border:1px solid #D1D5DB; border-radius:8px;">
               </div>
               <div style="flex:1;">
-                <label style="display:block; font-size:0.75rem; color:#6B7280; margin-bottom:4px;">Partner DOB</label>
+                <label style="display:block; font-size:0.75rem; color:#6B7280; margin-bottom:4px;">Partner
+                  DOB</label>
                 <input type="date" id="dashboardPartnerDob" class="app-input"
                   style="width:100%; padding:10px; border:1px solid #D1D5DB; border-radius:8px;">
               </div>
             </div>
             <div style="display:flex; gap:10px;">
               <div style="flex:1;">
-                <label style="display:block; font-size:0.75rem; color:#6B7280; margin-bottom:4px;">Partner Time</label>
+                <label style="display:block; font-size:0.75rem; color:#6B7280; margin-bottom:4px;">Partner
+                  Time</label>
                 <input type="time" id="dashboardPartnerTob" class="app-input"
                   style="width:100%; padding:10px; border:1px solid #D1D5DB; border-radius:8px;">
               </div>
               <div style="flex:1;">
-                <label style="display:block; font-size:0.75rem; color:#6B7280; margin-bottom:4px;">Partner Place</label>
+                <label style="display:block; font-size:0.75rem; color:#6B7280; margin-bottom:4px;">Partner
+                  Place</label>
                 <input type="text" id="dashboardPartnerPob" class="app-input"
                   style="width:100%; padding:10px; border:1px solid #D1D5DB; border-radius:8px;">
               </div>
@@ -2548,87 +2506,307 @@
 
       .dashboard-layout {
         display: flex;
+        flex-direction: column;
         height: 100vh;
-        width: 100%;
+        width: 100vw;
         overflow: hidden;
       }
 
       .app-header {
         position: sticky;
         top: 0;
-        z-index: 100;
-        padding: 15px 40px;
-        background: rgba(11, 15, 26, 0.8);
-        /* Dark Glass */
-        backdrop-filter: blur(12px);
-        border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+        z-index: 1000;
+        padding: 0 50px;
+        height: 80px;
+        background: #ffffff;
+        border-bottom: 1px solid #f1f5f9;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        transition: all 0.3s ease;
-      }
-
-      .app-header.scrolled {
-        background: rgba(11, 15, 26, 0.95);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
       }
 
       /* Logo Styling */
       .app-header .logo-text {
         font-family: var(--font-heading);
-        font-weight: 700;
-        font-size: 1.5rem;
-        background: linear-gradient(135deg, #FFD700, #B8860B);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        letter-spacing: 1px;
+        font-weight: 800;
+        font-size: 1.8rem;
+        color: var(--primary);
+        letter-spacing: -1px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
       }
 
       /* Desktop Header Nav */
       .desktop-header-nav {
         display: flex;
-        background: rgba(255, 255, 255, 0.03);
-        padding: 5px;
-        border-radius: 50px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        gap: 35px;
+        align-items: center;
+        height: 100%;
       }
 
       .desktop-header-nav .nav-item {
         display: flex;
+        flex-direction: row;
         align-items: center;
         gap: 8px;
-        padding: 10px 20px;
-        border-radius: 30px;
-        color: var(--text-muted);
+        padding: 0;
+        height: 100%;
+        color: #475569;
         text-decoration: none;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
         cursor: pointer;
-        font-weight: 500;
-        font-size: 0.95rem;
-        border: 1px solid transparent;
-        letter-spacing: 0.5px;
+        font-weight: 600;
+        font-size: 1rem;
+        border-bottom: 3px solid transparent;
       }
 
       .desktop-header-nav .nav-item:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.05);
+        color: var(--primary);
       }
 
       .desktop-header-nav .nav-item.active {
-        background: linear-gradient(135deg, var(--primary), #B8860B);
-        color: #000;
-        font-weight: 600;
-        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+        background: transparent;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 25px;
+      }
+
+      .wallet-pill {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #f0fdf4;
+        border: 1px solid #d1fae5;
+        padding: 8px 20px;
+        border-radius: 50px;
+        color: var(--primary);
+        font-weight: 800;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .wallet-pill:hover {
+        background: #dcfce7;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.1);
+      }
+
+      .profile-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #f0fdf4;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        color: var(--primary);
+        cursor: pointer;
+        border: 2px solid #d1fae5;
+        transition: all 0.2s ease;
+      }
+
+      .profile-circle:hover {
+        background: #dcfce7;
       }
 
       .content-area {
         flex: 1;
         overflow-y: auto;
-        padding: 30px;
-        max-width: 1400px;
-        margin: 0 auto;
+        padding: 40px 5%;
+        background: #ffffff;
         width: 100%;
+      }
+
+      /* --- Modern Hero Section (Astrotalk Style) --- */
+      .hero-section {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 80px 10%;
+        background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+        min-height: 500px;
+        gap: 50px;
+      }
+
+      .hero-content {
+        flex: 1;
+      }
+
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 20px;
+        background: #d1fae5;
+        color: #065f46;
+        border-radius: 50px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        margin-bottom: 25px;
+      }
+
+      .hero-section h1 {
+        font-size: 4rem;
+        font-weight: 900;
+        color: #064e3b;
+        line-height: 1.1;
+        margin-bottom: 25px;
+        letter-spacing: -2px;
+      }
+
+      .hero-section .text-gradient {
+        background: linear-gradient(135deg, var(--primary) 0%, #10b981 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .hero-section p {
+        font-size: 1.25rem;
+        color: #475569;
+        max-width: 550px;
+        margin-bottom: 40px;
+        line-height: 1.6;
+      }
+
+      .hero-actions {
+        display: flex;
+        gap: 20px;
+      }
+
+      .hero-btn-primary {
+        padding: 18px 40px;
+        background: var(--primary);
+        color: white;
+        border-radius: 50px;
+        font-weight: 800;
+        font-size: 1.1rem;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 20px rgba(5, 150, 105, 0.2);
+      }
+
+      .hero-btn-primary:hover {
+        transform: translateY(-3px);
+        background: #047857;
+        box-shadow: 0 15px 30px rgba(5, 150, 105, 0.3);
+      }
+
+      .hero-btn-secondary {
+        padding: 18px 40px;
+        background: transparent;
+        color: var(--primary);
+        border: 2px solid var(--primary);
+        border-radius: 50px;
+        font-weight: 800;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .hero-btn-secondary:hover {
+        background: rgba(5, 150, 105, 0.05);
+      }
+
+      /* --- Explore Services Modern Grid --- */
+      .services-container {
+        padding: 80px 10%;
+        background: #ffffff;
+      }
+
+      .services-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 40px;
+      }
+
+      .services-header h2 {
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: #0f172a;
+        letter-spacing: -1px;
+      }
+
+      .services-header .view-all {
+        color: var(--primary);
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 0.95rem;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+      }
+
+      .services-header .view-all:hover {
+        text-decoration: underline;
+      }
+
+      .services-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 30px;
+      }
+
+      .service-card {
+        background: #ffffff;
+        border: 1px solid #f1f5f9;
+        border-radius: 24px;
+        padding: 40px 30px;
+        text-align: center;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+      }
+
+      .service-card:hover {
+        transform: translateY(-12px);
+        border-color: #d1fae5;
+        box-shadow: 0 20px 40px -10px rgba(5, 150, 105, 0.1);
+      }
+
+      .service-icon-wrapper {
+        width: 80px;
+        height: 80px;
+        background: #f0fdf4;
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .service-card:hover .service-icon-wrapper {
+        background: var(--primary);
+        transform: rotate(10deg);
+      }
+
+      .service-icon-wrapper i {
+        font-size: 2.2rem;
+        color: var(--primary);
+      }
+
+      .service-card:hover .service-icon-wrapper i {
+        color: #ffffff;
+      }
+
+      .service-title {
+        font-weight: 800;
+        font-size: 1.2rem;
+        color: #1e293b;
       }
     }
 
@@ -4690,17 +4868,29 @@
 
       const sectHome = document.getElementById('section-home');
       const sectDash = document.getElementById('section-dash');
+      const heroSection = document.querySelector('.hero-section');
+      const servicesHeader = document.getElementById('exploreServicesHeader');
+      const servicesGrid = document.querySelector('.services-grid-container');
       const horoSection = document.getElementById('dailyHoroscopeSection');
+      const filterTabs = document.getElementById('topFilterTabs');
+      const filterSection = document.querySelector('.filter-section');
 
-      if (horoSection) {
-        // Only show Horoscope on Home tab
-        horoSection.style.display = (tab === 'home') ? 'block' : 'none';
+      // Helper to show/hide home-only sections
+      function showHomeSections(show) {
+        const display = show ? '' : 'none';
+        if (heroSection) heroSection.style.display = display;
+        if (servicesHeader) servicesHeader.style.display = display;
+        if (servicesGrid) servicesGrid.style.display = display;
+        if (horoSection) horoSection.style.display = display;
+        // Also hide any style blocks between hero and services (they're inert but let's be safe)
       }
 
       if (tab === 'home') {
         if (sectHome) sectHome.classList.remove('hidden');
         if (sectDash) sectDash.classList.add('hidden');
-        if (document.getElementById('topFilterTabs')) document.getElementById('topFilterTabs').classList.remove('hidden');
+        showHomeSections(true);
+        if (filterTabs) filterTabs.classList.remove('hidden');
+        if (filterSection) filterSection.style.display = '';
         renderAstroList(state.astroList);
       }
       else if (tab === 'dash') {
@@ -4710,7 +4900,10 @@
       else if (tab === 'call') {
         if (sectHome) sectHome.classList.remove('hidden');
         if (sectDash) sectDash.classList.add('hidden');
-        if (document.getElementById('topFilterTabs')) document.getElementById('topFilterTabs').classList.add('hidden');
+        // Hide hero, services, horoscope — show only astrologer list
+        showHomeSections(false);
+        if (filterTabs) filterTabs.classList.remove('hidden');
+        if (filterSection) filterSection.style.display = '';
 
         const online = state.astroList.filter(a => a.isAudioOnline);
         const offline = state.astroList.filter(a => !a.isAudioOnline);
@@ -4719,7 +4912,10 @@
       else if (tab === 'chat') {
         if (sectHome) sectHome.classList.remove('hidden');
         if (sectDash) sectDash.classList.add('hidden');
-        if (document.getElementById('topFilterTabs')) document.getElementById('topFilterTabs').classList.add('hidden');
+        // Hide hero, services, horoscope — show only astrologer list
+        showHomeSections(false);
+        if (filterTabs) filterTabs.classList.remove('hidden');
+        if (filterSection) filterSection.style.display = '';
 
         const online = state.astroList.filter(a => a.isChatOnline);
         const offline = state.astroList.filter(a => !a.isChatOnline);
@@ -4824,96 +5020,72 @@
       });
 
       if (astrologers.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding:20px; color:#A7F3D0;">No astrologers online right now.</div>';
+        container.innerHTML = '<div style="text-align:center; padding:40px; color:#9CA3AF; font-size:1.1rem;"><i class="fas fa-user-astronaut" style="font-size:2rem; margin-bottom:10px; display:block; color:#d1fae5;"></i>No astrologers available right now.</div>';
         return;
       }
 
-      // Update Container to Grid (User Request)
+      // Grid container
       container.className = 'astro-grid-container';
-      container.style.display = ''; // Clear inline styles to let CSS take over
+      container.style.display = '';
       container.style.flexDirection = '';
       container.style.gap = '';
 
       astrologers.forEach(a => {
         const div = document.createElement('div');
-        div.className = 'premium-astro-card';
+        div.className = 'at-card';
         div.onclick = () => openAstroProfile(a);
 
-        // Data prep
         const orderCount = a.orderCount || Math.floor(Math.random() * 500) + 100;
         const languages = a.languages || ['Tamil', 'English'];
-        const isVerified = a.isVerified;
         const skills = a.skills || ['Vedic', 'Prashana'];
-        // Format skills as pills
-        const skillsHtml = skills.slice(0, 3).map(s => `<span class="skill-pill">${s}</span>`).join('');
+        const skillsText = skills.slice(0, 3).join(', ');
+        const rating = (4 + Math.random() * 0.9).toFixed(1);
+        const isOnline = a.isOnline || a.isAudioOnline || a.isChatOnline;
+        const statusClass = isOnline ? 'online' : (a.isBusy ? 'busy' : 'offline');
+        const statusLabel = isOnline ? 'Online' : (a.isBusy ? 'Busy' : 'Offline');
 
         div.innerHTML = `
-          ${a.isTopChoice ? '<div class="ribbon-premium"><span>Top Choice</span></div>' : ''}
+          <div class="at-card-inner">
+            <!-- Profile Image Column -->
+            <div class="at-profile-col">
+              <div class="at-img-wrap">
+                <img src="${a.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(a.name) + '&background=d1fae5&color=059669&bold=true'}"
+                     alt="${a.name}" class="at-img" loading="lazy">
+                <span class="at-status-dot ${statusClass}"></span>
+              </div>
+              <div class="at-rating">
+                <i class="fas fa-star"></i> ${rating}
+              </div>
+            </div>
 
-          <!-- LEFT: Profile -->
-          <div class="card-left">
-             <div class="premium-img-wrapper">
-                <img src="${a.image || 'https://ui-avatars.com/api/?name=' + a.name + '&background=random'}"
-                     class="premium-astro-img" alt="${a.name}">
-                <div class="online-indicator ${a.isOnline ? 'active' : ''}"></div>
-             </div>
-             <div class="rating-badge">
-                <i class="fas fa-star"></i> <span>4.9</span>
-                <small>(${orderCount})</small>
-             </div>
-          </div>
+            <!-- Details Column -->
+            <div class="at-details-col">
+              <div class="at-name-row">
+                <h3 class="at-name">${a.name}</h3>
+                ${a.isVerified ? '<i class="fas fa-check-circle at-verified"></i>' : ''}
+              </div>
+              <p class="at-skills">${skillsText}</p>
+              <p class="at-lang">${languages.join(', ')}</p>
+              <p class="at-exp">Exp: ${a.experience || 5} Years</p>
+              <div class="at-price-row">
+                <span class="at-price">₹${a.price}/min</span>
+                <span class="at-orders">${orderCount} orders</span>
+              </div>
+            </div>
 
-          <!-- CENTER: Details -->
-          <div class="card-center">
-             <div class="name-row">
-                <h3 class="premium-name">${a.name}</h3>
-                ${isVerified ? '<i class="fas fa-check-circle verified-gold" title="Verified"></i>' : ''}
-             </div>
-
-             <!-- Document Verified Badge -->
-             ${a.isDocumentVerified ? `
-             <div class="doc-verified-badge">
-                <i class="fas fa-shield-alt"></i> Verified Expert
-             </div>` : ''}
-
-             <div class="skills-row">
-                ${skillsHtml}
-             </div>
-
-             <div class="exp-row">
-                <i class="fas fa-graduation-cap"></i>
-                <span>${a.experience || 5}+ Years Experience</span>
-             </div>
-
-             <div class="lang-row">
-                <i class="fas fa-language"></i>
-                <span>${languages.join(', ')}</span>
-             </div>
-          </div>
-
-          <!-- RIGHT: Action -->
-          <div class="card-right">
-             <div class="price-display">
-                <span class="currency">₹</span>
-                <span class="amount">${a.price}</span>
-                <span class="unit">/min</span>
-             </div>
-
-             <div class="status-text ${a.isOnline ? 'online' : 'busy'}">
-                ${a.isOnline ? '● Online' : '● Busy/Offline'}
-             </div>
-
-             <div class="action-buttons-stack">
-                <button class="btn-premium-call ${a.isAudioOnline ? '' : 'disabled'}"
-                     onclick="event.stopPropagation(); checkGuestAction('call', '${a.userId}')">
-                    <i class="fas fa-phone-alt"></i> Call Now
-                </button>
-
-                <button class="btn-premium-chat ${a.isChatOnline ? '' : 'disabled'}"
-                     onclick="event.stopPropagation(); checkGuestAction('chat', '${a.userId}')">
-                    <i class="fas fa-comment-dots"></i> Chat
-                </button>
-             </div>
+            <!-- Action Column -->
+            <div class="at-action-col">
+              <button class="at-btn-call ${a.isAudioOnline ? '' : 'wait'}"
+                   onclick="event.stopPropagation(); checkGuestAction('call', '${a.userId}')">
+                <i class="fas fa-phone-alt"></i>
+                ${a.isAudioOnline ? 'Call' : 'Wait'}
+              </button>
+              <button class="at-btn-chat ${a.isChatOnline ? '' : 'wait'}"
+                   onclick="event.stopPropagation(); checkGuestAction('chat', '${a.userId}')">
+                <i class="fas fa-comment-dots"></i>
+                ${a.isChatOnline ? 'Chat' : 'Wait'}
+              </button>
+            </div>
           </div>
         `;
         container.appendChild(div);
@@ -9090,455 +9262,288 @@
     }
 
     /* =========================================
-       PREMIUM WIDE ASTRO CARD (Redesign)
+       ASTROTALK-STYLE ASTROLOGER CARD
        ========================================= */
-    .premium-astro-card {
-      background: #FFFFFF;
-      border: 1px solid var(--border);
-      /* Subtle border */
-      border-radius: 16px;
-      padding: 15px;
-      /* Reduced padding from 24px */
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      /* Reduced gap from 30px */
-      position: relative;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      margin-bottom: 20px;
-      cursor: pointer;
-    }
 
-    .premium-astro-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
-      border-color: rgba(212, 175, 55, 0.3);
-      /* Gold hint on hover */
-    }
-
-    /* --- LEFT SECTION --- */
-    .card-left {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      min-width: 100px;
-    }
-
-    .premium-img-wrapper {
-      position: relative;
-      width: 96px;
-      height: 96px;
-      border-radius: 50%;
-      padding: 3px;
-      background: linear-gradient(135deg, #D4AF37 0%, rgba(212, 175, 55, 0.2) 100%);
-      /* Gold border */
-    }
-
-    .premium-astro-img {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 3px solid #0B0F1A;
-      /* Gap between border and image */
-    }
-
-    .online-indicator {
-      position: absolute;
-      bottom: 5px;
-      right: 5px;
-      width: 14px;
-      height: 14px;
-      background: #10B981;
-      border: 2px solid #0B0F1A;
-      border-radius: 50%;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-
-    .online-indicator.active {
-      opacity: 1;
-      box-shadow: 0 0 8px #10B981;
-    }
-
-    .rating-badge {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      background: rgba(255, 255, 255, 0.05);
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      color: var(--text-main);
-      border: 1px solid var(--border);
-    }
-
-    .rating-badge i {
-      color: #F59E0B;
-    }
-
-    .rating-badge small {
-      color: #9CA3AF;
-      margin-left: 2px;
-    }
-
-
-    /* --- CENTER SECTION --- */
-    .card-center {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .name-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .premium-name {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: #D4AF37;
-      /* Gold Name */
-      margin: 0;
-      letter-spacing: 0.5px;
-    }
-
-    .verified-gold {
-      color: #D4AF37;
-      font-size: 1rem;
-      filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.4));
-    }
-
-    .skills-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .skill-pill {
-      font-size: 0.75rem;
-      color: #E5E7EB;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 4px 12px;
-      border-radius: 4px;
-      letter-spacing: 0.5px;
-    }
-
-    .exp-row,
-    .lang-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.9rem;
-      color: #9CA3AF;
-    }
-
-    .exp-row i,
-    .lang-row i {
-      color: #6B7280;
-      font-size: 0.8rem;
-    }
-
-
-    /* --- RIGHT SECTION --- */
-    .card-right {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 15px;
-      min-width: 140px;
-    }
-
-    .price-display {
-      display: flex;
-      align-items: baseline;
-      color: #22C55E;
-      /* Green */
-    }
-
-    .price-display .currency {
-      font-size: 1rem;
-      color: #22C55E;
-      /* Green */
-      margin-right: 2px;
-    }
-
-    .price-display .amount {
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: #22C55E;
-      /* Green */
-    }
-
-    .price-display .unit {
-      font-size: 0.8rem;
-      color: #6B7280;
-      margin-left: 4px;
-    }
-
-    .status-text {
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-
-    .status-text.online {
-      color: #10B981;
-    }
-
-    .status-text.busy {
-      color: #EF4444;
-    }
-
-    .action-buttons-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      width: 100%;
-    }
-
-    .btn-premium-call {
-      background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
-      color: #FFFFFF;
-      border: none;
-      padding: 10px 20px;
-      font-weight: 700;
-      font-size: 0.95rem;
-      border-radius: 25px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: all 0.3s;
-      height: 44px;
-      width: 100%;
-      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
-    }
-
-    .btn-premium-call:hover {
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 8px 20px rgba(212, 175, 55, 0.4);
-    }
-
-    .btn-premium-chat {
-      background: transparent;
-      color: #D4AF37;
-      border: 1px solid rgba(212, 175, 55, 0.5);
-      padding: 8px 20px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      border-radius: 25px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: all 0.3s;
-      height: 40px;
-      width: 100%;
-    }
-
-    .btn-premium-chat:hover {
-      border-color: #D4AF37;
-      background: rgba(212, 175, 55, 0.05);
-      color: #FFF;
-    }
-
-    .btn-premium-call.disabled,
-    .btn-premium-chat.disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      filter: grayscale(1);
-    }
-
-
-    /* --- MOBILE RESPONSIVE --- */
-    @media (max-width: 768px) {
-      .premium-astro-card {
-        flex-direction: column;
-        align-items: stretch;
-        padding: 20px;
-        gap: 20px;
-        text-align: center;
-      }
-
-      .card-left {
-        align-items: center;
-      }
-
-      .premium-img-wrapper {
-        width: 80px;
-        height: 80px;
-      }
-
-      .card-center {
-        align-items: center;
-      }
-
-      .name-row {
-        justify-content: center;
-      }
-
-      .skills-row {
-        justify-content: center;
-      }
-
-      .card-right {
-        align-items: center;
-        width: 100%;
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-        padding-top: 15px;
-      }
-
-      .price-display {
-        margin-bottom: 10px;
-      }
-
-      .action-buttons-stack {
-        flex-direction: row;
-      }
-    }
-
-    /* Ribbon & Badges */
-    .ribbon-premium {
-      position: absolute;
-      top: -6px;
-      left: -6px;
-      z-index: 10;
-      overflow: hidden;
-      width: 85px;
-      height: 85px;
-      pointer-events: none;
-    }
-
-    .ribbon-premium span {
-      position: absolute;
-      display: block;
-      width: 120px;
-      padding: 8px 0;
-      background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%);
-      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
-      color: #000;
-      font: 700 0.65rem 'Outfit', sans-serif;
-      text-shadow: 0 1px 1px rgba(255, 255, 255, 0.2);
-      text-transform: uppercase;
-      text-align: center;
-      right: -12px;
-      top: 20px;
-      transform: rotate(-45deg);
-    }
-
-    .ribbon-premium::before,
-    .ribbon-premium::after {
-      position: absolute;
-      z-index: -1;
-      content: '';
-      display: block;
-      border: 5px solid #856404;
-      border-top-color: transparent;
-      border-left-color: transparent;
-    }
-
-    .ribbon-premium::before {
-      top: 0;
-      right: 0;
-    }
-
-    .ribbon-premium::after {
-      bottom: 0;
-      left: 0;
-    }
-
-    .doc-verified-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.75rem;
-      color: #10B981;
-      background: rgba(16, 185, 129, 0.1);
-      padding: 4px 10px;
-      border-radius: 20px;
-      border: 1px solid rgba(16, 185, 129, 0.2);
-      margin-bottom: 8px;
-      align-self: flex-start;
-      font-weight: 500;
-      letter-spacing: 0.3px;
-    }
-
-    /* --- ASTRO GRID CONTAINER --- */
+    /* Grid Container */
     .astro-grid-container {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 25px;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 20px;
       padding: 10px 0;
     }
 
-    /* Adjuct Card for Grid (Vertical Layout similar to mobile but polished for desktop) */
-    .astro-grid-container .premium-astro-card {
+    /* Card */
+    .at-card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .at-card:hover {
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
+      border-color: #d1fae5;
+    }
+
+    .at-card-inner {
+      display: flex;
+      align-items: flex-start;
+      padding: 16px;
+      gap: 14px;
+    }
+
+    /* --- Profile Column --- */
+    .at-profile-col {
+      display: flex;
       flex-direction: column;
       align-items: center;
-      text-align: center;
-      padding: 15px;
-      /* Reduced padding from 25px */
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .at-img-wrap {
+      position: relative;
+      width: 72px;
+      height: 72px;
+    }
+
+    .at-img {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2.5px solid #d1fae5;
+    }
+
+    .at-status-dot {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2.5px solid #fff;
+    }
+
+    .at-status-dot.online {
+      background: #10b981;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+    }
+
+    .at-status-dot.busy {
+      background: #f59e0b;
+    }
+
+    .at-status-dot.offline {
+      background: #d1d5db;
+    }
+
+    .at-rating {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #f59e0b;
+      background: #fffbeb;
+      padding: 2px 8px;
+      border-radius: 10px;
+      border: 1px solid #fef3c7;
+    }
+
+    .at-rating i {
+      font-size: 0.65rem;
+    }
+
+    /* --- Details Column --- */
+    .at-details-col {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .at-name-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .at-name {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1f2937;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .at-verified {
+      color: #059669;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .at-skills {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .at-lang {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin: 0;
+    }
+
+    .at-exp {
+      font-size: 0.75rem;
+      color: #059669;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .at-price-row {
+      display: flex;
+      align-items: center;
       gap: 10px;
-      /* Reduced gap from 15px */
-      height: 100%;
-      /* Equal height */
+      margin-top: 4px;
     }
 
-    .astro-grid-container .card-left {
-      align-items: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      padding-bottom: 10px;
-      /* Reduced from 15px */
-      width: 100%;
+    .at-price {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #1f2937;
     }
 
-    .astro-grid-container .card-center {
-      align-items: center;
-      width: 100%;
+    .at-orders {
+      font-size: 0.7rem;
+      color: #9ca3af;
     }
 
-    .astro-grid-container .name-row {
-      justify-content: center;
-      margin-bottom: 5px;
-    }
-
-    .astro-grid-container .skills-row {
-      justify-content: center;
-      margin-bottom: 8px;
-    }
-
-    .astro-grid-container .card-right {
-      align-items: center;
-      width: 100%;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      padding-top: 10px;
-      /* Reduced from 15px */
-      margin-top: auto;
-      /* Push to bottom */
-    }
-
-    .astro-grid-container .action-buttons-stack {
-      flex-direction: row;
-      justify-content: center;
-      width: 100%;
-    }
-
-    .astro-grid-container .doc-verified-badge {
+    /* --- Action Column --- */
+    .at-action-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
       align-self: center;
     }
 
-    .astro-grid-container .ribbon-premium {
-      left: -6px;
-      top: -6px;
+    .at-btn-call,
+    .at-btn-chat {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 90px;
+    }
+
+    .at-btn-call {
+      background: #059669;
+      color: #fff;
+    }
+
+    .at-btn-call:hover {
+      background: #047857;
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+    }
+
+    .at-btn-chat {
+      background: #fff;
+      color: #059669;
+      border: 1.5px solid #059669;
+    }
+
+    .at-btn-chat:hover {
+      background: #f0fdf4;
+    }
+
+    /* Wait / Offline state */
+    .at-btn-call.wait {
+      background: #f3f4f6;
+      color: #9ca3af;
+      border: 1px solid #e5e7eb;
+    }
+
+    .at-btn-chat.wait {
+      background: #f9fafb;
+      color: #9ca3af;
+      border-color: #e5e7eb;
+    }
+
+    .at-btn-call.wait:hover,
+    .at-btn-chat.wait:hover {
+      box-shadow: none;
+      background: #f3f4f6;
+      transform: none;
+    }
+
+    /* --- MOBILE RESPONSIVE --- */
+    @media (max-width: 768px) {
+      .astro-grid-container {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .at-card-inner {
+        padding: 12px;
+        gap: 10px;
+      }
+
+      .at-img-wrap {
+        width: 60px;
+        height: 60px;
+      }
+
+      .at-img {
+        width: 60px;
+        height: 60px;
+      }
+
+      .at-name {
+        font-size: 0.95rem;
+      }
+
+      .at-btn-call,
+      .at-btn-chat {
+        padding: 7px 14px;
+        font-size: 0.75rem;
+        min-width: 75px;
+      }
+    }
+
+    /* Desktop wide: 3 columns */
+    @media (min-width: 1200px) {
+      .astro-grid-container {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    /* Extra wide: 4 columns */
+    @media (min-width: 1600px) {
+      .astro-grid-container {
+        grid-template-columns: repeat(4, 1fr);
+      }
     }
   </style>
   <!-- Super Wallet Promotion Modal (Pink Theme) -->
