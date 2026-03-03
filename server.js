@@ -2460,9 +2460,28 @@ app.post('/api/astrologer/register', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Name and phone are required' });
     }
 
-    const existing = await User.findOne({ phone });
+    let existing = await User.findOne({ phone });
     if (existing) {
-      return res.json({ ok: false, error: 'Phone number already registered' });
+      if (existing.role === 'astrologer') {
+        return res.json({ ok: false, error: 'Phone number already registered as an astrologer' });
+      }
+      // If client, allow "upgrade"
+      existing.name = name || existing.name;
+      existing.realName = name;
+      existing.email = email || existing.email;
+      existing.astrologyExperience = experience;
+      existing.ratePerMinute = price;
+      existing.profession = skills;
+      existing.bio = bio;
+      existing.role = 'astrologer';
+      existing.approvalStatus = 'pending';
+      existing.isVerified = false;
+      existing.isAvailable = false;
+      existing.isOnline = false;
+
+      await existing.save();
+      console.log(`[Registration] Existing Client Upgraded to Astrologer (Pending): ${name} (${existing.userId})`);
+      return res.json({ ok: true, message: 'Existing client account upgraded to astrologer (Pending Approval)' });
     }
 
     const userId = 'ASTRO_' + Date.now() + Math.floor(Math.random() * 1000);
@@ -2528,9 +2547,42 @@ io.on('connection', (socket) => {
       }
 
       // Check if phone already exists
-      const existing = await User.findOne({ phone: cellNumber1 });
+      let existing = await User.findOne({ phone: cellNumber1 });
       if (existing) {
-        return cb({ ok: false, error: 'Phone number already registered' });
+        if (existing.role === 'astrologer') {
+          return cb({ ok: false, error: 'Phone number already registered as an astrologer' });
+        }
+
+        // Upgrade client to astrologer
+        existing.name = displayName || realName || existing.name;
+        existing.realName = realName;
+        existing.gender = gender;
+        existing.birthDetails = { dob, tob, pob, lat: 0, lon: 0 };
+        existing.cellNumber2 = cellNumber2;
+        existing.whatsAppNumber = whatsAppNumber;
+        existing.address = address;
+        existing.aadharNumber = aadharNumber;
+        existing.panNumber = panNumber;
+        existing.astrologyExperience = astrologyExperience;
+        existing.profession = profession;
+        existing.bankDetails = bankDetails;
+        existing.upiId = upiId;
+        existing.upiNumber = upiNumber;
+        existing.role = 'astrologer';
+        existing.approvalStatus = 'pending';
+        existing.isVerified = false;
+        existing.documentStatus = 'processing';
+
+        await existing.save();
+        console.log('Existing Client Upgraded to Astrologer:', existing.name, existing.userId);
+
+        // Notify Super Admin if online
+        io.to('superadmin').emit('admin-notification', {
+          text: `New Astrologer Request (Upgrade): ${existing.name}`,
+          data: { type: 'astro_registration' }
+        });
+
+        return cb({ ok: true });
       }
 
       const userId = 'ASTRO_' + Date.now() + Math.floor(Math.random() * 1000);

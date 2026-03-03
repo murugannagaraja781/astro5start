@@ -2090,11 +2090,11 @@
 
           <!-- Premium Services Grid -->
           <!-- Premium Services Grid -->
-          <div class="section-header" id="exploreServicesHeader">
+          <div class="section-header standard-desktop-section" id="exploreServicesHeader" style="margin-top: 40px;">
             <h2>Explore Services</h2>
             <div class="section-line"></div>
           </div>
-          <div class="services-grid-container" style="margin-bottom: 40px; overflow-x: auto; padding: 10px 5px;">
+          <div class="services-grid-container standard-desktop-section" style="margin-bottom: 40px;">
             <div style="display: flex; gap: 20px; padding: 5px 0;">
               <!-- Kundali -->
               <div class="service-item-card" onclick="openUniversalChartModal()">
@@ -2139,39 +2139,66 @@
             </div>
           </div>
 
-          <!-- Horoscope Section -->
-          <!-- Horoscope Section -->
-          <div id="dailyHoroscopeSection" style="margin-bottom: 60px; padding: 0 20px;">
-            <div class="section-header">
-              <h2>Daily Insights</h2>
-              <div class="section-line"></div>
-            </div>
+          <!-- ★ DAILY HOROSCOPE — Premium Section ★ -->
+          <div id="dailyHoroscopeSection" class="standard-desktop-section">
 
-            <div class="horoscope-container">
-              <div class="horoscope-header-glass">
-                <div class="horoscope-title-group">
-                  <span id="activeSignIcon" class="sign-icon-anim">♈</span>
-                  <h3 class="horoscope-main-title" id="activeSignName">மேஷம்</h3>
-                </div>
-                <span id="horoscopeDate" class="date-badge">Today</span>
+            <!-- Premium Header Card -->
+            <div class="dh-header-card">
+              <div class="dh-header-bg">
+                <div class="dh-stars"></div>
+                <div class="dh-celestial-ring"></div>
               </div>
-
-              <div class="zodiac-scroller" id="zodiacScroller">
-                <!-- Dynamic Zodiac Signs -->
-              </div>
-
-              <div class="horoscope-card-glass">
-                <div id="horoscopeLoading" class="loading-spinner">
-                  <i class="fas fa-circle-notch"></i>
+              <div class="dh-header-content">
+                <div class="dh-header-left">
+                  <div class="dh-badge-row">
+                    <span class="dh-live-dot"></span>
+                    <span class="dh-live-text">Live Insights</span>
+                  </div>
+                  <h2 class="dh-title">Daily Horoscope</h2>
+                  <p class="dh-desc">Celestial guidance tailored for your journey</p>
                 </div>
-                <div class="horoscope-content-box" id="horoscopeContent">
-                  <div id="horoscopeText"></div>
+                <div class="dh-header-right">
+                  <div class="dh-date-pill" id="horoscopeDate">
+                    <i class="fas fa-magic"></i>
+                    <span>Today</span>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <!-- Active Sign Banner -->
+            <div class="dh-active-banner">
+              <span id="activeSignIcon" class="dh-active-emoji">♈</span>
+              <div class="dh-active-info">
+                <h3 id="activeSignName" class="dh-active-name">மேஷம்</h3>
+                <span class="dh-active-label">Selected Rasi</span>
+              </div>
+              <div class="dh-active-arrow">
+                <i class="fas fa-chevron-down"></i>
+              </div>
+            </div>
+
+            <!-- Zodiac Scroller -->
+            <div class="dh-zodiac-scroll" id="zodiacScroller">
+              <!-- JS renders zodiac items here -->
+            </div>
+
+            <!-- Prediction Content Card -->
+            <div class="dh-prediction-card">
+              <div id="horoscopeLoading" class="dh-loader">
+                <div class="dh-loader-anim">
+                  <i class="fas fa-sun fa-spin"></i>
+                </div>
+                <p>Reading the stars...</p>
+              </div>
+              <div id="horoscopeContent" class="dh-prediction-content hidden">
+                <div id="horoscopeText"></div>
+              </div>
+            </div>
+
           </div>
 
-          <div class="filter-section" id="section-consult" style="padding: 20px 5% 0;">
+          <div class="filter-section standard-desktop-section" id="section-consult" style="padding-top: 20px;">
             <div class="filter-tabs" id="topFilterTabs">
               <div class="tab active" onclick="filterAstros('all')">All</div>
               <div class="tab" onclick="filterAstros('love')">Love</div>
@@ -2180,7 +2207,7 @@
               <div class="tab" onclick="filterAstros('health')">Health</div>
             </div>
           </div>
-          <div id="astroList" style="padding: 20px 5%;">
+          <div id="astroList" class="standard-desktop-section" style="padding-top: 20px;">
             <div class="loading-spinner" style="padding: 40px; text-align: center;">
               <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: var(--primary);"></i>
               <p style="margin-top: 10px; color: #9CA3AF;">Loading Astrologers...</p>
@@ -6987,18 +7014,51 @@
       if (loading) loading.style.display = 'none';
       if (content) content.classList.remove('hidden');
 
-      document.getElementById('horoscopeDate').innerText = data.date || 'இன்று';
+      const dateEl = document.getElementById('horoscopeDate');
+      if (dateEl) dateEl.innerHTML = `<i class="fas fa-calendar-day"></i> <span>${data.date || 'இன்று'}</span>`;
 
       const prediction = data.horoscope_data || 'இன்று உங்களுக்கு நற்பலன்கள் கிடைக்கும்.';
-      let html = `<p style="margin-bottom:15px; line-height:1.6;">${prediction}</p>`;
+      let html = `<div class="dh-pred-text">${prediction}</div>`;
 
       if (data.details) {
         html += `
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
-            <div style="font-size:0.85rem;"><i class="fas fa-briefcase" style="color:#d97706; width:18px;"></i> <b>தொழில்:</b> ${data.details.career_ta}</div>
-            <div style="font-size:0.85rem;"><i class="fas fa-coins" style="color:#059669; width:18px;"></i> <b>நிதி:</b> ${data.details.finance_ta}</div>
-            <div style="font-size:0.85rem;"><i class="fas fa-heartbeat" style="color:#ef4444; width:18px;"></i> <b>ஆரோக்கியம்:</b> ${data.details.health_ta}</div>
-            <div style="font-size:0.85rem;"><i class="fas fa-magic" style="color:#3b82f6; width:18px;"></i> <b>அதிர்ஷ்டம்:</b> ${data.details.lucky_number} (${data.details.lucky_color_ta})</div>
+          <div class="dh-details-grid">
+            <div class="dh-detail-item">
+              <div class="dh-detail-icon" style="background:#fef3c7; color:#d97706;">
+                <i class="fas fa-briefcase"></i>
+              </div>
+              <div class="dh-detail-info">
+                <span class="dh-detail-label">தொழில்</span>
+                <span class="dh-detail-val">${data.details.career_ta}</span>
+              </div>
+            </div>
+            <div class="dh-detail-item">
+              <div class="dh-detail-icon" style="background:#d1fae5; color:#059669;">
+                <i class="fas fa-coins"></i>
+              </div>
+              <div class="dh-detail-info">
+                <span class="dh-detail-label">நிதி</span>
+                <span class="dh-detail-val">${data.details.finance_ta}</span>
+              </div>
+            </div>
+            <div class="dh-detail-item">
+              <div class="dh-detail-icon" style="background:#fee2e2; color:#ef4444;">
+                <i class="fas fa-heartbeat"></i>
+              </div>
+              <div class="dh-detail-info">
+                <span class="dh-detail-label">ஆரோக்கியம்</span>
+                <span class="dh-detail-val">${data.details.health_ta}</span>
+              </div>
+            </div>
+            <div class="dh-detail-item">
+              <div class="dh-detail-icon" style="background:#dbeafe; color:#3b82f6;">
+                <i class="fas fa-star"></i>
+              </div>
+              <div class="dh-detail-info">
+                <span class="dh-detail-label">அதிர்ஷ்டம்</span>
+                <span class="dh-detail-val">${data.details.lucky_number} · ${data.details.lucky_color_ta}</span>
+              </div>
+            </div>
           </div>
         `;
       }
@@ -8805,108 +8865,432 @@
       }
     }
 
-    /* Horoscope Premium Styles */
-    .horoscope-container {
-      background: var(--bg-card);
-      border-radius: 20px;
-      padding: 30px;
-      border: 1px solid var(--border-glass);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    /* --- Global Section Alignment --- */
+    .standard-desktop-section {
+      padding: 0 5%;
+      margin-bottom: 40px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
-    .horoscope-header-glass {
+    /* ★ PREMIUM DAILY HOROSCOPE — PRO POLISH ★ */
+
+    #dailyHoroscopeSection {
+      animation: fadeIn 0.8s ease-out;
+      position: relative;
+    }
+
+    .dh-header-card {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      box-shadow: 0 20px 40px rgba(5, 150, 105, 0.15);
+      background: #064e3b;
+    }
+
+    .dh-header-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #0d9488 100%);
+      z-index: 0;
+    }
+
+    /* Celestial Decorative Elements */
+    .dh-stars {
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 20px 30px, #fff, rgba(0, 0, 0, 0)),
+        radial-gradient(1.5px 1.5px at 100px 150px, #fff, rgba(0, 0, 0, 0)),
+        radial-gradient(1px 1px at 200px 80px, #fff, rgba(0, 0, 0, 0)),
+        radial-gradient(2px 2px at 300px 200px, #fff, rgba(0, 0, 0, 0)),
+        radial-gradient(1px 1px at 400px 50px, #fff, rgba(0, 0, 0, 0)),
+        radial-gradient(1.5px 1.5px at 500px 120px, #fff, rgba(0, 0, 0, 0));
+      background-size: 550px 550px;
+      opacity: 0.3;
+      animation: dh-twinkle 4s infinite alternate;
+    }
+
+    @keyframes dh-twinkle {
+      from {
+        opacity: 0.2;
+      }
+
+      to {
+        opacity: 0.5;
+      }
+    }
+
+    .dh-celestial-ring {
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 250px;
+      height: 250px;
+      border: 30px solid rgba(255, 255, 255, 0.03);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: dh-rotate 20s linear infinite;
+    }
+
+    @keyframes dh-rotate {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .dh-header-content {
+      position: relative;
+      z-index: 1;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 25px;
+      padding: 30px 40px;
     }
 
-    .sign-icon-anim {
-      font-size: 2.5rem;
-      color: var(--primary);
-      text-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
-      animation: float 3s ease-in-out infinite;
+    .dh-badge-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
     }
 
-    @keyframes float {
+    .dh-live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #fbbf24;
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
+      animation: dh-pulse-pro 2s infinite;
+    }
 
-      0%,
-      100% {
-        transform: translateY(0);
+    @keyframes dh-pulse-pro {
+      0% {
+        transform: scale(0.9);
+        opacity: 0.7;
       }
 
       50% {
-        transform: translateY(-5px);
+        transform: scale(1.3);
+        opacity: 1;
+        box-shadow: 0 0 18px rgba(251, 191, 36, 1);
+      }
+
+      100% {
+        transform: scale(0.9);
+        opacity: 0.7;
       }
     }
 
-    .horoscope-main-title {
-      font-family: var(--font-heading);
+    .dh-live-text {
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: #fbbf24;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .dh-title {
+      font-family: 'Outfit', sans-serif;
       font-size: 1.8rem;
-      color: var(--text-main);
+      font-weight: 800;
+      color: #ffffff;
+      margin: 0;
+      line-height: 1;
+      letter-spacing: -0.5px;
+    }
+
+    .dh-desc {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.8);
+      margin: 8px 0 0;
+      font-weight: 400;
+    }
+
+    .dh-date-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      padding: 10px 20px;
+      border-radius: 40px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.85rem;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Active Sign — Premium Glass */
+    .dh-active-banner {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 18px 25px;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(8px);
+      border: 1px solid #d1fae5;
+      border-radius: 20px;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 30px rgba(5, 150, 105, 0.06);
+    }
+
+    .dh-active-emoji {
+      font-size: 2.8rem;
+      line-height: 1;
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+    }
+
+    .dh-active-info {
+      flex: 1;
+    }
+
+    .dh-active-name {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #064e3b;
       margin: 0;
     }
 
-    .date-badge {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border-glass);
-      padding: 5px 15px;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      color: var(--secondary);
+    .dh-active-label {
+      font-size: 0.7rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 800;
+      opacity: 0.8;
     }
 
-    /* Zodiac Scroller */
-    .zodiac-scroller {
+    .dh-active-arrow {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      opacity: 0.5;
+    }
+
+    /* Zodiac Scroller Refinement */
+    .dh-zodiac-scroll {
       display: flex;
-      gap: 15px;
+      gap: 16px;
       overflow-x: auto;
-      padding-bottom: 15px;
-      margin-bottom: 20px;
-      scrollbar-width: thin;
-      scrollbar-color: var(--primary) transparent;
+      padding: 5px 0 25px;
+      margin-bottom: 5px;
+      scrollbar-width: none;
+    }
+
+    .dh-zodiac-scroll::-webkit-scrollbar {
+      display: none;
     }
 
     .zodiac-item {
-      min-width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--border-glass);
+      min-width: 85px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 18px 12px;
+      border-radius: 20px;
+      background: #ffffff;
+      border: 1.5px solid #f1f5f9;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      flex-shrink: 0;
+    }
+
+    .zodiac-item .zodiac-icon {
+      font-size: 2rem;
+      line-height: 1;
+      transition: transform 0.3s ease;
+    }
+
+    .zodiac-item .zodiac-name {
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .zodiac-item:hover {
+      border-color: #059669;
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(5, 150, 105, 0.08);
+    }
+
+    .zodiac-item.active {
+      background: #059669;
+      border-color: #059669;
+      transform: translateY(-3px);
+      box-shadow: 0 12px 25px rgba(5, 150, 105, 0.3);
+    }
+
+    .zodiac-item.active .zodiac-name {
+      color: #ffffff;
+    }
+
+    .zodiac-item.active .zodiac-icon {
+      transform: scale(1.1);
+    }
+
+    /* Prediction Card — High End Polish */
+    .dh-prediction-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 28px;
+      padding: 40px;
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.03);
+      min-height: 250px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dh-prediction-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.05), transparent 70%);
+      pointer-events: none;
+    }
+
+    .dh-prediction-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(to bottom, #059669, #10b981);
+    }
+
+    .dh-loader {
+      text-align: center;
+      padding: 40px 0;
+    }
+
+    .dh-loader-anim i {
+      font-size: 2.8rem;
+      color: #fbbf24;
+      margin-bottom: 20px;
+      filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.4));
+    }
+
+    .dh-loader p {
+      color: #94a3b8;
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .dh-pred-text {
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: #334155;
+      margin-bottom: 35px;
+      font-weight: 500;
+      text-align: justify;
+    }
+
+    .dh-details-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      border-top: 1.5px solid #f1f5f9;
+      padding-top: 30px;
+    }
+
+    .dh-detail-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 16px 20px;
+      background: #f8fafc;
+      border-radius: 18px;
+      border: 1px solid #f1f5f9;
+      transition: all 0.3s ease;
+    }
+
+    .dh-detail-item:hover {
+      background: #ffffff;
+      transform: translateX(5px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+      border-color: #059669;
+    }
+
+    .dh-detail-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.5rem;
-      cursor: pointer;
-      transition: all 0.3s;
-      color: var(--text-muted);
+      font-size: 1rem;
+      flex-shrink: 0;
     }
 
-    .zodiac-item:hover,
-    .zodiac-item.active {
-      background: var(--primary);
-      color: #000;
-      transform: scale(1.1);
-      box-shadow: 0 0 15px var(--primary-glow);
-      border-color: var(--primary);
+    .dh-detail-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
 
-    .horoscope-card-glass {
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 15px;
-      padding: 25px;
-      min-height: 120px;
+    .dh-detail-label {
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
-    .horoscope-content-box {
-      font-size: 1.1rem;
-      line-height: 1.8;
-      color: #083571;
+    .dh-detail-val {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    @media (max-width: 768px) {
+      .dh-header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+        padding: 25px;
+      }
+
+      .dh-title {
+        font-size: 1.5rem;
+      }
+
+      .dh-details-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .dh-active-banner {
+        padding: 15px 20px;
+      }
+
+      .dh-active-emoji {
+        font-size: 2.2rem;
+      }
+
+      .dh-pred-text {
+        font-size: 1rem;
+        text-align: left;
+      }
     }
 
     /* Filter Tabs */
     .filter-section {
-      margin-bottom: 30px;
+      margin-bottom: 20px;
     }
 
     .filter-tabs {
@@ -8916,28 +9300,30 @@
     }
 
     .tab {
-      padding: 8px 24px;
-      border-radius: 30px;
-      border: 1px solid var(--border-glass);
-      background: rgba(255, 255, 255, 0.03);
-      color: var(--text-muted);
+      padding: 8px 22px;
+      border-radius: 25px;
+      border: 1.5px solid #e5e7eb;
+      background: #ffffff;
+      color: #6b7280;
       cursor: pointer;
-      transition: all 0.3s;
-      font-weight: 500;
-      font-size: 0.95rem;
+      transition: all 0.2s ease;
+      font-weight: 600;
+      font-size: 0.85rem;
+      font-family: 'Outfit', sans-serif;
     }
 
     .tab:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
+      background: #f0fdf4;
+      border-color: #a7f3d0;
+      color: #059669;
     }
 
     .tab.active {
-      background: var(--primary);
-      color: #FFFFFF;
-      border-color: var(--primary);
-      font-weight: 600;
-      box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
+      background: #059669;
+      color: #ffffff;
+      border-color: #059669;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(5, 150, 105, 0.2);
     }
 
     /* Premium Footer */
