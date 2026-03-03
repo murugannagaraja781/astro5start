@@ -7018,7 +7018,15 @@
       if (dateEl) dateEl.innerHTML = `<i class="fas fa-calendar-day"></i> <span>${data.date || 'இன்று'}</span>`;
 
       const prediction = data.horoscope_data || 'இன்று உங்களுக்கு நற்பலன்கள் கிடைக்கும்.';
-      let html = `<div class="dh-pred-text">${prediction}</div>`;
+      let html = `
+        <div class="dh-pred-container">
+          <div id="dhPredictionText" class="dh-pred-text">${prediction}</div>
+          <div id="dhReadMoreBtn" class="dh-read-more-btn" onclick="toggleHoroscopeReadMore()" style="display:none;">
+            <span>Read More</span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+        </div>
+      `;
 
       if (data.details) {
         html += `
@@ -7064,6 +7072,35 @@
       }
 
       document.getElementById('horoscopeText').innerHTML = html;
+
+      // Check if text needs "Read More" (longer than ~5 lines)
+      setTimeout(() => {
+        const textEl = document.getElementById('dhPredictionText');
+        const btnEl = document.getElementById('dhReadMoreBtn');
+        if (textEl && btnEl) {
+          if (textEl.scrollHeight > textEl.clientHeight) {
+            btnEl.style.display = 'inline-flex';
+          }
+        }
+      }, 50);
+    }
+
+    function toggleHoroscopeReadMore() {
+      const textEl = document.getElementById('dhPredictionText');
+      const btnEl = document.getElementById('dhReadMoreBtn');
+      const btnSpan = btnEl.querySelector('span');
+
+      if (textEl.classList.contains('expanded')) {
+        textEl.classList.remove('expanded');
+        btnEl.classList.remove('active');
+        btnSpan.innerText = 'Read More';
+        // Scroll back to top of container if needed
+        document.getElementById('dailyHoroscopeSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        textEl.classList.add('expanded');
+        btnEl.classList.add('active');
+        btnSpan.innerText = 'Show Less';
+      }
     }
 
     // Initialize Horoscope
@@ -9191,13 +9228,57 @@
       text-transform: uppercase;
     }
 
+    .dh-pred-container {
+      position: relative;
+      margin-bottom: 25px;
+    }
+
     .dh-pred-text {
       font-size: 0.9rem;
       line-height: 1.65;
       color: #334155;
-      margin-bottom: 25px;
       font-weight: 450;
       text-align: justify;
+      display: -webkit-box;
+      -webkit-line-clamp: 5;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      transition: all 0.4s ease;
+    }
+
+    .dh-pred-text.expanded {
+      -webkit-line-clamp: unset;
+      display: block;
+    }
+
+    .dh-read-more-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 10px;
+      color: #059669;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 5px 10px;
+      background: #f0fdf4;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      border: 1px solid #dcfce7;
+    }
+
+    .dh-read-more-btn:hover {
+      background: #dcfce7;
+      transform: translateY(-2px);
+    }
+
+    .dh-read-more-btn i {
+      font-size: 0.75rem;
+      transition: transform 0.3s ease;
+    }
+
+    .dh-read-more-btn.active i {
+      transform: rotate(180deg);
     }
 
     .dh-details-grid {
