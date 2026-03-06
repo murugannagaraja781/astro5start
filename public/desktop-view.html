@@ -513,68 +513,104 @@
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.8);
-      z-index: 2000;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 140000;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    .call-popup {
-      background: white;
-      width: 85%;
-      max-width: 320px;
-      border-radius: 20px;
-      padding: 20px;
+    /* WhatsApp Style Incoming Screen */
+    #screen-incoming .call-popup {
+      width: 100vw;
+      height: 100vh;
+      max-width: none;
+      border-radius: 0;
+      background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 80px 20px 100px;
+      margin: 0;
+      position: fixed;
+      inset: 0;
+    }
+
+    #screen-incoming .caller-info {
       text-align: center;
-      animation: popUp 0.3s ease-out;
     }
 
-    @keyframes popUp {
-      from {
-        transform: scale(0.8);
-        opacity: 0;
-      }
-
-      to {
-        transform: scale(1);
-        opacity: 1;
-      }
-    }
-
-    .caller-avatar {
-      width: 80px;
-      height: 80px;
+    #screen-incoming .caller-avatar {
+      width: 150px;
+      height: 150px;
       border-radius: 50%;
-      margin: 0 auto 10px;
-      display: block;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      margin: 20px auto;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
     }
 
-    .btn-accept {
-      background: #22C55E;
-      padding: 10px 30px;
-      border-radius: 30px;
+    #screen-incoming h3 {
+      font-size: 1.8rem;
+      margin-top: 10px;
       color: white;
-      font-size: 1.1rem;
-      margin: 10px;
-      border: none;
     }
 
-    .btn-reject {
-      background: #EF4444;
-      padding: 10px 30px;
-      border-radius: 30px;
-      color: white;
+    #screen-incoming p {
       font-size: 1.1rem;
-      margin: 10px;
-      border: none;
+      color: #94a3b8;
+      margin-top: 5px;
     }
+
+    #screen-incoming .call-actions {
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    #screen-incoming .action-btn {
+      width: 75px;
+      height: 75px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      border: none;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s;
+    }
+
+    #screen-incoming .action-btn:active {
+      transform: scale(0.9);
+    }
+
+    #screen-incoming .btn-accept {
+      background: #22c55e;
+    }
+
+    #screen-incoming .btn-reject {
+      background: #ef4444;
+    }
+
+    #screen-incoming .btn-accept i {
+      transform: rotate(0deg);
+    }
+
+    #screen-incoming .btn-reject i {
+      transform: rotate(135deg);
+    }
+
 
     #screen-session {
       position: fixed;
       inset: 0;
       background: black;
-      z-index: 3000;
+      z-index: 150000;
       display: flex;
       flex-direction: column;
     }
@@ -3405,12 +3441,18 @@
   <!-- Screen: Incoming Call Modal -->
   <div id="screen-incoming" class="modal-overlay hidden">
     <div class="call-popup">
-      <img src="https://ui-avatars.com/api/?name=User&background=random" class="caller-avatar">
-      <h3 style="margin: 0;">Incoming Call</h3>
-      <p style="color: #666; margin-bottom: 20px;" id="callerName">Client Name</p>
-      <div>
-        <button class="btn-reject" id="btnReject">Reject</button>
-        <button class="btn-accept" id="btnAccept">Accept</button>
+      <div class="caller-info">
+        <div
+          style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; color: #10b981; margin-bottom: 20px;">
+          Incoming Call</div>
+        <img src="https://ui-avatars.com/api/?name=User&background=random" class="caller-avatar">
+        <h3 id="callerName">Client Name</h3>
+        <p id="callTypeLabel">Audio Call...</p>
+      </div>
+
+      <div class="call-actions">
+        <button class="action-btn btn-reject" id="btnReject"><i class="fas fa-phone"></i></button>
+        <button class="action-btn btn-accept" id="btnAccept"><i class="fas fa-phone"></i></button>
       </div>
     </div>
   </div>
@@ -5540,10 +5582,17 @@
       }
 
       sInc.classList.remove('hidden');
-      const titles = { chat: 'Chat Request', audio: 'Incoming Call', video: 'Incoming Video Call' };
-      document.getElementById('callerName').innerHTML = `
-        <strong>${titles[data.type]}</strong><br>Client ${data.fromUserId.slice(0, 4)}
-      `;
+      if (document.getElementById('staticHeader')) document.getElementById('staticHeader').style.display = 'none';
+
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'VIBRATE' }));
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'FULLSCREEN', enable: true }));
+      }
+
+      const titles = { chat: 'Chat Request', audio: 'Voice Call', video: 'Video Call' };
+      document.getElementById('callerName').innerText = `Client ${data.fromUserId.slice(0, 6)}`;
+      document.getElementById('callTypeLabel').innerText = titles[data.type] || 'Voice Call';
+
 
       try {
         if (window.incomingAudio) {
