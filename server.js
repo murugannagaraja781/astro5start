@@ -704,7 +704,7 @@ const UserSchema = new mongoose.Schema({
   referredBy: { type: String, default: null },
   referralCount: { type: Number, default: 0 },
   isNewUser: { type: Boolean, default: true }
-});
+}, { timestamps: true });
 
 
 
@@ -3485,9 +3485,26 @@ io.on('connection', (socket) => {
   socket.on('get-all-users', async (cb) => {
     if (!await checkAdmin(socket.id)) return cb({ ok: false });
     try {
-      const users = await User.find({}).sort({ role: 1, name: 1 }); // Sort by role then name
+      // Sort by role (superadmin first), then by createdAt descending (recent first)
+      const users = await User.find({}).sort({ role: -1, createdAt: -1 });
       cb({ ok: true, users });
     } catch (e) { cb({ ok: false }); }
+  });
+
+  socket.on('admin-delete-user', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    try {
+      const user = await User.findOne({ userId: data.userId });
+      if (!user) return cb({ ok: false, error: 'User not found' });
+      if (user.role === 'superadmin') return cb({ ok: false, error: 'Cannot delete superadmin' });
+
+      await User.deleteOne({ userId: data.userId });
+      console.log(`[Admin] Deleted user: ${data.userId}`);
+      cb({ ok: true });
+    } catch (e) {
+      console.error(e);
+      cb({ ok: false, error: 'Deletion failed' });
+    }
   });
 
   // --- Admin: Edit User (Name Only) ---

@@ -91,6 +91,57 @@ body {
     border: 1px solid rgba(5, 150, 105, 0.05);
 }
 
+/* Premium Sidebar Active State */
+.nav-item.active {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: white !important;
+    box-shadow: inset 4px 0 0 #10b981 !important;
+}
+
+.nav-item.active i {
+    color: #10b981;
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.5));
+}
+
+/* Floating Animation for Badges */
+@keyframes float {
+    0% {
+        transform: translateY(0px) scale(1);
+    }
+
+    50% {
+        transform: translateY(-3px) scale(1.05);
+    }
+
+    100% {
+        transform: translateY(0px) scale(1);
+    }
+}
+
+.badge-pulse {
+    animation: float 3s ease-in-out infinite;
+}
+
+/* Glassmorphic Input */
+.glass-input {
+    background: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(5, 150, 105, 0.1) !important;
+    transition: all 0.3s ease;
+}
+
+.glass-input:focus {
+    background: white !important;
+    border-color: #059669 !important;
+    box-shadow: 0 0 20px rgba(5, 150, 105, 0.1) !important;
+}
+
+/* Premium Button Pulse */
+.btn-premium-pulse:hover {
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+    transform: translateY(-2px);
+}
+
 /* Fix for mobile navigation safe area */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
     .lg\:h-screen {
