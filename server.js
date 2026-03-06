@@ -2100,10 +2100,62 @@ function getOtherUserIdFromSession(sessionId, userId) {
   return u1 === userId ? u2 : u2 === userId ? u1 : null;
 }
 
+// Helper: Send Cancel Call Push
+async function sendCancelCallPush(toUserId, sessionId) {
+  try {
+    const toUser = await User.findOne({ userId: toUserId });
+    if (toUser && toUser.fcmToken) {
+      const payload = {
+        type: 'CANCEL_CALL',
+        sessionId: sessionId || ''
+      };
+      await sendFcmV1Push(toUser.fcmToken, payload, null);
+      console.log(`[FCM v1] Cancel Call push sent to ${toUserId}`);
+    }
+  } catch (e) {
+    console.error('Cancel Call Push Error:', e);
+  }
+}
+
+// Helper: Handle Missed Call Logic (Offline + Admin notification)
+async function handleMissedCallLogic(toUserId, fromUserId) {
+  try {
+    const astro = await User.findOne({ userId: toUserId });
+    if (astro && astro.role === 'astrologer') {
+      astro.isOnline = false;
+      astro.isAvailable = false;
+      await astro.save();
+      broadcastAstroUpdate();
+
+      // Notify Super Admin
+      const reasonMsg = `Missed Call Alert: ${astro.name} failed to answer. Automatically marked OFFLINE.`;
+      io.to('superadmin').emit('admin-notification', { text: reasonMsg, type: 'missed_call', astroId: toUserId });
+
+      // Log to text file
+      const logMsg = `[${new Date().toISOString()}] MISSED CALL: Astrologer ${astro.name} (${astro.phone}) missed a call from ${fromUserId}. Marked OFFLINE.\n`;
+      const fs = require('fs');
+      fs.appendFile('missed_calls_log.txt', logMsg, (err) => {
+        if (err) console.error('Error writing to log file', err);
+      });
+    }
+  } catch (err) {
+    console.error('handleMissedCallLogic Error:', err);
+  }
+}
+
 // Helper: End Session & Calculate Wallet
 async function endSessionRecord(sessionId) {
   const s = activeSessions.get(sessionId);
   if (!s) return;
+
+  if (!s.isAnswered && s.astrologerId) {
+    // If call was ended before being answered (caller cancelled or astro rejected)
+    sendCancelCallPush(s.astrologerId, sessionId);
+
+    // Auto-offline the astrologer and notify admin
+    const callerId = s.clientId || s.users.find(u => u !== s.astrologerId);
+    handleMissedCallLogic(s.astrologerId, callerId);
+  }
 
   const endTime = Date.now();
   // Phase 1/2: Use tracked billable seconds if available
@@ -3038,31 +3090,16 @@ io.on('connection', (socket) => {
       // --- MISSED CALL TIMEOUT (25s) ---
       setTimeout(async () => {
         const s = activeSessions.get(sessionId);
-        if (s && s.status === 'ringing') {
+        if (s && !s.isAnswered) {
           console.log(`[Session] Ringing timeout for ${sessionId}. Marking as MISSED.`);
           io.to(fromUserId).emit('session-ended', { sessionId, reason: 'no_answer' });
           io.to(toUserId).emit('session-ended', { sessionId, reason: 'missed' });
 
-          // --- MISS LOGIC START ---
-          const astro = await User.findOne({ userId: toUserId });
-          if (astro && astro.role === 'astrologer') {
-            astro.isOnline = false;
-            astro.isAvailable = false;
-            await astro.save();
-            broadcastAstroUpdate(); // Ensure this function is defined/imported
+          // Send FCM cancel push
+          sendCancelCallPush(toUserId, sessionId);
 
-            // Notify Super Admin
-            const reasonMsg = `Missed Call Alert: ${astro.name} failed to answer in 30s. Automatically marked OFFLINE.`;
-            io.to('superadmin').emit('admin-notification', { text: reasonMsg, type: 'missed_call', astroId: toUserId });
-
-            // Log to text file (as requested)
-            const logMsg = `[${new Date().toISOString()}] MISSED CALL: Astrologer ${astro.name} (${astro.phone}) missed a call from ${fromUserId}. Marked OFFLINE.\n`;
-            const fs = require('fs');
-            fs.appendFile('missed_calls_log.txt', logMsg, (err) => {
-              if (err) console.error('Error writing to log file', err);
-            });
-          }
-          // --- MISS LOGIC END ---
+          // Handle the miss logic
+          await handleMissedCallLogic(toUserId, fromUserId);
 
           userActiveSession.delete(fromUserId);
           userActiveSession.delete(toUserId);
