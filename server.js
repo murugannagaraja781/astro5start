@@ -3783,6 +3783,8 @@ io.on('connection', (socket) => {
 
       const billing = billingStats[0] || {};
 
+      const onlineAstrologers = await User.countDocuments({ role: 'astrologer', isOnline: true });
+
       // Map to expected format
       const stats = {
         totalRevenue: billing.totalRevenue || 0,
@@ -3791,7 +3793,8 @@ io.on('connection', (socket) => {
         totalDuration: (billing.totalMinutes || 0) * 60, // Convert minutes to seconds
         totalUsers: totalUsers,
         pendingRequests: pendingRequests,
-        activeSessions: activeSessionCount
+        activeSessions: activeSessionCount,
+        onlineAstrologers: onlineAstrologers
       };
 
       cb({ ok: true, stats, fullLedger });

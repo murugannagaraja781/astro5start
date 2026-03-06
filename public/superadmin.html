@@ -126,7 +126,7 @@
                 </div>
             </header>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-6 gap-6">
                 <!-- Stat Card 1 -->
                 <div
                     class="bg-white p-6 rounded-3xl border border-emerald-50 shadow-premium relative overflow-hidden group hover:scale-[1.03] hover:shadow-xl transition-all duration-500 cursor-default">
@@ -201,6 +201,21 @@
                     </div>
                     <i
                         class="fas fa-users-viewfinder absolute -right-4 -bottom-4 text-7xl opacity-[0.03] group-hover:opacity-[0.08] transition-opacity -rotate-12"></i>
+                </div>
+                <!-- Stat Card 6 -->
+                <div
+                    class="bg-white p-6 rounded-3xl border border-emerald-50 shadow-premium relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+                    <div class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">Online Astros</div>
+                    <div class="text-3xl font-black text-emerald-600 tracking-tighter self-center"
+                        id="stat-online-astros">0
+                    </div>
+                    <div
+                        class="mt-4 flex items-center gap-2 text-emerald-500 font-bold text-[0.7rem] bg-emerald-50 w-fit px-2 py-1 rounded-lg">
+                        <span class="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>Available Now</span>
+                    </div>
+                    <i
+                        class="fas fa-user-check absolute -right-4 -bottom-4 text-7xl opacity-[0.03] group-hover:opacity-[0.08] transition-opacity -rotate-12"></i>
                 </div>
             </div>
         </section>
@@ -981,6 +996,7 @@
                     document.getElementById('stat-astro-payout').innerText = s.astroPayout.toLocaleString();
                     document.getElementById('stat-active-sessions').innerText = s.activeSessions || 0;
                     document.getElementById('stat-total-users').innerText = s.totalUsers || 0;
+                    document.getElementById('stat-online-astros').innerText = s.onlineAstrologers || 0;
                     const badge = document.getElementById('pending-count-badge');
                     if (badge) {
                         const count = s.pendingRequests || 0;
@@ -1001,7 +1017,7 @@
                     document.getElementById('side-astro-count').innerText = astros.length;
                     document.getElementById('side-client-count').innerText = clients.length;
                     document.getElementById('client-list').innerHTML = clients.map(u => renderUserCard(u)).join('');
-                    document.getElementById('online-astro-count').innerText = astros.filter(u => (new Date() - new Date(u.lastSeen)) < 300000).length;
+                    document.getElementById('online-astro-count').innerText = astros.filter(u => u.isOnline).length;
                 }
             });
         }
@@ -1039,7 +1055,7 @@
         }
 
         function renderUserRow(u) {
-            const isOnline = (new Date() - new Date(u.lastSeen)) < 300000;
+            const isOnline = u.isOnline;
             return `
                 <tr class="hover:bg-slate-50 transition-colors">
                     <td class="px-3 py-2.5">
@@ -1082,7 +1098,7 @@
 
         function renderUserCard(u) {
             const isAstro = u.role === 'astrologer';
-            const isOnline = (new Date() - new Date(u.lastSeen)) < 300000;
+            const isOnline = u.isOnline;
             return `
                 <div class="bg-white p-4 lg:p-5 rounded-[1.8rem] border border-emerald-50 shadow-premium group transition-all duration-300">
                     <div class="flex flex-col sm:flex-row justify-between items-start gap-3">

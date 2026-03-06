@@ -434,6 +434,18 @@
       background: #d1d5db;
     }
 
+    .online-badge-text {
+      background: #d1fae5;
+      color: #059669;
+      font-size: 0.6rem;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-left: 6px;
+    }
+
     .at-rating {
       display: flex;
       align-items: center;
@@ -4676,6 +4688,7 @@
               <div class="at-name-row">
                 <h3 class="at-name">${a.name}</h3>
                 ${a.isVerified ? '<i class="fas fa-check-circle at-verified"></i>' : ''}
+                ${isOnline ? '<span class="online-badge-text">Online</span>' : ''}
               </div>
               <p class="at-skills">${skillsText}</p>
               <p class="at-lang">${languages.join(', ')}</p>
