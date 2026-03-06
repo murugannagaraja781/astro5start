@@ -2671,11 +2671,25 @@ io.on('connection', (socket) => {
           clearTimeout(sessionDisconnectTimeouts.get(userId));
           sessionDisconnectTimeouts.delete(userId);
           console.log(`[Session] Cancelled disconnect timeout for ${user.name} (reconnected in time!)`);
+        }
 
-          // Re-join the user to the socket room?
-          // If we depend on socket.id for targeting, we update userSockets above so it should be fine.
-          // However, if we used rooms for sessions, we'd need to re-join.
-          // Current logic uses userSockets.get(userId) to target, so updating the map is sufficient.
+        // --- NEW: Pending Session Re-Delivery ---
+        // If the user connects and they have an un-answered incoming session, re-emit it!
+        // This handles cases where they open the app from an FCM push notification.
+        const activeSessId = userActiveSession.get(userId);
+        if (activeSessId) {
+          const session = activeSessions.get(activeSessId);
+          // Make sure the session exists, is NOT answered yet, and THIS user is the receiver (users[1])
+          if (session && session.isAnswered === false && session.users[1] === userId) {
+            console.log(`[Session] Re-delivering pending incoming call ${activeSessId} to ${userId} upon reconnect.`);
+            socket.emit('incoming-session', {
+              sessionId: activeSessId,
+              fromUserId: session.users[0],
+              callerName: session.callerName,
+              type: session.type,
+              birthData: session.birthData
+            });
+          }
         }
 
         // If astro, broadcast status
@@ -2965,7 +2979,10 @@ io.on('connection', (socket) => {
         lastBilledMinute: 0,
         actualBillingStart: null,
         totalDeducted: 0,
-        totalEarned: 0
+        totalEarned: 0,
+        isAnswered: false,
+        callerName: fromUser?.name || 'Client',
+        birthData: birthData || null
       });
       userActiveSession.set(fromUserId, sessionId);
       userActiveSession.set(toUserId, sessionId);
@@ -3122,6 +3139,9 @@ io.on('connection', (socket) => {
 
       if (!accept) {
         endSessionRecord(sessionId);
+      } else {
+        const session = activeSessions.get(sessionId);
+        if (session) session.isAnswered = true;
       }
 
       // Emit to Room (userId) - works even after reconnect!
@@ -3149,6 +3169,12 @@ io.on('connection', (socket) => {
       if (!astrologerId || !sessionId) {
         if (typeof cb === 'function') cb({ ok: false, error: 'Invalid data' });
         return;
+      }
+
+      // Mark as answered if accepted
+      if (accept) {
+        const activeSess = activeSessions.get(sessionId);
+        if (activeSess) activeSess.isAnswered = true;
       }
 
       // Look up the session to find the caller (client)
