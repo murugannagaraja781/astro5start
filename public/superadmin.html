@@ -628,200 +628,241 @@
     <div id="modal-view-astro"
         class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-2 transition-all duration-300 hidden">
         <div
-            class="bg-white w-[98vw] lg:w-[1050px] rounded-[1.25rem] shadow-[0_40px_100px_rgba(0,0,0,0.3)] border border-white overflow-hidden animate-in zoom-in duration-300 max-h-[92vh] flex flex-col relative font-sans">
-            <header class="p-2.5 lg:px-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
-                <div class="flex items-center gap-3">
-                    <img id="view-astro-img" src="" class="w-10 h-10 rounded-lg object-cover ring-2 ring-emerald-50">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h3 id="view-astro-name" class="text-sm font-black text-slate-800 tracking-tight">Astro Name
-                            </h3>
+            class="bg-white w-[98vw] lg:w-[1000px] rounded-[2.5rem] shadow-[0_50px_120px_rgba(0,0,0,0.5)] border border-white overflow-hidden animate-in zoom-in duration-300 max-h-[96vh] flex flex-col relative font-sans">
+
+            <!-- Absolute Close Button for better accessibility -->
+            <button onclick="closeModal('modal-view-astro')"
+                class="absolute top-6 right-6 w-11 h-11 rounded-2xl bg-white border border-slate-100 text-slate-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all flex items-center justify-center font-bold text-2xl shadow-xl z-[100] active:scale-95">&times;</button>
+
+            <header
+                class="pt-8 pb-5 px-6 lg:px-10 border-b border-slate-100 flex justify-between items-start bg-white shrink-0">
+                <div class="flex items-center gap-6">
+                    <img id="view-astro-img" src=""
+                        class="w-16 h-16 rounded-3xl object-cover ring-8 ring-emerald-50 shadow-lg">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-3">
+                            <h3 id="view-astro-name" class="text-xl font-black text-black tracking-tight leading-none">
+                                Astro Name</h3>
                             <span
-                                class="bg-emerald-500 text-white text-[6px] font-black px-1 py-0.5 rounded-full uppercase tracking-tighter">ELITE</span>
+                                class="bg-emerald-600 text-white text-[7px] font-black px-2.5 py-1 rounded-full uppercase tracking-[0.2em] shadow-sm">ELITE
+                                PARTNER</span>
                         </div>
-                        <div class="flex items-center gap-2 text-[8px] mt-0.5">
-                            <span id="view-astro-id" class="font-bold text-slate-400">#------</span>
-                            <span class="text-brand-green font-black flex items-center gap-1"><i
-                                    class="fas fa-check-circle"></i> VERIFIED</span>
+                        <div class="flex items-center gap-5 text-[11px] text-slate-600 font-bold">
+                            <span id="view-astro-id" class="flex items-center gap-1.5"><i
+                                    class="fas fa-hashtag opacity-30"></i> UID: ------</span>
+                            <span
+                                class="text-brand-green font-black flex items-center gap-1.5 bg-emerald-100 px-2 py-0.5 rounded-md"><i
+                                    class="fas fa-shield-check"></i> VERIFIED BY SYSTEM</span>
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-3 pt-2 pr-12 lg:pr-16">
                     <button onclick="printAstroDetails()"
-                        class="px-3 py-1.5 rounded-md bg-slate-50 text-slate-600 font-bold text-[8px] uppercase tracking-widest border border-slate-200 flex items-center gap-1.5 hover:bg-white active:scale-95 transition-all">
-                        <i class="fas fa-print text-brand-green"></i> PRINT
+                        class="px-6 py-3 rounded-2xl bg-slate-50 text-slate-600 font-bold text-[10px] uppercase tracking-widest border border-slate-200 flex items-center gap-2.5 hover:bg-white active:scale-95 transition-all shadow-sm">
+                        <i class="fas fa-print text-brand-green"></i> PRINT PROFILE
                     </button>
-                    <button onclick="closeModal('modal-view-astro')"
-                        class="w-7 h-7 rounded-md bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold text-lg">&times;</button>
                 </div>
             </header>
 
-            <div class="p-3 lg:p-4 overflow-y-auto flex-1 custom-scrollbar bg-slate-50/30">
+            <div class="p-4 lg:p-6 overflow-y-auto flex-1 custom-scrollbar bg-slate-50/20">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
 
-                    <!-- Col 1: Identity & Security -->
+                    <!-- Column 1: Core Identity -->
                     <div class="space-y-3">
-                        <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm space-y-2.5">
+                        <section class="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm space-y-3">
                             <h4
-                                class="text-[7px] font-black uppercase text-brand-green tracking-[0.2em] flex items-center gap-1.5">
-                                <i class="fas fa-id-card opacity-30 text-[10px]"></i> Identity Node
+                                class="text-[7.5px] font-black uppercase text-brand-green tracking-[0.35em] flex items-center gap-2">
+                                <i class="fas fa-id-card opacity-30 text-xs"></i> SYSTEM IDENTITY
                             </h4>
-                            <div class="space-y-2 text-[9px]">
-                                <div><label class="text-[6px] font-bold text-slate-300 uppercase block mb-0.5">Official
+                            <div class="space-y-2.5">
+                                <div class="space-y-0.5">
+                                    <label class="text-[5px] font-bold text-slate-500 uppercase tracking-[0.2em]">Legal
                                         Name</label>
-                                    <p id="v-realName" class="font-black text-slate-700 truncate capitalize">---</p>
+                                    <p id="v-realName"
+                                        class="font-black text-black text-[8.5px] leading-tight uppercase truncate">
+                                        ---</p>
                                 </div>
-                                <div><label class="text-[6px] font-bold text-slate-300 uppercase block mb-0.5">Display
-                                        Name</label>
-                                    <p id="v-dispName" class="font-black text-brand-green truncate capitalize">---</p>
+                                <div class="space-y-0.5">
+                                    <label
+                                        class="text-[5px] font-bold text-slate-500 uppercase tracking-[0.2em]">Display
+                                        Pseudonym</label>
+                                    <p id="v-dispName"
+                                        class="font-black text-brand-green text-[8.5px] leading-tight uppercase truncate">
+                                        ---</p>
                                 </div>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div><label class="text-[6px] font-bold text-slate-300 uppercase">Gender</label>
-                                        <p id="v-gender" class="font-bold text-slate-500 italic">---</p>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="space-y-0.5">
+                                        <label
+                                            class="text-[5px] font-bold text-slate-500 uppercase tracking-[0.2em]">Sex/Gender</label>
+                                        <p id="v-gender" class="font-black text-black text-[8px] uppercase">---</p>
                                     </div>
-                                    <div><label class="text-[6px] font-bold text-slate-300 uppercase">DOB</label>
-                                        <p id="v-dob" class="font-bold text-slate-500">---</p>
+                                    <div class="space-y-0.5">
+                                        <label
+                                            class="text-[5px] font-bold text-slate-500 uppercase tracking-[0.2em]">Birth
+                                            Timestamp</label>
+                                        <p id="v-dob" class="font-black text-black text-[8px]">---</p>
                                     </div>
                                 </div>
-                                <div class="pt-1.5 border-t border-slate-50">
-                                    <label class="text-[6px] font-bold text-slate-300 uppercase block mb-0.5">Email
-                                        Gateway</label>
-                                    <p id="v-email" class="font-bold text-slate-500 truncate">---</p>
+                                <div class="pt-2 border-t border-slate-50 space-y-0.5">
+                                    <label
+                                        class="text-[5px] font-bold text-slate-500 uppercase tracking-[0.2em]">Primary
+                                        Email Node</label>
+                                    <p id="v-email" class="font-black text-black text-[8px] truncate">---</p>
                                 </div>
-                                <div>
-                                    <label class="text-[6px] font-bold text-slate-300 uppercase block mb-0.5">Astro
-                                        Birth Details</label>
-                                    <p id="v-tob-pob" class="font-bold text-slate-600 leading-tight">---</p>
+                                <div class="space-y-0.5">
+                                    <label class="text-[5px] font-bold text-slate-500 uppercase tracking-[0.2em]">Natal
+                                        Coordinates</label>
+                                    <p id="v-tob-pob" class="font-black text-black text-[8px] leading-tight">---</p>
                                 </div>
                             </div>
-                        </div>
+                        </section>
 
-                        <div class="bg-slate-900 p-3 rounded-xl shadow-md border border-slate-800 space-y-2.5">
+                        <section
+                            class="bg-emerald-50 p-4 rounded-[1.5rem] border border-emerald-100 shadow-sm space-y-3">
                             <h4
-                                class="text-[7px] font-black uppercase text-emerald-400 tracking-[0.2em] flex items-center gap-1.5">
-                                <i class="fas fa-fingerprint opacity-30 text-[10px]"></i> KYC Vault
+                                class="text-[7.5px] font-black uppercase text-brand-green tracking-[0.35em] flex items-center gap-2">
+                                <i class="fas fa-fingerprint opacity-30 text-xs"></i> ENCRYPTED KYC
                             </h4>
-                            <div class="space-y-2">
-                                <div class="bg-white/5 p-2 rounded-lg border border-white/5">
+                            <div class="space-y-2.5">
+                                <div class="bg-white p-3 rounded-xl border border-emerald-100 space-y-1 shadow-sm">
                                     <label
-                                        class="text-[6px] font-black text-emerald-500/30 uppercase block mb-0.5">Aadhar
-                                        Card</label>
+                                        class="text-[5px] font-black text-emerald-600 uppercase tracking-[0.25em]">Aadhar
+                                        UID</label>
                                     <p id="v-aadhar"
-                                        class="text-[10px] font-black text-white tracking-[0.2em] font-mono">---</p>
+                                        class="text-[8.5px] font-black text-black tracking-[0.35em] font-mono leading-none">
+                                        ---</p>
                                 </div>
-                                <div class="bg-white/5 p-2 rounded-lg border border-white/5">
-                                    <label class="text-[6px] font-black text-emerald-500/30 uppercase block mb-0.5">PAN
-                                        Card</label>
+                                <div class="bg-white p-3 rounded-xl border border-emerald-100 space-y-1 shadow-sm">
+                                    <label
+                                        class="text-[5px] font-black text-emerald-600 uppercase tracking-[0.25em]">Tax
+                                        ID (PAN)</label>
                                     <p id="v-pan"
-                                        class="text-[10px] font-black text-white tracking-[0.2em] font-mono uppercase">
+                                        class="text-[8.5px] font-black text-black tracking-[0.35em] font-mono uppercase leading-none">
                                         ---</p>
                                 </div>
                             </div>
-                        </div>
+                        </section>
                     </div>
 
-                    <!-- Col 2: Expertise & Profile -->
-                    <div class="space-y-3">
-                        <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm space-y-3">
-                            <div class="flex items-start justify-between border-b border-slate-50 pb-2">
-                                <div>
-                                    <h4 class="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-1.5">
-                                        Domain expertise</h4>
-                                    <p id="v-skills" class="text-[10px] font-black text-brand-green leading-snug">---
+                    <!-- Column 2: Professional Profile -->
+                    <div class="space-y-4">
+                        <section class="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+                            <div class="flex items-center justify-between border-b border-slate-50 pb-4">
+                                <div class="flex-1 pr-6 space-y-1.5">
+                                    <h4 class="text-[8.5px] font-black uppercase text-slate-600 tracking-[0.25em]">
+                                        Domain Expertise</h4>
+                                    <p id="v-skills"
+                                        class="text-[9.5px] font-black text-brand-green leading-relaxed uppercase">---
                                     </p>
                                 </div>
                                 <div
-                                    class="bg-emerald-50/50 px-2.5 py-1.5 rounded-lg border border-emerald-100/50 text-center shrink-0">
-                                    <span class="text-[6px] font-black text-brand-green uppercase block">Exp</span>
-                                    <p id="v-exp" class="text-[11px] font-black text-brand-green">--y</p>
+                                    class="bg-emerald-50 px-4 py-3 rounded-2xl border border-emerald-100/50 text-center shrink-0 min-w-[80px] shadow-sm">
+                                    <span
+                                        class="text-[5.5px] font-black text-brand-green uppercase block tracking-widest mb-1">Tenure</span>
+                                    <p id="v-exp" class="text-[11px] font-black text-brand-green">---</p>
                                 </div>
                             </div>
 
-                            <div>
-                                <h4 class="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-1.5">Bio
-                                    Narrative</h4>
+                            <div class="space-y-2">
+                                <h4 class="text-[7.5px] font-black uppercase text-slate-600 tracking-[0.25em]">
+                                    Professional Narrative</h4>
                                 <div
-                                    class="bg-slate-50/50 p-2.5 rounded-lg border border-slate-100 min-h-[100px] max-h-[140px] overflow-y-auto custom-scrollbar">
-                                    <p id="v-profession" class="text-[8px] text-slate-600 leading-relaxed font-medium">
-                                        ---</p>
+                                    class="bg-slate-50/50 p-3 rounded-[1.25rem] border border-slate-100 min-h-[80px] max-h-[160px] overflow-y-auto custom-scrollbar">
+                                    <p id="v-profession" class="text-[8px] text-black leading-relaxed font-semibold">---
+                                    </p>
                                 </div>
                             </div>
 
-                            <div class="bg-white px-2 py-2 rounded-lg border border-slate-50 flex items-start gap-2">
-                                <i class="fas fa-location-dot text-slate-300 text-[8px] mt-0.5"></i>
-                                <div class="flex-1 overflow-hidden">
-                                    <label class="text-[6px] font-bold text-slate-300 uppercase block mb-0.5">Work
-                                        Base</label>
-                                    <p id="v-address" class="text-[8px] font-bold text-slate-500 leading-tight">---</p>
+                            <div
+                                class="bg-white px-5 py-4 rounded-2xl border border-slate-50 flex items-start gap-4 shadow-inner">
+                                <i class="fas fa-map-marker-alt text-brand-green/40 text-sm mt-0.5"></i>
+                                <div class="flex-1 overflow-hidden space-y-1">
+                                    <label
+                                        class="text-[5.5px] font-bold text-slate-500 uppercase tracking-[0.2em]">Deployment
+                                        HUB</label>
+                                    <p id="v-address" class="text-[8.5px] font-black text-black leading-snug">---</p>
                                 </div>
                             </div>
-                        </div>
+                        </section>
                     </div>
 
-                    <!-- Col 3: Communication & Finance -->
+                    <!-- Column 3: Communication & Finance -->
                     <div class="space-y-3">
-                        <div class="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100/30 space-y-3 shadow-sm">
-                            <h4 class="text-[7px] font-black uppercase text-brand-green tracking-[0.2em]"><i
-                                    class="fas fa-headset opacity-30 mr-1.5"></i> Gateways</h4>
-                            <div class="grid grid-cols-1 gap-2.5">
+                        <section
+                            class="bg-emerald-50/50 p-4 rounded-[1.5rem] border border-emerald-100/30 space-y-4 shadow-sm">
+                            <h4
+                                class="text-[7.5px] font-black uppercase text-brand-green tracking-[0.35em] flex items-center gap-2">
+                                <i class="fas fa-signal-stream opacity-30 text-xs"></i> COMMS ACCESS
+                            </h4>
+                            <div class="space-y-2.5">
                                 <div
-                                    class="flex justify-between items-center bg-white p-2 rounded-lg border border-emerald-100/50">
-                                    <label class="text-[6px] font-bold text-slate-400 uppercase">Primary</label>
-                                    <p id="v-phone" class="text-[10px] font-black text-slate-700">---</p>
+                                    class="flex justify-between items-center bg-white p-3 rounded-xl border border-emerald-100/50">
+                                    <label class="text-[5px] font-bold text-slate-500 uppercase tracking-widest">Master
+                                        Line</label>
+                                    <p id="v-phone" class="text-[8.5px] font-black text-black">---</p>
                                 </div>
                                 <div
-                                    class="flex justify-between items-center bg-white p-2 rounded-lg border border-emerald-100/50">
-                                    <label class="text-[6px] font-bold text-slate-400 uppercase">Alternate</label>
-                                    <p id="v-cell2" class="text-[9px] font-bold text-slate-500">---</p>
+                                    class="flex justify-between items-center bg-white p-3 rounded-xl border border-emerald-100/50">
+                                    <label
+                                        class="text-[5px] font-bold text-slate-500 uppercase tracking-widest">Secondary</label>
+                                    <p id="v-cell2" class="text-[8.5px] font-black text-slate-800">---</p>
                                 </div>
                                 <div
-                                    class="flex justify-between items-center bg-brand-green/90 p-2 rounded-lg shadow-sm">
-                                    <label class="text-[6px] font-bold text-white/70 uppercase">Whatsapp</label>
-                                    <p id="v-whatsapp" class="text-[10px] font-black text-white">---</p>
+                                    class="flex justify-between items-center bg-white p-3 rounded-xl border border-emerald-100 shadow-sm">
+                                    <label
+                                        class="text-[5px] font-bold text-slate-500 uppercase tracking-widest">WhatsApp
+                                        ID</label>
+                                    <p id="v-whatsapp" class="text-[8.5px] font-black text-black">---</p>
                                 </div>
                             </div>
-                        </div>
+                        </section>
 
-                        <div class="bg-slate-900 p-3 rounded-xl shadow-lg border border-slate-800 space-y-3">
-                            <h4 class="text-[7px] font-black uppercase text-emerald-400 tracking-[0.2em]"><i
-                                    class="fas fa-wallet opacity-30 mr-1.5"></i> Fin-Node</h4>
-                            <div class="space-y-2">
-                                <div class="flex flex-col bg-white/5 p-2 rounded-lg border border-white/5">
-                                    <span class="text-[6px] font-bold text-emerald-500/30 uppercase mb-0.5">Settlement
-                                        ID</span>
+                        <section
+                            class="bg-emerald-50 p-4 rounded-[1.5rem] border border-emerald-100 shadow-sm space-y-4">
+                            <h4
+                                class="text-[7.5px] font-black uppercase text-brand-green tracking-[0.35em] flex items-center gap-2">
+                                <i class="fas fa-microchip opacity-30 text-xs"></i> FISCAL SETTLEMENT
+                            </h4>
+                            <div class="space-y-3">
+                                <div
+                                    class="flex flex-col bg-white p-3 rounded-xl border border-emerald-100 space-y-1 shadow-sm">
+                                    <span class="text-[5px] font-bold text-emerald-600 uppercase tracking-[0.25em]">UPI
+                                        Endpoint ID</span>
                                     <span id="v-upiId"
-                                        class="text-[9px] font-black text-white italic truncate tracking-tight">---</span>
+                                        class="text-[8px] font-black text-black italic truncate tracking-tight uppercase">---</span>
                                 </div>
-                                <div class="grid grid-cols-2 gap-2">
+                                <div class="grid grid-cols-2 gap-3">
                                     <div
-                                        class="flex flex-col bg-white/5 p-2 rounded-lg border border-white/5 text-center">
-                                        <span class="text-[6px] font-bold text-emerald-500/30 uppercase mb-0.5">UPI
-                                            Phone</span>
+                                        class="flex flex-col bg-white p-3 rounded-xl border border-emerald-100 text-center space-y-1 shadow-sm">
+                                        <span
+                                            class="text-[5px] font-bold text-emerald-600 uppercase tracking-[0.15em]">UPI
+                                            Link PH</span>
                                         <span id="v-upiNum"
-                                            class="text-[9px] font-bold text-emerald-100 tracking-tighter">---</span>
+                                            class="text-[8.5px] font-black text-black tracking-tighter">---</span>
                                     </div>
                                     <div
-                                        class="flex flex-col bg-white/5 p-2 rounded-lg border border-white/5 text-center">
-                                        <span class="text-[6px] font-bold text-emerald-500/30 uppercase mb-0.5">Bank
-                                            Link</span>
+                                        class="flex flex-col bg-white p-3 rounded-xl border border-emerald-100 text-center space-y-1 overflow-hidden shadow-sm">
+                                        <span
+                                            class="text-[5px] font-bold text-emerald-600 uppercase tracking-[0.15em]">Bank
+                                            Core</span>
                                         <span id="v-bank"
-                                            class="text-[8px] font-bold text-white/50 truncate italic tracking-tighter">---</span>
+                                            class="text-[7px] font-black text-black uppercase leading-none">---</span>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </section>
                     </div>
                 </div>
             </div>
 
             <footer
-                class="p-2.5 lg:px-4 bg-white border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
+                class="p-5 lg:px-10 bg-white border-t border-slate-100 flex items-center justify-end gap-6 shrink-0">
                 <button onclick="closeModal('modal-view-astro')"
-                    class="px-5 py-2 rounded-md border border-slate-200 text-slate-400 font-bold text-[9px] uppercase hover:text-slate-600 hover:border-slate-300 transition-all active:scale-95">BACK
-                    TO LIST</button>
+                    class="px-8 py-3.5 rounded-2xl border border-slate-200 text-slate-400 font-bold text-[11px] uppercase hover:text-slate-600 hover:border-slate-300 transition-all active:scale-95 tracking-widest">DISMISS
+                    PROFILE</button>
                 <button onclick="printAstroDetails()"
-                    class="px-6 py-2 rounded-md bg-slate-900 text-white font-black text-[9px] uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
-                    <i class="fas fa-file-invoice text-emerald-400"></i> SYSTEM PRINT
+                    class="px-12 py-3.5 rounded-2xl bg-slate-900 text-white font-black text-[11px] uppercase tracking-[0.35em] hover:bg-black transition-all shadow-2xl active:scale-95 flex items-center justify-center gap-3">
+                    <i class="fas fa-file-invoice text-emerald-400"></i> GENERATE TICKET
                 </button>
             </footer>
         </div>
