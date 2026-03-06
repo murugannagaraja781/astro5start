@@ -775,9 +775,12 @@ const BillingLedgerSchema = new mongoose.Schema({
   adminAmount: Number,
   reason: {
     type: String,
-    enum: ['first_60', 'first_60_partial', 'first_60_min_charge', 'fraction_roundup', 'slab', 'rounded', 'payout_withdrawal', 'referral', 'bonus',
+    enum: [
+      'first_60', 'first_60_partial', 'first_60_min_charge', 'fraction_roundup',
+      'slab', 'rounded', 'payout_withdrawal', 'referral', 'bonus',
       'slab_1', 'slab_2', 'slab_3', 'slab_4', 'slab_5', 'slab_6', 'slab_7', 'slab_8', 'slab_9', 'slab_10',
-      'slab_11', 'slab_12', 'slab_13', 'slab_14', 'slab_15', 'slab_16', 'slab_17', 'slab_18', 'slab_19', 'slab_20']
+      'slab_11', 'slab_12', 'slab_13', 'slab_14', 'slab_15', 'slab_16', 'slab_17', 'slab_18', 'slab_19', 'slab_20'
+    ]
   },
   createdAt: { type: Date, default: Date.now }
 });
@@ -4089,8 +4092,8 @@ io.on('connection', (socket) => {
         const user = await User.findOne({ userId });
         if (user && user.role === 'astrologer') {
           // Save current status before potential offline
-          return; // Manual Toggle Rule: Skip offline marking
-
+          // Manual Toggle Rule: Skip offline marking, but DO NOT return!
+          // We must continue to clean up the session below.
         }
       } catch (e) { console.error('Disconnect DB error', e); }
 
