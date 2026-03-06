@@ -383,7 +383,7 @@ async function getFormattedAstrologers() {
       experience: a.experience || 0,
       isVerified: a.isVerified || false,
       isBusy: a.isBusy || false,
-      image: formatImageUrl(a.image, a.name),
+      image: a.photoStatus === 'pending' ? '/images/waiting-approval.png' : formatImageUrl(a.image, a.name),
       languages: a.languages || ['Tamil', 'English'],
       orderCount: a.orderCount || 0,
       isDocumentVerified: a.isDocumentVerified || false
@@ -680,6 +680,8 @@ const UserSchema = new mongoose.Schema({
   isDocumentVerified: { type: Boolean, default: false },
   documentStatus: { type: String, default: 'none' },
   image: { type: String, default: '' },
+  pendingImage: { type: String, default: '' },
+  photoStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
   birthDetails: {
     dob: String,
     tob: String,
@@ -2861,7 +2863,14 @@ io.on('connection', (socket) => {
       if (user) {
         if (data.price) user.price = parseInt(data.price);
         if (data.experience) user.experience = parseInt(data.experience);
-        if (data.image) user.image = data.image; // URL
+        if (data.image) {
+          if (user.role === 'astrologer') {
+            user.pendingImage = data.image;
+            user.photoStatus = 'pending';
+          } else {
+            user.image = data.image; // Direct update for clients
+          }
+        }
         if (data.birthDetails) {
           user.birthDetails = { ...user.birthDetails, ...data.birthDetails };
         }
@@ -3591,6 +3600,39 @@ io.on('connection', (socket) => {
     } catch (e) {
       console.error(e);
       cb({ ok: false, error: 'Update Failed' });
+    }
+  });
+
+  // --- Photo Approvals ---
+  socket.on('admin-get-photo-approvals', async (cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    try {
+      const pendingUsers = await User.find({ photoStatus: 'pending' }).select('userId name phone image pendingImage photoStatus updatedAt').lean();
+      cb({ ok: true, pendingUsers });
+    } catch (e) {
+      cb({ ok: false, error: 'Fetch failed' });
+    }
+  });
+
+  socket.on('admin-resolve-photo-approval', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    const { userId, action } = data;
+    try {
+      const user = await User.findOne({ userId });
+      if (!user) return cb({ ok: false, error: 'User not found' });
+      if (action === 'approve') {
+        user.image = user.pendingImage;
+        user.photoStatus = 'approved';
+        user.pendingImage = '';
+      } else {
+        user.photoStatus = 'rejected';
+        user.pendingImage = '';
+      }
+      await user.save();
+      await broadcastAstroUpdate();
+      cb({ ok: true, message: `Photo ${action}d` });
+    } catch (e) {
+      cb({ ok: false, error: 'Resolution failed' });
     }
   });
 
