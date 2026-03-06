@@ -3010,15 +3010,14 @@ io.on('connection', (socket) => {
           callerName: fromUser?.name || 'Client',
           callerId: fromUserId, // Fixed: callerUserId -> callerId
           timestamp: Date.now().toString(),
-          birthData: JSON.stringify(birthData || {})
-        };
-
-        const fcmNotification = {
+          birthData: JSON.stringify(birthData || {}),
           title: '📞 Incoming Call',
           body: `${fromUser?.name || 'Someone'} is calling you`
         };
 
-        sendFcmV1Push(toUser.fcmToken, fcmData, fcmNotification)
+        // Pass 'null' for notification to make it a DATA-ONLY push.
+        // This is CRITICAL for Android to wake up from a killed state and show the Full Screen Intent.
+        sendFcmV1Push(toUser.fcmToken, fcmData, null)
           .then(result => {
             console.log(`[FCM v1] Session Push to ${toUserId}: Success=${result.success} (socketSent=${socketSent})`);
             if (!result.success && (result.error?.includes('Requested entity was not found') || result.error === 'UNREGISTERED')) {
