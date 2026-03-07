@@ -55,23 +55,17 @@ async function getPhonePeOAuthToken() {
     params.append('grant_type', 'client_credentials');
 
     console.log(`[PhonePe OAuth] Requesting token from: ${oauthUrl}`);
-    console.log(`[PhonePe OAuth] ID: ${PHONEPE_CLIENT_ID.substring(0, 5)}...`);
-
-    const authHeader = 'Basic ' + Buffer.from(`${PHONEPE_CLIENT_ID}:${PHONEPE_CLIENT_SECRET}`).toString('base64');
+    console.log(`[PhonePe OAuth] Sending: client_id=${PHONEPE_CLIENT_ID.substring(0, 4)}..., version=${PHONEPE_CLIENT_VERSION}`);
 
     const response = await fetch(oauthUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': authHeader // Some OIM versions require this
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: params.toString()
     });
 
-
-    console.log(`[PhonePe OAuth] Status: ${response.status}`);
-
-
+    console.log(`[PhonePe OAuth] Response Status: ${response.status}`);
     const text = await response.text();
     let data;
     try {
@@ -84,14 +78,15 @@ async function getPhonePeOAuthToken() {
     if (response.ok && data.access_token) {
       phonepeTokenStore = {
         accessToken: data.access_token,
-        expiresAt: data.expires_at || (Math.floor(Date.now() / 1000) + 3600) // Default 1 hour if not provided
+        expiresAt: data.expires_at || (Math.floor(Date.now() / 1000) + (data.expires_in || 3600))
       };
-      console.log(`[PhonePe OAuth] New Token Generated. Expires at: ${new Date(phonepeTokenStore.expiresAt * 1000).toISOString()}`);
+      console.log(`[PhonePe OAuth] Token successfully generated.`);
       return data.access_token;
     } else {
       console.error("[PhonePe OAuth] Token Generation Failed:", data);
       return null;
     }
+
   } catch (err) {
     console.error("[PhonePe OAuth] Error:", err.message);
     return null;
