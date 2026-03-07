@@ -4578,6 +4578,7 @@ app.post('/api/payment/create', async (req, res) => {
     const merchantTransactionId = "MT" + Date.now() + Math.floor(Math.random() * 1000);
     const redirectUrl = `https://astro5star.com/api/payment/callback`;
 
+
     // Finalize Coupon Bonus if any
     if (couponCode) {
       const code = couponCode.toUpperCase().trim();
@@ -4609,8 +4610,9 @@ app.post('/api/payment/create', async (req, res) => {
     // PhonePe Standard Checkout v2
     const amountInPaisa = Math.round(amount * 100);
     const callbackRedirectUrl = isApp
-      ? `https://astroluna.in/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`
-      : `https://astroluna.in/api/payment/callback?txnId=${merchantTransactionId}`;
+      ? `https://astro5star.com/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`
+      : `https://astro5star.com/api/payment/callback?txnId=${merchantTransactionId}`;
+
 
     const phonepeResult = await callPhonePePayV2(
       merchantTransactionId,
@@ -4628,25 +4630,21 @@ app.post('/api/payment/create', async (req, res) => {
       if (!payUrl) {
         return res.json({
           ok: false,
-          payload: null,
           error: 'No payment URL received from PhonePe'
         });
       }
 
       res.json({
         ok: true,
-        payload: {
-          merchantTransactionId: merchantTransactionId,
-          paymentUrl: payUrl,
-          orderId: orderId
-        }
+        merchantTransactionId: merchantTransactionId,
+        paymentUrl: payUrl,
+        orderId: orderId
       });
     } else {
       console.error("PhonePe v2 Initiation Failed:", JSON.stringify(phonepeResult.data));
       const errorMsg = phonepeResult.data?.message || phonepeResult.data?.code || 'Payment Init Failed';
       res.json({
         ok: false,
-        payload: null,
         error: errorMsg
       });
     }
