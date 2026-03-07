@@ -647,6 +647,7 @@ connectDB();
 const UserSchema = new mongoose.Schema({
   userId: { type: String, unique: true },
   phone: { type: String, unique: true },
+  email: { type: String, default: '' }, // New
   name: String, // Display Name
   realName: String, // New
   gender: String, // New
@@ -2595,8 +2596,10 @@ io.on('connection', (socket) => {
         profession,
         bankDetails,
         upiId,
-        upiNumber
+        upiNumber,
+        email
       } = data;
+
 
       // Basic Validation
       if (!cellNumber1 || !realName) {
@@ -2625,7 +2628,9 @@ io.on('connection', (socket) => {
         existing.bankDetails = bankDetails;
         existing.upiId = upiId;
         existing.upiNumber = upiNumber;
+        existing.email = email || existing.email;
         existing.role = 'astrologer';
+
         existing.approvalStatus = 'pending';
         existing.isVerified = false;
         existing.documentStatus = 'processing';
@@ -2648,7 +2653,9 @@ io.on('connection', (socket) => {
         phone: cellNumber1,
         name: displayName || realName,
         realName,
+        email,
         gender,
+
         birthDetails: { dob, tob, pob, lat: 0, lon: 0 }, // Using lat/0 lon/0 as placeholder
         cellNumber2,
         whatsAppNumber,

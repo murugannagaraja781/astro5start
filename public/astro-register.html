@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="apple-touch-icon" href="/images/astro_5_star_logo.png">
-  <title>Astro 5 Star - New Astrologer Registration</title>
+    <link rel="apple-touch-icon" href="/images/astro_5_star_logo.png">
+    <title>Astro 5 Star - New Astrologer Registration</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -164,6 +164,11 @@
                 <input type="tel" id="whatsAppNumber">
             </div>
             <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="email" placeholder="example@mail.com">
+            </div>
+
+            <div class="form-group">
                 <label>Full Address</label>
                 <textarea id="address" rows="3"></textarea>
             </div>
@@ -270,6 +275,7 @@
                 cellNumber1: document.getElementById('cellNumber1').value,
                 cellNumber2: document.getElementById('cellNumber2').value,
                 whatsAppNumber: document.getElementById('whatsAppNumber').value,
+                email: document.getElementById('email').value,
                 address: document.getElementById('address').value,
                 aadharNumber: document.getElementById('aadharNumber').value,
                 panNumber: document.getElementById('panNumber').value,
@@ -278,6 +284,7 @@
                 bankDetails: document.getElementById('bankDetails').value,
                 upiId: document.getElementById('upiName').value,
                 upiNumber: document.getElementById('upiNumber').value
+
             };
 
             const btn = document.querySelector('.btn-submit');
