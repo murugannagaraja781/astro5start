@@ -122,6 +122,7 @@ async function callPhonePePayV2(merchantOrderId, amount, redirectUrl, userMobile
 
   // Standard Checkout v2 payload
   const payload = {
+    merchantId: PHONEPE_MERCHANT_ID, // CRITICAL: Missing this caused "Something went wrong"
     merchantOrderId: merchantOrderId,
     amount: amount, // amount in paisa
     expireAfter: 1200, // 20 minutes
@@ -141,6 +142,7 @@ async function callPhonePePayV2(merchantOrderId, amount, redirectUrl, userMobile
     'Authorization': `O-Bearer ${oauthToken}`,
     'accept': 'application/json'
   };
+
 
   console.log(`[PhonePe v2] Requesting: ${endpoint}`);
   console.log(`[PhonePe v2] OrderId: ${merchantOrderId}, Amount: ${amount} paisa`);
@@ -171,8 +173,8 @@ async function callPhonePePayV2(merchantOrderId, amount, redirectUrl, userMobile
     fs.appendFileSync('phonepe_debug.log', logMsg);
   } catch (err) { }
 
-  const isSuccess = response.ok && data.orderId && data.redirectUrl;
-  console.log(`[PhonePe v2] Response Status: ${response.status}, Success: ${isSuccess}`);
+  const isSuccess = !!(response.ok && data.orderId && data.redirectUrl);
+  console.log(`[PhonePe v2] Final Status: ${response.status}, Success: ${isSuccess}`);
 
   return { success: isSuccess, data, status: response.status };
 }
