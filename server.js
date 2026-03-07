@@ -23,91 +23,70 @@ if (!global.fetch) {
 // PhonePe Config
 const PHONEPE_MERCHANT_ID = (process.env.PHONEPE_MERCHANT_ID || "").trim();
 const PHONEPE_SALT_KEY = (process.env.PHONEPE_SALT_KEY || "").trim();
-const PHONEPE_SALT_INDEX = (process.env.PHONEPE_SALT_INDEX || "").trim();
+const PHONEPE_SALT_INDEX = (process.env.PHONEPE_SALT_INDEX || "1").trim();
 const PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis/hermes").trim();
 
-// PhonePe OAuth Config
-const PHONEPE_CLIENT_ID = (process.env.PHONEPE_CLIENT_ID || "").trim();
-const PHONEPE_CLIENT_VERSION = (process.env.PHONEPE_CLIENT_VERSION || "1").trim();
-const PHONEPE_CLIENT_SECRET = (process.env.PHONEPE_CLIENT_SECRET || "").trim();
-
-// Verification log on startup
-console.log(`[PhonePe] Config Load: Merchant=${PHONEPE_MERCHANT_ID ? 'OK' : 'MISSING'}, ClientID=${PHONEPE_CLIENT_ID ? 'OK' : 'MISSING'}`);
-
-let phonepeTokenStore = {
-  accessToken: null,
-  expiresAt: 0 // epoch seconds
-};
+// Verification log on startup (V1)
+console.log(`[PhonePe V1] Config Load: Merchant=${PHONEPE_MERCHANT_ID ? 'OK' : 'MISSING'}, Salt=${PHONEPE_SALT_KEY ? 'OK' : 'MISSING'}`);
 
 
-async function getPhonePeOAuthToken() {
+// ===== PhonePe V1 (X-VERIFY Checksum) =====
+async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId) {
   try {
-    const oauthUrl = "https://api.phonepe.com/apis/identity-manager/v1/oauth/token";
+    const endpoint = "/pg/v1/pay";
+    const payload = {
+      merchantId: PHONEPE_MERCHANT_ID,
+      merchantTransactionId: merchantTransactionId,
+      merchantUserId: userId.replace(/[^a-zA-Z0-9]/g, '') || "User",
+      amount: amountInPaisa,
+      redirectUrl: redirectUrl,
+      redirectMode: "REDIRECT",
+      callbackUrl: `https://astro5star.com/api/payment/callback`,
+      mobileNumber: userMobile,
+      paymentInstrument: {
+        type: "PAY_PAGE"
+      }
+    };
 
-    // ABSOLUTE VALIDATION: Check if credentials actually exist
-    if (!PHONEPE_CLIENT_ID || !PHONEPE_CLIENT_SECRET) {
-      console.error("[PhonePe OAuth] ❌ CRITICAL: Credentials missing in .env! (ID or Secret is empty)");
-      return null;
-    }
+    const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
+    const stringToSign = base64Payload + endpoint + PHONEPE_SALT_KEY;
+    const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
+    const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
-    // Use URLSearchParams for guaranteed standard encoding
-    const params = new URLSearchParams();
-    params.append('client_id', PHONEPE_CLIENT_ID);
-    params.append('client_version', PHONEPE_CLIENT_VERSION);
-    params.append('client_secret', PHONEPE_CLIENT_SECRET);
-    params.append('grant_type', 'client_credentials');
+    console.log(`[PhonePe V1] Requesting: ${PHONEPE_HOST_URL}${endpoint}`);
+    console.log(`[PhonePe V1] OrderId: ${merchantTransactionId}, Amount: ${amountInPaisa} paisa`);
 
-    console.log(`[PhonePe OAuth] Requesting token... (ID: ${PHONEPE_CLIENT_ID.substring(0, 4)}***)`);
-
-    const response = await fetch(oauthUrl, {
+    const response = await fetch(`${PHONEPE_HOST_URL}${endpoint}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Cache-Control': 'no-cache',
-        'Accept': 'application/json'
+        'Content-Type': 'application/json',
+        'X-VERIFY': checksum,
+        'accept': 'application/json'
       },
-      body: params.toString()
+      body: JSON.stringify({ request: base64Payload })
     });
 
-    const status = response.status;
-    const text = await response.text();
-    console.log(`[PhonePe OAuth] HTTP Status: ${status}`);
+    const data = await response.json();
 
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      console.error("[PhonePe OAuth] ❌ Parse Error (check if host is blocked):", text.substring(0, 200));
-      return null;
-    }
-
-    if (response.ok && data.access_token) {
-      phonepeTokenStore = {
-        accessToken: data.access_token,
-        expiresAt: Math.floor(Date.now() / 1000) + (data.expires_in || 3600)
+    if (data.success && data.data && data.data.instrumentResponse) {
+      const redirectUrl = data.data.instrumentResponse.redirectInfo.url;
+      return {
+        success: true,
+        data: {
+          redirectUrl: redirectUrl,
+          orderId: merchantTransactionId
+        }
       };
-      console.log(`[PhonePe OAuth] ✅ SUCCESS: Token Received`);
-      return data.access_token;
     } else {
-      console.error("[PhonePe OAuth] ❌ REJECTED:", JSON.stringify(data));
-      return null;
+      console.error("[PhonePe V1] Error:", data);
+      return { success: false, data: data };
     }
   } catch (err) {
-    console.error("[PhonePe OAuth] ❌ Network Error:", err.message);
-    return null;
+    console.error("[PhonePe V1] Fetch Error:", err.message);
+    return { success: false, data: { message: err.message } };
   }
 }
 
-
-
-async function getValidPhonePeToken() {
-  const now = Math.floor(Date.now() / 1000);
-  // Refresh if missing or expiring within 5 minutes
-  if (!phonepeTokenStore.accessToken || phonepeTokenStore.expiresAt < (now + 300)) {
-    return await getPhonePeOAuthToken();
-  }
-  return phonepeTokenStore.accessToken;
-}
 
 // ===== PhonePe Standard Checkout v2 =====
 async function callPhonePePayV2(merchantOrderId, amount, redirectUrl, userMobile) {
@@ -4616,12 +4595,14 @@ app.post('/api/payment/create', async (req, res) => {
       : `https://astro5star.com/api/payment/callback?txnId=${merchantTransactionId}`;
 
 
-    const phonepeResult = await callPhonePePayV2(
+    const phonepeResult = await callPhonePePayV1(
       merchantTransactionId,
       amountInPaisa,
       callbackRedirectUrl,
-      userMobile
+      userMobile,
+      userId
     );
+
 
     if (phonepeResult.success) {
       const payUrl = phonepeResult.data.redirectUrl;
