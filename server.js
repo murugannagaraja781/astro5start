@@ -4639,149 +4639,133 @@ app.post('/api/payment/create', async (req, res) => {
 });
 
 // 2. Callback (Webhook)
-app.post('/api/payment/callback', async (req, res) => {
-  console.log('=================================');
-  console.log('[CALLBACK HIT] /api/payment/callback');
-  console.log('[CALLBACK] Body:', JSON.stringify(req.body).substring(0, 200));
-  console.log('[CALLBACK] Query:', req.query);
-  console.log('=================================');
-
+app.all('/api/payment/callback', async (req, res) => {
   try {
-    let decoded = {};
+    console.log(`[PhonePe Callback] Hit with ${req.method}. Query:`, req.query);
 
-    // Case 1: Base64 Encoded JSON (S2S or App Intent)
-    if (req.body.response) {
-      decoded = JSON.parse(Buffer.from(req.body.response, 'base64').toString('utf-8'));
-    }
-    // Case 2: Direct Form POST (Web Redirect)
-    else if (req.body.code || req.body.merchantTransactionId) {
-      decoded = req.body;
-    }
-    // Case 3: GET Query Params (Fallback)
-    else if (req.query.code || req.query.merchantTransactionId) {
-      decoded = req.query;
-    }
-    else {
-      console.log('[CALLBACK ERROR] No payment data found in Body or Query');
-      // Return HTML with alert
-      console.log('[CALLBACK ERROR] No payment data found in Body or Query');
+    let decoded = null;
+    let isS2S = false;
 
-      const userAgent = req.headers['user-agent'] || '';
-      const isAndroidApp = req.query.isApp === 'true' || userAgent.includes('Android') || userAgent.includes('Astro5App');
-
-      // AUTO-REDIRECT TO APP IF DETECTED (Even if isApp param is missing)
-      if (isAndroidApp) {
-        const intentUrl = `intent://payment-failed?reason=no_response#Intent;scheme=astro5;package=com.astro5star.app;end`;
-        const customScheme = `astro5://payment-failed?reason=no_response`;
-
-        return res.send(`
-          <html>
-          <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>body{font-family:sans-serif;text-align:center;padding:20px;}</style>
-          </head>
-          <body>
-          <h3>Redirecting...</h3>
-          <script>
-            // Try Intent first (Chrome/Android)
-            window.location.href = "${intentUrl}";
-
-            // Fallback
-            setTimeout(() => { window.location.href = "${customScheme}"; }, 800);
-          </script>
-          </body></html>
-        `);
+    // 1. Process S2S or POST Redirect (Base64)
+    if (req.body && req.body.response) {
+      try {
+        const decodedStr = Buffer.from(req.body.response, 'base64').toString('utf-8');
+        decoded = JSON.parse(decodedStr);
+        isS2S = true;
+        console.log(`[PhonePe Callback] Decoded S2S/POST:`, decoded.code, decoded.data?.merchantTransactionId);
+      } catch (e) {
+        console.error('[PhonePe Callback] JSON Parse Error:', e.message);
       }
-
-      // Web Fallback
-      return res.redirect('/wallet?status=failure&reason=no_response');
+    }
+    // 2. Process Result Code if sent directly (some implementations)
+    else if (req.body && req.body.code) {
+      decoded = req.body;
+      isS2S = true;
     }
 
-    // PhonePe response format: { success, code, data: { merchantTransactionId, ... } }
-    const code = decoded.code;
-    const merchantTransactionId = decoded.data?.merchantTransactionId || decoded.merchantTransactionId || req.query.txnId; // Fallback to Query ID
-    const providerReferenceId = decoded.data?.providerReferenceId || decoded.providerReferenceId;
+    // Identify Transaction
+    const merchantTransactionId = decoded?.data?.merchantTransactionId ||
+      decoded?.merchantTransactionId ||
+      req.query.merchantTransactionId ||
+      req.query.txnId;
 
-    console.log(`Payment Callback: ${merchantTransactionId} | Status: ${code}`);
-    console.log(`[DEBUG] Full decoded response:`, JSON.stringify(decoded).substring(0, 300));
+    if (!merchantTransactionId) {
+      console.error('[PhonePe Callback] No Transaction ID found');
+      if (req.method === 'POST') return res.status(400).send('No Transaction ID');
+      return res.redirect('/wallet?status=error&reason=id_missing');
+    }
 
+    // Find Payment in DB
     const payment = await Payment.findOne({
       $or: [
         { transactionId: merchantTransactionId },
         { merchantTransactionId: merchantTransactionId }
       ]
     });
+
     if (!payment) {
-      console.error('Payment not found for:', merchantTransactionId);
-      return res.redirect('/?status=fail&reason=not_found');
+      console.error('[PhonePe Callback] Payment not found in DB:', merchantTransactionId);
+      if (isS2S) return res.status(200).send('NOT_FOUND');
+      return res.redirect('/wallet?status=error&reason=not_found');
     }
 
+    // Process Status if we have it
+    if (decoded) {
+      const respCode = decoded.code || (decoded.success ? 'SUCCESS' : 'FAILURE');
+      const isSuccess = respCode === 'PAYMENT_SUCCESS' || respCode === 'SUCCESS' || decoded.success === true;
 
-    // Credit wallet ONLY for SUCCESS (not pending)
-    const isSuccess = code === 'PAYMENT_SUCCESS' || code === 'SUCCESS';
-    const isFailed = code === 'PAYMENT_ERROR' || code === 'PAYMENT_FAILED' || code === 'FAILURE';
+      console.log(`[PhonePe Callback] Status: ${respCode} for ${merchantTransactionId}, isSuccess: ${isSuccess}`);
 
-    console.log(`[WALLET DEBUG] Code: "${code}", isSuccess: ${isSuccess}, isFailed: ${isFailed}`);
-    console.log(`[WALLET DEBUG] Payment found: ${payment._id}, userId: ${payment.userId}, amount: ${payment.amount}, status: ${payment.status}`);
+      if (isSuccess) {
+        if (payment.status !== 'success') {
+          payment.status = 'success';
+          payment.providerRefId = decoded.data?.providerReferenceId || decoded.providerReferenceId;
+          await payment.save();
 
-    const redirectIsApp = payment.isApp || req.query.isApp === 'true';
+          // Credit Wallet
+          const user = await User.findOne({ userId: payment.userId });
+          if (user) {
+            const creditAmount = payment.withGst ? (payment.baseAmount || payment.amount) : payment.amount;
+            user.walletBalance += creditAmount;
 
-    if (isSuccess) {
-      // Treat as success - credit wallet
-      if (payment.status !== 'success') {
-        payment.status = 'success'; // Always mark as success
-        payment.providerRefId = providerReferenceId;
-        await payment.save();
+            if (payment.couponBonus > 0) {
+              user.superWalletBalance = (user.superWalletBalance || 0) + payment.couponBonus;
+            }
 
-        // Credit Wallet
-        const user = await User.findOne({ userId: payment.userId });
-        if (user) {
-          // Rule: If GST was added, credit ONLY the baseAmount to the user's wallet
-          const creditAmount = payment.withGst ? (payment.baseAmount || payment.amount) : payment.amount;
+            await user.save();
+            console.log(`✅ [PhonePe] Credited ₹${creditAmount} to ${user.name}`);
 
-          user.walletBalance += creditAmount;
-
-          // Coupon Bonus - Credit to Super Wallet
-          if (payment.couponBonus > 0) {
-            user.superWalletBalance = (user.superWalletBalance || 0) + payment.couponBonus;
-            console.log(`🎁 Coupon Bonus Applied: ${user.name} +₹${payment.couponBonus} (Code: ${payment.couponCode})`);
+            // Real-time notification
+            io.to(user.userId).emit('wallet-update', {
+              balance: user.walletBalance,
+              totalEarnings: user.totalEarnings || 0,
+              superBalance: user.superWalletBalance || 0
+            });
+            io.to(user.userId).emit('app-notification', { text: `✅ Recharge Successful! +₹${creditAmount}` });
           }
-
-          await user.save();
-          console.log(`✅ Wallet Credited: ${user.name} +₹${creditAmount} (PhonePe: ${code}, Total Paid: ₹${payment.amount})`);
-
-          // Notify via Room (more reliable than socketId)
-          io.to(user.userId).emit('wallet-update', {
-            balance: user.walletBalance,
-            totalEarnings: user.totalEarnings || 0,
-            superBalance: user.superWalletBalance || 0
-          });
-          io.to(user.userId).emit('app-notification', { text: `✅ Recharge Successful! +₹${creditAmount}` });
+        }
+      } else {
+        if (payment.status === 'pending') {
+          payment.status = 'failed';
+          await payment.save();
         }
       }
+    }
 
+    // FINAL RESPONSE
+    // If it's a Server-to-Server call (S2S), PhonePe expects a HTTP 200 response
+    const userAgent = req.headers['user-agent'] || '';
+    const isBrowser = userAgent.includes('Mozilla') || userAgent.includes('Chrome') || userAgent.includes('Safari');
+
+    if (req.method === 'POST' && !isBrowser) {
+      console.log('[PhonePe Callback] Returning 200 OK to PhonePe S2S Notification');
+      return res.status(200).send('OK');
+    }
+
+    // Browser Redirect Flow
+    const redirectIsApp = payment.isApp || req.query.isApp === 'true' || userAgent.includes('Astro5App');
+
+    if (payment.status === 'success') {
       if (redirectIsApp) {
-        const txnId = merchantTransactionId || '';
-        return res.redirect(`/payment-success?amount=${payment.amount || ''}&txnId=${txnId}`);
+        return res.redirect(`/payment-success?amount=${payment.amount}&txnId=${merchantTransactionId}`);
       }
-      return res.redirect(`/wallet?status=success&amount=${payment.amount}`);
-
+      return res.redirect(`/?nav=wallet&status=success&amount=${payment.amount}`);
     } else {
-      // Failure Handling
-      payment.status = 'failed';
-      await payment.save();
-
+      // If still pending, maybe wait or show status? For now fallback to failure
       if (redirectIsApp) {
         return res.redirect('/payment-failed');
       }
-      return res.redirect(`/wallet?status=failure`);
+      return res.redirect(`/?nav=wallet&status=failure`);
     }
 
+
   } catch (e) {
-    console.error("Callback Error:", e);
-    return res.redirect('/?status=error');
+    console.error("[PhonePe Callback] ERROR:", e);
+    if (req.method === 'POST') return res.status(500).send('Error');
+    return res.redirect('/wallet?status=error');
   }
 });
+
 
 // --- 3. Public Status Pages ---
 app.get('/payment-success', (req, res) => {
