@@ -31,6 +31,9 @@ const PHONEPE_CLIENT_ID = (process.env.PHONEPE_CLIENT_ID || "").trim();
 const PHONEPE_CLIENT_VERSION = (process.env.PHONEPE_CLIENT_VERSION || "1").trim();
 const PHONEPE_CLIENT_SECRET = (process.env.PHONEPE_CLIENT_SECRET || "").trim();
 
+// Verification log on startup
+console.log(`[PhonePe] Config Load: Merchant=${PHONEPE_MERCHANT_ID ? 'OK' : 'MISSING'}, ClientID=${PHONEPE_CLIENT_ID ? 'OK' : 'MISSING'}`);
+
 let phonepeTokenStore = {
   accessToken: null,
   expiresAt: 0 // epoch seconds
@@ -39,59 +42,57 @@ let phonepeTokenStore = {
 
 async function getPhonePeOAuthToken() {
   try {
-    // Global PhonePe Identity Manager
-    let oauthUrl = "https://api.phonepe.com/apis/identity-manager/v1/oauth/token";
+    const oauthUrl = "https://api.phonepe.com/apis/identity-manager/v1/oauth/token";
 
-    // Fallback logic if we want to honor sandbox flag
-    if (PHONEPE_HOST_URL.includes("sandbox") && !PHONEPE_HOST_URL.includes("hermes")) {
-      oauthUrl = "https://api-preprod.phonepe.com/apis/pg-sandbox/v1/oauth/token";
-    }
+    // Manually construct body string for maximum compatibility
+    const bodyArgs = [
+      `client_id=${PHONEPE_CLIENT_ID}`,
+      `client_version=${PHONEPE_CLIENT_VERSION}`,
+      `client_secret=${PHONEPE_CLIENT_SECRET}`,
+      `grant_type=client_credentials`
+    ];
+    const bodyString = bodyArgs.join('&');
 
-
-    const params = new URLSearchParams();
-    params.append('client_id', PHONEPE_CLIENT_ID);
-    params.append('client_version', PHONEPE_CLIENT_VERSION);
-    params.append('client_secret', PHONEPE_CLIENT_SECRET);
-    params.append('grant_type', 'client_credentials');
-
-    console.log(`[PhonePe OAuth] Requesting token from: ${oauthUrl}`);
-    console.log(`[PhonePe OAuth] Sending: client_id=${PHONEPE_CLIENT_ID.substring(0, 4)}..., version=${PHONEPE_CLIENT_VERSION}`);
+    console.log(`[PhonePe OAuth] Requesting token... (ID: ${PHONEPE_CLIENT_ID.substring(0, 4)}...)`);
 
     const response = await fetch(oauthUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cache-Control': 'no-cache'
       },
-      body: params.toString()
+      body: bodyString
     });
 
-    console.log(`[PhonePe OAuth] Response Status: ${response.status}`);
+    const status = response.status;
     const text = await response.text();
+    console.log(`[PhonePe OAuth] Status: ${status}`);
+
     let data;
     try {
       data = JSON.parse(text);
     } catch (e) {
-      console.error("[PhonePe OAuth] Non-JSON Response:", text.substring(0, 500));
+      console.error("[PhonePe OAuth] Non-JSON Response:", text.substring(0, 200));
       return null;
     }
 
     if (response.ok && data.access_token) {
       phonepeTokenStore = {
         accessToken: data.access_token,
-        expiresAt: data.expires_at || (Math.floor(Date.now() / 1000) + (data.expires_in || 3600))
+        expiresAt: Math.floor(Date.now() / 1000) + (data.expires_in || 3600)
       };
-      console.log(`[PhonePe OAuth] Token successfully generated.`);
+      console.log(`[PhonePe OAuth] ✅ Token Success`);
       return data.access_token;
     } else {
-      console.error("[PhonePe OAuth] Token Generation Failed:", data);
+      console.error("[PhonePe OAuth] ❌ Failed:", data);
       return null;
     }
-
   } catch (err) {
     console.error("[PhonePe OAuth] Error:", err.message);
     return null;
   }
 }
+
 
 async function getValidPhonePeToken() {
   const now = Math.floor(Date.now() / 1000);
