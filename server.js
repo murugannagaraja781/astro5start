@@ -14,6 +14,12 @@ const admin = require('firebase-admin'); // Firebase Admin for Mobile App
 const { DateTime } = require('luxon');
 const { fetchDailyHoroscope } = require("./utils/rasiEng/horoscopeData");
 
+// Polyfill for fetch (Node.js 18+ has it built-in)
+if (!global.fetch) {
+  global.fetch = require('node-fetch');
+}
+
+
 // PhonePe Config
 const PHONEPE_MERCHANT_ID = (process.env.PHONEPE_MERCHANT_ID || "").trim();
 const PHONEPE_SALT_KEY = (process.env.PHONEPE_SALT_KEY || "").trim();
@@ -49,14 +55,19 @@ async function getPhonePeOAuthToken() {
     params.append('grant_type', 'client_credentials');
 
     console.log(`[PhonePe OAuth] Requesting token from: ${oauthUrl}`);
+    console.log(`[PhonePe OAuth] ID: ${PHONEPE_CLIENT_ID.substring(0, 5)}...`);
+
+    const authHeader = 'Basic ' + Buffer.from(`${PHONEPE_CLIENT_ID}:${PHONEPE_CLIENT_SECRET}`).toString('base64');
 
     const response = await fetch(oauthUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': authHeader // Some OIM versions require this
       },
-      body: params
+      body: params.toString()
     });
+
 
     console.log(`[PhonePe OAuth] Status: ${response.status}`);
 
@@ -165,13 +176,9 @@ async function callPhonePePayV2(merchantOrderId, amount, redirectUrl, userMobile
 }
 
 
-// Polyfill for fetch (Node.js 18+ has it built-in)
-if (!global.fetch) {
-  global.fetch = require('node-fetch');
-}
-
 // FCM v1 API with Service Account
 const { GoogleAuth } = require('google-auth-library');
+
 const fs = require('fs');
 
 // FCM v1 Configuration
