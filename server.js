@@ -44,35 +44,40 @@ async function getPhonePeOAuthToken() {
   try {
     const oauthUrl = "https://api.phonepe.com/apis/identity-manager/v1/oauth/token";
 
-    // Manually construct body string for maximum compatibility
-    const bodyArgs = [
-      `client_id=${PHONEPE_CLIENT_ID}`,
-      `client_version=${PHONEPE_CLIENT_VERSION}`,
-      `client_secret=${PHONEPE_CLIENT_SECRET}`,
-      `grant_type=client_credentials`
-    ];
-    const bodyString = bodyArgs.join('&');
+    // ABSOLUTE VALIDATION: Check if credentials actually exist
+    if (!PHONEPE_CLIENT_ID || !PHONEPE_CLIENT_SECRET) {
+      console.error("[PhonePe OAuth] ❌ CRITICAL: Credentials missing in .env! (ID or Secret is empty)");
+      return null;
+    }
 
-    console.log(`[PhonePe OAuth] Requesting token... (ID: ${PHONEPE_CLIENT_ID.substring(0, 4)}...)`);
+    // Use URLSearchParams for guaranteed standard encoding
+    const params = new URLSearchParams();
+    params.append('client_id', PHONEPE_CLIENT_ID);
+    params.append('client_version', PHONEPE_CLIENT_VERSION);
+    params.append('client_secret', PHONEPE_CLIENT_SECRET);
+    params.append('grant_type', 'client_credentials');
+
+    console.log(`[PhonePe OAuth] Requesting token... (ID: ${PHONEPE_CLIENT_ID.substring(0, 4)}***)`);
 
     const response = await fetch(oauthUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Cache-Control': 'no-cache'
+        'Cache-Control': 'no-cache',
+        'Accept': 'application/json'
       },
-      body: bodyString
+      body: params.toString()
     });
 
     const status = response.status;
     const text = await response.text();
-    console.log(`[PhonePe OAuth] Status: ${status}`);
+    console.log(`[PhonePe OAuth] HTTP Status: ${status}`);
 
     let data;
     try {
       data = JSON.parse(text);
     } catch (e) {
-      console.error("[PhonePe OAuth] Non-JSON Response:", text.substring(0, 200));
+      console.error("[PhonePe OAuth] ❌ Parse Error (check if host is blocked):", text.substring(0, 200));
       return null;
     }
 
@@ -81,17 +86,18 @@ async function getPhonePeOAuthToken() {
         accessToken: data.access_token,
         expiresAt: Math.floor(Date.now() / 1000) + (data.expires_in || 3600)
       };
-      console.log(`[PhonePe OAuth] ✅ Token Success`);
+      console.log(`[PhonePe OAuth] ✅ SUCCESS: Token Received`);
       return data.access_token;
     } else {
-      console.error("[PhonePe OAuth] ❌ Failed:", data);
+      console.error("[PhonePe OAuth] ❌ REJECTED:", JSON.stringify(data));
       return null;
     }
   } catch (err) {
-    console.error("[PhonePe OAuth] Error:", err.message);
+    console.error("[PhonePe OAuth] ❌ Network Error:", err.message);
     return null;
   }
 }
+
 
 
 async function getValidPhonePeToken() {
