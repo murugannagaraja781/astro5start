@@ -423,6 +423,19 @@ app.get('/api/ice-config', (req, res) => {
   });
 });
 
+app.get('/api/app-config', (req, res) => {
+  res.json({
+    minVersionCode: 5,
+    latestVersionName: "5.0.0",
+    updateUrl: "https://astro5star.com/download/astro5star.apk",
+    forceUpdate: true,
+    message: "A new version of Astro5Star is available with improved call quality. Please update to continue."
+  });
+});
+
+// Serve APK downloads
+app.use('/download', express.static(path.join(__dirname, 'public/download')));
+
 // Fallback Wallet Route for App Users who get redirected to /wallet
 app.get('/wallet', (req, res) => {
   const status = req.query.status || 'unknown';
