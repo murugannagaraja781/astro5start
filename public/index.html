@@ -582,6 +582,28 @@
       border-color: #e5e7eb;
     }
 
+    /* Busy state card and buttons */
+    .at-card.is-busy {
+      border: 1.5px solid #ef4444 !important;
+    }
+
+    .at-card.is-busy .at-btn-call,
+    .at-card.is-busy .at-btn-chat {
+      background: #ef4444 !important;
+      color: white !important;
+      border: none !important;
+    }
+
+    /* Offline state card and buttons */
+    .at-card.is-offline .at-btn-call,
+    .at-card.is-offline .at-btn-chat {
+      background: #d1d5db !important;
+      color: #9ca3af !important;
+      border: 1px solid #e5e7eb !important;
+      cursor: not-allowed !important;
+      pointer-events: none !important;
+    }
+
     .astro-dash-header {
       background: white;
       padding: 15px;
@@ -4724,7 +4746,11 @@
         const skillsText = skills.slice(0, 3).join(', ');
         const rating = (4 + Math.random() * 0.9).toFixed(1);
         const isOnline = a.isOnline || a.isAudioOnline || a.isChatOnline;
+        const isOffline = !isOnline;
         const statusClass = isOnline ? 'online' : (a.isBusy ? 'busy' : 'offline');
+
+        if (a.isBusy) div.classList.add('is-busy');
+        if (isOffline) div.classList.add('is-offline');
 
         div.innerHTML = `
           <div class="at-card-inner">
@@ -4755,15 +4781,17 @@
             </div>
 
             <div class="at-action-col">
-              <button class="at-btn-call ${a.isAudioOnline ? '' : 'wait'}"
-                   onclick="event.stopPropagation(); checkGuestAction('call', '${a.userId}')">
+              <button class="at-btn-call ${a.isAudioOnline ? '' : (a.isBusy ? 'busy' : 'wait')}"
+                   ${isOffline ? 'disabled' : ''}
+                   onclick="event.stopPropagation(); if(this.disabled) return; checkGuestAction('call', '${a.userId}')">
                 <i class="fas fa-phone-alt"></i>
-                ${a.isAudioOnline ? 'Call' : 'Wait'}
+                ${a.isAudioOnline ? 'Call' : (a.isBusy ? 'Busy' : 'Wait')}
               </button>
-              <button class="at-btn-chat ${a.isChatOnline ? '' : 'wait'}"
-                   onclick="event.stopPropagation(); checkGuestAction('chat', '${a.userId}')">
+              <button class="at-btn-chat ${a.isChatOnline ? '' : (a.isBusy ? 'busy' : 'wait')}"
+                   ${isOffline ? 'disabled' : ''}
+                   onclick="event.stopPropagation(); if(this.disabled) return; checkGuestAction('chat', '${a.userId}')">
                 <i class="fas fa-comment-dots"></i>
-                ${a.isChatOnline ? 'Chat' : 'Wait'}
+                ${a.isChatOnline ? 'Chat' : (a.isBusy ? 'Busy' : 'Wait')}
               </button>
             </div>
           </div>

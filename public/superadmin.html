@@ -325,6 +325,13 @@
                     <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Client Management</h1>
                     <p class="text-slate-500 font-medium">View user balances and history</p>
                 </div>
+                <div class="relative group w-full md:w-64 ml-auto">
+                    <i
+                        class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-green transition-colors"></i>
+                    <input type="text" id="client-search" placeholder="Search name, phone, id..."
+                        class="w-full glass-input pl-11 pr-4 py-2.5 rounded-xl outline-none text-sm font-medium"
+                        oninput="fetchAllUsers()">
+                </div>
             </header>
             <div id="client-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
             </div>
@@ -944,7 +951,46 @@
                     showTab('dashboard'); // Set initial active state
                 }
             });
+
+            socket.on('admin-notification', (payload) => {
+                console.log('[Admin Notification]', payload);
+                if (payload.type === 'missed_call') {
+                    showToast(payload.text, 'error');
+                } else if (payload.type === 'withdrawal_request') {
+                    showToast(payload.text, 'success');
+                } else {
+                    showToast(payload.text, 'info');
+                }
+                refreshData();
+            });
         });
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container') || createToastContainer();
+            const toast = document.createElement('div');
+            const colors = {
+                info: 'bg-slate-900',
+                success: 'bg-emerald-600',
+                error: 'bg-red-600',
+                warning: 'bg-amber-600'
+            };
+            toast.className = `${colors[type]} text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-slide-in-right max-w-sm`;
+            toast.innerHTML = `
+                <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : type === 'success' ? 'fa-check-circle' : 'fa-bell'} text-xl"></i>
+                <div class="flex-1 font-black text-[11px] uppercase tracking-wider leading-tight">${msg}</div>
+                <button onclick="this.parentElement.remove()" class="opacity-50 hover:opacity-100">&times;</button>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => { if (toast.parentElement) toast.remove(); }, 8000);
+        }
+
+        function createToastContainer() {
+            const div = document.createElement('div');
+            div.id = 'toast-container';
+            div.className = 'fixed bottom-8 right-8 z-[9999] flex flex-col gap-3';
+            document.body.appendChild(div);
+            return div;
+        }
 
         function refreshData() {
             fetchStats();
@@ -1008,14 +1054,18 @@
         }
 
         function fetchAllUsers() {
+            const clientSearch = document.getElementById('client-search')?.value.toLowerCase() || '';
             socket.emit('get-all-users', (res) => {
                 if (res.ok) {
                     usersCache = res.users;
                     renderAstrologers();
-                    const clients = usersCache.filter(u => u.role === 'client');
+                    const clients = usersCache.filter(u => u.role === 'client' &&
+                        (u.name.toLowerCase().includes(clientSearch) ||
+                            u.phone.includes(clientSearch) ||
+                            u.userId.toLowerCase().includes(clientSearch)));
                     const astros = usersCache.filter(u => u.role === 'astrologer');
                     document.getElementById('side-astro-count').innerText = astros.length;
-                    document.getElementById('side-client-count').innerText = clients.length;
+                    document.getElementById('side-client-count').innerText = usersCache.filter(u => u.role === 'client').length;
                     document.getElementById('client-list').innerHTML = clients.map(u => renderUserCard(u)).join('');
                     document.getElementById('online-astro-count').innerText = astros.filter(u => u.isOnline).length;
                 }
@@ -1056,11 +1106,15 @@
 
         function renderUserRow(u) {
             const isOnline = u.isOnline;
+            const isBusy = u.isBusy;
             return `
-                <tr class="hover:bg-slate-50 transition-colors">
+                <tr class="hover:bg-slate-50 transition-colors ${isBusy ? 'bg-red-50/30' : ''}">
                     <td class="px-3 py-2.5">
                         <div class="flex items-center gap-2">
-                            <img src="${getProfileImage(u.image, u.name)}" onerror="this.src='https://ui-avatars.com/api/?name=${u.name}'" class="w-8 h-8 rounded-lg object-cover ring-1 ring-emerald-50 bg-white">
+                            <div class="relative">
+                                <img src="${getProfileImage(u.image, u.name)}" onerror="this.src='https://ui-avatars.com/api/?name=${u.name}'" class="w-8 h-8 rounded-lg object-cover ring-1 ring-emerald-50 bg-white">
+                                ${isBusy ? '<span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>' : ''}
+                            </div>
                             <div class="leading-tight">
                                 <div class="font-bold text-slate-800 text-[11px] truncate max-w-[120px]">${u.name}</div>
                                 <div class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">${u.userId.slice(-6)} • ${(u.skills || []).slice(0, 1)}</div>
@@ -1079,15 +1133,16 @@
                     </td>
                     <td class="px-3 py-2.5">
                         <div class="flex items-baseline gap-1.5">
-                            <span class="w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-accent-green' : 'bg-slate-300'}"></span>
-                            <span class="text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${u.approvalStatus === 'approved' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">
-                                ${u.approvalStatus || 'p_0'}
+                            <span class="w-1.5 h-1.5 rounded-full ${isBusy ? 'bg-red-500 animate-pulse' : isOnline ? 'bg-accent-green' : 'bg-slate-300'}"></span>
+                            <span class="text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${isBusy ? 'bg-red-50 text-red-700' : u.approvalStatus === 'approved' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">
+                                ${isBusy ? 'Busy' : u.approvalStatus || 'p_0'}
                             </span>
                         </div>
                     </td>
                     <td class="px-3 py-2.5 text-right">
                         <div class="flex justify-end gap-1.5">
-                            <button class="w-7 h-7 rounded-lg bg-emerald-50 text-brand-green hover:bg-emerald-500 hover:text-white transition-all active:scale-90" onclick="openViewAstro('${u.userId}')"><i class="fas fa-eye text-[10px]"></i></button>
+                            <button class="w-7 h-7 rounded-lg ${isBusy ? 'bg-red-500 text-white' : 'bg-emerald-50 text-brand-green'} hover:bg-emerald-500 hover:text-white transition-all active:scale-90" onclick="openViewAstro('${u.userId}')"><i class="fas fa-eye text-[10px]"></i></button>
+                            ${isOnline ? `<button class="w-7 h-7 rounded-lg bg-orange-50 text-orange-500 hover:bg-orange-500 hover:text-white transition-all active:scale-90" onclick="forceOffline('${u.userId}')" title="Force Offline"><i class="fas fa-power-off text-[10px]"></i></button>` : ''}
                             <button class="w-7 h-7 rounded-lg bg-slate-50 text-slate-400 hover:text-brand-green hover:bg-emerald-50 transition-all active:scale-90" onclick="openEditUser('${u.userId}')"><i class="fas fa-edit text-[10px]"></i></button>
                             <button class="w-7 h-7 rounded-lg bg-slate-50 text-slate-400 hover:text-red-500 transition-all active:scale-90" onclick="handleDeleteUser('${u.userId}')"><i class="fas fa-trash-alt text-[10px]"></i></button>
                         </div>
@@ -1099,17 +1154,19 @@
         function renderUserCard(u) {
             const isAstro = u.role === 'astrologer';
             const isOnline = u.isOnline;
+            const isBusy = u.isBusy;
             return `
-                <div class="bg-white p-4 lg:p-5 rounded-[1.8rem] border border-emerald-50 shadow-premium group transition-all duration-300">
+                <div class="bg-white p-4 lg:p-5 rounded-[1.8rem] border ${isBusy ? 'border-red-500 ring-4 ring-red-50 shadow-2xl' : 'border-emerald-50 shadow-premium'} group transition-all duration-300">
                     <div class="flex flex-col sm:flex-row justify-between items-start gap-3">
                         <div class="flex gap-3 items-center min-w-0 flex-1">
                             <div class="relative flex-shrink-0">
-                                <img src="${getProfileImage(u.image, u.name)}" onerror="this.src='https://ui-avatars.com/api/?background=f0fdf4&color=059669&bold=true&name=${u.name}'" class="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl object-cover ring-4 ring-emerald-50 bg-white">
-                                <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${isOnline ? 'bg-accent-green' : 'bg-slate-300'}"></span>
+                                <img src="${getProfileImage(u.image, u.name)}" onerror="this.src='https://ui-avatars.com/api/?background=f0fdf4&color=059669&bold=true&name=${u.name}'" class="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl object-cover ring-4 ${isBusy ? 'ring-red-100' : 'ring-emerald-50'} bg-white">
+                                <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${isBusy ? 'bg-red-500 animate-pulse' : isOnline ? 'bg-accent-green' : 'bg-slate-300'}"></span>
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="font-black text-slate-800 flex items-center gap-1 text-sm lg:text-base truncate">
                                     ${u.name} ${u.isVerified ? '<i class="fas fa-certificate text-blue-500 text-[0.6rem]"></i>' : ''}
+                                    ${isBusy ? '<span class="text-[8px] bg-red-500 text-white px-1.5 py-0.5 rounded-full animate-bounce">BUSY</span>' : ''}
                                 </div>
                                 <div class="text-[0.6rem] lg:text-[0.65rem] font-bold text-slate-400 tracking-wider font-mono truncate">${u.phone}</div>
                             </div>
@@ -1117,18 +1174,19 @@
                         <div class="flex flex-row sm:flex-col justify-between sm:justify-start items-center sm:items-end gap-2 w-full sm:w-auto flex-shrink-0">
                             <div class="font-black text-brand-green text-xs lg:text-sm">₹${(u.walletBalance || 0).toFixed(1)}</div>
                             <div class="flex flex-row items-center gap-1.5 min-w-0">
-                                <div class="text-[0.55rem] font-black uppercase tracking-tighter ${isOnline ? 'text-accent-green' : 'text-slate-400'}">
-                                    ${isOnline ? 'Active' : 'Offline'}
+                                <div class="text-[0.55rem] font-black uppercase tracking-tighter ${isBusy ? 'text-red-500' : isOnline ? 'text-accent-green' : 'text-slate-400'}">
+                                    ${isBusy ? 'In Session' : isOnline ? 'Active' : 'Offline'}
                                 </div>
-                                ${isAstro ? `<div class="text-[0.55rem] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tight ${u.approvalStatus === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} whitespace-nowrap">
-                                    ${u.approvalStatus === 'approved' ? 'Approved' : 'Pending'}
+                                ${isAstro ? `<div class="text-[0.55rem] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tight ${isBusy ? 'bg-red-100 text-red-800' : u.approvalStatus === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} whitespace-nowrap">
+                                    ${isBusy ? 'Wait' : u.approvalStatus === 'approved' ? 'Approved' : 'Pending'}
                                 </div>` : ''}
                             </div>
                         </div>
                     </div>
                     <div class="mt-4 flex gap-2 border-t border-slate-50 pt-4 overflow-x-auto scrollbar-hide">
-                        <button class="flex-shrink-0 bg-emerald-50 text-brand-green p-2 rounded-xl hover:bg-brand-green hover:text-white transition-all" onclick="openViewAstro('${u.userId}')" title="View Full Details"><i class="fas fa-eye text-[0.7rem] lg:text-xs"></i></button>
-                        <button class="flex-1 min-w-[60px] bg-slate-50 text-slate-600 font-bold py-2 rounded-xl hover:bg-slate-100 transition-colors text-[0.65rem] lg:text-xs" onclick="openEditUser('${u.userId}')">Edit</button>
+                        <button class="flex-shrink-0 ${isBusy ? 'bg-red-500 text-white' : 'bg-emerald-50 text-brand-green'} p-2 rounded-xl hover:bg-brand-green hover:text-white transition-all" onclick="openViewAstro('${u.userId}')" title="View Full Details"><i class="fas fa-eye text-[0.7rem] lg:text-xs"></i></button>
+                        ${isAstro && isOnline ? `<button class="flex-shrink-0 bg-orange-50 text-orange-500 p-2 rounded-xl hover:bg-orange-500 hover:text-white transition-all" onclick="forceOffline('${u.userId}')" title="Force Offline"><i class="fas fa-power-off text-[0.7rem] lg:text-xs"></i></button>` : ''}
+                        <button class="flex-1 min-w-[60px] ${isBusy ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'} font-bold py-2 rounded-xl transition-colors text-[0.65rem] lg:text-xs" onclick="openEditUser('${u.userId}')">Edit</button>
                         <button class="flex-shrink-0 bg-slate-50 text-slate-400 p-2 rounded-xl hover:bg-emerald-50 hover:text-brand-green transition-all" onclick="openRoleModal('${u.userId}', '${u.role}')"><i class="fas fa-shield text-[0.7rem] lg:text-xs"></i></button>
                         <button class="flex-shrink-0 bg-slate-50 text-slate-400 p-2 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all" onclick="handleDeleteUser('${u.userId}')"><i class="fas fa-trash-alt text-[0.7rem] lg:text-xs"></i></button>
                         <button class="flex-shrink-0 p-2 rounded-xl transition-all ${u.isBanned ? 'bg-red-50 text-red-500 hover:bg-emerald-50 hover:text-brand-green' : 'bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500'}" onclick="toggleBan('${u.userId}', ${!u.isBanned})">
@@ -1451,6 +1509,19 @@
             if (confirm('Confirm protocol modification for this endpoint?')) socket.emit('admin-toggle-ban', { userId, isBanned }, () => refreshData());
         }
 
+        function forceOffline(userId) {
+            if (confirm('Force this astrologer offline?')) {
+                socket.emit('admin-force-offline', { userId }, (res) => {
+                    if (res.ok) {
+                        alert('Astrologer is now offline');
+                        refreshData();
+                    } else {
+                        alert('Error: ' + res.error);
+                    }
+                });
+            }
+        }
+
         function openViewAstro(id) {
             const u = usersCache.find(x => x.userId === id);
             if (!u) return;
@@ -1508,7 +1579,37 @@
                                 button { display: none !important; }
                                 .custom-scrollbar { overflow: visible !important; max-height: none !important; }
                             }
-                        </style>
+                            @keyframes slide-in-right {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .animate-slide-in-right {
+            animation: slide-in-right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slide-in-right {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .animate-slide-in-right {
+            animation: slide-in-right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+    </style>
                     </head>
                     <body>
                         <div class="max-w-4xl mx-auto border-2 border-slate-100 rounded-[3rem] overflow-hidden shadow-xl">
