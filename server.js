@@ -405,6 +405,24 @@ app.get('/refund-cancellation-policy', (req, res) => res.sendFile(path.join(__di
 app.get('/return-policy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'return-policy.html')));
 app.get('/shipping-policy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'shipping-policy.html')));
 
+// WebRTC ICE Config Endpoint
+app.get('/api/ice-config', (req, res) => {
+  res.json({
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      {
+        urls: [
+          `turn:${process.env.TURN_URL || 'turn.astro5star.com'}:3478?transport=udp`,
+          `turn:${process.env.TURN_URL || 'turn.astro5star.com'}:3478?transport=tcp`,
+          `turns:${process.env.TURN_URL || 'turn.astro5star.com'}:5349`
+        ],
+        username: process.env.TURN_USERNAME || "webrtcuser",
+        credential: process.env.TURN_PASSWORD || "strongpassword123"
+      }
+    ]
+  });
+});
+
 // Fallback Wallet Route for App Users who get redirected to /wallet
 app.get('/wallet', (req, res) => {
   const status = req.query.status || 'unknown';
