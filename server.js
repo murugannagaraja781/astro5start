@@ -3306,6 +3306,13 @@ io.on('connection', (socket) => {
     try {
       const { sessionId, toUserId, signal } = data || {};
       const fromUserId = socketToUser.get(socket.id);
+
+      if (signal && signal.type) {
+        console.log(`[Signal] ${fromUserId} -> ${toUserId} (${signal.type})`);
+      } else if (signal && signal.candidate) {
+        console.log(`[Signal] ${fromUserId} -> ${toUserId} (candidate)`);
+      }
+
       if (!fromUserId || !sessionId || !toUserId || !signal) {
         console.warn(`[Signal] Missing data: from=${fromUserId}, session=${sessionId}, to=${toUserId}`);
         return;
