@@ -5473,8 +5473,18 @@
 
       try {
         const constraints = {
-          audio: true,
-          video: state.session.type === 'video'
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 16000, // Lower sample rate for 2G
+            channelCount: 1
+          },
+          video: state.session.type === 'video' ? {
+            width: { ideal: 320, max: 640 }, // Lower resolution
+            height: { ideal: 240, max: 480 },
+            frameRate: { ideal: 10, max: 15 } // Lower framerate
+          } : false
         };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
@@ -5494,7 +5504,30 @@
           console.warn('Failed to fetch ICE config, using fallback STUN', e);
         }
 
-        const p = new SimplePeer({ initiator, stream, trickle: true, config: { iceServers } });
+        // SDP Transform to limit bitrate for 2G
+        const transformSDP = (sdp) => {
+          // Limit Audio to 32kbps and Video to 256kbps for stability on weak networks
+          let lines = sdp.split('\n');
+          let newSdp = '';
+          for (let line of lines) {
+            newSdp += line + '\n';
+            if (line.indexOf('a=mid:audio') === 0 || line.indexOf('a=mid:0') === 0) { // Check for audio section
+              newSdp += 'b=AS:32\n'; // Limit Audio Bitrate
+            }
+            if (line.indexOf('a=mid:video') === 0 || line.indexOf('a=mid:1') === 0) { // Check for video section
+              newSdp += 'b=AS:256\n'; // Limit Video Bitrate
+            }
+          }
+          return newSdp;
+        };
+
+        const p = new SimplePeer({
+          initiator,
+          stream,
+          trickle: true,
+          config: { iceServers },
+          sdpTransform: transformSDP
+        });
 
         p.on('signal', d => {
           if (state.session) {
