@@ -7768,7 +7768,7 @@
         discValueElem.innerText = bonusVal > 0 ? '+ ₹' + bonusVal + ' Bonus' : 'Apply coupon for bonus';
         promoRow.style.color = bonusVal > 0 ? '#22C55E' : 'rgba(255,255,255,0.4)';
 
-        finalPayElem.innerText = '₹' + Math.floor(targetCredit * 1.18); // Show total with GST
+        finalPayElem.innerText = '₹' + targetCredit; // Total amount to pay
       } else {
         summaryElem.style.display = 'none';
       }
