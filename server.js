@@ -3421,7 +3421,21 @@ io.on('connection', (socket) => {
   socket.on('signal', (data) => {
     try {
       const { sessionId, toUserId, signal } = data || {};
-      const fromUserId = socketToUser.get(socket.id);
+      let fromUserId = socketToUser.get(socket.id);
+
+      // Fallback: If socket isn't mapped to a user yet (reconnect race condition), infer from session
+      if (!fromUserId && sessionId && toUserId) {
+        const session = activeSessions.get(sessionId);
+        if (session && session.users) {
+          fromUserId = session.users.find(u => u !== toUserId);
+          // Proactively register the socket
+          if (fromUserId) {
+            socketToUser.set(socket.id, fromUserId);
+            userSockets.set(fromUserId, socket.id);
+            socket.join(fromUserId);
+          }
+        }
+      }
 
       if (signal && signal.type) {
         console.log(`[Signal] ${fromUserId} -> ${toUserId} (${signal.type})`);
