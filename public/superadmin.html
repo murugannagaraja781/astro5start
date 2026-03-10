@@ -62,6 +62,13 @@
                 <span id="side-client-count"
                     class="lg:ml-auto bg-slate-500 text-white text-[0.6rem] font-black px-2 py-0.5 rounded-full shadow-lg border border-white/10 min-w-[22px] text-center">0</span>
             </div>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-3.5 p-3 lg:px-4 lg:py-3 rounded-2xl cursor-pointer transition-all duration-300 hover:bg-white/5 text-white/60 hover:text-white active:scale-95 min-w-[80px]"
+                data-tab="notifications" onclick="showTab('notifications')">
+                <i class="fas fa-bell text-lg lg:w-5 text-center"></i>
+                <span class="text-[0.6rem] lg:text-[0.85rem] font-medium whitespace-nowrap">Notifications</span>
+                <span id="side-notif-count"
+                    class="lg:ml-auto bg-blue-500 text-white text-[0.6rem] font-black px-1.5 py-0.5 rounded-full shadow-lg border border-white/10 min-w-[18px] text-center hidden">0</span>
+            </div>
             <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
                 data-tab="withdrawals" onclick="showTab('withdrawals')">
                 <i class="fas fa-money-bill-transfer text-lg lg:w-5 text-center"></i>
@@ -595,6 +602,35 @@
             <div id="banner-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
         </section>
 
+        <!-- Notifications Tab -->
+        <section id="tab-notifications" class="tab-content hidden animate-up space-y-6">
+            <header class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Notifications</h1>
+                    <p class="text-slate-500 font-medium">Real-time alerts and activity logs</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <select id="notif-filter" onchange="fetchNotifications()"
+                        class="glass-input px-4 py-2.5 rounded-xl outline-none text-sm font-bold bg-white border border-emerald-50">
+                        <option value="all">🔔 All Activities</option>
+                        <option value="missed_call">📞 Missed Calls</option>
+                        <option value="recharge">💰 Wallet Recharges</option>
+                        <option value="registration">👤 New Registrations</option>
+                    </select>
+                    <button onclick="clearAllNotifications()"
+                        class="bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 px-5 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2">
+                        <i class="fas fa-check-double"></i> Mark All Read
+                    </button>
+                </div>
+            </header>
+            <div id="notifications-list" class="flex flex-col gap-3">
+                <div
+                    class="bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium">
+                    No notifications yet.
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <div id="modal-edit-user"
@@ -955,12 +991,18 @@
             socket.on('admin-notification', (payload) => {
                 console.log('[Admin Notification]', payload);
                 if (payload.type === 'missed_call') {
-                    showToast(payload.text, 'error');
-                } else if (payload.type === 'withdrawal_request') {
+                    showToast(payload.text, 'warning');
+                    // Play a distinct sound if needed
+                } else if (payload.type === 'recharge') {
                     showToast(payload.text, 'success');
                 } else {
                     showToast(payload.text, 'info');
                 }
+
+                // Increment badge and refresh current notification view if open
+                updateNotifBadge(unreadNotifCount + 1);
+                if (activeTab === 'notifications') fetchNotifications();
+
                 refreshData();
             });
         });
@@ -1031,6 +1073,63 @@
             refreshData();
             if (id === 'ledger') fetchLedger();
             if (id === 'withdrawals') fetchWithdrawals();
+            if (id === 'notifications') fetchNotifications();
+        }
+
+        let unreadNotifCount = 0;
+        function updateNotifBadge(count) {
+            unreadNotifCount = count;
+            const badge = document.getElementById('side-notif-count');
+            if (badge) {
+                badge.innerText = count > 99 ? '99+' : count;
+                badge.classList.toggle('hidden', count === 0);
+            }
+        }
+
+        function fetchNotifications() {
+            const type = document.getElementById('notif-filter').value;
+            socket.emit('admin-get-notifications', { type }, (res) => {
+                if (!res.ok) return console.error('Notif fetch failed');
+                renderNotifications(res.notifications);
+
+                // Update badge based on unread count in full list
+                const unread = res.notifications.filter(n => !n.isRead).length;
+                updateNotifBadge(unread);
+            });
+        }
+
+        function renderNotifications(notifs) {
+            const list = document.getElementById('notifications-list');
+            if (!notifs || notifs.length === 0) {
+                list.innerHTML = `<div class="bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium">No results found for this filter.</div>`;
+                return;
+            }
+
+            list.innerHTML = notifs.map(n => {
+                let iconClass = "fa-bell text-blue-500 bg-blue-50";
+                if (n.type === 'missed_call') iconClass = "fa-phone-slash text-red-500 bg-red-50";
+                if (n.type === 'recharge') iconClass = "fa-wallet text-emerald-500 bg-emerald-50";
+                if (n.type === 'registration') iconClass = "fa-user-plus text-indigo-500 bg-indigo-50";
+
+                return `
+                    <div class="bg-white p-5 rounded-2xl border border-emerald-50 shadow-sm flex items-center gap-5 group hover:border-emerald-200 transition-all ${n.isRead ? 'opacity-70' : 'ring-2 ring-blue-500/10'}">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-lg ${iconClass.split(' ').slice(1).join(' ')}">
+                             <i class="fas ${iconClass.split(' ')[0]}"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-slate-800 text-sm">${n.text}</h4>
+                            <p class="text-[0.65rem] text-slate-400 font-medium mt-0.5">${new Date(n.createdAt).toLocaleString()} • ${n.type.replace('_', ' ').toUpperCase()}</p>
+                        </div>
+                        ${!n.isRead ? `<div class="w-2.5 h-2.5 rounded-full bg-blue-500"></div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function clearAllNotifications() {
+            updateNotifBadge(0);
+            // Optionally tell server to mark all as read
+            // socket.emit('admin-mark-read-all');
         }
 
         function fetchStats() {

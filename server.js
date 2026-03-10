@@ -906,6 +906,18 @@ const AccountDeletionRequestSchema = new mongoose.Schema({
 });
 const AccountDeletionRequest = mongoose.model('AccountDeletionRequest', AccountDeletionRequestSchema);
 
+const AdminNotificationSchema = new mongoose.Schema({
+  id: { type: String, unique: true },
+  text: { type: String, required: true },
+  type: { type: String, enum: ['missed_call', 'recharge', 'system', 'payout', 'registration'], default: 'system' },
+  astroId: String,
+  userId: String,
+  amount: Number,
+  isRead: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now }
+});
+const AdminNotification = mongoose.model('AdminNotification', AdminNotificationSchema);
+
 const GlobalSettingsSchema = new mongoose.Schema({
   key: { type: String, unique: true },
   value: mongoose.Schema.Types.Mixed
@@ -2159,6 +2171,27 @@ async function sendCancelCallPush(toUserId, sessionId) {
   }
 }
 
+// Helper: Create and Broadcast Admin Notification
+async function createAdminNotification(data) {
+  try {
+    const notification = await AdminNotification.create({
+      id: crypto.randomUUID(),
+      text: data.text,
+      type: data.type || 'system',
+      astroId: data.astroId,
+      userId: data.userId,
+      amount: data.amount,
+      createdAt: new Date()
+    });
+    // Broadcast to all connected superadmins
+    io.to('superadmin').emit('admin-notification', notification);
+    console.log(`[Admin Notification] broadcasted: ${data.text}`);
+    return notification;
+  } catch (err) {
+    console.error('Error creating admin notification:', err);
+  }
+}
+
 // Helper: Handle Missed Call Logic (Offline + Admin notification)
 async function handleMissedCallLogic(toUserId, fromUserId) {
   try {
@@ -2169,9 +2202,14 @@ async function handleMissedCallLogic(toUserId, fromUserId) {
       await astro.save();
       broadcastAstroUpdate();
 
-      // Notify Super Admin
+      // Notify Super Admin (Persistent)
       const reasonMsg = `Missed Call Alert: ${astro.name} failed to answer. Automatically marked OFFLINE.`;
-      io.to('superadmin').emit('admin-notification', { text: reasonMsg, type: 'missed_call', astroId: toUserId });
+      createAdminNotification({
+        text: reasonMsg,
+        type: 'missed_call',
+        astroId: toUserId,
+        userId: fromUserId
+      });
 
       // Log to text file
       const logMsg = `[${new Date().toISOString()}] MISSED CALL: Astrologer ${astro.name} (${astro.phone}) missed a call from ${fromUserId}. Marked OFFLINE.\n`;
@@ -3765,6 +3803,20 @@ io.on('connection', (socket) => {
     }
   });
 
+  // --- Admin Notifications ---
+  socket.on('admin-get-notifications', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
+    try {
+      const { type } = data || {};
+      const query = type && type !== 'all' ? { type } : {};
+      const notifications = await AdminNotification.find(query).sort({ createdAt: -1 }).limit(100).lean();
+      if (typeof cb === "function") cb({ ok: true, notifications });
+    } catch (e) {
+      console.error('[Admin Notification] Fetch Error:', e);
+      if (typeof cb === "function") cb({ ok: false, error: 'Fetch failed' });
+    }
+  });
+
   socket.on('admin-resolve-photo-approval', async (data, cb) => {
     if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
     const { userId, action } = data;
@@ -5262,6 +5314,14 @@ app.post('/api/phonepe/callback', async (req, res) => {
           `✅ Super Recharge Successful! +₹${creditAmount + (creditAmount * (payment.offerPercentage || 0) / 100)}` :
           `✅ Recharge Successful! +₹${creditAmount}`;
         io.to(user.userId).emit('app-notification', { text: msg });
+
+        // Notify Super Admin
+        createAdminNotification({
+          text: `User Recharge: ${user.name} recharge ₹${creditAmount} successfully.`,
+          type: 'recharge',
+          userId: user.userId,
+          amount: creditAmount
+        });
       }
     } else if (code !== 'PAYMENT_SUCCESS' && payment.status === 'pending') {
       payment.status = 'failed';
