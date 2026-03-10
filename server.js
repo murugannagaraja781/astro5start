@@ -315,7 +315,7 @@ initFcmAuth();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' }, pingTimeout: 60000, pingInterval: 25000, maxHttpBufferSize: 1e8 });
+const io = new Server(server, { cors: { origin: '*' }, pingTimeout: 20000, pingInterval: 10000, maxHttpBufferSize: 1e8 });
 const cors = require("cors");
 const compression = require('compression');
 
@@ -637,8 +637,18 @@ const connectDB = async (retries = 5) => {
 };
 
 // Handle MongoDB connection events
-mongoose.connection.on('connected', () => {
+mongoose.connection.on('connected', async () => {
   console.log('📡 Mongoose connected to MongoDB');
+  // STARTUP CLEANUP: Reset stuck astrologer statuses
+  try {
+    const res = await mongoose.model('User').updateMany(
+      { role: 'astrologer' },
+      { isBusy: false, isOnline: false, isChatOnline: false, isAudioOnline: false, isVideoOnline: false, isAvailable: false }
+    );
+    console.log(`[Startup] Reset statuses for ${res.modifiedCount} astrologers to clean up sticky states.`);
+  } catch (err) {
+    console.error('[Startup] Status cleanup error:', err);
+  }
 });
 
 mongoose.connection.on('error', (err) => {
@@ -966,11 +976,11 @@ const otpStore = new Map();
 // Astrologer Status Persistence (5-min grace period)
 const offlineTimeouts = new Map(); // userId -> timeoutId
 const savedAstroStatus = new Map(); // userId -> { chat, audio, video, timestamp }
-const OFFLINE_GRACE_PERIOD = 5 * 60 * 1000; // 5 minutes
+const OFFLINE_GRACE_PERIOD = 2 * 60 * 1000; // 2 minutes (Reduced from 5 for accuracy)
 
 // Session Disconnect Persistence (1-min grace period for calls)
 const sessionDisconnectTimeouts = new Map(); // userId -> timeoutId
-const SESSION_GRACE_PERIOD = 60 * 1000; // 60 seconds
+const SESSION_GRACE_PERIOD = 30 * 1000; // 30 seconds (Reduced from 60 for faster cleanup)
 
 
 // --- Phase 2: Session Timer Engine (MOVED TO TOP LEVEL TO PREVENT CPU STACKING) ---
@@ -3025,9 +3035,11 @@ io.on('connection', (socket) => {
       if (!fromUserId) if (typeof cb === "function") return cb({ ok: false, error: 'Not registered' });
       if (!toUserId || !type) if (typeof cb === "function") return cb({ ok: false, error: 'Missing fields' });
 
-      // Get target user from DB
-      const toUser = await User.findOne({ userId: toUserId });
-      const fromUser = await User.findOne({ userId: fromUserId });
+      // Parallel DB Lookups for better speed
+      const [toUser, fromUser] = await Promise.all([
+        User.findOne({ userId: toUserId }),
+        User.findOne({ userId: fromUserId })
+      ]);
 
       if (!toUser) {
         if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
@@ -3097,6 +3109,11 @@ io.on('connection', (socket) => {
       });
       userActiveSession.set(fromUserId, sessionId);
       userActiveSession.set(toUserId, sessionId);
+
+      // Immediately mark as busy in DB
+      User.updateOne({ userId: toUserId, role: 'astrologer' }, { isBusy: true })
+        .then(() => broadcastAstroUpdate())
+        .catch(e => console.error('Error marking busy during request:', e));
 
       // Try socket notification (might fail if in background - that's OK!)
       let socketSent = false;
