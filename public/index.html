@@ -926,7 +926,7 @@
     .chart-modal-content {
       background: #F3F4F6;
       width: 100%;
-      height: 90vh;
+      height: 70vh;
       border-top-left-radius: 25px;
       border-top-right-radius: 25px;
       display: flex;
@@ -2663,7 +2663,7 @@
 
   <!-- Screen: Client Birth Chart Form Modal -->
   <div id="screen-client-birth-chart" class="modal-overlay hidden" style="align-items: center; z-index: 99999;">
-    <div class="chart-modal-content" style="height: auto; max-height: 90vh; max-width: 500px;">
+    <div class="chart-modal-content" style="height: auto; max-height: 70vh; max-width: 500px;">
       <div class="chart-header">
         <span>📊 Send Your Birth Details</span>
         <button onclick="document.getElementById('screen-client-birth-chart').classList.add('hidden')"
@@ -5629,7 +5629,12 @@
     // Signal Handler
     socket.on('signal', d => {
       if (state.session && d.sessionId === state.session.id && state.peer) {
-        state.peer.signal(d.signal);
+        let sig = d.signal;
+        // Robust handling: If Android sends wrapped candidate {type: 'candidate', candidate: {...}}
+        if (sig && sig.type === 'candidate' && sig.candidate) {
+          sig = sig.candidate;
+        }
+        state.peer.signal(sig);
       }
     });
 

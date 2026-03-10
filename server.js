@@ -3202,20 +3202,14 @@ io.on('connection', (socket) => {
         // This is CRITICAL for Android to wake up from a killed state and show the Full Screen Intent.
         sendFcmV1Push(toUser.fcmToken, fcmData, null)
           .then(result => {
-            console.log(`[FCM v1] Session Push to ${toUserId}: Success=${result.success} (socketSent=${socketSent})`);
-            if (!result.success && (result.error?.includes('Requested entity was not found') || result.error === 'UNREGISTERED')) {
-              // Token is stale/invalid
-              User.updateOne({ userId: toUserId }, { $unset: { fcmToken: 1 } })
-                .then(() => console.log(`[FCM v1] Invalid token removed for ${toUserId}`))
-                .catch(e => console.error('Token removal error', e));
-            }
+            console.log(`[Session] Push to ${toUserId} result: ${result.success ? 'Success' : 'Failed'}`);
           })
           .catch(err => {
             console.error('[FCM v1] Session Push Error:', err.message);
           });
       }
 
-      console.log(`Session request: ${sessionId} (${type})`);
+      console.log(`[Session] Request: ID=${sessionId}, Type=${type}, From=${fromUserId}, To=${toUserId}`);
       if (typeof cb === "function") cb({ ok: true, sessionId });
 
       // --- MISSED CALL TIMEOUT (25s) ---
@@ -3388,29 +3382,26 @@ io.on('connection', (socket) => {
       const targetSocketId = userSockets.get(fromUserId);
 
       if (accept) {
-        if (targetSocketId) {
-          io.to(targetSocketId).emit('session-answered', {
-            sessionId,
-            fromUserId: astrologerId,
-            type: callType || session.type,
-            accept: true
-          });
-        }
+        io.to(fromUserId).emit('session-answered', {
+          sessionId,
+          fromUserId: astrologerId,
+          type: callType || session.type,
+          accept: true
+        });
         console.log(`[Native] Call accepted - Session: ${sessionId}, Caller: ${fromUserId}, Astro: ${astrologerId}`);
         if (typeof cb === 'function') cb({ ok: true, fromUserId });
       } else {
-        if (targetSocketId) {
-          io.to(targetSocketId).emit('session-answered', {
-            sessionId,
-            fromUserId: astrologerId,
-            accept: false
-          });
-        }
+        io.to(fromUserId).emit('session-answered', {
+          sessionId,
+          fromUserId: astrologerId,
+          accept: false
+        });
         endSessionRecord(sessionId);
         console.log(`[Native] Call rejected - Session: ${sessionId}`);
         if (typeof cb === 'function') cb({ ok: true });
       }
 
+      console.log(`[Native Answer] SESSION=${sessionId}, FROM=${astrologerId}, ACCEPT=${accept}`);
     } catch (err) {
       console.error('answer-session-native error', err);
       if (typeof cb === 'function') cb({ ok: false, error: 'Server error' });
@@ -3425,15 +3416,33 @@ io.on('connection', (socket) => {
 
       // Fallback: If socket isn't mapped to a user yet (reconnect race condition), infer from session
       if (!fromUserId && sessionId && toUserId) {
+        console.log(`[Signal Fallback] Attempting to infer fromUserId for session ${sessionId}, known toUserId: ${toUserId}`);
         const session = activeSessions.get(sessionId);
+
+        if (!session) {
+          console.log(`[Signal Fallback] Session not found in activeSessions. Checking userActiveSession map for reverse lookup...`);
+          // Can we find it using another way?
+          for (const [uid, sid] of userActiveSession.entries()) {
+            if (sid === sessionId && uid !== toUserId) {
+              fromUserId = uid;
+              console.log(`[Signal Fallback] Deduced via reverse lookup: ${fromUserId}`);
+              break;
+            }
+          }
+        }
+
         if (session && session.users) {
           fromUserId = session.users.find(u => u !== toUserId);
-          // Proactively register the socket
-          if (fromUserId) {
-            socketToUser.set(socket.id, fromUserId);
-            userSockets.set(fromUserId, socket.id);
-            socket.join(fromUserId);
-          }
+          console.log(`[Signal Fallback] Found in session.users: ${fromUserId}`);
+        }
+
+        if (fromUserId) {
+          console.log(`[Signal Fallback] Proactively registering socket ${socket.id} to user ${fromUserId}`);
+          socketToUser.set(socket.id, fromUserId);
+          userSockets.set(fromUserId, socket.id);
+          socket.join(fromUserId);
+        } else {
+          console.log(`[Signal Fallback] Failed to infer fromUserId.`);
         }
       }
 
@@ -3444,7 +3453,7 @@ io.on('connection', (socket) => {
       }
 
       if (!fromUserId || !sessionId || !toUserId || !signal) {
-        console.warn(`[Signal] Missing data: from=${fromUserId}, session=${sessionId}, to=${toUserId}`);
+        console.warn(`[Signal] MISSING DATA: from=${fromUserId}, session=${sessionId}, to=${toUserId}, signalExists=${!!signal}`);
         return;
       }
 
@@ -3666,7 +3675,7 @@ io.on('connection', (socket) => {
 
       if (!userId || !sessionId) return;
 
-      console.log(`Session Connect: User ${userId} joined Session ${sessionId}`);
+      console.log(`[Session Connect] USER=${userId}, SESSION=${sessionId}`);
 
       await handleUserConnection(sessionId, userId);
 
