@@ -4618,10 +4618,10 @@ app.post('/api/payment/token', async (req, res) => {
       return res.json({ ok: false, error: 'User not found' });
     }
 
-    // GST Calculation (18%)
-    const baseAmount = parseFloat(amount);
-    const gstAmount = baseAmount * 0.18;
-    const totalAmount = baseAmount + gstAmount;
+    // Use provided amount as total (GST handled by client/frontend)
+    const totalAmount = parseFloat(amount);
+    const baseAmount = totalAmount; // For now, treat full amount as base
+    const gstAmount = 0;
 
     // Generate secure token
     const token = crypto.randomBytes(32).toString('hex');
@@ -4768,10 +4768,10 @@ app.post('/api/payment/create', async (req, res) => {
 
       console.log(`Token Auth Payment: ${token.substring(0, 8)}... userId=${userId} amount=${amount} (Base: ${baseAmount}, GST: ${gstAmount})`);
     } else {
-      // Legacy or direct call - calculate GST if not provided
+      // Direct call - use provided amount directly
       baseAmount = parseFloat(amount);
-      gstAmount = baseAmount * 0.18;
-      amount = baseAmount + gstAmount; // Total
+      gstAmount = 0;
+      amount = baseAmount;
     }
 
 
@@ -4806,7 +4806,7 @@ app.post('/api/payment/create', async (req, res) => {
       baseAmount,
       gstAmount,
       status: 'pending',
-      withGst: true,
+      withGst: false,
       isApp: !!isApp, // Store the source
       isSuperWallet: !!isSuperWallet || !!couponBonus, // Mark as super wallet if coupon bonus exists
       offerPercentage: parseFloat(offerPercentage || 0),
@@ -4951,6 +4951,14 @@ app.all('/api/payment/callback', async (req, res) => {
               superBalance: user.superWalletBalance || 0
             });
             io.to(user.userId).emit('app-notification', { text: `✅ Recharge Successful! +₹${creditAmount}` });
+
+            // Notify Super Admin
+            createAdminNotification({
+              text: `Recharge Success: ${user.name} recharged ₹${creditAmount} via PhonePe.`,
+              type: 'recharge',
+              userId: user.userId,
+              amount: creditAmount
+            });
           }
         }
       } else {
