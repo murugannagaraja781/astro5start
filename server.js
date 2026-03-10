@@ -1113,8 +1113,8 @@ async function handleUserConnection(sessionId, userId) {
       } catch (e) { console.error('PairMonth Init Error', e); }
     }
 
-    io.to(userSockets.get(session.clientId)).emit('billing-started', { startTime: billingStart });
-    io.to(userSockets.get(session.astrologerId)).emit('billing-started', { startTime: billingStart });
+    io.to(session.clientId).emit('billing-started', { startTime: billingStart });
+    io.to(session.astrologerId).emit('billing-started', { startTime: billingStart });
   }
 }
 
@@ -3411,8 +3411,8 @@ io.on('connection', (socket) => {
   // --- WebRTC signaling relay ---
   socket.on('signal', (data) => {
     try {
-      const { sessionId, toUserId, signal } = data || {};
-      let fromUserId = socketToUser.get(socket.id);
+      const { sessionId, toUserId, signal, from } = data || {};
+      let fromUserId = socketToUser.get(socket.id) || from;
 
       // Fallback: If socket isn't mapped to a user yet (reconnect race condition), infer from session
       if (!fromUserId && sessionId && toUserId) {
