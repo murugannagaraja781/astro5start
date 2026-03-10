@@ -2662,8 +2662,12 @@
   </div>
 
   <!-- Screen: Client Birth Chart Form Modal -->
-  <div id="screen-client-birth-chart" class="modal-overlay hidden" style="align-items: center; z-index: 99999;">
-    <div class="chart-modal-content" style="height: auto; max-height: 70vh; max-width: 500px;">
+  <div id="screen-client-birth-chart" class="modal-overlay hidden" style="align-items: flex-end; z-index: 99999;">
+    <div class="chart-modal-content"
+      style="height: 70vh; max-height: 85vh; max-width: 500px; border-bottom-left-radius: 0; border-bottom-right-radius: 0; margin-bottom: 0;">
+      <!-- Drag Handle for Visual Comfort -->
+      <div style="width: 40px; height: 5px; background: #ccc; border-radius: 10px; margin: 10px auto 0;"></div>
+
       <div class="chart-header">
         <span>📊 Send Your Birth Details</span>
         <button onclick="document.getElementById('screen-client-birth-chart').classList.add('hidden')"
