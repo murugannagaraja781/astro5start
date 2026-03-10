@@ -315,7 +315,7 @@ initFcmAuth();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, { cors: { origin: '*' }, pingTimeout: 60000, pingInterval: 25000, maxHttpBufferSize: 1e8 });
 const cors = require("cors");
 const compression = require('compression');
 
@@ -2634,14 +2634,14 @@ io.on('connection', (socket) => {
 
       // Basic Validation
       if (!cellNumber1 || !realName) {
-        return cb({ ok: false, error: 'Mandatory fields missing' });
+        if (typeof cb === "function") return cb({ ok: false, error: 'Mandatory fields missing' });
       }
 
       // Check if phone already exists
       let existing = await User.findOne({ phone: cellNumber1 });
       if (existing) {
         if (existing.role === 'astrologer') {
-          return cb({ ok: false, error: 'Phone number already registered as an astrologer' });
+          if (typeof cb === "function") return cb({ ok: false, error: 'Phone number already registered as an astrologer' });
         }
 
         // Upgrade client to astrologer
@@ -2675,7 +2675,7 @@ io.on('connection', (socket) => {
           data: { type: 'astro_registration' }
         });
 
-        return cb({ ok: true });
+        if (typeof cb === "function") return cb({ ok: true });
       }
 
       const userId = 'ASTRO_' + Date.now() + Math.floor(Math.random() * 1000);
@@ -2715,10 +2715,10 @@ io.on('connection', (socket) => {
         data: { type: 'astro_registration' }
       });
 
-      cb({ ok: true });
+      if (typeof cb === "function") cb({ ok: true });
     } catch (e) {
       console.error('Registration Error:', e);
-      cb({ ok: false, error: 'Server Error' });
+      if (typeof cb === "function") cb({ ok: false, error: 'Server Error' });
     }
   });
 
@@ -2963,7 +2963,7 @@ io.on('connection', (socket) => {
   // --- Update Profile ---
   socket.on('update-profile', async (data, cb) => {
     const userId = socketToUser.get(socket.id);
-    if (!userId) return cb({ ok: false, error: 'Not logged in' });
+    if (!userId) if (typeof cb === "function") return cb({ ok: false, error: 'Not logged in' });
 
     try {
       const user = await User.findOne({ userId });
@@ -2985,13 +2985,13 @@ io.on('connection', (socket) => {
         await user.save();
 
         if (user.role === 'astrologer') broadcastAstroUpdate();
-        cb({ ok: true, user });
+        if (typeof cb === "function") cb({ ok: true, user });
       } else {
-        cb({ ok: false, error: 'User not found' });
+        if (typeof cb === "function") cb({ ok: false, error: 'User not found' });
       }
     } catch (e) {
       console.error('Update Profile Error', e);
-      cb({ ok: false, error: 'Internal Error' });
+      if (typeof cb === "function") cb({ ok: false, error: 'Internal Error' });
     }
   });
 
@@ -3001,20 +3001,20 @@ io.on('connection', (socket) => {
       const { toUserId, type, birthData } = data || {};
       const fromUserId = socketToUser.get(socket.id);
 
-      if (!fromUserId) return cb({ ok: false, error: 'Not registered' });
-      if (!toUserId || !type) return cb({ ok: false, error: 'Missing fields' });
+      if (!fromUserId) if (typeof cb === "function") return cb({ ok: false, error: 'Not registered' });
+      if (!toUserId || !type) if (typeof cb === "function") return cb({ ok: false, error: 'Missing fields' });
 
       // Get target user from DB
       const toUser = await User.findOne({ userId: toUserId });
       const fromUser = await User.findOne({ userId: fromUserId });
 
       if (!toUser) {
-        return cb({ ok: false, error: 'User not found' });
+        if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
       }
 
       // Rule: Main Balance must be > 0 to start any session
       if (fromUser && fromUser.role === 'client' && (fromUser.walletBalance || 0) <= 0) {
-        return cb({ ok: false, error: 'Insufficient Main Balance. Please recharge your main wallet to start.' });
+        if (typeof cb === "function") return cb({ ok: false, error: 'Insufficient Main Balance. Please recharge your main wallet to start.' });
       }
 
       // Check if astrologer is available (MANUAL ONLY)
@@ -3039,7 +3039,7 @@ io.on('connection', (socket) => {
           console.log(`[Session] Stale session ${existingSessionId} detected between ${fromUserId} and ${toUserId}. Auto-cleaning.`);
           await endSessionRecord(existingSessionId);
         } else {
-          return cb({ ok: false, error: 'User busy' });
+          if (typeof cb === "function") return cb({ ok: false, error: 'User busy' });
         }
       }
 
@@ -3123,7 +3123,7 @@ io.on('connection', (socket) => {
       }
 
       console.log(`Session request: ${sessionId} (${type})`);
-      cb({ ok: true, sessionId });
+      if (typeof cb === "function") cb({ ok: true, sessionId });
 
       // --- MISSED CALL TIMEOUT (25s) ---
       setTimeout(async () => {
@@ -3147,7 +3147,7 @@ io.on('connection', (socket) => {
       }, 30000); // 30 Seconds Timeout
     } catch (err) {
       console.error('request-session error', err);
-      cb({ ok: false, error: 'Internal error' });
+      if (typeof cb === "function") cb({ ok: false, error: 'Internal error' });
     }
   });
 
@@ -3483,8 +3483,8 @@ io.on('connection', (socket) => {
       // Populate names (Mock style since we don't have populate setup easily, we'll fetch manually or send IDs)
       // Actually client can resolve names from its own list or we just send IDs + Time + Type
 
-      cb({ ok: true, sessions });
-    } catch (e) { console.error(e); cb({ ok: false }); }
+      if (typeof cb === "function") cb({ ok: true, sessions });
+    } catch (e) { console.error(e); if (typeof cb === "function") cb({ ok: false }); }
   });
 
   // --- message-status (from Android) - handles both delivered and read ---
@@ -3605,39 +3605,39 @@ io.on('connection', (socket) => {
 
   // --- Admin: Get All Users ---
   socket.on('get-all-users', async (cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
     try {
       // Sort by role (superadmin first), then by createdAt descending (recent first)
       const users = await User.find({}).sort({ role: -1, createdAt: -1 });
-      cb({ ok: true, users });
-    } catch (e) { cb({ ok: false }); }
+      if (typeof cb === "function") cb({ ok: true, users });
+    } catch (e) { if (typeof cb === "function") cb({ ok: false }); }
   });
 
   socket.on('admin-delete-user', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
     try {
       const user = await User.findOne({ userId: data.userId });
-      if (!user) return cb({ ok: false, error: 'User not found' });
-      if (user.role === 'superadmin') return cb({ ok: false, error: 'Cannot delete superadmin' });
+      if (!user) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
+      if (user.role === 'superadmin') if (typeof cb === "function") return cb({ ok: false, error: 'Cannot delete superadmin' });
 
       await User.deleteOne({ userId: data.userId });
       console.log(`[Admin] Deleted user: ${data.userId}`);
-      cb({ ok: true });
+      if (typeof cb === "function") cb({ ok: true });
     } catch (e) {
       console.error(e);
-      cb({ ok: false, error: 'Deletion failed' });
+      if (typeof cb === "function") cb({ ok: false, error: 'Deletion failed' });
     }
   });
 
   // --- Admin: Edit User (Name Only) ---
   socket.on('admin-edit-user', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
     try {
       const { targetUserId, updates } = data || {};
-      if (!targetUserId || !updates || !updates.name) return cb({ ok: false, error: 'Invalid Data' });
+      if (!targetUserId || !updates || !updates.name) if (typeof cb === "function") return cb({ ok: false, error: 'Invalid Data' });
 
       const u = await User.findOne({ userId: targetUserId });
-      if (!u) return cb({ ok: false, error: 'User not found' });
+      if (!u) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
 
       u.name = updates.name;
       await u.save();
@@ -3646,20 +3646,20 @@ io.on('connection', (socket) => {
 
       if (u.role === 'astrologer') broadcastAstroUpdate();
 
-      cb({ ok: true });
+      if (typeof cb === "function") cb({ ok: true });
     } catch (e) {
       console.error(e);
-      cb({ ok: false, error: 'Internal Error' });
+      if (typeof cb === "function") cb({ ok: false, error: 'Internal Error' });
     }
   });
 
   // --- Admin: Update User Details (Unified) ---
   socket.on('admin-update-user-details', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
     try {
       const { userId, updates } = data;
       const user = await User.findOne({ userId });
-      if (!user) return cb({ ok: false, error: 'User not found' });
+      if (!user) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
 
       // Update basic fields
       if (updates.name) user.name = updates.name;
@@ -3709,30 +3709,30 @@ io.on('connection', (socket) => {
         io.to(sId).emit('my-profile-updated', formattedUser);
       }
 
-      cb({ ok: true, user });
+      if (typeof cb === "function") cb({ ok: true, user });
     } catch (e) {
       console.error(e);
-      cb({ ok: false, error: 'Update Failed' });
+      if (typeof cb === "function") cb({ ok: false, error: 'Update Failed' });
     }
   });
 
   // --- Photo Approvals ---
   socket.on('admin-get-photo-approvals', async (cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
     try {
       const pendingUsers = await User.find({ photoStatus: 'pending' }).select('userId name phone image pendingImage photoStatus updatedAt').lean();
-      cb({ ok: true, pendingUsers });
+      if (typeof cb === "function") cb({ ok: true, pendingUsers });
     } catch (e) {
-      cb({ ok: false, error: 'Fetch failed' });
+      if (typeof cb === "function") cb({ ok: false, error: 'Fetch failed' });
     }
   });
 
   socket.on('admin-resolve-photo-approval', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
     const { userId, action } = data;
     try {
       const user = await User.findOne({ userId });
-      if (!user) return cb({ ok: false, error: 'User not found' });
+      if (!user) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
       if (action === 'approve') {
         user.image = user.pendingImage;
         user.photoStatus = 'approved';
@@ -3743,14 +3743,14 @@ io.on('connection', (socket) => {
       }
       await user.save();
       await broadcastAstroUpdate();
-      cb({ ok: true, message: `Photo ${action}d` });
+      if (typeof cb === "function") cb({ ok: true, message: `Photo ${action}d` });
     } catch (e) {
-      cb({ ok: false, error: 'Resolution failed' });
+      if (typeof cb === "function") cb({ ok: false, error: 'Resolution failed' });
     }
   });
 
   socket.on('admin-update-role', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
     try {
       const updates = { role: data.role };
       if (data.role === 'astrologer') {
@@ -3765,8 +3765,8 @@ io.on('connection', (socket) => {
       }
       io.to(data.userId).emit('app-notification', { text: `Your role has been updated to ${data.role}!` });
 
-      cb({ ok: true });
-    } catch (e) { cb({ ok: false }); }
+      if (typeof cb === "function") cb({ ok: true });
+    } catch (e) { if (typeof cb === "function") cb({ ok: false }); }
   });
 
   // --- Astrologer: Update Client Birth Details (Task 2) ---
@@ -3775,10 +3775,10 @@ io.on('connection', (socket) => {
       const { clientId, birthDetails } = data;
       const astroId = socketToUser.get(socket.id);
       const astro = await User.findOne({ userId: astroId });
-      if (!astro || astro.role !== 'astrologer') return cb({ ok: false, error: 'Unauthorized' });
+      if (!astro || astro.role !== 'astrologer') if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
 
       const client = await User.findOne({ userId: clientId });
-      if (!client) return cb({ ok: false, error: 'Client not found' });
+      if (!client) if (typeof cb === "function") return cb({ ok: false, error: 'Client not found' });
 
       client.birthDetails = { ...client.birthDetails, ...birthDetails };
       await client.save();
@@ -3792,15 +3792,15 @@ io.on('connection', (socket) => {
       // Notify client if online
       io.to(clientId).emit('birth-details-updated', { birthDetails: client.birthDetails, chart: newChart });
 
-      cb({ ok: true, chart: newChart });
+      if (typeof cb === "function") cb({ ok: true, chart: newChart });
     } catch (e) {
       console.error('[Socket] Astrologer Edit Error:', e);
-      cb({ ok: false, error: 'Update Failed' });
+      if (typeof cb === "function") cb({ ok: false, error: 'Update Failed' });
     }
   });
 
   socket.on('admin-add-wallet', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
     try {
       const u = await User.findOne({ userId: data.userId });
       u.walletBalance += parseInt(data.amount);
@@ -3813,40 +3813,40 @@ io.on('connection', (socket) => {
         superBalance: u.superWalletBalance || 0
       });
 
-      cb({ ok: true });
-    } catch (e) { cb({ ok: false }); }
+      if (typeof cb === "function") cb({ ok: true });
+    } catch (e) { if (typeof cb === "function") cb({ ok: false }); }
   });
 
   socket.on('admin-toggle-ban', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
     try {
       await User.updateOne({ userId: data.userId }, { isBanned: data.isBanned });
-      cb({ ok: true });
+      if (typeof cb === "function") cb({ ok: true });
       // If banned, disconnect socket?
       if (data.isBanned) {
         const s = userSockets.get(data.userId);
         if (s) io.to(s).emit('force-logout'); // Need to handle client side
       }
-    } catch (e) { cb({ ok: false }); }
+    } catch (e) { if (typeof cb === "function") cb({ ok: false }); }
   });
 
   socket.on('admin-get-pending-requests', async (cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
     try {
       const pending = await User.find({ approvalStatus: 'pending', role: 'astrologer' });
-      cb({ ok: true, requests: pending });
+      if (typeof cb === "function") cb({ ok: true, requests: pending });
     } catch (e) {
       console.error(e);
-      cb({ ok: false });
+      if (typeof cb === "function") cb({ ok: false });
     }
   });
 
   socket.on('admin-approve-astrologer', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
     try {
       const { userId, action } = data; // action: 'approve' | 'reject'
       const user = await User.findOne({ userId });
-      if (!user) return cb({ ok: false, error: 'User not found' });
+      if (!user) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
 
       if (action === 'approve') {
         user.approvalStatus = 'approved';
@@ -3862,16 +3862,16 @@ io.on('connection', (socket) => {
       }
 
       console.log(`Admin ${action}ed astrologer: ${user.name}`);
-      cb({ ok: true });
+      if (typeof cb === "function") cb({ ok: true });
     } catch (e) {
       console.error(e);
-      cb({ ok: false });
+      if (typeof cb === "function") cb({ ok: false });
     }
   });
 
   // Phase 10: Ledger Stats
   socket.on('admin-get-ledger-stats', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
     try {
       // Get billing stats
       const billingStats = await BillingLedger.aggregate([
@@ -3910,10 +3910,10 @@ io.on('connection', (socket) => {
         onlineAstrologers: onlineAstrologers
       };
 
-      cb({ ok: true, stats, fullLedger });
+      if (typeof cb === "function") cb({ ok: true, stats, fullLedger });
     } catch (e) {
       console.error(e);
-      cb({ ok: false });
+      if (typeof cb === "function") cb({ ok: false });
     }
   });
 
@@ -3951,7 +3951,7 @@ io.on('connection', (socket) => {
     if (!userId) return;
     try {
       const amount = parseInt(data.amount);
-      if (!amount || amount < 100) return cb({ ok: false, error: 'Minimum limit 100' });
+      if (!amount || amount < 100) if (typeof cb === "function") return cb({ ok: false, error: 'Minimum limit 100' });
 
       // Attempt atomic deduction to prevent race conditions
       const u = await User.findOneAndUpdate(
@@ -3962,7 +3962,7 @@ io.on('connection', (socket) => {
 
       if (!u) {
         // Either user not found OR insufficient balance
-        return cb({ ok: false, error: 'Insufficient Balance' });
+        if (typeof cb === "function") return cb({ ok: false, error: 'Insufficient Balance' });
       }
 
       let w;
@@ -3978,7 +3978,7 @@ io.on('connection', (socket) => {
         console.error("DB Error creating withdrawal, rolling back wallet:", dbErr);
         // Refund seamlessly
         await User.updateOne({ userId }, { $inc: { walletBalance: amount } });
-        return cb({ ok: false, error: 'Database Error - Try Again' });
+        if (typeof cb === "function") return cb({ ok: false, error: 'Database Error - Try Again' });
       }
 
       // Emit wallet update to self
@@ -3991,22 +3991,22 @@ io.on('connection', (socket) => {
         data: { withdrawalId: w._id, astroName: u.name, amount }
       });
 
-      cb({ ok: true, balance: u.walletBalance });
+      if (typeof cb === "function") cb({ ok: true, balance: u.walletBalance });
     } catch (e) {
       console.error(e);
-      cb({ ok: false, error: 'Error' });
+      if (typeof cb === "function") cb({ ok: false, error: 'Error' });
     }
   });
 
   socket.on('approve-withdrawal', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
     try {
       const { withdrawalId } = data;
       const w = await Withdrawal.findById(withdrawalId);
-      if (!w || w.status !== 'pending') return cb({ ok: false, error: 'Invalid Request' });
+      if (!w || w.status !== 'pending') if (typeof cb === "function") return cb({ ok: false, error: 'Invalid Request' });
 
       const u = await User.findOne({ userId: w.astroId });
-      if (!u) return cb({ ok: false, error: 'User not found' });
+      if (!u) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
 
       // Balance already deducted at request time
 
@@ -4035,19 +4035,19 @@ io.on('connection', (socket) => {
         sendFcmV1Push(u.fcmToken, fcmData, fcmNotification).catch(e => console.error("FCM Error:", e));
       }
 
-      cb({ ok: true, balance: u.walletBalance });
+      if (typeof cb === "function") cb({ ok: true, balance: u.walletBalance });
     } catch (e) {
       console.error(e);
-      cb({ ok: false, error: 'Error' });
+      if (typeof cb === "function") cb({ ok: false, error: 'Error' });
     }
   });
 
   socket.on('reject-withdrawal', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
     try {
       const { withdrawalId } = data;
       const w = await Withdrawal.findById(withdrawalId);
-      if (!w || w.status !== 'pending') return cb({ ok: false, error: 'Invalid Request' });
+      if (!w || w.status !== 'pending') if (typeof cb === "function") return cb({ ok: false, error: 'Invalid Request' });
 
       const u = await User.findOne({ userId: w.astroId });
       if (u) {
@@ -4068,10 +4068,10 @@ io.on('connection', (socket) => {
       w.processedAt = Date.now();
       await w.save();
 
-      cb({ ok: true });
+      if (typeof cb === "function") cb({ ok: true });
     } catch (e) {
       console.error(e);
-      cb({ ok: false });
+      if (typeof cb === "function") cb({ ok: false });
     }
   });
 
@@ -4114,21 +4114,21 @@ io.on('connection', (socket) => {
   socket.on('get-payout-status', async (data, cb) => {
     try {
       const userId = socketToUser.get(socket.id);
-      if (!userId) return cb({ ok: false });
+      if (!userId) if (typeof cb === "function") return cb({ ok: false });
 
       const pending = await Withdrawal.find({ astroId: userId, status: 'pending' });
       const totalPending = pending.reduce((sum, w) => sum + (w.amount || 0), 0);
 
-      cb({ ok: true, pendingAmount: totalPending, count: pending.length });
+      if (typeof cb === "function") cb({ ok: true, pendingAmount: totalPending, count: pending.length });
     } catch (e) {
       console.error(e);
-      cb({ ok: false, error: 'Error' });
+      if (typeof cb === "function") cb({ ok: false, error: 'Error' });
     }
   });
 
   socket.on('get-slab-rates', async (cb) => {
     if (!await checkAdmin(socket.id)) return;
-    cb({ ok: true, rates: SLAB_RATES });
+    if (typeof cb === "function") cb({ ok: true, rates: SLAB_RATES });
   });
 
   socket.on('update-slab-rates', async (rates, cb) => {
@@ -4137,9 +4137,9 @@ io.on('connection', (socket) => {
       await GlobalSettings.updateOne({ key: 'slab_rates' }, { value: rates }, { upsert: true });
       SLAB_RATES = rates;
       console.log('[Admin] Slab Rates updated:', SLAB_RATES);
-      cb({ ok: true });
+      if (typeof cb === "function") cb({ ok: true });
     } catch (e) {
-      cb({ ok: false, error: e.message });
+      if (typeof cb === "function") cb({ ok: false, error: e.message });
     }
   });
 
@@ -4150,7 +4150,7 @@ io.on('connection', (socket) => {
       let query = {};
 
       if (!allUsers) {
-        if (!userIds || userIds.length === 0) return cb({ ok: false, error: 'No users selected' });
+        if (!userIds || userIds.length === 0) if (typeof cb === "function") return cb({ ok: false, error: 'No users selected' });
         query = { userId: { $in: userIds } };
       } else {
         query = { fcmToken: { $exists: true, $ne: '' } };
@@ -4179,9 +4179,9 @@ io.on('connection', (socket) => {
         failCount += (chunk.length - chunkSuccess);
       }
 
-      cb({ ok: true, sentCount, failCount });
+      if (typeof cb === "function") cb({ ok: true, sentCount, failCount });
     } catch (e) {
-      cb({ ok: false, error: e.message });
+      if (typeof cb === "function") cb({ ok: false, error: e.message });
     }
   });
   // --- End Withdrawal Logic ---
