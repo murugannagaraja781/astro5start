@@ -5045,31 +5045,40 @@
         res.sessions.forEach(s => {
           const date = new Date(s.startTime).toLocaleString();
 
-          // Format duration
+          // Format duration and Status
           let duraText = '0m 0s';
-          if (s.duration) {
+
+          const isMe = s.fromUserId === state.me.userId;
+          const isAstro = state.me.role === 'astrologer';
+          const otherId = isMe ? s.toUserId : s.fromUserId;
+
+          let amountLabel = isAstro ? 'Earned' : 'Paid';
+          let borderStyle = '1px solid #f0f0f0';
+          let iconColor = '#F59E0B';
+          let titleText = s.type.toUpperCase();
+
+          if (s.status === 'missed') {
+            duraText = '<span style="color:#ef4444; font-weight:bold; font-size:0.8rem;">MISSED CALL</span>';
+            borderStyle = '1px solid #fee2e2';
+            iconColor = '#ef4444';
+            titleText = `<span style="color:#ef4444;">MISSED ${s.type.toUpperCase()}</span>`;
+          } else if (s.duration) {
             const totalSec = Math.floor(s.duration / 1000);
             const m = Math.floor(totalSec / 60);
             const s_left = totalSec % 60;
             duraText = m > 0 ? `${m}m ${s_left}s` : `${s_left}s`;
           }
 
-          const isMe = s.fromUserId === state.me.userId;
-          const isAstro = state.me.role === 'astrologer';
-          const otherId = isMe ? s.toUserId : s.fromUserId;
-
-          // Amount Details
           const amount = isAstro ? (s.totalEarned || 0) : (s.totalCharged || 0);
-          const amountLabel = isAstro ? 'Earned' : 'Paid';
 
           const item = document.createElement('div');
-          item.style.cssText = 'background: white; padding: 15px; margin-bottom: 15px; border-radius: 16px; border: 1px solid #f0f0f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: all 0.2s;';
+          item.style.cssText = `background: white; padding: 15px; margin-bottom: 15px; border-radius: 16px; border: ${borderStyle}; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: all 0.2s;`;
           item.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
               <div>
                 <div style="font-weight:700; font-size:1.1rem; color:#1e3a8a; display:flex; align-items:center; gap:8px;">
-                  <i class="fas ${s.type === 'video' ? 'fa-video' : (s.type === 'chat' ? 'fa-comment' : 'fa-phone-alt')}" style="font-size:0.9rem; color:#F59E0B;"></i>
-                  ${s.type.toUpperCase()}
+                  <i class="fas ${s.type === 'video' ? 'fa-video' : (s.type === 'chat' ? 'fa-comment' : 'fa-phone-alt')}" style="font-size:0.9rem; color:${iconColor};"></i>
+                  ${titleText}
                 </div>
                 <div style="font-size:0.8rem; color:#6B7280; margin-top: 4px; font-family:monospace;">ID: ${otherId ? otherId.slice(0, 8) : '---'}</div>
               </div>

@@ -2265,7 +2265,25 @@ async function endSessionRecord(sessionId, endReason) {
   };
 
   if (s.clientId) io.to(s.clientId).emit('session-ended', payload);
-  if (s.astrologerId) io.to(s.astrologerId).emit('session-ended', payload);
+  if (s.astrologerId) {
+    io.to(s.astrologerId).emit('session-ended', payload);
+
+    // Auto-Send Push Notification to Astrologer for Earnings
+    if (s.totalEarned > 0) {
+      User.findOne({ userId: s.astrologerId }).then(astro => {
+        if (astro && astro.fcmToken) {
+          sendFcmV1Push(astro.fcmToken, {
+            type: 'EARNING_UPDATE',
+            amount: String(s.totalEarned),
+            click_action: 'FLUTTER_NOTIFICATION_CLICK' // Or appropriate intent action
+          }, {
+            title: "🟢 Payment Credited",
+            body: `₹${s.totalEarned.toFixed(2)} has been credited to your wallet for the recent session.`
+          }).catch(e => console.error('[FCM] Earning push failed:', e));
+        }
+      }).catch(e => console.error(e));
+    }
+  }
 
   // Mark astrologer as NOT busy (Wait for DB update before broadcast)
   User.updateMany({ userId: { $in: s.users }, role: 'astrologer' }, { isBusy: false })
