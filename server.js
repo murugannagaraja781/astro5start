@@ -435,11 +435,11 @@ app.get('/api/ice-config', (req, res) => {
 
 app.get('/api/app-config', (req, res) => {
   res.json({
-    minVersionCode: 5,
-    latestVersionName: "5.0.0",
+    minVersionCode: 6,
+    latestVersionName: "5.0.1",
     updateUrl: "https://astro5star.com/download/astro5star.apk",
     forceUpdate: true,
-    message: "A new version of Astro5Star is available with improved call quality. Please update to continue."
+    message: "A new version 5.0.1 of Astro5Star is available with improved service management. Please update to continue."
   });
 });
 
@@ -2939,23 +2939,40 @@ io.on('connection', (socket) => {
     if (!userId) return;
 
     try {
-      const update = {};
       const isEnabled = !!data.isEnabled;
+      const service = data.service;
 
-      if (data.service === 'chat') update.isChatOnline = isEnabled;
-      if (data.service === 'call') update.isAudioOnline = isEnabled; // 'call' maps to 'audio'
-      if (data.service === 'video') update.isVideoOnline = isEnabled;
+      const update = { lastSeen: new Date() };
+      if (service === 'chat') update.isChatOnline = isEnabled;
+      else if (service === 'audio' || service === 'call') update.isAudioOnline = isEnabled;
+      else if (service === 'video') update.isVideoOnline = isEnabled;
 
       let user = await User.findOne({ userId });
       if (user) {
-        Object.assign(user, update);
-        // Manual Toggle Rule: isAvailable is the master status
-        user.isOnline = user.isAvailable;
+        // Correctly calculate new online status
+        const chatOn = service === 'chat' ? isEnabled : (user.isChatOnline || false);
+        const audioOn = (service === 'audio' || service === 'call') ? isEnabled : (user.isAudioOnline || false);
+        const videoOn = service === 'video' ? isEnabled : (user.isVideoOnline || false);
+
+        user.isChatOnline = chatOn;
+        user.isAudioOnline = audioOn;
+        user.isVideoOnline = videoOn;
+        user.isOnline = chatOn || audioOn || videoOn;
+        user.isAvailable = user.isOnline;
         user.lastSeen = new Date();
+
         await user.save();
 
+        // Broadcast to everyone
+        io.emit('astro-status-change', {
+          userId,
+          service,
+          isEnabled,
+          isOnline: user.isOnline
+        });
+
         broadcastAstroUpdate();
-        console.log(`[Service Status] ${user.name} updated ${data.service}: ${isEnabled}`);
+        console.log(`[Service Status] ${user.name} updated ${service}: ${isEnabled}`);
       }
     } catch (e) { console.error('update-service-status error:', e); }
   });
@@ -4441,19 +4458,32 @@ app.post('/api/astrologer/service-toggle', async (req, res) => {
     // Also update isAvailable and isOnline if any service is enabled
     const user = await User.findOne({ userId });
     if (user) {
-      const chatOn = service === 'chat' ? enabled : user.isChatOnline;
-      const audioOn = service === 'audio' ? enabled : user.isAudioOnline;
-      const videoOn = service === 'video' ? enabled : user.isVideoOnline;
+      const chatOn = service === 'chat' ? (enabled === true || enabled === 'true') : (user.isChatOnline || false);
+      const audioOn = (service === 'audio' || service === 'call') ? (enabled === true || enabled === 'true') : (user.isAudioOnline || false);
+      const videoOn = service === 'video' ? (enabled === true || enabled === 'true') : (user.isVideoOnline || false);
 
-      // isAvailable = true if ANY service is online
+      // Explicitly set the flags in the update object to ensure DB consistency
+      update.isChatOnline = chatOn;
+      update.isAudioOnline = audioOn;
+      update.isVideoOnline = videoOn;
       update.isAvailable = chatOn || audioOn || videoOn;
       update.isOnline = chatOn || audioOn || videoOn;
+
+      await User.updateOne({ userId }, update);
+
+      // Emit status change event for real-time updates
+      io.emit('astro-status-change', {
+        userId,
+        service,
+        isEnabled: (enabled === true || enabled === 'true'),
+        isOnline: update.isOnline
+      });
+
+      await broadcastAstroUpdate();
+      console.log(`[Service Toggle] ${userId}: ${service} = ${enabled}`);
+    } else {
+      await User.updateOne({ userId }, update);
     }
-
-    await User.updateOne({ userId }, update);
-
-    await broadcastAstroUpdate();
-    console.log(`[Service Toggle] ${userId}: ${service} = ${enabled}`);
     res.json({ ok: true });
   } catch (e) {
     console.error("Service Toggle Error:", e);
