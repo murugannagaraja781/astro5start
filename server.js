@@ -13,6 +13,15 @@ const multer = require('multer');
 const admin = require('firebase-admin'); // Firebase Admin for Mobile App
 const { DateTime } = require('luxon');
 const { fetchDailyHoroscope } = require("./utils/rasiEng/horoscopeData");
+const { Agent } = require('https');
+
+// Keep-alive agent for FCM
+const fcmHttpsAgent = new Agent({
+  keepAlive: true,
+  maxSockets: 100,
+  maxFreeSockets: 10,
+  timeout: 60000
+});
 
 // Polyfill for fetch (Node.js 18+ has it built-in)
 if (!global.fetch) {
@@ -288,7 +297,8 @@ async function sendFcmV1Push(fcmToken, data, notification) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify(message)
+        body: JSON.stringify(message),
+        agent: fcmHttpsAgent
       }
     );
 
@@ -1063,7 +1073,7 @@ async function handleUserConnection(sessionId, userId) {
         activeSession.lastBilledMinute = 1;
         activeSession.clientId = session.clientId;
         activeSession.astrologerId = session.astrologerId;
-        activeSession.currentSlab = 3;
+        activeSession.currentSlab = 1;
         activeSession.totalDeducted = 0;
         activeSession.totalEarned = 0;
       }
@@ -1073,7 +1083,7 @@ async function handleUserConnection(sessionId, userId) {
         const pairId = `${session.clientId}_${session.astrologerId}`;
         let pairRec = await PairMonth.findOne({ pairId, yearMonth: currentMonth });
         if (!pairRec) {
-          pairRec = await PairMonth.create({ pairId, clientId: session.clientId, astrologerId: session.astrologerId, yearMonth: currentMonth, currentSlab: 3 });
+          pairRec = await PairMonth.create({ pairId, clientId: session.clientId, astrologerId: session.astrologerId, yearMonth: currentMonth, currentSlab: 1 });
         }
         activeSession.pairMonthId = pairRec._id;
         activeSession.currentSlab = pairRec.currentSlab;
@@ -2309,7 +2319,7 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
     } else if (type === 'slab') {
       // Standard Minute Billing
       const activeSess = activeSessions.get(sessionId);
-      const currentSlab = activeSess?.currentSlab || 3;
+      const currentSlab = activeSess?.currentSlab || 1;
       const rate = SLAB_RATES[currentSlab] || 0.30;
 
       amountToCharge = pricePerMin;
