@@ -3707,7 +3707,11 @@ io.on('connection', (socket) => {
       if (typeof cb === 'function') cb({ ok: false, error: err.message });
     }
   });
-
+  // --- App Log Relay (for debugging Android) ---
+  socket.on('app-log', (data) => {
+    const { userId, msg, sessionId } = data || {};
+    console.log(`[AppLog][${userId}] Session=${sessionId} | ${msg}`);
+  });
   // --- Native Android Bridge Fixes ---
   // (Redundant session-ended handler removed as end-session covers all use cases)
 
