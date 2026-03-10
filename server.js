@@ -2176,7 +2176,7 @@ async function handleMissedCallLogic(toUserId, fromUserId) {
 }
 
 // Helper: End Session & Calculate Wallet
-async function endSessionRecord(sessionId) {
+async function endSessionRecord(sessionId, endReason) {
   const s = activeSessions.get(sessionId);
   if (!s) return;
 
@@ -2184,9 +2184,12 @@ async function endSessionRecord(sessionId) {
     // If call was ended before being answered (caller cancelled or astro rejected)
     sendCancelCallPush(s.astrologerId, sessionId);
 
-    // Auto-offline the astrologer and notify admin
-    const callerId = s.clientId || s.users.find(u => u !== s.astrologerId);
-    handleMissedCallLogic(s.astrologerId, callerId);
+    // Ensure we do NOT auto-offline the astrologer if the client manually cancelled the call early
+    if (endReason !== 'caller_cancel') {
+      // Auto-offline the astrologer and notify admin
+      const callerId = s.clientId || s.users.find(u => u !== s.astrologerId);
+      handleMissedCallLogic(s.astrologerId, callerId);
+    }
   }
 
   const endTime = Date.now();
@@ -3355,7 +3358,7 @@ io.on('connection', (socket) => {
   // --- End Session (Sync for both sides) ---
   socket.on('end-session', async (data) => {
     try {
-      const { sessionId } = data || {};
+      const { sessionId, reason } = data || {};
       const fromUserId = socketToUser.get(socket.id);
 
       if (!fromUserId || !sessionId) return;
@@ -3363,7 +3366,7 @@ io.on('connection', (socket) => {
       const session = activeSessions.get(sessionId);
       // No need to emit here, endSessionRecord handles it for both parties
 
-      endSessionRecord(sessionId);
+      endSessionRecord(sessionId, reason);
       console.log(`[Session] Ended by ${fromUserId}: ${sessionId}`);
 
     } catch (e) { console.error('end-session error', e); }
@@ -4184,6 +4187,33 @@ io.on('connection', (socket) => {
       if (typeof cb === "function") cb({ ok: false, error: e.message });
     }
   });
+  // --- Explicit Logout Event ---
+  socket.on('logout', async () => {
+    const userId = socketToUser.get(socket.id);
+    if (!userId) return;
+
+    try {
+      const user = await User.findOne({ userId });
+      if (user && user.role === 'astrologer') {
+        user.isOnline = false;
+        user.isAvailable = false;
+        user.isChatOnline = false;
+        user.isAudioOnline = false;
+        user.isVideoOnline = false;
+        await user.save();
+        broadcastAstroUpdate();
+        console.log(`[Status] Astrologer ${user.name} logged out manually. Marked OFFLINE.`);
+
+        if (offlineTimeouts.has(userId)) {
+          clearTimeout(offlineTimeouts.get(userId));
+          offlineTimeouts.delete(userId);
+        }
+      }
+    } catch (e) {
+      console.error('Logout error:', e);
+    }
+  });
+
   // --- End Withdrawal Logic ---
 
   // --- Disconnect ---
@@ -4201,9 +4231,26 @@ io.on('connection', (socket) => {
         // If Astrologer, use grace period before marking offline
         const user = await User.findOne({ userId });
         if (user && user.role === 'astrologer') {
-          // Save current status before potential offline
-          // Manual Toggle Rule: Skip offline marking, but DO NOT return!
-          // We must continue to clean up the session below.
+          console.log(`[Status] Astrologer ${user.name} socket dropped. Starting offline grace period.`);
+
+          if (offlineTimeouts.has(userId)) {
+            clearTimeout(offlineTimeouts.get(userId));
+          }
+
+          const timeoutId = setTimeout(async () => {
+            await User.updateOne({ userId }, {
+              isOnline: false,
+              isAvailable: false,
+              isChatOnline: false,
+              isAudioOnline: false,
+              isVideoOnline: false
+            });
+            broadcastAstroUpdate();
+            console.log(`[Status] Astrologer ${user.name} marked offline after timeout.`);
+            offlineTimeouts.delete(userId);
+          }, OFFLINE_GRACE_PERIOD);
+
+          offlineTimeouts.set(userId, timeoutId);
         }
       } catch (e) { console.error('Disconnect DB error', e); }
 

@@ -5519,10 +5519,10 @@
         clearInterval(callingInterval);
         clearTimeout(callingTimeout);
         if (document.getElementById('calling-modal')) document.getElementById('calling-modal').remove();
-        if (reason) alert(reason);
+        if (reason && reason !== 'Cancelled by user.') console.log('Call cancelled:', reason);
         // Explicitly end the session to notify the other party
         if (state.tempSessionId) {
-          socket.emit('end-session', { sessionId: state.tempSessionId });
+          socket.emit('end-session', { sessionId: state.tempSessionId, reason: 'caller_cancel' });
           state.tempSessionId = null;
         }
       }
@@ -5963,7 +5963,7 @@
     // End Session
     document.getElementById('btnEnd').onclick = () => {
       if (state.session) {
-        socket.emit('end-session', { sessionId: state.session.id, toUserId: state.session.partnerId });
+        socket.emit('end-session', { sessionId: state.session.id, toUserId: state.session.partnerId, reason: 'user_ended' });
       }
       endLocal();
     };
@@ -6004,6 +6004,8 @@
       }
       sSes.classList.add('hidden');
       if (sInc) sInc.classList.add('hidden'); // Fix: Hide incoming screen on session end
+      const loader = document.getElementById('connectionStatus');
+      if (loader) loader.classList.add('hidden'); // Fix: Hide the connecting loader explicitly
 
       // Also show dashboard based on role
       if (state.me) {
