@@ -2823,7 +2823,7 @@ io.on('connection', (socket) => {
           superWalletBalance: user.superWalletBalance || 0,
           totalEarnings: user.totalEarnings || 0
         });
-        console.log(`User registered: ${user.name} (${user.role})`);
+        console.log(`[Register] ${user.name} (${user.role}) | UID: ${userId} | Socket: ${socket.id}`);
 
         // Cancel pending SESSION timeout (For ALL users - Client or Astrologer)
         if (sessionDisconnectTimeouts.has(userId)) {
