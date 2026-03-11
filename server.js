@@ -3424,7 +3424,7 @@ io.on('connection', (socket) => {
   });
 
   // --- WebRTC signaling relay ---
-  socket.on('signal', (data) => {
+  socket.on('signal', async (data) => {
     try {
       const { sessionId, toUserId, signal, from } = data || {};
       let fromUserId = socketToUser.get(socket.id) || from;
@@ -3432,11 +3432,12 @@ io.on('connection', (socket) => {
       // Fallback: If socket isn't mapped to a user yet (reconnect race condition), infer from session
       if (!fromUserId && sessionId && toUserId) {
         console.log(`[Signal Fallback] Attempting to infer fromUserId for session ${sessionId}, known toUserId: ${toUserId}`);
-        const session = activeSessions.get(sessionId);
+
+        // Strategy A: In-memory lookup
+        let session = activeSessions.get(sessionId);
 
         if (!session) {
           console.log(`[Signal Fallback] Session not found in activeSessions. Checking userActiveSession map for reverse lookup...`);
-          // Can we find it using another way?
           for (const [uid, sid] of userActiveSession.entries()) {
             if (sid === sessionId && uid !== toUserId) {
               fromUserId = uid;
@@ -3448,27 +3449,46 @@ io.on('connection', (socket) => {
 
         if (session && session.users) {
           fromUserId = session.users.find(u => u !== toUserId);
-          console.log(`[Signal Fallback] Found in session.users: ${fromUserId}`);
+          console.log(`[Signal Fallback] Found in session.users (memory): ${fromUserId}`);
+        }
+
+        // Strategy B: Database-backed fallback (Core resilience for server restarts)
+        if (!fromUserId) {
+          try {
+            console.log(`[Signal Fallback] Memory lookup failed. Querying DB for Session ${sessionId}...`);
+            const dbSession = await Session.findOne({ sessionId });
+            if (dbSession) {
+              if (toUserId === dbSession.clientId) {
+                fromUserId = dbSession.astrologerId;
+              } else if (toUserId === dbSession.astrologerId) {
+                fromUserId = dbSession.clientId;
+              }
+              if (fromUserId) console.log(`[Signal Fallback] Deduced via MongoDB: ${fromUserId}`);
+            }
+          } catch (dbErr) {
+            console.error(`[Signal Fallback] DB Query failed:`, dbErr);
+          }
         }
 
         if (fromUserId) {
-          console.log(`[Signal Fallback] Proactively registering socket ${socket.id} to user ${fromUserId}`);
+          console.log(`[Signal Fallback] SUCCESS! Proactively registering socket ${socket.id} to user ${fromUserId}`);
           socketToUser.set(socket.id, fromUserId);
           userSockets.set(fromUserId, socket.id);
           socket.join(fromUserId);
         } else {
-          console.log(`[Signal Fallback] Failed to infer fromUserId.`);
+          console.log(`[Signal Fallback] FAILED to infer fromUserId from any source.`);
         }
       }
 
       if (signal && signal.type) {
         console.log(`[Signal] ${fromUserId} -> ${toUserId} (${signal.type})`);
       } else if (signal && signal.candidate) {
-        console.log(`[Signal] ${fromUserId} -> ${toUserId} (candidate)`);
+        // Noisy, but helpful for debugging
+        // console.log(`[Signal] ${fromUserId} -> ${toUserId} (candidate)`);
       }
 
       if (!fromUserId || !sessionId || !toUserId || !signal) {
-        console.warn(`[Signal] MISSING DATA: from=${fromUserId}, session=${sessionId}, to=${toUserId}, signalExists=${!!signal}`);
+        console.warn(`[SIGNAL] MISSING DATA: from=${fromUserId}, session=${sessionId}, to=${toUserId}, signalExists=${!!signal}`);
         return;
       }
 
