@@ -315,7 +315,7 @@ initFcmAuth();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' }, pingTimeout: 60000, pingInterval: 25000, maxHttpBufferSize: 1e8 });
+const io = new Server(server, { cors: { origin: '*' }, pingTimeout: 20000, pingInterval: 10000, maxHttpBufferSize: 1e8 });
 const cors = require("cors");
 const compression = require('compression');
 
@@ -435,11 +435,11 @@ app.get('/api/ice-config', (req, res) => {
 
 app.get('/api/app-config', (req, res) => {
   res.json({
-    minVersionCode: 5,
-    latestVersionName: "5.0.0",
+    minVersionCode: 6,
+    latestVersionName: "5.0.1",
     updateUrl: "https://astro5star.com/download/astro5star.apk",
     forceUpdate: true,
-    message: "A new version of Astro5Star is available with improved call quality. Please update to continue."
+    message: "A new version 5.0.1 of Astro5Star is available with improved service management. Please update to continue."
   });
 });
 
@@ -637,8 +637,18 @@ const connectDB = async (retries = 5) => {
 };
 
 // Handle MongoDB connection events
-mongoose.connection.on('connected', () => {
+mongoose.connection.on('connected', async () => {
   console.log('📡 Mongoose connected to MongoDB');
+  // STARTUP CLEANUP: Reset stuck astrologer statuses
+  try {
+    const res = await mongoose.model('User').updateMany(
+      { role: 'astrologer' },
+      { isBusy: false, isOnline: false, isChatOnline: false, isAudioOnline: false, isVideoOnline: false, isAvailable: false }
+    );
+    console.log(`[Startup] Reset statuses for ${res.modifiedCount} astrologers to clean up sticky states.`);
+  } catch (err) {
+    console.error('[Startup] Status cleanup error:', err);
+  }
 });
 
 mongoose.connection.on('error', (err) => {
@@ -896,6 +906,18 @@ const AccountDeletionRequestSchema = new mongoose.Schema({
 });
 const AccountDeletionRequest = mongoose.model('AccountDeletionRequest', AccountDeletionRequestSchema);
 
+const AdminNotificationSchema = new mongoose.Schema({
+  id: { type: String, unique: true },
+  text: { type: String, required: true },
+  type: { type: String, enum: ['missed_call', 'recharge', 'system', 'payout', 'registration'], default: 'system' },
+  astroId: String,
+  userId: String,
+  amount: Number,
+  isRead: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now }
+});
+const AdminNotification = mongoose.model('AdminNotification', AdminNotificationSchema);
+
 const GlobalSettingsSchema = new mongoose.Schema({
   key: { type: String, unique: true },
   value: mongoose.Schema.Types.Mixed
@@ -966,11 +988,11 @@ const otpStore = new Map();
 // Astrologer Status Persistence (5-min grace period)
 const offlineTimeouts = new Map(); // userId -> timeoutId
 const savedAstroStatus = new Map(); // userId -> { chat, audio, video, timestamp }
-const OFFLINE_GRACE_PERIOD = 5 * 60 * 1000; // 5 minutes
+const OFFLINE_GRACE_PERIOD = 2 * 60 * 1000; // 2 minutes (Reduced from 5 for accuracy)
 
 // Session Disconnect Persistence (1-min grace period for calls)
 const sessionDisconnectTimeouts = new Map(); // userId -> timeoutId
-const SESSION_GRACE_PERIOD = 60 * 1000; // 60 seconds
+const SESSION_GRACE_PERIOD = 30 * 1000; // 30 seconds (Reduced from 60 for faster cleanup)
 
 
 // --- Phase 2: Session Timer Engine (MOVED TO TOP LEVEL TO PREVENT CPU STACKING) ---
@@ -2149,6 +2171,27 @@ async function sendCancelCallPush(toUserId, sessionId) {
   }
 }
 
+// Helper: Create and Broadcast Admin Notification
+async function createAdminNotification(data) {
+  try {
+    const notification = await AdminNotification.create({
+      id: crypto.randomUUID(),
+      text: data.text,
+      type: data.type || 'system',
+      astroId: data.astroId,
+      userId: data.userId,
+      amount: data.amount,
+      createdAt: new Date()
+    });
+    // Broadcast to all connected superadmins
+    io.to('superadmin').emit('admin-notification', notification);
+    console.log(`[Admin Notification] broadcasted: ${data.text}`);
+    return notification;
+  } catch (err) {
+    console.error('Error creating admin notification:', err);
+  }
+}
+
 // Helper: Handle Missed Call Logic (Offline + Admin notification)
 async function handleMissedCallLogic(toUserId, fromUserId) {
   try {
@@ -2159,9 +2202,14 @@ async function handleMissedCallLogic(toUserId, fromUserId) {
       await astro.save();
       broadcastAstroUpdate();
 
-      // Notify Super Admin
+      // Notify Super Admin (Persistent)
       const reasonMsg = `Missed Call Alert: ${astro.name} failed to answer. Automatically marked OFFLINE.`;
-      io.to('superadmin').emit('admin-notification', { text: reasonMsg, type: 'missed_call', astroId: toUserId });
+      createAdminNotification({
+        text: reasonMsg,
+        type: 'missed_call',
+        astroId: toUserId,
+        userId: fromUserId
+      });
 
       // Log to text file
       const logMsg = `[${new Date().toISOString()}] MISSED CALL: Astrologer ${astro.name} (${astro.phone}) missed a call from ${fromUserId}. Marked OFFLINE.\n`;
@@ -2891,23 +2939,40 @@ io.on('connection', (socket) => {
     if (!userId) return;
 
     try {
-      const update = {};
       const isEnabled = !!data.isEnabled;
+      const service = data.service;
 
-      if (data.service === 'chat') update.isChatOnline = isEnabled;
-      if (data.service === 'call') update.isAudioOnline = isEnabled; // 'call' maps to 'audio'
-      if (data.service === 'video') update.isVideoOnline = isEnabled;
+      const update = { lastSeen: new Date() };
+      if (service === 'chat') update.isChatOnline = isEnabled;
+      else if (service === 'audio' || service === 'call') update.isAudioOnline = isEnabled;
+      else if (service === 'video') update.isVideoOnline = isEnabled;
 
       let user = await User.findOne({ userId });
       if (user) {
-        Object.assign(user, update);
-        // Manual Toggle Rule: isAvailable is the master status
-        user.isOnline = user.isAvailable;
+        // Correctly calculate new online status
+        const chatOn = service === 'chat' ? isEnabled : (user.isChatOnline || false);
+        const audioOn = (service === 'audio' || service === 'call') ? isEnabled : (user.isAudioOnline || false);
+        const videoOn = service === 'video' ? isEnabled : (user.isVideoOnline || false);
+
+        user.isChatOnline = chatOn;
+        user.isAudioOnline = audioOn;
+        user.isVideoOnline = videoOn;
+        user.isOnline = chatOn || audioOn || videoOn;
+        user.isAvailable = user.isOnline;
         user.lastSeen = new Date();
+
         await user.save();
 
+        // Broadcast to everyone
+        io.emit('astro-status-change', {
+          userId,
+          service,
+          isEnabled,
+          isOnline: user.isOnline
+        });
+
         broadcastAstroUpdate();
-        console.log(`[Service Status] ${user.name} updated ${data.service}: ${isEnabled}`);
+        console.log(`[Service Status] ${user.name} updated ${service}: ${isEnabled}`);
       }
     } catch (e) { console.error('update-service-status error:', e); }
   });
@@ -3025,9 +3090,11 @@ io.on('connection', (socket) => {
       if (!fromUserId) if (typeof cb === "function") return cb({ ok: false, error: 'Not registered' });
       if (!toUserId || !type) if (typeof cb === "function") return cb({ ok: false, error: 'Missing fields' });
 
-      // Get target user from DB
-      const toUser = await User.findOne({ userId: toUserId });
-      const fromUser = await User.findOne({ userId: fromUserId });
+      // Parallel DB Lookups for better speed
+      const [toUser, fromUser] = await Promise.all([
+        User.findOne({ userId: toUserId }),
+        User.findOne({ userId: fromUserId })
+      ]);
 
       if (!toUser) {
         if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
@@ -3097,6 +3164,11 @@ io.on('connection', (socket) => {
       });
       userActiveSession.set(fromUserId, sessionId);
       userActiveSession.set(toUserId, sessionId);
+
+      // Immediately mark as busy in DB
+      User.updateOne({ userId: toUserId, role: 'astrologer' }, { isBusy: true })
+        .then(() => broadcastAstroUpdate())
+        .catch(e => console.error('Error marking busy during request:', e));
 
       // Try socket notification (might fail if in background - that's OK!)
       let socketSent = false;
@@ -3349,7 +3421,21 @@ io.on('connection', (socket) => {
   socket.on('signal', (data) => {
     try {
       const { sessionId, toUserId, signal } = data || {};
-      const fromUserId = socketToUser.get(socket.id);
+      let fromUserId = socketToUser.get(socket.id);
+
+      // Fallback: If socket isn't mapped to a user yet (reconnect race condition), infer from session
+      if (!fromUserId && sessionId && toUserId) {
+        const session = activeSessions.get(sessionId);
+        if (session && session.users) {
+          fromUserId = session.users.find(u => u !== toUserId);
+          // Proactively register the socket
+          if (fromUserId) {
+            socketToUser.set(socket.id, fromUserId);
+            userSockets.set(fromUserId, socket.id);
+            socket.join(fromUserId);
+          }
+        }
+      }
 
       if (signal && signal.type) {
         console.log(`[Signal] ${fromUserId} -> ${toUserId} (${signal.type})`);
@@ -3744,6 +3830,20 @@ io.on('connection', (socket) => {
       const pendingUsers = await User.find({ photoStatus: 'pending' }).select('userId name phone image pendingImage photoStatus updatedAt').lean();
       if (typeof cb === "function") cb({ ok: true, pendingUsers });
     } catch (e) {
+      if (typeof cb === "function") cb({ ok: false, error: 'Fetch failed' });
+    }
+  });
+
+  // --- Admin Notifications ---
+  socket.on('admin-get-notifications', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
+    try {
+      const { type } = data || {};
+      const query = type && type !== 'all' ? { type } : {};
+      const notifications = await AdminNotification.find(query).sort({ createdAt: -1 }).limit(100).lean();
+      if (typeof cb === "function") cb({ ok: true, notifications });
+    } catch (e) {
+      console.error('[Admin Notification] Fetch Error:', e);
       if (typeof cb === "function") cb({ ok: false, error: 'Fetch failed' });
     }
   });
@@ -4372,19 +4472,32 @@ app.post('/api/astrologer/service-toggle', async (req, res) => {
     // Also update isAvailable and isOnline if any service is enabled
     const user = await User.findOne({ userId });
     if (user) {
-      const chatOn = service === 'chat' ? enabled : user.isChatOnline;
-      const audioOn = service === 'audio' ? enabled : user.isAudioOnline;
-      const videoOn = service === 'video' ? enabled : user.isVideoOnline;
+      const chatOn = service === 'chat' ? (enabled === true || enabled === 'true') : (user.isChatOnline || false);
+      const audioOn = (service === 'audio' || service === 'call') ? (enabled === true || enabled === 'true') : (user.isAudioOnline || false);
+      const videoOn = service === 'video' ? (enabled === true || enabled === 'true') : (user.isVideoOnline || false);
 
-      // isAvailable = true if ANY service is online
+      // Explicitly set the flags in the update object to ensure DB consistency
+      update.isChatOnline = chatOn;
+      update.isAudioOnline = audioOn;
+      update.isVideoOnline = videoOn;
       update.isAvailable = chatOn || audioOn || videoOn;
       update.isOnline = chatOn || audioOn || videoOn;
+
+      await User.updateOne({ userId }, update);
+
+      // Emit status change event for real-time updates
+      io.emit('astro-status-change', {
+        userId,
+        service,
+        isEnabled: (enabled === true || enabled === 'true'),
+        isOnline: update.isOnline
+      });
+
+      await broadcastAstroUpdate();
+      console.log(`[Service Toggle] ${userId}: ${service} = ${enabled}`);
+    } else {
+      await User.updateOne({ userId }, update);
     }
-
-    await User.updateOne({ userId }, update);
-
-    await broadcastAstroUpdate();
-    console.log(`[Service Toggle] ${userId}: ${service} = ${enabled}`);
     res.json({ ok: true });
   } catch (e) {
     console.error("Service Toggle Error:", e);
@@ -5245,6 +5358,14 @@ app.post('/api/phonepe/callback', async (req, res) => {
           `✅ Super Recharge Successful! +₹${creditAmount + (creditAmount * (payment.offerPercentage || 0) / 100)}` :
           `✅ Recharge Successful! +₹${creditAmount}`;
         io.to(user.userId).emit('app-notification', { text: msg });
+
+        // Notify Super Admin
+        createAdminNotification({
+          text: `User Recharge: ${user.name} recharge ₹${creditAmount} successfully.`,
+          type: 'recharge',
+          userId: user.userId,
+          amount: creditAmount
+        });
       }
     } else if (code !== 'PAYMENT_SUCCESS' && payment.status === 'pending') {
       payment.status = 'failed';
