@@ -9,6 +9,7 @@ const { Server } = require('socket.io');
 const path = require('path');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
+const fs = require('fs'); // Added for call logging
 const multer = require('multer');
 const admin = require('firebase-admin'); // Firebase Admin for Mobile App
 const { DateTime } = require('luxon');
@@ -37,6 +38,15 @@ const PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.c
 
 // Verification log on startup (V1)
 console.log(`[PhonePe V1] Config Load: Merchant=${PHONEPE_MERCHANT_ID ? 'OK' : 'MISSING'}, Salt=${PHONEPE_SALT_KEY ? 'OK' : 'MISSING'}`);
+
+// ===== Call Logging Helper =====
+function logCall(msg) {
+  const timestamp = new Date().toISOString();
+  const logMsg = `[${timestamp}] ${msg}\n`;
+  fs.appendFile(path.join(__dirname, 'calllog.txt'), logMsg, (err) => {
+    if (err) console.error('Error writing to calllog.txt:', err);
+  });
+}
 
 
 // ===== PhonePe V1 (X-VERIFY Checksum) =====
@@ -3132,7 +3142,9 @@ io.on('connection', (socket) => {
       else if (typeStr === 'video') serviceStatus = isVideoOk;
 
       if (!serviceStatus) {
-        console.log(`[Session Blocked] ${toUser.name} is offline for ${typeStr}. Rejecting request from ${fromUserId}`);
+        const blockMsg = `[Session Blocked] ${toUser.name} (${toUserId}) is offline for ${typeStr}. From: ${fromUserId}`;
+        console.log(blockMsg);
+        logCall(blockMsg);
         if (typeof cb === "function") return cb({ ok: false, error: 'Astrologer is currently offline for this service.' });
         return;
       }
@@ -3151,6 +3163,7 @@ io.on('connection', (socket) => {
           console.log(`[Session] Stale session ${existingSessionId} detected between ${fromUserId} and ${toUserId}. Auto-cleaning.`);
           await endSessionRecord(existingSessionId);
         } else {
+          logCall(`[Session Busy] Astrologer ${toUserId} is busy in ${existingSessionId}. Rejecting ${fromUserId}`);
           if (typeof cb === "function") return cb({ ok: false, error: 'User busy' });
         }
       }
@@ -3234,6 +3247,7 @@ io.on('connection', (socket) => {
       }
 
       console.log(`[Session] Request: ID=${sessionId}, Type=${type}, From=${fromUserId}, To=${toUserId}`);
+      logCall(`[Session Initiated] ID=${sessionId}, Type=${type}, From=${fromUserId}, To=${toUserId}`);
       if (typeof cb === "function") cb({ ok: true, sessionId });
 
       // --- MISSED CALL TIMEOUT (25s) ---
@@ -3473,12 +3487,16 @@ io.on('connection', (socket) => {
 
         // 4. Update memory maps if found to speed up next signal
         if (fromUserId) {
-          console.log(`[Signal Fallback] SUCCESS! Proactively mapping Socket ${socket.id} to User ${fromUserId}`);
+          const fbMsg = `[Signal Fallback Success] Proactively mapping Socket ${socket.id} to User ${fromUserId}`;
+          console.log(fbMsg);
+          logCall(fbMsg);
           socketToUser.set(socket.id, fromUserId);
           userSockets.set(fromUserId, socket.id);
           socket.join(fromUserId);
         } else {
-          console.warn(`[SIGNAL] REJECTED: Could not determine sender identity for Socket:${socket.id}. Signaling will fail.`);
+          const failMsg = `[SIGNAL REJECTED] Could not determine sender for Socket:${socket.id} (SID:${sessionId})`;
+          console.warn(failMsg);
+          logCall(failMsg);
         }
       }
 
@@ -3490,7 +3508,9 @@ io.on('connection', (socket) => {
       }
 
       if (!fromUserId || !sessionId || !toUserId || !signal) {
-        console.warn(`[SIGNAL] MISSING DATA: from=${fromUserId}, session=${sessionId}, to=${toUserId}, signalExists=${!!signal}`);
+        const missMsg = `[SIGNAL MISSING DATA] from=${fromUserId}, session=${sessionId}, to=${toUserId}, signalExists=${!!signal}`;
+        console.warn(missMsg);
+        logCall(missMsg);
         return;
       }
 
@@ -3517,7 +3537,9 @@ io.on('connection', (socket) => {
       // No need to emit here, endSessionRecord handles it for both parties
 
       endSessionRecord(sessionId, reason);
-      console.log(`[Session] Ended by ${fromUserId}: ${sessionId}`);
+      const endMsg = `[Session Ended] by ${fromUserId}: ${sessionId} (Reason: ${reason || 'normal'})`;
+      console.log(endMsg);
+      logCall(endMsg);
 
     } catch (e) { console.error('end-session error', e); }
   });
