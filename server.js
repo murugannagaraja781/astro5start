@@ -1063,7 +1063,10 @@ setInterval(tickSessions, 1000);
 
 async function handleUserConnection(sessionId, userId) {
   const session = await Session.findOne({ sessionId });
-  if (!session) return;
+  if (!session) {
+    console.log(`[HandleUserConnection] Session ${sessionId} NOT FOUND in DB`);
+    return;
+  }
 
   const now = Date.now();
   let updated = false;
@@ -1072,20 +1075,29 @@ async function handleUserConnection(sessionId, userId) {
     if (!session.clientConnectedAt) {
       session.clientConnectedAt = now;
       updated = true;
+      console.log(`[HandleUserConnection] Client ${userId} connected to session ${sessionId}`);
     }
   } else if (userId === session.astrologerId) {
     if (!session.astrologerConnectedAt) {
       session.astrologerConnectedAt = now;
       updated = true;
+      console.log(`[HandleUserConnection] Astrologer ${userId} connected to session ${sessionId}`);
     }
+  } else {
+    console.log(`[HandleUserConnection] WARNING: User ${userId} is NEITHER client(${session.clientId}) nor astrologer(${session.astrologerId}) for session ${sessionId}`);
+    return;
   }
 
   if (updated) await session.save();
+
+  console.log(`[HandleUserConnection] Session ${sessionId}: clientConnected=${!!session.clientConnectedAt}, astrologerConnected=${!!session.astrologerConnectedAt}, billingStarted=${!!session.actualBillingStart}`);
 
   if (session.clientConnectedAt && session.astrologerConnectedAt && !session.actualBillingStart) {
     const billingStart = Math.max(session.clientConnectedAt, session.astrologerConnectedAt) + 2000;
     session.actualBillingStart = billingStart;
     await session.save();
+
+    console.log(`[HandleUserConnection] BOTH CONNECTED! Emitting billing-started to client=${session.clientId}, astrologer=${session.astrologerId}`);
 
     const activeSession = activeSessions.get(sessionId);
     if (activeSession) {
@@ -1111,10 +1123,13 @@ async function handleUserConnection(sessionId, userId) {
         activeSession.currentSlab = pairRec.currentSlab;
         activeSession.initialPairSeconds = pairRec.slabLockedAt || 0;
       } catch (e) { console.error('PairMonth Init Error', e); }
+    } else {
+      console.warn(`[HandleUserConnection] WARNING: activeSession NOT FOUND for ${sessionId}`);
     }
 
     io.to(session.clientId).emit('billing-started', { startTime: billingStart });
     io.to(session.astrologerId).emit('billing-started', { startTime: billingStart });
+    console.log(`[HandleUserConnection] billing-started EMITTED successfully via room-based io.to()`);
   }
 }
 
