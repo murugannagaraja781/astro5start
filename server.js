@@ -3431,52 +3431,45 @@ io.on('connection', (socket) => {
 
       // Fallback: If socket isn't mapped to a user yet (reconnect race condition), infer from session
       if (!fromUserId && sessionId && toUserId) {
-        console.log(`[Signal Fallback] Attempting to infer fromUserId for session ${sessionId}, known toUserId: ${toUserId}`);
+        console.log(`[Signal Fallback] Unknown sender for SID:${sessionId}, TO:${toUserId}. Deducting id...`);
 
-        // Strategy A: In-memory lookup
+        // 1. Check in-memory session
         let session = activeSessions.get(sessionId);
+        if (session && session.users) {
+          fromUserId = session.users.find(u => u !== toUserId);
+          if (fromUserId) console.log(`[Signal Fallback] Deduced via Memory Session: ${fromUserId}`);
+        }
 
-        if (!session) {
-          console.log(`[Signal Fallback] Session not found in activeSessions. Checking userActiveSession map for reverse lookup...`);
+        // 2. Reverse User-Session lookup
+        if (!fromUserId) {
           for (const [uid, sid] of userActiveSession.entries()) {
             if (sid === sessionId && uid !== toUserId) {
               fromUserId = uid;
-              console.log(`[Signal Fallback] Deduced via reverse lookup: ${fromUserId}`);
+              console.log(`[Signal Fallback] Deduced via User-Session Map: ${fromUserId}`);
               break;
             }
           }
         }
 
-        if (session && session.users) {
-          fromUserId = session.users.find(u => u !== toUserId);
-          console.log(`[Signal Fallback] Found in session.users (memory): ${fromUserId}`);
-        }
-
-        // Strategy B: Database-backed fallback (Core resilience for server restarts)
+        // 3. Database lookup (The most reliable source)
         if (!fromUserId) {
           try {
-            console.log(`[Signal Fallback] Memory lookup failed. Querying DB for Session ${sessionId}...`);
             const dbSession = await Session.findOne({ sessionId });
             if (dbSession) {
-              if (toUserId === dbSession.clientId) {
-                fromUserId = dbSession.astrologerId;
-              } else if (toUserId === dbSession.astrologerId) {
-                fromUserId = dbSession.clientId;
-              }
+              fromUserId = (toUserId === dbSession.clientId) ? dbSession.astrologerId : dbSession.clientId;
               if (fromUserId) console.log(`[Signal Fallback] Deduced via MongoDB: ${fromUserId}`);
             }
-          } catch (dbErr) {
-            console.error(`[Signal Fallback] DB Query failed:`, dbErr);
-          }
+          } catch (dbErr) { console.error(`[Signal Fallback] DB Query failed:`, dbErr); }
         }
 
+        // 4. Update memory maps if found to speed up next signal
         if (fromUserId) {
-          console.log(`[Signal Fallback] SUCCESS! Proactively registering socket ${socket.id} to user ${fromUserId}`);
+          console.log(`[Signal Fallback] SUCCESS! Proactively mapping Socket ${socket.id} to User ${fromUserId}`);
           socketToUser.set(socket.id, fromUserId);
           userSockets.set(fromUserId, socket.id);
           socket.join(fromUserId);
         } else {
-          console.log(`[Signal Fallback] FAILED to infer fromUserId from any source.`);
+          console.warn(`[SIGNAL] REJECTED: Could not determine sender identity for Socket:${socket.id}. Signaling will fail.`);
         }
       }
 
