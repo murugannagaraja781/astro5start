@@ -12,37 +12,76 @@ const cache = new Map();
  * @param {string} date - ISO date string (YYYY-MM-DD)
  */
 async function fetchDailyHoroscope(date) {
-    if (cache.has(date)) return cache.get(date);
+    const fileName = `horoscope_${date}.json`;
+    const url = `${BASE_URL}/${fileName}`;
 
-    // Try current date, then fallback up to 7 days backwards
-    let currentLookup = DateTime.fromISO(date);
-    for (let i = 0; i < 7; i++) {
-        const checkDate = currentLookup.minus({ days: i }).toFormat('yyyy-MM-dd');
-        const fileName = `horoscope_${checkDate}.json`;
-        const url = `${BASE_URL}/${fileName}`;
-
-        try {
-            const response = await fetch(url);
-            if (response.ok) {
-                let data = await response.json();
-
-                // Handle Gemini API response format in the JSON
-                if (Array.isArray(data) && data[0] && data[0].content && data[0].content.parts) {
-                    let text = data[0].content.parts[0].text.replace(/```json\n?|```/g, '').trim();
-                    try { data = JSON.parse(text); } catch (e) { continue; }
-                }
-
-                if (i > 0) console.log(`[Horoscope] Using fallback data from ${checkDate} for ${date}`);
-                cache.set(date, data); // Cache as today's data
-                return data;
-            } else {
-                console.warn(`[Horoscope] ${checkDate} lookup failed (${response.status})`);
-            }
-        } catch (err) {
-            console.error(`[Horoscope] Error on ${checkDate}:`, err.message);
-        }
+    // Check cache first
+    if (cache.has(date)) {
+        return cache.get(date);
     }
-    return null;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.warn(`[Horoscope] Failed to fetch for ${date}: ${response.status} ${response.statusText}`);
+            // Attempt to fetch yesterday's data as fallback
+            const yesterday = DateTime.fromISO(date).minus({ days: 1 }).toFormat('yyyy-MM-dd');
+            console.log(`[Horoscope] Attempting fallback to ${yesterday}`);
+
+            const fallbackUrl = `${BASE_URL}/horoscope_${yesterday}.json`;
+            const fallbackRes = await fetch(fallbackUrl);
+
+            if (!fallbackRes.ok) {
+                throw new Error(`Failed to fetch horoscope for ${date} and fallback ${yesterday}`);
+            }
+            // Use fallback response
+            let data = await fallbackRes.json();
+            // Process data (duplicated logic, ideally refactor, but kept inline for safety)
+            if (Array.isArray(data) && data[0] && data[0].content && data[0].content.parts) {
+                let text = data[0].content.parts[0].text;
+                text = text.replace(/```json\n?|```/g, '').trim();
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('Failed to parse inner JSON from Gemini response (fallback):', e);
+                    return null;
+                }
+            }
+            cache.set(date, data); // Cache it as today's data to avoid re-fetching
+            return data;
+        }
+
+        let data = await response.json();
+
+        // Handle Gemini API response format
+        if (Array.isArray(data) && data[0] && data[0].content && data[0].content.parts) {
+            let text = data[0].content.parts[0].text;
+            // Remove markdown code blocks if present
+            text = text.replace(/```json\n?|```/g, '').trim();
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error('Failed to parse inner JSON from Gemini response:', e);
+                return null;
+            }
+        }
+
+        // Cache the data
+        cache.set(date, data);
+
+        // Strategy: Clear cache for dates older than 2 days to prevent memory leaks
+        if (cache.size > 5) {
+            const keys = Array.from(cache.keys()).sort();
+            while (cache.size > 5) {
+                cache.delete(keys.shift());
+            }
+        }
+
+        return data;
+    } catch (error) {
+        console.error('Error fetching horoscope data:', error.message);
+        return null; // Graceful failure
+    }
 }
 
 /**
