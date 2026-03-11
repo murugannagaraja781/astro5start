@@ -150,9 +150,70 @@ function getOtherUserIdFromSession(sessionId, userId) {
     return s.users.find(u => u !== userId);
 }
 
+async function handleUserConnection(sessionId, userId, io) {
+    const session = await Session.findOne({ sessionId });
+    if (!session) return;
+
+    const now = Date.now();
+    let updated = false;
+
+    if (userId === session.clientId) {
+        if (!session.clientConnectedAt) {
+            session.clientConnectedAt = now;
+            updated = true;
+        }
+    } else if (userId === session.astrologerId) {
+        if (!session.astrologerConnectedAt) {
+            session.astrologerConnectedAt = now;
+            updated = true;
+        }
+    }
+
+    if (updated) await session.save();
+
+    if (session.clientConnectedAt && session.astrologerConnectedAt && !session.actualBillingStart) {
+        const billingStart = Math.max(session.clientConnectedAt, session.astrologerConnectedAt) + 2000;
+        session.actualBillingStart = billingStart;
+        await session.save();
+
+        const activeSession = activeSessions.get(sessionId);
+        if (activeSession) {
+            activeSession.actualBillingStart = billingStart;
+            if (typeof activeSession.elapsedBillableSeconds === 'undefined') {
+                Object.assign(activeSession, {
+                    elapsedBillableSeconds: 0,
+                    lastBilledMinute: 1,
+                    clientId: session.clientId,
+                    astrologerId: session.astrologerId,
+                    currentSlab: 1,
+                    totalDeducted: 0,
+                    totalEarned: 0
+                });
+            }
+            try {
+                const currentMonth = new Date().toISOString().slice(0, 7);
+                const pairId = `${session.clientId}_${session.astrologerId}`;
+                let pairRec = await PairMonth.findOne({ pairId, yearMonth: currentMonth });
+                if (!pairRec) {
+                    pairRec = await PairMonth.create({ pairId, clientId: session.clientId, astrologerId: session.astrologerId, yearMonth: currentMonth, currentSlab: 1 });
+                }
+                activeSession.pairMonthId = pairRec._id;
+                activeSession.currentSlab = pairRec.currentSlab;
+                activeSession.initialPairSeconds = pairRec.slabLockedAt || 0;
+            } catch (e) { console.error('PairMonth Init Error', e); }
+        }
+
+        if (io) {
+            io.to(session.clientId).emit('billing-started', { startTime: billingStart });
+            io.to(session.astrologerId).emit('billing-started', { startTime: billingStart });
+        }
+    }
+}
+
 module.exports = {
     sendCancelCallPush,
     handleMissedCallLogic,
     endSessionRecord,
-    getOtherUserIdFromSession
+    getOtherUserIdFromSession,
+    handleUserConnection
 };

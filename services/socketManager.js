@@ -10,6 +10,7 @@ const {
 const User = require('../models/User');
 const Session = require('../models/Session');
 const { formatImageUrl } = require('../utils/formatImage');
+const { handleUserConnection } = require('./sessionService');
 
 // Handlers
 const handlePresence = require('./socket/presenceHandler');
@@ -41,54 +42,6 @@ const broadcastAstroUpdate = async () => {
     }
 };
 
-const handleUserConnection = async (sessionId, userId) => {
-    const session = await Session.findOne({ sessionId });
-    if (!session) return;
-
-    const now = Date.now();
-    let updated = false;
-
-    if (userId === session.clientId) {
-        if (!session.clientConnectedAt) {
-            session.clientConnectedAt = now;
-            updated = true;
-        }
-    } else if (userId === session.astrologerId) {
-        if (!session.astrologerConnectedAt) {
-            session.astrologerConnectedAt = now;
-            updated = true;
-        }
-    }
-
-    if (updated) await session.save();
-
-    if (session.clientConnectedAt && session.astrologerConnectedAt && !session.actualBillingStart) {
-        const billingStart = Math.max(session.clientConnectedAt, session.astrologerConnectedAt) + 2000;
-        session.actualBillingStart = billingStart;
-        await session.save();
-
-        const activeSession = activeSessions.get(sessionId);
-        if (activeSession) {
-            activeSession.actualBillingStart = billingStart;
-            if (typeof activeSession.elapsedBillableSeconds === 'undefined') {
-                Object.assign(activeSession, {
-                    elapsedBillableSeconds: 0,
-                    lastBilledMinute: 1,
-                    clientId: session.clientId,
-                    astrologerId: session.astrologerId,
-                    currentSlab: 1,
-                    totalDeducted: 0,
-                    totalEarned: 0
-                });
-            }
-        }
-
-        if (ioInstance) {
-            ioInstance.to(session.clientId).emit('billing-started', { startTime: billingStart });
-            ioInstance.to(session.astrologerId).emit('billing-started', { startTime: billingStart });
-        }
-    }
-};
 
 const initSocket = (io) => {
     ioInstance = io;

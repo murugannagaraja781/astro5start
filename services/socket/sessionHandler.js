@@ -13,9 +13,9 @@ const {
     endSessionRecord,
     handleMissedCallLogic,
     sendCancelCallPush,
-    getOtherUserIdFromSession
+    getOtherUserIdFromSession,
+    handleUserConnection
 } = require('../sessionService');
-const { handleUserConnection } = require('../socketManager');
 
 const handleSession = (socket, io, broadcastAstroUpdate) => {
 
@@ -244,7 +244,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         const { sessionId } = data || {};
         const userId = socketToUser.get(socket.id);
         if (!userId || !sessionId) return;
-        await handleUserConnection(sessionId, userId);
+        await handleUserConnection(sessionId, userId, io);
     });
 
     socket.on('rejoin-session', (data) => {
