@@ -130,6 +130,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 user.isAudioOnline = false;
                 user.isVideoOnline = false;
                 user.isAvailable = false;
+                user.fcmToken = null; // Clear FCM token on logout
                 await user.save();
                 broadcastAstroUpdate();
                 console.log(`[Presence] ${user.name} logged out - status cleared`);
