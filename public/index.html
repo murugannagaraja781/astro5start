@@ -5543,19 +5543,19 @@
 
         // SDP Transform to limit bitrate for 2G
         const transformSDP = (sdp) => {
-          // Limit Audio to 32kbps and Video to 256kbps for stability on weak networks
-          let lines = sdp.split('\n');
-          let newSdp = '';
+          const lines = sdp.split(/\r?\n/);
+          const newSdp = [];
           for (let line of lines) {
-            newSdp += line + '\n';
-            if (line.indexOf('a=mid:audio') === 0 || line.indexOf('a=mid:0') === 0) { // Check for audio section
-              newSdp += 'b=AS:32\n'; // Limit Audio Bitrate
+            if (line.trim() === '') continue;
+            newSdp.push(line);
+            if (line.indexOf('a=mid:audio') === 0 || line.indexOf('a=mid:0') === 0) {
+              newSdp.push('b=AS:32');
             }
-            if (line.indexOf('a=mid:video') === 0 || line.indexOf('a=mid:1') === 0) { // Check for video section
-              newSdp += 'b=AS:256\n'; // Limit Video Bitrate
+            if (line.indexOf('a=mid:video') === 0 || line.indexOf('a=mid:1') === 0) {
+              newSdp.push('b=AS:256');
             }
           }
-          return newSdp;
+          return newSdp.join('\r\n') + '\r\n';
         };
 
         const p = new SimplePeer({

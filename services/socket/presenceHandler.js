@@ -119,6 +119,24 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
         } catch (e) { console.error('[Presence] app-foreground error:', e); }
     });
 
+    socket.on('logout', async () => {
+        const userId = socketToUser.get(socket.id);
+        if (!userId) return;
+        try {
+            const user = await User.findOne({ userId });
+            if (user && user.role === 'astrologer') {
+                user.isOnline = false;
+                user.isChatOnline = false;
+                user.isAudioOnline = false;
+                user.isVideoOnline = false;
+                user.isAvailable = false;
+                await user.save();
+                broadcastAstroUpdate();
+                console.log(`[Presence] ${user.name} logged out - status cleared`);
+            }
+        } catch (e) { console.error('[Logout Error]', e); }
+    });
+
     socket.on('save-fcm-token', async ({ fcmToken }) => {
         const userId = socketToUser.get(socket.id);
         if (!userId || !fcmToken) return;

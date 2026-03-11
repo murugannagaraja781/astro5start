@@ -90,7 +90,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 birthData: birthData || null
             });
 
-            if (toUser && toUser.fcmToken) {
+            if (toUser && toUser.fcmToken && toUser.isAvailable) {
                 const fcmData = {
                     type: 'INCOMING_CALL',
                     sessionId: sessionId,

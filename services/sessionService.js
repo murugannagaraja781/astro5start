@@ -8,8 +8,6 @@ const {
 const Session = require('../models/Session');
 const User = require('../models/User');
 const PairMonth = require('../models/PairMonth');
-const { sendFcmV1Push } = require('./fcmService');
-const { processBillingCharge } = require('./billingService');
 const fs = require('fs');
 
 async function sendCancelCallPush(toUserId, sessionId) {
@@ -20,6 +18,7 @@ async function sendCancelCallPush(toUserId, sessionId) {
                 type: 'CANCEL_CALL',
                 sessionId: sessionId || ''
             };
+            const { sendFcmV1Push } = require('./fcmService');
             await sendFcmV1Push(toUser.fcmToken, payload, null);
             console.log(`[FCM v1] Cancel Call push sent to ${toUserId}`);
         }
@@ -37,11 +36,9 @@ async function handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpd
             await astro.save();
             if (broadcastAstroUpdate) broadcastAstroUpdate();
 
-            // Notify Super Admin
             const reasonMsg = `Missed Call Alert: ${astro.name} failed to answer. Automatically marked OFFLINE.`;
             if (io) io.to('superadmin').emit('admin-notification', { text: reasonMsg, type: 'missed_call', astroId: toUserId });
 
-            // Log to text file
             const logMsg = `[${new Date().toISOString()}] MISSED CALL: Astrologer ${astro.name} (${astro.phone}) missed a call from ${fromUserId}. Marked OFFLINE.\n`;
             fs.appendFile('missed_calls_log.txt', logMsg, (err) => {
                 if (err) console.error('Error writing to log file', err);
@@ -81,6 +78,8 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
             { $inc: { slabLockedAt: billableSeconds } }
         );
     }
+
+    const { processBillingCharge } = require('./billingService');
 
     if (billableSeconds > 0 && billableSeconds < 60) {
         await processBillingCharge(sessionId, billableSeconds, 1, 'early_exit', io);
@@ -126,6 +125,7 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
             if (s.totalEarned > 0) {
                 User.findOne({ userId: s.astrologerId }).then(astro => {
                     if (astro && astro.fcmToken) {
+                        const { sendFcmV1Push } = require('./fcmService');
                         sendFcmV1Push(astro.fcmToken, {
                             type: 'EARNING_UPDATE',
                             amount: String(s.totalEarned),
