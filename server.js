@@ -166,7 +166,7 @@ async function callPhonePePayV2(merchantOrderId, amount, redirectUrl, userMobile
 
   // Debug Log
   try {
-    const fs = require('fs');
+    // Log the request to a file for debugging
     const logMsg = `\n--- ${new Date().toISOString()} ---\n[v2 INIT] URL: ${endpoint}\nOrderId: ${merchantOrderId}\nAmount: ${amount}\nStatus: ${response.status}\nRes: ${JSON.stringify(data)}\n`;
     fs.appendFileSync('phonepe_debug.log', logMsg);
   } catch (err) { }
@@ -180,8 +180,6 @@ async function callPhonePePayV2(merchantOrderId, amount, redirectUrl, userMobile
 
 // FCM v1 API with Service Account
 const { GoogleAuth } = require('google-auth-library');
-
-const fs = require('fs');
 
 // FCM v1 Configuration
 const FCM_PROJECT_ID = 'astro5star-d487c';
@@ -2238,7 +2236,7 @@ async function handleMissedCallLogic(toUserId, fromUserId) {
 
       // Log to text file
       const logMsg = `[${new Date().toISOString()}] MISSED CALL: Astrologer ${astro.name} (${astro.phone}) missed a call from ${fromUserId}. Marked OFFLINE.\n`;
-      const fs = require('fs');
+      // fs already declared globally at top
       fs.appendFile('missed_calls_log.txt', logMsg, (err) => {
         if (err) console.error('Error writing to log file', err);
       });
