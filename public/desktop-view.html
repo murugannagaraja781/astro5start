@@ -5306,6 +5306,14 @@
       // Update Payout Status handled inside loadAstroWithdrawals
     }
 
+    function updateToggleUI(id, isOnline) {
+      const el = document.getElementById(id);
+      if (el) {
+        if (isOnline) el.classList.add('active');
+        else el.classList.remove('active');
+      }
+    }
+
     function setupToggle(id, type) {
       const el = document.getElementById(id);
       if (!el) return;
@@ -5883,19 +5891,11 @@
           console.warn('Failed to fetch ICE config, using fallback STUN', e);
         }
 
-        // SDP Transform to limit bitrate for 2G/low bandwidth
+        // SDP Transform to limit bitrate for 2G
         const transformSDP = (sdp) => {
-          let lines = sdp.split('\n');
-          let newSdp = '';
-          for (let line of lines) {
-            newSdp += line + '\n';
-            if (line.indexOf('a=mid:audio') === 0 || line.indexOf('a=mid:0') === 0) {
-              newSdp += 'b=AS:32\n'; // 32kbps audio is enough for 2G
-            }
-            if (line.indexOf('a=mid:video') === 0 || line.indexOf('a=mid:1') === 0) {
-              newSdp += 'b=AS:256\n'; // Lower video bitrate to prevent packet loss
-            }
-          }
+          // Robust bitrate limiting by inserting b=AS after media headers
+          let newSdp = sdp.replace(/m=audio ([^\r\n]+)/g, 'm=audio $1\r\nb=AS:32');
+          newSdp = newSdp.replace(/m=video ([^\r\n]+)/g, 'm=video $1\r\nb=AS:256');
           return newSdp;
         };
 

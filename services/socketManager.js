@@ -101,10 +101,14 @@ const initSocket = (io) => {
                     const timeoutId = setTimeout(async () => {
                         if (!userSockets.has(userId)) {
                             user.isOnline = false;
+                            user.isChatOnline = false;
+                            user.isAudioOnline = false;
+                            user.isVideoOnline = false;
+                            user.isAvailable = false;
                             await user.save();
                             broadcastAstroUpdate();
                             offlineTimeouts.delete(userId);
-                            console.log(`[Presence] ${user.name} marked offline after grace period`);
+                            console.log(`[Presence] ${user.name} marked offline (full status clear) after grace period`);
                         }
                     }, OFFLINE_GRACE_PERIOD);
                     offlineTimeouts.set(userId, timeoutId);
