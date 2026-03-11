@@ -3120,13 +3120,22 @@ io.on('connection', (socket) => {
         if (typeof cb === "function") return cb({ ok: false, error: 'Insufficient Main Balance. Please recharge your main wallet to start.' });
       }
 
-      // Check if astrologer is available (MANUAL ONLY)
-      const isAvailable = toUser.isAvailable === true;
+      // Strict Availability Check: Block if service is offline
+      const typeStr = type.toLowerCase();
+      const isChatOk = toUser.isChatOnline === true;
+      const isAudioOk = toUser.isAudioOnline === true;
+      const isVideoOk = toUser.isVideoOnline === true;
 
-      // ALLOW CALL even if offline -> Logic will fall back to FCM below
-      // if (!isAvailable) {
-      //   return cb({ ok: false, error: 'Astrologer is offline' });
-      // }
+      let serviceStatus = false;
+      if (typeStr === 'chat') serviceStatus = isChatOk;
+      else if (typeStr === 'audio' || typeStr === 'call') serviceStatus = isAudioOk;
+      else if (typeStr === 'video') serviceStatus = isVideoOk;
+
+      if (!serviceStatus) {
+        console.log(`[Session Blocked] ${toUser.name} is offline for ${typeStr}. Rejecting request from ${fromUserId}`);
+        if (typeof cb === "function") return cb({ ok: false, error: 'Astrologer is currently offline for this service.' });
+        return;
+      }
 
       if (userActiveSession.has(toUserId)) {
         const existingSessionId = userActiveSession.get(toUserId);
