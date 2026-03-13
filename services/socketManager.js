@@ -72,9 +72,17 @@ const initSocket = (io) => {
                         clearTimeout(offlineTimeouts.get(userId));
                         offlineTimeouts.delete(userId);
                     }
+
                     // When astrologer connects (logins), mark them as online and available
                     user.isOnline = true;
                     user.isAvailable = true;
+
+                    // Ensure they have at least one service online if they are connecting
+                    if (!user.isChatOnline && !user.isAudioOnline && !user.isVideoOnline) {
+                        user.isChatOnline = true;
+                        user.isAudioOnline = true;
+                    }
+
                     await user.save();
                     broadcastAstroUpdate();
                 }

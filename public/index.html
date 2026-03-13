@@ -4823,6 +4823,11 @@
       setupToggle('toggleCall', 'audio');
       setupToggle('toggleVideo', 'video');
 
+      // Initialize initial states
+      updateToggleUI('toggleChat', user.isChatOnline);
+      updateToggleUI('toggleCall', user.isAudioOnline);
+      updateToggleUI('toggleVideo', user.isVideoOnline);
+
 
       const globalFooter = document.querySelector('.doc-bottom-nav');
       if (globalFooter) globalFooter.style.display = 'none';
