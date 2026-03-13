@@ -543,7 +543,8 @@
     }
 
     .at-btn-call,
-    .at-btn-chat {
+    .at-btn-chat,
+    .at-btn-video {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -557,6 +558,18 @@
       cursor: pointer;
       transition: all 0.2s ease;
       min-width: 72px;
+    }
+
+    .at-btn-video {
+      background: #fffbeb;
+      color: #d97706;
+      border: 1.5px solid #fde68a;
+    }
+
+    .at-btn-video.wait {
+      background: #f9fafb;
+      color: #9ca3af;
+      border-color: #e5e7eb;
     }
 
     .at-btn-call {
@@ -4745,7 +4758,7 @@
         const skills = a.skills || ['Vedic', 'Prashana'];
         const skillsText = skills.slice(0, 3).join(', ');
         const rating = (4 + Math.random() * 0.9).toFixed(1);
-        const isOnline = a.isOnline || a.isAudioOnline || a.isChatOnline;
+        const isOnline = a.isOnline || a.isAudioOnline || a.isChatOnline || a.isVideoOnline;
         const isOffline = !isOnline;
         const statusClass = isOnline ? 'online' : (a.isBusy ? 'busy' : 'offline');
 
@@ -4781,18 +4794,29 @@
             </div>
 
             <div class="at-action-col">
+              ${a.showAudio ? `
               <button class="at-btn-call ${a.isAudioOnline ? '' : (a.isBusy ? 'busy' : 'wait')}"
                    ${isOffline ? 'disabled' : ''}
                    onclick="event.stopPropagation(); if(this.disabled) return; checkGuestAction('call', '${a.userId}')">
                 <i class="fas fa-phone-alt"></i>
-                ${a.isAudioOnline ? 'Call' : (a.isBusy ? 'Busy' : 'Wait')}
-              </button>
+                ${a.isAudioOnline ? 'Call' : 'Wait'}
+              </button>` : ''}
+
+              ${a.showChat ? `
               <button class="at-btn-chat ${a.isChatOnline ? '' : (a.isBusy ? 'busy' : 'wait')}"
                    ${isOffline ? 'disabled' : ''}
                    onclick="event.stopPropagation(); if(this.disabled) return; checkGuestAction('chat', '${a.userId}')">
                 <i class="fas fa-comment-dots"></i>
-                ${a.isChatOnline ? 'Chat' : (a.isBusy ? 'Busy' : 'Wait')}
-              </button>
+                ${a.isChatOnline ? 'Chat' : 'Wait'}
+              </button>` : ''}
+
+              ${a.showVideo ? `
+              <button class="at-btn-video ${a.isVideoOnline ? '' : (a.isBusy ? 'busy' : 'wait')}"
+                   ${isOffline ? 'disabled' : ''}
+                   onclick="event.stopPropagation(); if(this.disabled) return; checkGuestAction('video', '${a.userId}')">
+                <i class="fas fa-video"></i>
+                ${a.isVideoOnline ? 'Video' : 'Wait'}
+              </button>` : ''}
             </div>
           </div>
         `;

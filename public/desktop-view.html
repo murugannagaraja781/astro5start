@@ -5109,7 +5109,8 @@
         const skills = a.skills || ['Vedic', 'Prashana'];
         const skillsText = skills.slice(0, 3).join(', ');
         const rating = (4 + Math.random() * 0.9).toFixed(1);
-        const isOnline = a.isOnline || a.isAudioOnline || a.isChatOnline;
+        const isOnline = a.isOnline || a.isAudioOnline || a.isChatOnline || a.isVideoOnline;
+        const isOffline = !isOnline;
         const statusClass = isOnline ? 'online' : (a.isBusy ? 'busy' : 'offline');
         const statusLabel = isOnline ? 'Online' : (a.isBusy ? 'Busy' : 'Offline');
 
@@ -5144,16 +5145,29 @@
 
             <!-- Action Column -->
             <div class="at-action-col">
+              ${a.showAudio ? `
               <button class="at-btn-call ${a.isAudioOnline ? '' : 'wait'}"
+                   ${isOffline ? 'disabled' : ''}
                    onclick="event.stopPropagation(); checkGuestAction('call', '${a.userId}')">
                 <i class="fas fa-phone-alt"></i>
                 ${a.isAudioOnline ? 'Call' : 'Wait'}
-              </button>
+              </button>` : ''}
+
+              ${a.showChat ? `
               <button class="at-btn-chat ${a.isChatOnline ? '' : 'wait'}"
+                   ${isOffline ? 'disabled' : ''}
                    onclick="event.stopPropagation(); checkGuestAction('chat', '${a.userId}')">
                 <i class="fas fa-comment-dots"></i>
                 ${a.isChatOnline ? 'Chat' : 'Wait'}
-              </button>
+              </button>` : ''}
+
+              ${a.showVideo ? `
+              <button class="at-btn-video ${a.isVideoOnline ? '' : 'wait'}"
+                   ${isOffline ? 'disabled' : ''}
+                   onclick="event.stopPropagation(); checkGuestAction('video', '${a.userId}')">
+                <i class="fas fa-video"></i>
+                ${a.isVideoOnline ? 'Video' : 'Wait'}
+              </button>` : ''}
             </div>
           </div>
         `;
@@ -10025,7 +10039,8 @@
     }
 
     .at-btn-call,
-    .at-btn-chat {
+    .at-btn-chat,
+    .at-btn-video {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -10039,6 +10054,17 @@
       cursor: pointer;
       transition: all 0.2s ease;
       min-width: 90px;
+    }
+
+    .at-btn-video {
+      background: #fffbeb;
+      color: #d97706;
+      border: 1.5px solid #fde68a;
+    }
+
+    .at-btn-video:hover {
+      background: #fef3c7;
+      box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
     }
 
     .at-btn-call {
@@ -10075,10 +10101,17 @@
     }
 
     .at-btn-call.wait:hover,
-    .at-btn-chat.wait:hover {
+    .at-btn-chat.wait:hover,
+    .at-btn-video.wait:hover {
       box-shadow: none;
       background: #f3f4f6;
       transform: none;
+    }
+
+    .at-btn-video.wait {
+      background: #f9fafb;
+      color: #9ca3af;
+      border-color: #e5e7eb;
     }
 
     /* --- MOBILE RESPONSIVE --- */
@@ -10108,7 +10141,8 @@
       }
 
       .at-btn-call,
-      .at-btn-chat {
+      .at-btn-chat,
+      .at-btn-video {
         padding: 7px 14px;
         font-size: 0.75rem;
         min-width: 75px;

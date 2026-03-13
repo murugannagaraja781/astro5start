@@ -47,10 +47,18 @@ const getAstrologers = async (req, res) => {
             .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
             .lean();
 
-        const formatted = astros.map(a => ({
-            ...a,
-            image: formatImageUrl(a.image, a.name)
-        }));
+        const formatted = astros.map(a => {
+            const isOnline = !!(a.isOnline || a.isAudioOnline || a.isChatOnline || a.isVideoOnline);
+            return {
+                ...a,
+                image: formatImageUrl(a.image, a.name),
+                // Mobile app helper flags
+                showAudio: !isOnline || !!a.isAudioOnline,
+                showChat: !isOnline || !!a.isChatOnline,
+                showVideo: !isOnline || !!a.isVideoOnline,
+                isActuallyOnline: isOnline
+            };
+        });
 
         res.json({ ok: true, astrologers: formatted });
     } catch (err) {
