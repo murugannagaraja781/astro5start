@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="apple-touch-icon" href="/images/astro_5_star_logo.png">
-  <title>Payment Gateway - Astro 5 Star</title>
+    <link rel="apple-touch-icon" href="/images/astro_5_star_logo.png">
+    <title>Payment Gateway - Astro 5 Star</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -348,7 +348,7 @@
             showLoading(true, 'Verifying payment token...');
 
             try {
-                const response = await fetch(`/api/verify-payment-token?token=${paymentToken}`);
+                const response = await fetch(`/api/payment/verify-payment-token?token=${paymentToken}`);
                 const result = await response.json();
 
                 if (result.valid) {

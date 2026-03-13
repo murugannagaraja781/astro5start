@@ -73,4 +73,29 @@ async function callPhonePePayV2(merchantOrderId, amount, redirectUrl, userMobile
     return { success: false, data: { message: "v2 not fully implemented" }, status: 501 };
 }
 
-module.exports = { callPhonePePayV1, callPhonePePayV2 };
+async function checkPhonePeStatus(merchantTransactionId) {
+    try {
+        const endpoint = `/pg/v1/status/${PHONEPE_MERCHANT_ID}/${merchantTransactionId}`;
+        const stringToSign = endpoint + PHONEPE_SALT_KEY;
+        const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
+        const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
+
+        const response = await fetch(`${PHONEPE_HOST_URL}${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-VERIFY': checksum,
+                'X-MERCHANT-ID': PHONEPE_MERCHANT_ID,
+                'accept': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        return data; // returns { success, code, message, data: { state, responseCode, ... } }
+    } catch (err) {
+        console.error("[PhonePe Status] Error:", err.message);
+        return { success: false, message: err.message };
+    }
+}
+
+module.exports = { callPhonePePayV1, callPhonePePayV2, checkPhonePeStatus };

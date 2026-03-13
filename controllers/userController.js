@@ -197,14 +197,14 @@ const verifyOtp = async (req, res) => {
 
         res.json({
             ok: true,
-            user: {
-                userId: user.userId,
-                name: user.name,
-                phone: user.phone,
-                role: user.role,
-                walletBalance: user.walletBalance,
-                isNewUser: user.isNewUser
-            }
+            userId: user.userId,
+            name: user.name,
+            phone: user.phone,
+            role: user.role,
+            walletBalance: user.walletBalance,
+            superWalletBalance: user.superWalletBalance || 0,
+            isNewUser: user.isNewUser,
+            approvalStatus: user.approvalStatus
         });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
