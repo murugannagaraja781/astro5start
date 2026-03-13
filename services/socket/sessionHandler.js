@@ -9,15 +9,15 @@ const User = require('../../models/User');
 const Session = require('../../models/Session');
 const crypto = require('crypto');
 const { sendFcmV1Push } = require('../fcmService');
-const {
-    endSessionRecord,
-    handleMissedCallLogic,
-    sendCancelCallPush,
-    getOtherUserIdFromSession,
-    handleUserConnection
-} = require('../sessionService');
 
 const handleSession = (socket, io, broadcastAstroUpdate) => {
+    const {
+        endSessionRecord,
+        handleMissedCallLogic,
+        sendCancelCallPush,
+        getOtherUserIdFromSession,
+        handleUserConnection
+    } = require('../sessionService');
 
     socket.on('request-session', async (data, cb) => {
         try {

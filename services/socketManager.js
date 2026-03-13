@@ -137,6 +137,61 @@ const initSocket = (io) => {
             } catch (e) { }
         });
 
+        socket.on('submit-astro-registration', async (data, cb) => {
+            try {
+                const phone = (data.cellNumber1 || data.phone)?.replace(/\D/g, '');
+                if (!phone) {
+                    if (typeof cb === 'function') cb({ ok: false, error: 'Phone is required' });
+                    return;
+                }
+
+                const crypto = require('crypto');
+                let user = await User.findOne({ phone });
+                const updates = {
+                    name: data.displayName || data.realName || data.name,
+                    realName: data.realName,
+                    gender: data.gender,
+                    dob: data.dob,
+                    tob: data.tob,
+                    pob: data.pob,
+                    cellNumber2: data.cellNumber2,
+                    whatsAppNumber: data.whatsAppNumber,
+                    email: data.email,
+                    address: data.address,
+                    aadharNumber: data.aadharNumber,
+                    panNumber: data.panNumber,
+                    astrologyExperience: data.astrologyExperience,
+                    profession: data.profession,
+                    bankDetails: data.bankDetails,
+                    upiId: data.upiId,
+                    upiNumber: data.upiNumber,
+                    role: 'astrologer',
+                    approvalStatus: 'pending'
+                };
+
+                if (user) {
+                    Object.assign(user, updates);
+                    await user.save();
+                } else {
+                    const userId = crypto.randomUUID();
+                    user = await User.create({
+                        userId,
+                        phone,
+                        ...updates
+                    });
+                    const { generateUniqueReferralCode } = require('../utils/generateReferral');
+                    user.referralCode = await generateUniqueReferralCode(user.name);
+                    await user.save();
+                }
+
+                if (typeof cb === 'function') cb({ ok: true });
+                broadcastAstroUpdate();
+            } catch (err) {
+                console.error('submit-astro-registration error', err);
+                if (typeof cb === 'function') cb({ ok: false, error: 'Internal error' });
+            }
+        });
+
     });
 };
 

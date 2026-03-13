@@ -1,8 +1,7 @@
 // services/otpService.js
 const https = require('https');
 
-// Store OTPs in memory { phone: { otp, expires } }
-const otpStore = new Map();
+const { otpStore } = require('./sharedState');
 
 function sendMsg91(phoneNumber, otp) {
     const cleanPhone = phoneNumber.replace(/\D/g, '');
