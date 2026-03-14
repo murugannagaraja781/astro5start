@@ -10,6 +10,8 @@ const Session = require('../../models/Session');
 const crypto = require('crypto');
 const { sendFcmV1Push } = require('../fcmService');
 
+const sessionService = require('../sessionService');
+
 const handleSession = (socket, io, broadcastAstroUpdate) => {
     const {
         endSessionRecord,
@@ -17,7 +19,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         sendCancelCallPush,
         getOtherUserIdFromSession,
         handleUserConnection
-    } = require('../sessionService');
+    } = sessionService;
 
     socket.on('request-session', async (data, cb) => {
         try {
@@ -241,18 +243,30 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
     });
 
     socket.on('session-connect', async (data) => {
-        const { sessionId } = data || {};
-        const userId = socketToUser.get(socket.id);
-        if (!userId || !sessionId) return;
-        await handleUserConnection(sessionId, userId, io);
+        try {
+            const { sessionId } = data || {};
+            const userId = socketToUser.get(socket.id);
+            if (!userId || !sessionId) return;
+            if (typeof sessionService.handleUserConnection === 'function') {
+                await sessionService.handleUserConnection(sessionId, userId, io);
+            } else {
+                console.error('[SessionHandler] handleUserConnection is not a function in sessionService');
+            }
+        } catch (err) {
+            console.error('[SessionHandler] session-connect error:', err);
+        }
     });
 
     socket.on('rejoin-session', (data) => {
-        const { sessionId } = data || {};
-        const userId = socketToUser.get(socket.id);
-        if (sessionId && userId) {
-            socket.join(sessionId);
-            socket.to(sessionId).emit('peer-reconnected', { userId });
+        try {
+            const { sessionId } = data || {};
+            const userId = socketToUser.get(socket.id);
+            if (sessionId && userId) {
+                socket.join(sessionId);
+                socket.to(sessionId).emit('peer-reconnected', { userId });
+            }
+        } catch (err) {
+            console.error('[SessionHandler] rejoin-session error:', err);
         }
     });
 
