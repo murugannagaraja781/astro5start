@@ -115,7 +115,7 @@ const verifyPaymentToken = async (req, res) => {
         res.json({
             ok: true,
             valid: true,
-            amount: tokenData.baseAmount, // Display base amount to user
+            amount: tokenData.amount, // Display total amount (with GST) to user
             userName: user ? user.name : 'Cosmic User',
             expiresIn: Math.floor((expiryTime - (Date.now() - tokenData.createdAt)) / 1000)
         });
