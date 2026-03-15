@@ -26,15 +26,16 @@ const getFormattedAstrologers = async () => {
         .lean();
 
     return astros.map(a => {
-        const isOnline = !!(a.isOnline || a.isAudioOnline || a.isChatOnline || a.isVideoOnline);
+        const isOnlineCalculated = !!(a.isOnline || a.isChatOnline || a.isAudioOnline || a.isVideoOnline);
         return {
             ...a,
+            isOnline: isOnlineCalculated, // Override DB field for consistency
             image: formatImageUrl(a.image, a.name),
             // Mobile app helper flags
-            showAudio: !isOnline || !!a.isAudioOnline,
-            showChat: !isOnline || !!a.isChatOnline,
-            showVideo: !isOnline || !!a.isVideoOnline,
-            isActuallyOnline: isOnline
+            showAudio: !isOnlineCalculated || !!a.isAudioOnline,
+            showChat: !isOnlineCalculated || !!a.isChatOnline,
+            showVideo: !isOnlineCalculated || !!a.isVideoOnline,
+            isActuallyOnline: isOnlineCalculated
         };
     });
 };
@@ -59,7 +60,7 @@ const initSocket = (io) => {
 
         socket.on('register', async (data, cb) => {
             try {
-                const { userId } = data || {};
+                const { userId, fcmToken } = data || {};
                 if (!userId) {
                     if (typeof cb === 'function') cb({ ok: false, error: 'No userId' });
                     return;
@@ -69,6 +70,10 @@ const initSocket = (io) => {
                 if (!user) {
                     if (typeof cb === 'function') cb({ ok: false, error: 'User not found' });
                     return;
+                }
+
+                if (fcmToken) {
+                    user.fcmToken = fcmToken;
                 }
 
                 userSockets.set(userId, socket.id);
@@ -117,8 +122,8 @@ const initSocket = (io) => {
                 if (user && user.role === 'astrologer') {
                     // USER REQUEST: Do NOT automatically mark offline when app is killed/disconnected.
                     // This allows them to receive FCM calls even when the app is in background.
-                    // A much longer cleanup or explicit logout will handle status resets.
-                    console.log(`[Presence] ${user.name} socket disconnected, preserving online status for FCM.`);
+                    console.log(`[Presence] ${user.name} socket disconnected. STAYS ONLINE in DB. (isChat:${user.isChatOnline}, isAudio:${user.isAudioOnline}, isVideo:${user.isVideoOnline})`);
+                    // We explicitly verify that we are NOT changing any flags here.
                 }
             }
         });

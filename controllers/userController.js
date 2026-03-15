@@ -18,6 +18,9 @@ const getUserProfile = async (req, res) => {
             await user.save();
         }
 
+        const isOnlineCalculated = !!(user.isOnline || user.isChatOnline || user.isAudioOnline || user.isVideoOnline);
+        const isAvailableCalculated = user.isAvailable || isOnlineCalculated;
+
         res.json({
             ok: true,
             userId: user.userId,
@@ -26,8 +29,8 @@ const getUserProfile = async (req, res) => {
             role: user.role,
             walletBalance: user.walletBalance,
             superWalletBalance: user.superWalletBalance || 0,
-            isOnline: user.isOnline,
-            isAvailable: user.isAvailable,
+            isOnline: isOnlineCalculated,
+            isAvailable: isAvailableCalculated,
             isChatOnline: user.isChatOnline || false,
             isAudioOnline: user.isAudioOnline || false,
             isVideoOnline: user.isVideoOnline || false,
@@ -48,15 +51,16 @@ const getAstrologers = async (req, res) => {
             .lean();
 
         const formatted = astros.map(a => {
-            const isOnline = !!(a.isOnline || a.isAudioOnline || a.isChatOnline || a.isVideoOnline);
+            const isOnlineCalculated = !!(a.isOnline || a.isAudioOnline || a.isChatOnline || a.isVideoOnline);
             return {
                 ...a,
+                isOnline: isOnlineCalculated, // Match socketManager logic
                 image: formatImageUrl(a.image, a.name),
                 // Mobile app helper flags
-                showAudio: !isOnline || !!a.isAudioOnline,
-                showChat: !isOnline || !!a.isChatOnline,
-                showVideo: !isOnline || !!a.isVideoOnline,
-                isActuallyOnline: isOnline
+                showAudio: !isOnlineCalculated || !!a.isAudioOnline,
+                showChat: !isOnlineCalculated || !!a.isChatOnline,
+                showVideo: !isOnlineCalculated || !!a.isVideoOnline,
+                isActuallyOnline: isOnlineCalculated
             };
         });
 
