@@ -37,10 +37,13 @@ async function handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpd
             astro.isAudioOnline = false;
             astro.isVideoOnline = false;
             astro.isAvailable = false;
-            astro.fcmToken = null; // Forces auto-logout behavior on mobile
+            astro.fcmToken = ''; // Forces auto-logout behavior on mobile
             await astro.save();
 
             if (broadcastAstroUpdate) broadcastAstroUpdate();
+
+            // Critical: Force logout on the mobile app side
+            if (io) io.to(toUserId).emit('force-logout', { reason: 'missed_call' });
 
             const reasonMsg = `🚨 Missed Call: Astrologer ${astro.name} (${astro.phone}) did not attend the call. Automatically logged out and marked OFFLINE.`;
             if (io) io.to('superadmin').emit('admin-notification', {

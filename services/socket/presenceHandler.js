@@ -25,12 +25,23 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
             if (user.approvalStatus !== 'approved') return;
 
             Object.assign(user, update);
-            user.isOnline = user.isChatOnline || user.isAudioOnline || user.isVideoOnline;
+            user.isOnline = !!(user.isChatOnline || user.isAudioOnline || user.isVideoOnline);
             user.isAvailable = user.isOnline;
             user.lastSeen = new Date();
+
+            // Restore FCM token if provided in payload (important for going online)
+            if (data.fcmToken) {
+                user.fcmToken = data.fcmToken;
+            }
+
+            // Clear FCM token if going offline and no token provided to ensure no notifications are sent
+            if (!user.isAvailable && !data.fcmToken) {
+                user.fcmToken = '';
+            }
+
             await user.save();
             broadcastAstroUpdate();
-            console.log(`[Presence] ${user.name} toggled ${data.type}: ${data.online}`);
+            console.log(`[Presence] ${user.name} toggled ${data.type}: ${data.online}, Available: ${user.isAvailable}`);
         } catch (e) { console.error(e); }
     });
 
@@ -52,9 +63,20 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 user.isOnline = !!(user.isChatOnline || user.isAudioOnline || user.isVideoOnline);
                 user.isAvailable = user.isOnline;
                 user.lastSeen = new Date();
+
+                // Restore FCM token if provided in payload
+                if (data.fcmToken) {
+                    user.fcmToken = data.fcmToken;
+                }
+
+                // Clear FCM token if going offline and no token provided
+                if (!user.isAvailable && !data.fcmToken) {
+                    user.fcmToken = '';
+                }
+
                 await user.save();
                 broadcastAstroUpdate();
-                console.log(`[Service Status] ${user.name} updated ${data.service}: ${isEnabled}`);
+                console.log(`[Service Status] ${user.name} updated ${data.service}: ${isEnabled}, Available: ${user.isAvailable}`);
             }
         } catch (e) { console.error('update-service-status error:', e); }
     });
@@ -73,9 +95,20 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 user.isOnline = isOnline;
                 user.isAvailable = isOnline;
                 user.lastSeen = new Date();
+
+                // Restore FCM token if provided in payload
+                if (data.fcmToken) {
+                    user.fcmToken = data.fcmToken;
+                }
+
+                // Clear FCM token if going offline and no token provided
+                if (!user.isAvailable && !data.fcmToken) {
+                    user.fcmToken = '';
+                }
+
                 await user.save();
                 broadcastAstroUpdate();
-                console.log(`[Presence Mobile] ${user.name} updated status: ${isOnline}`);
+                console.log(`[Presence Mobile] ${user.name} updated status: ${isOnline}, Available: ${user.isAvailable}`);
             }
         } catch (e) { console.error(e); }
     });
@@ -125,16 +158,20 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
         if (!userId) return;
         try {
             const user = await User.findOne({ userId });
-            if (user && user.role === 'astrologer') {
+            if (user) {
                 user.isOnline = false;
                 user.isChatOnline = false;
                 user.isAudioOnline = false;
                 user.isVideoOnline = false;
                 user.isAvailable = false;
-                user.fcmToken = null; // Clear FCM token on logout
+                user.isBusy = false;
+                user.fcmToken = ''; // Use empty string to clear the token and prevent further notifications
                 await user.save();
-                broadcastAstroUpdate();
-                console.log(`[Presence] ${user.name} logged out - status cleared`);
+
+                if (user.role === 'astrologer') {
+                    broadcastAstroUpdate();
+                }
+                console.log(`[Presence] User ${user.name} (${user.userId}) logged out - status and FCM token cleared`);
             }
         } catch (e) { console.error('[Logout Error]', e); }
     });
