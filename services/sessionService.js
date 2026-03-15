@@ -46,6 +46,22 @@ async function handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpd
             if (io) io.to(toUserId).emit('force-logout', { reason: 'missed_call' });
 
             const reasonMsg = `🚨 Missed Call: Astrologer ${astro.name} (${astro.phone}) did not attend the call. Automatically logged out and marked OFFLINE.`;
+
+            // Save notification for admin
+            const Notification = require('../models/Notification');
+            await Notification.create({
+                type: 'missed_call',
+                title: 'Astrologer Missed Call',
+                message: reasonMsg,
+                astrologerId: toUserId,
+                astrologerName: astro.name,
+                details: {
+                    phone: astro.phone,
+                    callerId: fromUserId,
+                    timestamp: new Date()
+                }
+            });
+
             if (io) io.to('superadmin').emit('admin-notification', {
                 text: reasonMsg,
                 type: 'missed_call',

@@ -276,6 +276,16 @@ const registerAstrologer = async (req, res) => {
     }
 };
 
+const getNotifications = async (req, res) => {
+    try {
+        const Notification = require('../models/Notification');
+        const notifications = await Notification.find({}).sort({ createdAt: -1 }).limit(100);
+        res.json({ ok: true, notifications });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
 module.exports = {
     getUserProfile,
     getAstrologers,
@@ -284,5 +294,6 @@ module.exports = {
     getIntakeDetails,
     sendOtp,
     verifyOtp,
-    registerAstrologer
+    registerAstrologer,
+    getNotifications
 };

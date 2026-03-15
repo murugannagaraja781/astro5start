@@ -56,7 +56,10 @@ async function getCachedFcmToken() {
 }
 
 async function sendFcmV1Push(fcmToken, data, notification) {
-    if (!fcmAuth) return { success: false, error: 'FCM not initialized' };
+    // try v1 first, if not available, fallback to legacy
+    if (!fcmAuth) {
+        return await sendFcmLegacyPush(fcmToken, data, notification);
+    }
 
     try {
         const accessToken = await getCachedFcmToken();
@@ -71,9 +74,11 @@ async function sendFcmV1Push(fcmToken, data, notification) {
             } : (notification ? { title: notification.title, body: notification.body } : undefined),
             data: {
                 ...data,
-                title: notification ? notification.title : '',
-                body: notification ? notification.body : '',
-                image: notification && notification.image ? notification.image : '',
+                ...(notification ? {
+                    title: notification.title || '',
+                    body: notification.body || '',
+                    image: notification.image || ''
+                } : {}),
                 priority: 'high'
             },
             android: {
@@ -115,9 +120,60 @@ async function sendFcmV1Push(fcmToken, data, notification) {
         if (result.name) {
             return { success: true, messageId: result.name };
         } else {
-            return { success: false, error: result.error?.message || 'Unknown error' };
+            // If v1 fails because project ID is wrong or other issues, try legacy
+            return await sendFcmLegacyPush(fcmToken, data, notification);
         }
     } catch (err) {
+        console.error('[FCM v1] Error:', err.message);
+        return await sendFcmLegacyPush(fcmToken, data, notification);
+    }
+}
+
+async function sendFcmLegacyPush(fcmToken, data, notification) {
+    const serverKey = process.env.FCM_SERVER_KEY;
+    if (!serverKey) return { success: false, error: 'No FCM server key for legacy push' };
+
+    try {
+        const payload = {
+            to: fcmToken,
+            priority: 'high',
+            data: {
+                ...data,
+                ...(notification ? {
+                    title: notification.title,
+                    body: notification.body,
+                    image: notification.image
+                } : {})
+            }
+        };
+
+        if (notification) {
+            payload.notification = {
+                title: notification.title,
+                body: notification.body,
+                image: notification.image
+            };
+        }
+
+        const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `key=${serverKey}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (result.message_id || (result.success && result.success > 0)) {
+            console.log('[FCM Legacy] Success:', result.message_id || result.results[0].message_id);
+            return { success: true };
+        } else {
+            console.error('[FCM Legacy] Failed:', result);
+            return { success: false, error: 'Legacy Push failed' };
+        }
+    } catch (err) {
+        console.error('[FCM Legacy] Error:', err.message);
         return { success: false, error: err.message };
     }
 }

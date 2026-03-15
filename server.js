@@ -10,9 +10,13 @@ const connectDB = require('./config/database');
 const { initSocket } = require('./services/socketManager');
 const { tickSessions } = require('./services/billingService');
 const { upload } = require('./config/multer');
+const { initFcmAuth } = require('./services/fcmService');
 
 // Connect to Database
 connectDB();
+
+// Initialize FCM
+initFcmAuth();
 
 const app = express();
 const server = http.createServer(app);
