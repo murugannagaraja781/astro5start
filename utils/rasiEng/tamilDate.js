@@ -3,24 +3,24 @@ const { DateTime } = require('luxon');
 const { swissEph } = require('./swisseph');
 
 const TAMIL_MONTHS = [
-    'Chithirai', 'Vaikasi', 'Aani', 'Aadi',
-    'Avani', 'Purattasi', 'Aippasi', 'Karthikai',
-    'Margazhi', 'Thai', 'Maasi', 'Panguni'
+    'சித்திரை (Chithirai)', 'வைகாசி (Vaikasi)', 'ஆனி (Aani)', 'ஆடி (Aadi)',
+    'ஆவணி (Avani)', 'புரட்டாசி (Purattasi)', 'ஐப்பசி (Aippasi)', 'கார்த்திகை (Karthikai)',
+    'மார்கழி (Margazhi)', 'தை (Thai)', 'மாசி (Maasi)', 'பங்குனி (Panguni)'
 ];
 
 const TAMIL_YEARS = [
-    'Prabhava', 'Vibhava', 'Sukla', 'Pramodoota', 'Prajorpatti',
-    'Angirasa', 'Srimukha', 'Bhava', 'Yuva', 'Dhata',
-    'Eeswara', 'Bahudhanya', 'Pramathi', 'Vikrama', 'Vishu',
-    'Chitrabhanu', 'Swabhanu', 'Tharana', 'Parthiba', 'Viya',
-    'Sarvajith', 'Sarvadhari', 'Virodhi', 'Vikruthi', 'Khara',
-    'Nandhana', 'Vijaya', 'Jaya', 'Manmadha', 'Durmukhi',
-    'Hevilambi', 'Vilambi', 'Vikari', 'Sarvari', 'Plava',
-    'Subhakrith', 'Sobhakrith', 'Krodhi', 'Visvavasu', 'Parabhava',
-    'Plavanga', 'Keelaka', 'Saumya', 'Sadharana', 'Virodhikrith',
-    'Paridhabhi', 'Pramadhicha', 'Ananda', 'Rakshasa', 'Nala',
-    'Pingala', 'Kalayukthi', 'Siddharthi', 'Raudhri', 'Durmathi',
-    'Dhundubhi', 'Rudhiradhkari', 'Raktakshi', 'Krodhana', 'Akshaya'
+    'பிரபவ (Prabhava)', 'விபவ (Vibhava)', 'சுக்ல (Sukla)', 'பிரமோதூத (Pramodoota)', 'பிரஜோற்பத்தி (Prajorpatti)',
+    'ஆங்கீரச (Angirasa)', 'ஸ்ரீமுக (Srimukha)', 'பவ (Bhava)', 'யுவ (Yuva)', 'தாது (Dhata)',
+    'ஈஸ்வர (Eeswara)', 'பகுதானிய (Bahudhanya)', 'பிரமாதி (Pramathi)', 'விக்ரம (Vikrama)', 'விஷு (Vishu)',
+    'சித்திரபானு (Chitrabhanu)', 'சுவாபானு (Swabhanu)', 'தாரண (Tharana)', 'பார்த்திப (Parthiba)', 'விய (Viya)',
+    'சர்வசிறு (Sarvajith)', 'சர்வதாரி (Sarvadhari)', 'விரோதி (Virodhi)', 'விக்ருதி (Vikruthi)', 'கர (Khara)',
+    'நந்தன (Nandhana)', 'விஜய (Vijaya)', 'ஜய (Jaya)', 'மன்மத (Manmadha)', 'துர்முகி (Durmukhi)',
+    'ஹேவிளம்பி (Hevilambi)', 'விளம்பி (Vilambi)', 'விகாரி (Vikari)', 'சார்வரி (Sarvari)', 'ப்லவ (Plava)',
+    'சுபக்கிருது (Subhakrith)', 'சோபக்கிருது (Sobhakrith)', 'குரோதி (Krodhi)', 'விஸ்வாவசு (Visvavasu)', 'பராபவ (Parabhava)',
+    'ப்லவங்க (Plavanga)', 'கீலக (Keelaka)', 'சௌமிய (Saumya)', 'சாதாரண (Sadharana)', 'விரோதிகிருது (Virodhikrith)',
+    'பரிதாபி (Paridhabhi)', 'பிரமாதீச (Pramadhicha)', 'ஆனந்த (Ananda)', 'ராட்சச (Rakshasa)', 'நள (Nala)',
+    'பிங்கள (Pingala)', 'காளயுக்தி (Kalayukthi)', 'சித்தார்த்தி (Siddharthi)', 'ரௌத்திரி (Raudhri)', 'துன்மதி (Durmathi)',
+    'துந்துபி (Dhundubhi)', 'ருத்ரோத்காரி (Rudhiradhkari)', 'ரக்தாட்சி (Raktakshi)', 'குரோதன (Krodhana)', 'அட்சய (Akshaya)'
 ];
 
 // Chennai coordinates for sunrise calculation

@@ -6,6 +6,7 @@ const userRoutes = require('./userRoutes');
 const horoscopeRoutes = require('./horoscopeRoutes');
 const bannerRoutes = require('./bannerRoutes');
 const academyRoutes = require('./academyRoutes');
+const reviewRoutes = require('./reviewRoutes');
 
 router.use('/', userRoutes);
 router.use('/horoscope', horoscopeRoutes);
@@ -15,6 +16,7 @@ router.use('/admin/banners', (req, res, next) => {
     // I will mount them appropriately in server.js
     next();
 });
-router.use('/academy', academyRoutes);
+router.use('/', academyRoutes);
+router.use('/reviews', reviewRoutes);
 
 module.exports = router;

@@ -2,27 +2,28 @@
 const { swissEph } = require('./swisseph');
 
 const TITHIS = [
-    'Shukla Pratipada', 'Shukla Dwitiya', 'Shukla Tritiya', 'Shukla Chaturthi', 'Shukla Panchami',
-    'Shukla Shashthi', 'Shukla Saptami', 'Shukla Ashtami', 'Shukla Navami', 'Shukla Dashami',
-    'Shukla Ekadashi', 'Shukla Dwadashi', 'Shukla Trayodashi', 'Shukla Chaturdashi', 'Purnima',
-    'Krishna Pratipada', 'Krishna Dwitiya', 'Krishna Tritiya', 'Krishna Chaturthi', 'Krishna Panchami',
-    'Krishna Shashthi', 'Krishna Saptami', 'Krishna Ashtami', 'Krishna Navami', 'Krishna Dashami',
-    'Krishna Ekadashi', 'Krishna Dwadashi', 'Krishna Trayodashi', 'Krishna Chaturdashi', 'Amavasya'
+    'பிரதமை (Pratipada)', 'துவிதியை (Dwitiya)', 'திருதியை (Tritiya)', 'சதுர்த்தி (Chaturthi)', 'பஞ்சமி (Panchami)',
+    'சஷ்டி (Shashthi)', 'சப்தமி (Saptami)', 'அஷ்டமி (Ashtami)', 'நவமி (Navami)', 'தசமி (Dashami)',
+    'ஏகாதசி (Ekadashi)', 'துவாதசி (Dwadashi)', 'திரயோதசி (Trayodashi)', 'சதுர்தசி (Chaturdashi)', 'பௌர்ணமி (Purnima)',
+    'பிரதமை (Pratipada)', 'துவிதியை (Dwitiya)', 'திருதியை (Tritiya)', 'சதுர்த்தி (Chaturthi)', 'பஞ்சமி (Panchami)',
+    'சஷ்டி (Shashthi)', 'சப்தமி (Saptami)', 'அஷ்டமி (Ashtami)', 'நவமி (Navami)', 'தசமி (Dashami)',
+    'ஏகாதசி (Ekadashi)', 'துவாதசி (Dwadashi)', 'திரயோதசி (Trayodashi)', 'சதுர்தசி (Chaturdashi)', 'அமாவாசை (Amavasya)'
 ];
+const PAKSHA_TA = { 'Shukla': 'வளர்பிறை', 'Krishna': 'தேய்பிறை' };
 
 const YOGAS = [
-    'Vishkumbha', 'Priti', 'Ayushman', 'Saubhagya', 'Shobhana', 'Atiganda', 'Sukarma',
-    'Dhriti', 'Shula', 'Ganda', 'Vriddhi', 'Dhruva', 'Vyaghata', 'Harshana', 'Vajra',
-    'Siddhi', 'Vyatipata', 'Variyan', 'Parigha', 'Shiva', 'Siddha', 'Sadhya', 'Shubha',
-    'Shukla', 'Brahma', 'Aindra', 'Vaidhriti'
+    'விஷ்கம்பம் (Vishkumbha)', 'பிரீதி (Priti)', 'ஆயுஷ்மான் (Ayushman)', 'சௌபாக்கியம் (Saubhagya)', 'சோபனம் (Shobhana)', 'அதிகண்டம் (Atiganda)', 'சுகர்மா (Sukarma)',
+    'திருதி (Dhriti)', 'சூலம் (Shula)', 'கண்டம் (Ganda)', 'விருத்தி (Vriddhi)', 'துருவம் (Dhruva)', 'வியாகாதம் (Vyaghata)', 'ஹர்ஷணம் (Harshana)', 'வஜ்ரம் (Vajra)',
+    'சித்தி (Siddhi)', 'வியதீபாதம் (Vyatipata)', 'வாரியான் (Variyan)', 'பரிகம் (Parigha)', 'சிவம் (Shiva)', 'சித்தம் (Siddha)', 'சாத்தியம் (Sadhya)', 'சுபம் (Shubha)',
+    'சுக்கிலம் (Shukla)', 'பிரம்மா (Brahma)', 'ஐந்திரம் (Aindra)', 'வைதிருதி (Vaidhriti)'
 ];
 
 const KARANAS = [
-    'Bava', 'Balava', 'Kaulava', 'Taitila', 'Gara', 'Vanija', 'Vishti',
-    'Shakuni', 'Chatushpada', 'Naga', 'Kimstughna'
+    'பவம் (Bava)', 'பாலவம் (Balava)', 'கௌலவம் (Kaulava)', 'சைதிலம் (Taitila)', 'கரசை (Gara)', 'வணிசை (Vanija)', 'பத்திரை (Vishti)',
+    'சகுனி (Shakuni)', 'சதுஷ்பாதம் (Chatushpada)', 'நாகவம் (Naga)', 'கிமிஸ்துக்கினம் (Kimstughna)'
 ];
 
-const VARAS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const VARAS = ['ஞாயிறு', 'திங்கள்', 'செவ்வாய்', 'புதன்', 'வியாழன்', 'வெள்ளி', 'சனி'];
 
 /**
  * Calculate Panchanga for a given Julian Day
@@ -74,6 +75,7 @@ function getPanchanga(jd, lat, lng, ayanamsaName = 'Lahiri') {
     return {
         tithi: {
             name: TITHIS[tithiIndex],
+            name_ta: `${PAKSHA_TA[paksha]} ${TITHIS[tithiIndex]}`,
             index: tithiIndex,
             paksha
         },

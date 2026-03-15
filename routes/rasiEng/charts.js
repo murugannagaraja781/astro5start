@@ -12,15 +12,11 @@ const router = express.Router();
 
 // Helper function to format longitude as degrees/minutes/seconds
 function formatLongitude(longitude) {
-    const signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-        'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
-    const signIndex = Math.floor(longitude / 30);
     const degInSign = longitude % 30;
-    const deg = Math.floor(degInSign);
-    const minFloat = (degInSign - deg) * 60;
-    const min = Math.floor(minFloat);
-    const sec = Math.round((minFloat - min) * 60);
-    return `${signs[signIndex]} ${deg}° ${min}' ${sec}"`;
+    const d = Math.floor(degInSign);
+    const m = Math.floor((degInSign - d) * 60);
+    const s = Math.round(((degInSign - d) * 60 - m) * 60);
+    return `${String(d).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 // Get complete chart data in one call
