@@ -278,6 +278,19 @@ function getPlanetsWithDetails(jd, houseCusps, ayanamsaName = 'Lahiri', lat = 13
         };
     });
 
+    const sun = planets.find(p => p.name === 'Sun');
+    if (sun) {
+        planets.forEach(p => {
+            if (p.name === 'Sun' || p.name === 'Moon' || p.name === 'Rahu' || p.name === 'Ketu' || p.name === 'Mandi') {
+                p.isCombust = false;
+                return;
+            }
+            const diff = Math.min(Math.abs(p.longitude - sun.longitude), 360 - Math.abs(p.longitude - sun.longitude));
+            const combustLimits = { 'Mars': 17, 'Mercury': 14, 'Jupiter': 11, 'Venus': 10, 'Saturn': 15 };
+            p.isCombust = diff < (combustLimits[p.name] || 0);
+        });
+    }
+
     // Add Mandi
     const mandiLon = getMandiLongitude(jd, lat, lng, ayanamsaName);
     const mandiSign = swissEph.getSign(mandiLon);
@@ -297,7 +310,9 @@ function getPlanetsWithDetails(jd, houseCusps, ayanamsaName = 'Lahiri', lat = 13
         signLord: mandiKp.signLord,
         starLord: mandiKp.starLord,
         subLord: mandiKp.subLord,
-        dignity: '--'
+        dignity: '--',
+        isRetrograde: false,
+        isCombust: false
     });
 
     return planets;
