@@ -202,13 +202,105 @@ function getPositionString(longitude) {
 }
 
 /**
- * Calculate Navamsa sign for a longitude
+ * Get dignity of a planet (Uchcha, Neecha, etc.) in Tamil
  */
-function getNavamsaSign(longitude) {
-    const signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
-    const navamsaLon = (longitude * 9) % 360;
-    const idx = Math.floor(navamsaLon / 30);
-    return signs[idx];
+function getDignity(planetName, longitude) {
+    const signIndex = Math.floor(longitude / 30) % 12;
+    const degInSign = longitude % 30;
+
+    const dignityMap = {
+        'Sun': { uchcha: 0, uchchaDeg: 10, neecha: 6, neechaDeg: 10, swakshetra: [4] },
+        'Moon': { uchcha: 1, uchchaDeg: 3, neecha: 7, neechaDeg: 3, swakshetra: [3] },
+        'Mars': { uchcha: 9, uchchaDeg: 28, neecha: 3, neechaDeg: 28, swakshetra: [0, 7] },
+        'Mercury': { uchcha: 5, uchchaDeg: 15, neecha: 11, neechaDeg: 15, swakshetra: [2, 5] },
+        'Jupiter': { uchcha: 3, uchchaDeg: 5, neecha: 9, neechaDeg: 5, swakshetra: [8, 11] },
+        'Venus': { uchcha: 11, uchchaDeg: 27, neecha: 5, neechaDeg: 27, swakshetra: [1, 6] },
+        'Saturn': { uchcha: 6, uchchaDeg: 20, neecha: 0, neechaDeg: 20, swakshetra: [9, 10] },
+        'Rahu': { uchcha: 7, uchchaDeg: 30, neecha: 1, neechaDeg: 30, swakshetra: [] }, // South Tradition: Scorpio/Taurus
+        'Ketu': { uchcha: 1, uchchaDeg: 30, neecha: 7, neechaDeg: 30, swakshetra: [] }
+    };
+
+    const d = dignityMap[planetName];
+    if (!d) return '--';
+
+    if (signIndex === d.uchcha) return 'உச்ச'; // Uchcha
+    if (signIndex === d.neecha) return 'நீச'; // Neecha
+    if (d.swakshetra.includes(signIndex)) return 'ஆட்சி'; // Swakshetra / Ruling
+
+    // Mitra/Satru can be added if needed, but the image shows Uchcha/Neecha/Aatchi primarily
+    return 'சம'; // Samam / Neutral
+}
+
+/**
+ * Calculate Mandi Longitude
+ */
+function getMandiLongitude(jd, lat, lng, ayanamsaName = 'Lahiri') {
+    const sunriseJd = swissEph.getSunrise(jd, lat, lng);
+    const sunsetJd = swissEph.getSunset(jd, lat, lng);
+    const dayDuration = sunsetJd - sunriseJd;
+    const guliSequence = [7, 6, 5, 4, 3, 2, 1]; // Sunday=7th part, Sat=1st part
+
+    const dateInfo = swissEph.revjul(jd);
+    const jsDate = new Date(dateInfo.year, dateInfo.month - 1, dateInfo.day);
+    const dayOfWeek = jsDate.getDay();
+
+    const mandiTimeJd = sunriseJd + ((guliSequence[dayOfWeek] - 1) / 8) * dayDuration;
+    const houses = swissEph.getHouses(mandiTimeJd, lat, lng, 'Placidus', ayanamsaName);
+    return houses.ascendant;
+}
+
+/**
+ * Get full planet data with KP details
+ */
+function getPlanetsWithDetails(jd, houseCusps, ayanamsaName = 'Lahiri', lat = 13.08, lng = 80.27) {
+    const rawPlanets = swissEph.getAllPlanets(jd, ayanamsaName);
+    const planets = rawPlanets.map(p => {
+        const sign = swissEph.getSign(p.longitude);
+        const nak = swissEph.getNakshatra(p.longitude);
+        const kp = getKPDetails(p.longitude);
+        const house = getPlanetHouse(p.longitude, houseCusps);
+
+        return {
+            id: p.id,
+            name: p.name,
+            longitude: p.longitude,
+            latitude: p.latitude,
+            isRetrograde: p.isRetrograde,
+            signName: sign.name,
+            signIndex: sign.index,
+            house,
+            nakshatra: nak.name,
+            nakshatraPada: nak.pada,
+            signLord: kp.signLord,
+            starLord: kp.starLord,
+            subLord: kp.subLord,
+            dignity: getDignity(p.name, p.longitude)
+        };
+    });
+
+    // Add Mandi
+    const mandiLon = getMandiLongitude(jd, lat, lng, ayanamsaName);
+    const mandiSign = swissEph.getSign(mandiLon);
+    const mandiNak = swissEph.getNakshatra(mandiLon);
+    const mandiKp = getKPDetails(mandiLon);
+    const mandiHouse = getPlanetHouse(mandiLon, houseCusps);
+
+    planets.push({
+        id: 99,
+        name: 'Mandi',
+        longitude: mandiLon,
+        signName: mandiSign.name,
+        signIndex: mandiSign.index,
+        house: mandiHouse,
+        nakshatra: mandiNak.name,
+        nakshatraPada: mandiNak.pada,
+        signLord: mandiKp.signLord,
+        starLord: mandiKp.starLord,
+        subLord: mandiKp.subLord,
+        dignity: '--'
+    });
+
+    return planets;
 }
 
 module.exports = {
@@ -218,5 +310,7 @@ module.exports = {
     getPlanetHouse,
     formatLongitude,
     getPositionString,
-    getNavamsaSign
+    getNavamsaSign,
+    getDignity,
+    getMandiLongitude
 };

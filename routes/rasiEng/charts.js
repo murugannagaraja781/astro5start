@@ -54,7 +54,7 @@ router.post('/full', async (req, res) => {
         const houses = getHouseCusps(jd, lat, lng, 'Placidus', ayanamsa);
 
         // Map planets to include degreeFormatted as expected by App
-        const planets = getPlanetsWithDetails(jd, houses.cusps, ayanamsa).map(p => ({
+        const planets = getPlanetsWithDetails(jd, houses.cusps, ayanamsa, lat, lng).map(p => ({
             ...p,
             degreeFormatted: formatLongitude(p.longitude)
         }));
