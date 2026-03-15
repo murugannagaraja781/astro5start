@@ -117,24 +117,14 @@ router.post('/full', async (req, res) => {
         const moonLon = moon ? moon.longitude : 0;
         const dashaPeriods = getVimshottariDasha(moonLon, dt);
 
-        // Add 4 levels of nesting (Mahadasha > Bhukti > Antara > Pratyantara)
-        const detailedDasha = dashaPeriods.map(md => {
+        // OPTIMIZATION: Instead of 4 levels (MD > BH > AN > PR) which is 9*9*9*9 = 6,561 objects,
+        // we only send 2 levels initially (MD > BH) = 81 objects.
+        // The App can request more if needed, or we can lazy-load.
+        const dashaMD = dashaPeriods.map(md => {
             const bhuktis = getSubPeriods(md.start, md.end, md.lord, 1);
             return {
                 ...md,
-                subPeriods: bhuktis.map(bh => {
-                    const antaras = getSubPeriods(bh.start, bh.end, bh.lord, 2);
-                    return {
-                        ...bh,
-                        subPeriods: antaras.map(an => {
-                            const pratyantaras = getSubPeriods(an.start, an.end, an.lord, 3);
-                            return {
-                                ...an,
-                                subPeriods: pratyantaras
-                            };
-                        })
-                    };
-                })
+                subPeriods: bhuktis
             };
         });
 
@@ -145,7 +135,7 @@ router.post('/full', async (req, res) => {
                 ...panchanga,
                 ...muhurtas
             },
-            dasha: detailedDasha,
+            dasha: dashaMD,
             transits,
             tamilDate: tamilDateData,
             navamsa: { planets: navamsaPlanets }

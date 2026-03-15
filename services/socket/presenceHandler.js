@@ -43,7 +43,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
             const isEnabled = !!data.isEnabled;
 
             if (data.service === 'chat') update.isChatOnline = isEnabled;
-            if (data.service === 'call') update.isAudioOnline = isEnabled;
+            if (data.service === 'call' || data.service === 'audio') update.isAudioOnline = isEnabled;
             if (data.service === 'video') update.isVideoOnline = isEnabled;
 
             let user = await User.findOne({ userId });

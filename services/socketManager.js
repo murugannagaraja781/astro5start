@@ -89,6 +89,7 @@ const initSocket = (io) => {
                     if (!user.isChatOnline && !user.isAudioOnline && !user.isVideoOnline) {
                         user.isChatOnline = true;
                         user.isAudioOnline = true;
+                        user.isVideoOnline = true;
                     }
 
                     await user.save();
@@ -120,6 +121,15 @@ const initSocket = (io) => {
                     console.log(`[Presence] ${user.name} socket disconnected, preserving online status for FCM.`);
                 }
             }
+        });
+
+        socket.on('get-astrologers', async (cb) => {
+            const list = await getFormattedAstrologers();
+            if (typeof cb === 'function') {
+                cb({ ok: true, astrologers: list });
+            }
+            // Also emit astro-list for Android app compatibility
+            socket.emit('astro-list', { list });
         });
 
         // Initialize Sub-Handlers
