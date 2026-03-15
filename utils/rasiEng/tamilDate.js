@@ -59,24 +59,36 @@ async function getTamilDate(date, ayanamsaName = 'Lahiri') {
 
         const sunLon = sun.longitude;
         const monthIndex = Math.floor(sunLon / 30) % 12;
+        const degInSign = sunLon % 30;
 
-        // Calculate day of the month by counting backwards to month start
-        let dayCount = 1;
-        let scanDate = activeDate.minus({ days: 1 });
+        // Better optimization: Instead of scanning 33 days,
+        // we know the sun moves ~0.9856 degrees/day.
+        // Approximate days since month start:
+        let dayCount = Math.floor(degInSign / 0.9856) + 1;
 
-        for (let i = 0; i < 33; i++) {
-            const scanJd = dateTimeToJd(scanDate);
-            const scanSunriseJd = swissEph.getSunrise(scanJd, CHENNAI.lat, CHENNAI.lng);
-            const scanSun = swissEph.calcPlanetSidereal(scanSunriseJd, 0, ayanamsaName);
+        // Verify and adjust by checking the specific boundary day
+        let checkDate = activeDate.minus({ days: dayCount });
+        let checkJd = dateTimeToJd(checkDate);
+        let checkSunriseJd = swissEph.getSunrise(checkJd, CHENNAI.lat, CHENNAI.lng);
+        let checkSun = swissEph.calcPlanetSidereal(checkSunriseJd, 0, ayanamsaName);
+        let checkMonthIdx = Math.floor(checkSun.longitude / 30) % 12;
 
-            if (!scanSun) break;
-
-            const scanMonthIdx = Math.floor(scanSun.longitude / 30) % 12;
-            if (scanMonthIdx !== monthIndex) {
-                break;
+        if (checkMonthIdx === monthIndex) {
+            // We haven't reached the previous month yet, scan back max 2 more days
+            for (let i = 0; i < 3; i++) {
+                dayCount++;
+                checkDate = checkDate.minus({ days: 1 });
+                checkSun = swissEph.calcPlanetSidereal(swissEph.getSunrise(dateTimeToJd(checkDate), CHENNAI.lat, CHENNAI.lng), 0, ayanamsaName);
+                if (Math.floor(checkSun.longitude / 30) % 12 !== monthIndex) break;
             }
-            dayCount++;
-            scanDate = scanDate.minus({ days: 1 });
+        } else {
+            // We overshot, scan forward max 2 days
+            for (let i = 0; i < 3; i++) {
+                dayCount--;
+                checkDate = checkDate.plus({ days: 1 });
+                checkSun = swissEph.calcPlanetSidereal(swissEph.getSunrise(dateTimeToJd(checkDate), CHENNAI.lat, CHENNAI.lng), 0, ayanamsaName);
+                if (Math.floor(checkSun.longitude / 30) % 12 === monthIndex) break;
+            }
         }
 
         // Calculate Tamil year
