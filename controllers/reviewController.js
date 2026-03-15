@@ -1,5 +1,6 @@
 const Review = require('../models/Review');
 const User = require('../models/User');
+const { broadcastReviewUpdate } = require('../services/socketManager');
 
 exports.createReview = async (req, res) => {
     try {
@@ -20,7 +21,15 @@ exports.createReview = async (req, res) => {
             sessionId
         });
 
+
         await review.save();
+
+        // Fetch the populated review for broadcasting
+        const populatedReview = await Review.findById(review._id).populate('astrologerId', 'name image userId');
+        if (populatedReview) {
+            broadcastReviewUpdate(populatedReview);
+        }
+
         res.json({ ok: true, message: 'Review submitted successfully' });
     } catch (error) {
         res.json({ ok: false, error: error.message });

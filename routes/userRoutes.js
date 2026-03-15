@@ -6,6 +6,7 @@ const userController = require('../controllers/userController');
 router.get('/user/:userId', userController.getUserProfile);
 router.get('/astrology/astrologers', userController.getAstrologers);
 router.get('/astrology/history/:userId', userController.getSessionHistory);
+router.get('/payment/history/:userId', userController.getSessionHistory);
 router.post('/register', userController.registerDevice);
 router.get('/user/:userId/intake', userController.getIntakeDetails);
 

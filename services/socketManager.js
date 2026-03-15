@@ -51,6 +51,17 @@ const broadcastAstroUpdate = async () => {
     }
 };
 
+const broadcastReviewUpdate = async (review) => {
+    if (!ioInstance) return;
+    try {
+        // Broadcast the new review to all connected clients
+        ioInstance.emit('new-review', review);
+        console.log('Broadcasting new review.');
+    } catch (e) {
+        console.error('Review Broadcast Error:', e);
+    }
+};
+
 
 const initSocket = (io) => {
     ioInstance = io;
@@ -216,4 +227,4 @@ const initSocket = (io) => {
     });
 };
 
-module.exports = { initSocket, broadcastAstroUpdate, handleUserConnection, getFormattedAstrologers };
+module.exports = { initSocket, broadcastAstroUpdate, broadcastReviewUpdate, handleUserConnection, getFormattedAstrologers };

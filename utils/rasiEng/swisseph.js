@@ -195,9 +195,18 @@ class AstronomyEngine {
     }
 
     decimalToDms(decimal) {
-        const d = Math.floor(decimal);
-        const m = Math.floor((decimal - d) * 60);
-        const s = Math.round(((decimal - d) * 60 - m) * 60);
+        let d = Math.floor(decimal);
+        let m = Math.floor((decimal - d) * 60);
+        let s = Math.round(((decimal - d) * 60 - m) * 60);
+
+        if (s >= 60) {
+            s = 0;
+            m += 1;
+        }
+        if (m >= 60) {
+            m = 0;
+            d += 1;
+        }
         return { d, m, s };
     }
 

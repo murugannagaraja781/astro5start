@@ -100,7 +100,7 @@ const getSessionHistory = async (req, res) => {
             };
         }));
 
-        res.json({ ok: true, sessions: populatedSessions });
+        res.json({ ok: true, data: populatedSessions });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
     }

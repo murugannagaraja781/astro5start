@@ -13,9 +13,7 @@ const router = express.Router();
 // Helper function to format longitude as degrees/minutes/seconds
 function formatLongitude(longitude) {
     const degInSign = longitude % 30;
-    const d = Math.floor(degInSign);
-    const m = Math.floor((degInSign - d) * 60);
-    const s = Math.round(((degInSign - d) * 60 - m) * 60);
+    const { d, m, s } = swissEph.decimalToDms(degInSign);
     return `${String(d).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
