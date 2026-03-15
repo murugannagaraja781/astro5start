@@ -59,11 +59,18 @@ router.post('/full', async (req, res) => {
             degreeFormatted: formatLongitude(p.longitude)
         }));
 
-        const panchanga = getPanchanga(jd, lat, lng, ayanamsa);
-        const muhurtas = getMuhurtas(jd, lat, lng);
-
-        // Calculate detailed Dasha for App
         const moon = planets.find(p => p.name === 'Moon');
+        const moonLon = moon ? moon.longitude : 0;
+
+        // Run independent heavy calculations in parallel
+        const [panchanga, muhurtas, tamilDateData, dashaPeriods] = await Promise.all([
+            Promise.resolve(getPanchanga(jd, lat, lng, ayanamsa)),
+            Promise.resolve(getMuhurtas(jd, lat, lng)),
+            getTamilDate(dt, ayanamsa),
+            Promise.resolve(getVimshottariDasha(moonLon, dt))
+        ]);
+
+        // Calculate current dasha info
         let dashaInfo = {
             mahadashaName: "Ketu",
             bhuktiName: "Ketu",
@@ -73,7 +80,7 @@ router.post('/full', async (req, res) => {
         };
 
         if (moon) {
-            const { getFullDashaBreakdown, getCurrentDasha } = require('../../utils/rasiEng/dashaCalculations');
+            const { getFullDashaBreakdown } = require('../../utils/rasiEng/dashaCalculations');
             const breakdown = getFullDashaBreakdown(moon.longitude, dt);
             const now = DateTime.now();
 
@@ -102,7 +109,16 @@ router.post('/full', async (req, res) => {
             };
         });
 
-        const tamilDateData = await getTamilDate(dt, ayanamsa);
+        // OPTIMIZATION: Instead of 4 levels (MD > BH > AN > PR) which is 9*9*9*9 = 6,561 objects,
+        // we only send 2 levels initially (MD > BH) = 81 objects.
+        const { getSubPeriods } = require('../../utils/rasiEng/dashaCalculations');
+        const dashaMD = dashaPeriods.map(md => {
+            const bhuktis = getSubPeriods(md.start, md.end, md.lord, 1);
+            return {
+                ...md,
+                subPeriods: bhuktis
+            };
+        });
 
         // Calculate Navamsa Data
         const navamsaPlanets = planets.map(p => {
@@ -110,21 +126,6 @@ router.post('/full', async (req, res) => {
             return {
                 name: p.name,
                 signName: getNavamsaSign(p.longitude)
-            };
-        });
-
-        const { getVimshottariDasha, getSubPeriods } = require('../../utils/rasiEng/dashaCalculations');
-        const moonLon = moon ? moon.longitude : 0;
-        const dashaPeriods = getVimshottariDasha(moonLon, dt);
-
-        // OPTIMIZATION: Instead of 4 levels (MD > BH > AN > PR) which is 9*9*9*9 = 6,561 objects,
-        // we only send 2 levels initially (MD > BH) = 81 objects.
-        // The App can request more if needed, or we can lazy-load.
-        const dashaMD = dashaPeriods.map(md => {
-            const bhuktis = getSubPeriods(md.start, md.end, md.lord, 1);
-            return {
-                ...md,
-                subPeriods: bhuktis
             };
         });
 
