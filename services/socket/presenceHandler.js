@@ -49,7 +49,8 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
             let user = await User.findOne({ userId });
             if (user) {
                 Object.assign(user, update);
-                user.isOnline = user.isAvailable;
+                user.isOnline = !!(user.isChatOnline || user.isAudioOnline || user.isVideoOnline);
+                user.isAvailable = user.isOnline;
                 user.lastSeen = new Date();
                 await user.save();
                 broadcastAstroUpdate();

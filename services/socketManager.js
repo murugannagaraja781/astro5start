@@ -114,20 +114,10 @@ const initSocket = (io) => {
 
                 const user = await User.findOne({ userId });
                 if (user && user.role === 'astrologer') {
-                    const timeoutId = setTimeout(async () => {
-                        if (!userSockets.has(userId)) {
-                            user.isOnline = false;
-                            user.isChatOnline = false;
-                            user.isAudioOnline = false;
-                            user.isVideoOnline = false;
-                            user.isAvailable = false;
-                            await user.save();
-                            broadcastAstroUpdate();
-                            offlineTimeouts.delete(userId);
-                            console.log(`[Presence] ${user.name} marked offline (full status clear) after grace period`);
-                        }
-                    }, OFFLINE_GRACE_PERIOD);
-                    offlineTimeouts.set(userId, timeoutId);
+                    // USER REQUEST: Do NOT automatically mark offline when app is killed/disconnected.
+                    // This allows them to receive FCM calls even when the app is in background.
+                    // A much longer cleanup or explicit logout will handle status resets.
+                    console.log(`[Presence] ${user.name} socket disconnected, preserving online status for FCM.`);
                 }
             }
         });
