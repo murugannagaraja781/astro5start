@@ -36,7 +36,7 @@ router.post('/', (req, res) => {
             const jd = swissEph.julday(utc.year, utc.month, utc.day, utc.hour + utc.minute / 60 + utc.second / 3600);
 
             const houses = getHouseCusps(jd, profile.lat, profile.lng, 'Placidus', ayanamsa);
-            const planets = getPlanetsWithDetails(jd, houses.cusps, ayanamsa);
+            const planets = getPlanetsWithDetails(jd, houses.cusps, ayanamsa, profile.lat, profile.lng);
 
             return { ...profile, planets, houses, dt };
         };
