@@ -27,8 +27,8 @@ async function runTest() {
     try {
         // 1. Register Client
         clientId = await new Promise((resolve, reject) => {
-            clientSocket.emit('register', { phone: '8000000001' }, (res) => {
-                if (res.ok) resolve(res.userId);
+            clientSocket.emit('register', { userId: 'fc052336-700d-4629-b6c7-6974fdbf4f87' }, (res) => {
+                if (res.ok) resolve(res.userId || (res.user && res.user.userId));
                 else reject(res.error);
             });
         });
@@ -36,8 +36,8 @@ async function runTest() {
 
         // 2. Register Astrologer
         astroId = await new Promise((resolve, reject) => {
-            astroSocket.emit('register', { phone: '9000000001' }, (res) => {
-                if (res.ok) resolve(res.userId);
+            astroSocket.emit('register', { userId: '492b706e-6a4d-4743-a1ab-b76c0dee6868' }, (res) => {
+                if (res.ok) resolve(res.userId || (res.user && res.user.userId));
                 else reject(res.error);
             });
         });
