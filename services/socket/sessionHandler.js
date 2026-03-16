@@ -151,7 +151,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             let session = activeSessions.get(sessionId);
             if (!session) {
                 console.log(`[Session] Session ${sessionId} not found in memory, checking DB...`);
-                const dbSession = await Session.findOne({ sessionId, status: 'requested' });
+                const dbSession = await Session.findOne({ sessionId, status: { $in: ['requested', 'active'] } });
                 if (dbSession) {
                     session = {
                         sessionId: dbSession.sessionId,
@@ -160,16 +160,16 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                         astrologerId: dbSession.astrologerId,
                         users: [dbSession.clientId, dbSession.astrologerId],
                         startedAt: dbSession.startTime,
-                        isAnswered: false,
+                        isAnswered: dbSession.status === 'active',
                         elapsedBillableSeconds: 0,
                         lastBilledMinute: 0,
-                        actualBillingStart: null,
-                        totalDeducted: 0,
-                        totalEarned: 0,
+                        actualBillingStart: dbSession.actualBillingStart || null,
+                        totalDeducted: dbSession.totalCharged || 0,
+                        totalEarned: dbSession.totalEarned || 0,
                         timeoutId: null
                     };
                     activeSessions.set(sessionId, session);
-                    console.log(`[Session] Restored session from DB: ${sessionId}`);
+                    console.log(`[Session] Restored session from DB: ${sessionId} (Status: ${dbSession.status})`);
                 }
             }
 
@@ -191,15 +191,15 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 }
                 session.isAnswered = true;
                 session.status = 'active';
-                session.actualBillingStart = Date.now();
+                session.actualBillingStart = session.actualBillingStart || Date.now();
                 userActiveSession.set(astrologerId, sessionId);
                 userActiveSession.set(fromUserId, sessionId);
 
-                await Session.updateOne({ sessionId }, { status: 'active', startTime: Date.now() });
+                await Session.updateOne({ sessionId }, { status: 'active', startTime: session.startedAt || Date.now(), actualBillingStart: session.actualBillingStart });
 
                 io.to(fromUserId).emit('session-answered', { sessionId, fromUserId: astrologerId, type: type || session.type, accept: true });
                 if (typeof cb === "function") cb({ ok: true });
-                console.log(`[Session] Call ${sessionId} accepted via web/standard.`);
+                console.log(`[Session] Call ${sessionId} accepted via web/standard. (Previously active: ${dbSession?.status === 'active'})`);
             } else {
                 io.to(fromUserId).emit('session-answered', { sessionId, fromUserId: astrologerId, accept: false });
                 endSessionRecord(sessionId, 'rejected', io, broadcastAstroUpdate);
@@ -226,7 +226,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
             if (!session) {
                 console.log(`[Session] Session ${sessionId} not found in memory, checking DB...`);
-                const dbSession = await Session.findOne({ sessionId, status: 'requested' });
+                const dbSession = await Session.findOne({ sessionId, status: { $in: ['requested', 'active'] } });
                 if (dbSession) {
                     session = {
                         sessionId: dbSession.sessionId,
@@ -235,16 +235,16 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                         astrologerId: dbSession.astrologerId,
                         users: [dbSession.clientId, dbSession.astrologerId],
                         startedAt: dbSession.startTime,
-                        isAnswered: false,
+                        isAnswered: dbSession.status === 'active',
                         elapsedBillableSeconds: 0,
                         lastBilledMinute: 0,
-                        actualBillingStart: null,
-                        totalDeducted: 0,
-                        totalEarned: 0,
+                        actualBillingStart: dbSession.actualBillingStart || null,
+                        totalDeducted: dbSession.totalCharged || 0,
+                        totalEarned: dbSession.totalEarned || 0,
                         timeoutId: null
                     };
                     activeSessions.set(sessionId, session);
-                    console.log(`[Session] Restored session from DB: ${sessionId}`);
+                    console.log(`[Session] Restored session from DB: ${sessionId} (Status: ${dbSession.status})`);
                 }
             }
 

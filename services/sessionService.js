@@ -205,37 +205,54 @@ async function handleUserConnection(sessionId, userId, io) {
 
     if (updated) await session.save();
 
+    // RESTORE to memory if missing (CRITICAL for server restart recovery)
+    let activeSession = activeSessions.get(sessionId);
+    if (!activeSession) {
+        console.log(`[SessionService] Restoring session ${sessionId} to memory...`);
+        activeSession = {
+            sessionId: session.sessionId,
+            type: session.type,
+            clientId: session.clientId,
+            astrologerId: session.astrologerId,
+            users: [session.clientId, session.astrologerId],
+            startedAt: session.startTime,
+            isAnswered: session.status === 'active',
+            elapsedBillableSeconds: 0,
+            lastBilledMinute: 0,
+            actualBillingStart: session.actualBillingStart,
+            totalDeducted: session.totalCharged || 0,
+            totalEarned: session.totalEarned || 0,
+            timeoutId: null
+        };
+        activeSessions.set(sessionId, activeSession);
+    }
+
     if (session.clientConnectedAt && session.astrologerConnectedAt && !session.actualBillingStart) {
         const billingStart = Math.max(session.clientConnectedAt, session.astrologerConnectedAt) + 2000;
         session.actualBillingStart = billingStart;
         await session.save();
 
-        const activeSession = activeSessions.get(sessionId);
-        if (activeSession) {
-            activeSession.actualBillingStart = billingStart;
-            if (typeof activeSession.elapsedBillableSeconds === 'undefined') {
-                Object.assign(activeSession, {
-                    elapsedBillableSeconds: 0,
-                    lastBilledMinute: 1,
-                    clientId: session.clientId,
-                    astrologerId: session.astrologerId,
-                    currentSlab: 1,
-                    totalDeducted: 0,
-                    totalEarned: 0
-                });
-            }
-            try {
-                const currentMonth = new Date().toISOString().slice(0, 7);
-                const pairId = `${session.clientId}_${session.astrologerId}`;
-                let pairRec = await PairMonth.findOne({ pairId, yearMonth: currentMonth });
-                if (!pairRec) {
-                    pairRec = await PairMonth.create({ pairId, clientId: session.clientId, astrologerId: session.astrologerId, yearMonth: currentMonth, currentSlab: 1 });
-                }
-                activeSession.pairMonthId = pairRec._id;
-                activeSession.currentSlab = pairRec.currentSlab;
-                activeSession.initialPairSeconds = pairRec.slabLockedAt || 0;
-            } catch (e) { console.error('PairMonth Init Error', e); }
+        activeSession.actualBillingStart = billingStart;
+        if (typeof activeSession.elapsedBillableSeconds === 'undefined' || activeSession.elapsedBillableSeconds === 0) {
+            Object.assign(activeSession, {
+                elapsedBillableSeconds: 0,
+                lastBilledMinute: 1,
+                currentSlab: 1,
+                totalDeducted: session.totalCharged || 0,
+                totalEarned: session.totalEarned || 0
+            });
         }
+        try {
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            const pairId = `${session.clientId}_${session.astrologerId}`;
+            let pairRec = await PairMonth.findOne({ pairId, yearMonth: currentMonth });
+            if (!pairRec) {
+                pairRec = await PairMonth.create({ pairId, clientId: session.clientId, astrologerId: session.astrologerId, yearMonth: currentMonth, currentSlab: 1 });
+            }
+            activeSession.pairMonthId = pairRec._id;
+            activeSession.currentSlab = pairRec.currentSlab;
+            activeSession.initialPairSeconds = pairRec.slabLockedAt || 0;
+        } catch (e) { console.error('PairMonth Init Error', e); }
 
         if (io) {
             io.to(session.clientId).emit('billing-started', { startTime: billingStart });
