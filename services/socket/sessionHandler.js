@@ -18,28 +18,25 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         endSessionRecord,
         handleMissedCallLogic,
         sendCancelCallPush,
-        getOtherUserIdFromSession,
-        handleUserConnection
+        getOtherUserIdFromSession
     } = sessionService;
 
     socket.on('request-session', async (data, cb) => {
-        const safeCallback = (res) => { if (typeof cb === 'function') cb(res); };
         try {
             const { toUserId, type, birthData } = data || {};
             const fromUserId = socketToUser.get(socket.id);
 
-            // CRASH FIX 1: Proper guard - always return after calling cb
-            if (!fromUserId) return safeCallback({ ok: false, error: 'Not registered' });
-            if (!toUserId || !type) return safeCallback({ ok: false, error: 'Missing fields' });
+            if (!fromUserId) if (typeof cb === "function") return cb({ ok: false, error: 'Not registered' });
+            if (!toUserId || !type) if (typeof cb === "function") return cb({ ok: false, error: 'Missing fields' });
 
-            const [toUser, fromUser] = await Promise.all([
-                User.findOne({ userId: toUserId }),
-                User.findOne({ userId: fromUserId })
-            ]);
+            const toUser = await User.findOne({ userId: toUserId });
+            const fromUser = await User.findOne({ userId: fromUserId });
 
-            // CRASH FIX 2: null check BEFORE accessing toUser properties
-            if (!toUser) return safeCallback({ ok: false, error: 'User not found' });
-            if (!fromUser) return safeCallback({ ok: false, error: 'Caller not found' });
+            if (!toUser) {
+                if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
+            }
+
+            const isAvailable = toUser.isAvailable === true;
 
             if (userActiveSession.has(toUserId)) {
                 const existingSessionId = userActiveSession.get(toUserId);
@@ -50,7 +47,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 } else if (existingSession.users.includes(fromUserId)) {
                     await endSessionRecord(existingSessionId, 'stale_clean', io, broadcastAstroUpdate);
                 } else {
-                    return safeCallback({ ok: false, error: 'User busy' });
+                    if (typeof cb === "function") return cb({ ok: false, error: 'User busy' });
                 }
             }
 
@@ -59,10 +56,10 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             let clientId = null;
             let astrologerId = null;
 
-            if (fromUser.role === 'client') clientId = fromUserId;
-            if (fromUser.role === 'astrologer') astrologerId = fromUserId;
-            if (toUser.role === 'client') clientId = toUserId;
-            if (toUser.role === 'astrologer') astrologerId = toUserId;
+            if (fromUser && fromUser.role === 'client') clientId = fromUserId;
+            if (fromUser && fromUser.role === 'astrologer') astrologerId = fromUserId;
+            if (toUser && toUser.role === 'client') clientId = toUserId;
+            if (toUser && toUser.role === 'astrologer') astrologerId = toUserId;
 
             await Session.create({
                 sessionId, fromUserId, toUserId, type, startTime: Date.now(),
@@ -100,11 +97,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 birthData: birthData || null
             });
 
-            if (toUser.fcmToken && toUser.isAvailable) {
-                // CRASH FIX 3: Safely serialize birthData for FCM
-                let birthDataStr = '{}';
-                try { birthDataStr = JSON.stringify(birthData || {}); } catch (e) { birthDataStr = '{}'; }
-
+            if (toUser && toUser.fcmToken && toUser.isAvailable) {
                 const fcmData = {
                     type: 'INCOMING_CALL',
                     sessionId: sessionId,
@@ -113,7 +106,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     callerId: fromUserId,
                     callerImage,
                     timestamp: Date.now().toString(),
-                    birthData: birthDataStr,
+                    birthData: JSON.stringify(birthData || {}),
                     title: '📞 Incoming Call',
                     body: `${callerDisplayName} is calling you`
                 };
@@ -122,33 +115,28 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     .catch(err => console.error('[FCM v1] Session Push Error:', err.message));
             }
 
-            safeCallback({ ok: true, sessionId });
+            if (typeof cb === "function") cb({ ok: true, sessionId });
 
             setTimeout(async () => {
-                try {
-                    const s = activeSessions.get(sessionId);
-                    if (s && !s.isAnswered) {
-                        io.to(fromUserId).emit('session-ended', { sessionId, reason: 'no_answer' });
-                        io.to(toUserId).emit('session-ended', { sessionId, reason: 'missed' });
+                const s = activeSessions.get(sessionId);
+                if (s && !s.isAnswered) {
+                    io.to(fromUserId).emit('session-ended', { sessionId, reason: 'no_answer' });
+                    io.to(toUserId).emit('session-ended', { sessionId, reason: 'missed' });
 
-                        await sendCancelCallPush(toUserId, sessionId);
-                        await handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpdate);
+                    await sendCancelCallPush(toUserId, sessionId);
+                    await handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpdate);
 
-                        userActiveSession.delete(fromUserId);
-                        userActiveSession.delete(toUserId);
-                        activeSessions.delete(sessionId);
-                        await Session.updateOne({ sessionId }, { status: 'missed', endTime: Date.now() }).catch(() => { });
-                    }
-                } catch (timeoutErr) {
-                    console.error('[request-session timeout]', timeoutErr);
+                    userActiveSession.delete(fromUserId);
+                    userActiveSession.delete(toUserId);
+                    activeSessions.delete(sessionId);
+                    await Session.updateOne({ sessionId }, { status: 'missed', endTime: Date.now() }).catch(() => { });
                 }
             }, 30000); // 30 Seconds Timeout
         } catch (err) {
             console.error('request-session error', err);
-            safeCallback({ ok: false, error: 'Internal error' });
+            if (typeof cb === "function") cb({ ok: false, error: 'Internal error' });
         }
     });
-
 
     socket.on('answer-session', (data) => {
         try {
@@ -157,16 +145,10 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             if (!fromUserId || !sessionId || !toUserId) return;
 
             if (!accept) {
-                console.log(`[Session] User ${fromUserId} REJECTED session ${sessionId}`);
                 endSessionRecord(sessionId, 'rejected', io, broadcastAstroUpdate);
             } else {
                 const session = activeSessions.get(sessionId);
-                if (session) {
-                    session.isAnswered = true;
-                    console.log(`[Session] User ${fromUserId} ACCEPTED session ${sessionId}`);
-                } else {
-                    console.warn(`[Session] ACCEPTED session ${sessionId} but it was not found in activeSessions`);
-                }
+                if (session) session.isAnswered = true;
             }
 
             io.to(toUserId).emit('session-answered', {
@@ -176,7 +158,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 accept: !!accept,
             });
 
-        } catch (err) { console.error('[FATAL] answer-session error', err); }
+        } catch (err) { console.error('answer-session error', err); }
     });
 
     socket.on('answer-session-native', async (data, cb) => {
@@ -191,27 +173,18 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
             if (accept) {
                 const activeSess = activeSessions.get(sessionId);
-                if (activeSess) {
-                    activeSess.isAnswered = true;
-                    console.log(`[Session Native] Astrologer ${astrologerId} ACCEPTED session ${sessionId}`);
-                }
-            } else {
-                console.log(`[Session Native] Astrologer ${astrologerId} REJECTED session ${sessionId}`);
+                if (activeSess) activeSess.isAnswered = true;
             }
 
             const session = activeSessions.get(sessionId);
             if (!session) {
-                console.warn(`[Session Native] Session ${sessionId} not in activeSessions, checking DB...`);
                 const dbSession = await Session.findOne({ sessionId });
                 if (!dbSession) {
-                    console.error(`[Session Native] Session ${sessionId} NOT FOUND in DB.`);
                     if (typeof cb === 'function') cb({ ok: false, error: 'Session not found' });
                     return;
                 }
 
                 const fromUserId = dbSession.fromUserId;
-                console.log(`[Session Native] Found DB session. Original caller: ${fromUserId}`);
-
                 if (accept) {
                     io.to(fromUserId).emit('session-answered', {
                         sessionId,
@@ -233,20 +206,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 return;
             }
 
-            // session exists in memory
-            if (!session.users || !Array.isArray(session.users)) {
-                console.error(`[Session Native] CRITICAL: session.users is missing or invalid for ${sessionId}`);
-                if (typeof cb === 'function') cb({ ok: false, error: 'Session data corrupted' });
-                return;
-            }
-
             const fromUserId = session.users.find(u => u !== astrologerId);
-            if (!fromUserId) {
-                console.error(`[Session Native] CRITICAL: Could not find other user in session ${sessionId}. Users:`, session.users);
-                if (typeof cb === 'function') cb({ ok: false, error: 'Peer not found' });
-                return;
-            }
-
             if (accept) {
                 io.to(fromUserId).emit('session-answered', {
                     sessionId,
@@ -265,7 +225,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 if (typeof cb === 'function') cb({ ok: true });
             }
 
-        } catch (err) { console.error('[FATAL] answer-session-native error', err); }
+        } catch (err) { console.error('answer-session-native error', err); }
     });
 
     socket.on('signal', (data) => {
@@ -294,7 +254,13 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             const userId = socketToUser.get(socket.id);
             if (!userId || !sessionId) return;
 
-            await handleUserConnection(sessionId, userId, io);
+            // Robust check for the function to avoid "not a function" errors
+            const handler = sessionService.handleUserConnection || handleUserConnection;
+            if (typeof handler === 'function') {
+                await handler(sessionId, userId, io);
+            } else {
+                console.error('[SessionHandler] handleUserConnection is not available. Check exports.');
+            }
         } catch (err) {
             console.error('[SessionHandler] session-connect error:', err);
         }

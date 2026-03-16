@@ -2,7 +2,7 @@
 const express = require('express');
 const { DateTime } = require('luxon');
 const { swissEph } = require('../../utils/rasiEng/swisseph');
-const { getPlanetsWithDetails, getHouseCusps, getNavamsaSign } = require('../../utils/rasiEng/calculations');
+const { getPlanetsWithDetails, getHouseCusps } = require('../../utils/rasiEng/calculations');
 const { getKPSignificators } = require('../../utils/rasiEng/kpCalculations');
 const { getVimshottariDasha } = require('../../utils/rasiEng/dashaCalculations');
 const { getPanchanga, getMuhurtas } = require('../../utils/rasiEng/panchangaCalc');
@@ -116,6 +116,7 @@ router.post('/full', async (req, res) => {
 
         // Calculate Navamsa Data
         const navamsaPlanets = planets.map(p => {
+            const { getNavamsaSign } = require('../../utils/rasiEng/calculations');
             return {
                 name: p.name,
                 signName: getNavamsaSign(p.longitude)

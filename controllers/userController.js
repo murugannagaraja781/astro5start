@@ -47,41 +47,15 @@ const getUserProfile = async (req, res) => {
 const getAstrologers = async (req, res) => {
     try {
         const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
-            .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified displayOrder')
+            .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
             .lean();
 
-        // Sort in memory: online astrologers first
-        const sortedAstros = astros.sort((a, b) => {
-            const aOnline = !!(a.isOnline || a.isChatOnline || a.isAudioOnline || a.isVideoOnline);
-            const bOnline = !!(b.isOnline || b.isChatOnline || b.isAudioOnline || b.isVideoOnline);
-            if (aOnline && !bOnline) return -1;
-            if (!aOnline && bOnline) return 1;
-            return 0;
-        });
-
-        const formatted = sortedAstros.map(a => {
-            // Defensive: ensure all fields are properly serialized
+        const formatted = astros.map(a => {
             const isOnlineCalculated = !!(a.isOnline || a.isAudioOnline || a.isChatOnline || a.isVideoOnline);
             return {
-                userId: a.userId || '',
-                name: a.name || '',
-                phone: a.phone || '',
-                skills: Array.isArray(a.skills) ? a.skills : [],
-                price: Number(a.price) || 0,
-                isOnline: isOnlineCalculated,
-                isChatOnline: !!a.isChatOnline,
-                isAudioOnline: !!a.isAudioOnline,
-                isVideoOnline: !!a.isVideoOnline,
-                experience: Number(a.experience) || 0,
-                isVerified: !!a.isVerified,
+                ...a,
+                isOnline: isOnlineCalculated, // Match socketManager logic
                 image: formatImageUrl(a.image, a.name),
-                walletBalance: Number(a.walletBalance) || 0,
-                totalEarnings: Number(a.totalEarnings) || 0,
-                isBusy: !!a.isBusy,
-                languages: Array.isArray(a.languages) ? a.languages : [],
-                orderCount: Number(a.orderCount) || 0,
-                isDocumentVerified: !!a.isDocumentVerified,
-                displayOrder: Number(a.displayOrder) || 0,
                 // Mobile app helper flags
                 showAudio: !isOnlineCalculated || !!a.isAudioOnline,
                 showChat: !isOnlineCalculated || !!a.isChatOnline,

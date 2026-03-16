@@ -23,40 +23,15 @@ let ioInstance = null;
 const getFormattedAstrologers = async () => {
     const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
         .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified displayOrder')
+        .sort({ displayOrder: -1, isOnline: -1, createdAt: -1 })
         .lean();
 
-    // Sort in memory: online astrologers first
-    const sortedAstros = astros.sort((a, b) => {
-        const aOnline = !!(a.isOnline || a.isChatOnline || a.isAudioOnline || a.isVideoOnline);
-        const bOnline = !!(b.isOnline || b.isChatOnline || b.isAudioOnline || b.isVideoOnline);
-        if (aOnline && !bOnline) return -1;
-        if (!aOnline && bOnline) return 1;
-        return 0;
-    });
-
-    return sortedAstros.map(a => {
-        // Defensive: ensure all fields are properly serialized
+    return astros.map(a => {
         const isOnlineCalculated = !!(a.isOnline || a.isChatOnline || a.isAudioOnline || a.isVideoOnline);
         return {
-            userId: a.userId || '',
-            name: a.name || '',
-            phone: a.phone || '',
-            skills: Array.isArray(a.skills) ? a.skills : [],
-            price: Number(a.price) || 0,
-            isOnline: isOnlineCalculated,
-            isChatOnline: !!a.isChatOnline,
-            isAudioOnline: !!a.isAudioOnline,
-            isVideoOnline: !!a.isVideoOnline,
-            experience: Number(a.experience) || 0,
-            isVerified: !!a.isVerified,
+            ...a,
+            isOnline: isOnlineCalculated, // Override DB field for consistency
             image: formatImageUrl(a.image, a.name),
-            walletBalance: Number(a.walletBalance) || 0,
-            totalEarnings: Number(a.totalEarnings) || 0,
-            isBusy: !!a.isBusy,
-            languages: Array.isArray(a.languages) ? a.languages : [],
-            orderCount: Number(a.orderCount) || 0,
-            isDocumentVerified: !!a.isDocumentVerified,
-            displayOrder: Number(a.displayOrder) || 0,
             // Mobile app helper flags
             showAudio: !isOnlineCalculated || !!a.isAudioOnline,
             showChat: !isOnlineCalculated || !!a.isChatOnline,
@@ -72,15 +47,12 @@ const broadcastAstroUpdate = async () => {
         const formattedAstros = await getFormattedAstrologers();
         // Wrap in object for Android app compatibility
         const payload = { list: formattedAstros };
-
-        // Safe emit with error handling
         ioInstance.emit('astrologer-update', payload);
         // Also emit 'astro-list' for broader compatibility
         ioInstance.emit('astro-list', payload);
-
-        console.log(`[Broadcast] Updated ${formattedAstros.length} astrologers.`);
+        console.log(`Broadcasting update for ${formattedAstros.length} astrologers.`);
     } catch (e) {
-        console.error('[Broadcast Error]:', e.message);
+        console.error('Broadcast Error:', e);
     }
 };
 
@@ -97,12 +69,8 @@ const broadcastReviewUpdate = async (review) => {
 
 const broadcastAdminUpdate = () => {
     if (!ioInstance) return;
-    try {
-        ioInstance.to('admin-room').emit('admin-refresh');
-        console.log('[Admin] Broadcasting refresh signal to all admins.');
-    } catch (e) {
-        console.error('[Admin Broadcast Error]:', e.message);
-    }
+    ioInstance.to('admin-room').emit('admin-refresh');
+    console.log('[Admin] Broadcasting refresh signal to all admins.');
 };
 
 
@@ -145,27 +113,22 @@ const initSocket = (io) => {
                         offlineTimeouts.delete(userId);
                     }
 
-                    // FIX: Only update connection state — do NOT override service statuses.
-                    // Astrologer's chat/audio/video online status is set by their own toggle, not by socket connect.
-                    user.isOnline = !!(user.isChatOnline || user.isAudioOnline || user.isVideoOnline);
-                    user.isAvailable = user.isOnline;
+                    // When astrologer connects (logins), mark them as online and available
+                    user.isOnline = true;
+                    user.isAvailable = true;
+
+                    // Ensure they have at least one service online if they are connecting
+                    if (!user.isChatOnline && !user.isAudioOnline && !user.isVideoOnline) {
+                        user.isChatOnline = true;
+                        user.isAudioOnline = true;
+                        user.isVideoOnline = true;
+                    }
 
                     await user.save();
                     broadcastAstroUpdate();
                 }
 
-                // FIX: Only send safe fields — never send full Mongoose doc to client
-                const safeUser = {
-                    userId: user.userId,
-                    name: user.name,
-                    role: user.role,
-                    phone: user.phone,
-                    walletBalance: user.walletBalance,
-                    isOnline: user.isOnline,
-                    isAvailable: user.isAvailable
-                };
-
-                if (typeof cb === 'function') cb({ ok: true, user: safeUser, userId: user.userId });
+                if (typeof cb === 'function') cb({ ok: true, user });
             } catch (err) {
                 console.error('register error', err);
                 if (typeof cb === 'function') cb({ ok: false, error: 'Internal error' });
@@ -280,4 +243,4 @@ const initSocket = (io) => {
     });
 };
 
-module.exports = { initSocket, broadcastAstroUpdate, broadcastReviewUpdate, broadcastAdminUpdate, getFormattedAstrologers };
+module.exports = { initSocket, broadcastAstroUpdate, broadcastReviewUpdate, broadcastAdminUpdate, handleUserConnection, getFormattedAstrologers };

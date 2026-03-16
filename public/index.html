@@ -5701,10 +5701,8 @@
       if (window.Android && window.Android.setFullscreen) window.Android.setFullscreen(true);
 
 
-      // Trigger Billing Start on Server for Chat. A/V will trigger on Peer Connect
-      if (type === 'chat') {
-        socket.emit('session-connect', { sessionId: sid });
-      }
+      // Trigger Billing Start on Server
+      socket.emit('session-connect', { sessionId: sid });
 
       if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'KEEP_AWAKE', enable: true }));
       if (window.Android && window.Android.setKeepAwake) window.Android.setKeepAwake(true);
@@ -5912,7 +5910,6 @@
             rv.style.opacity = 1;
           }
           startTimer();
-          socket.emit('session-connect', { sessionId: state.session.id });
         });
 
         p.on('error', err => {

@@ -109,7 +109,7 @@ app.get('/wallet', (req, res) => {
 initSocket(io);
 
 // Start billing ticker
-setInterval(() => tickSessions(io), 1000);
+setInterval(() => tickSessions(io), 2000);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
@@ -118,13 +118,7 @@ server.listen(PORT, () => {
 
 // Error handling for worker threads and unhandled rejections
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-process.on('uncaughtException', (err) => {
-  console.error('[FATAL] Uncaught Exception:', err.message);
-  console.error(err.stack);
-  // Optional: process.exit(1); 
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 module.exports = { app, server };

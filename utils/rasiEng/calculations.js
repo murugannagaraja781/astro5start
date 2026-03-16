@@ -2,7 +2,43 @@
 const { swissEph } = require('./swisseph');
 const { SIGN_LORDS } = require('./config');
 
+/**
+ * Get full planet data with KP details
+ */
+function getPlanetsWithDetails(jd, houseCusps, ayanamsaName = 'Lahiri') {
+    const rawPlanets = swissEph.getAllPlanets(jd, ayanamsaName);
 
+    return rawPlanets.map(p => {
+        const sign = swissEph.getSign(p.longitude);
+        const nak = swissEph.getNakshatra(p.longitude);
+        const kp = getKPDetails(p.longitude);
+        const house = getPlanetHouse(p.longitude, houseCusps);
+
+        return {
+            id: p.id,
+            name: p.name,
+            longitude: p.longitude,
+            latitude: p.latitude,
+            distance: p.distance,
+            speed: p.longitudeSpeed,
+            isRetrograde: p.isRetrograde,
+            sign: sign.name,
+            signName: sign.name,
+            signIndex: sign.index,
+            house,
+            nakshatra: nak.name,
+            nakshatraName: nak.name,
+            nakshatraIndex: nak.index,
+            nakshatraPada: nak.pada,
+            signLord: kp.signLord,
+            starLord: kp.starLord,
+            nakshatraLord: kp.starLord,
+            subLord: kp.subLord,
+            subSubLord: kp.subSubLord,
+            subSubSubLord: kp.subSubSubLord
+        };
+    });
+}
 
 /**
  * Get house cusps with ayanamsa
