@@ -2080,6 +2080,122 @@
       border: 2px solid #059669 !important;
       box-shadow: 0 0 15px rgba(5, 150, 105, 0.2);
     }
+
+    /* Intake Form Modal Styles */
+    .intake-modal-content {
+      background: white;
+      width: 95%;
+      max-width: 450px;
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: 90vh;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(100px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .intake-header {
+      background: var(--primary);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      position: relative;
+    }
+
+    .intake-header h3 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .intake-body {
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .intake-form-group {
+      margin-bottom: 15px;
+    }
+
+    .intake-form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 5px;
+    }
+
+    .intake-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #D1D5DB;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      transition: border-color 0.2s;
+    }
+
+    .intake-input:focus {
+      border-color: var(--primary);
+      outline: none;
+    }
+
+    .intake-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .intake-footer {
+      padding: 15px 20px;
+      background: #F9FAFB;
+      border-top: 1px solid #E5E7EB;
+      display: flex;
+      gap: 10px;
+    }
+
+    .intake-btn-submit {
+      flex: 1;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .intake-btn-cancel {
+      padding: 12px 20px;
+      background: white;
+      border: 1px solid #D1D5DB;
+      border-radius: 10px;
+      color: #6B7280;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* POB Autocomplete Styling */
+    .ui-autocomplete {
+      z-index: 10001 !important;
+      max-height: 200px;
+      overflow-y: auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
   </style>
 
   <!-- Screen: Client Dashboard -->
@@ -3101,6 +3217,88 @@
   <!-- Admin sections moved to superadmin.html -->
 
 
+  <!-- Screen: Consultation Intake Form -->
+  <div id="screen-intake" class="modal-overlay hidden" style="z-index: 99999;">
+    <div class="intake-modal-content">
+      <div class="intake-header">
+        <h3>Consultation Form</h3>
+        <button onclick="closeIntake()"
+          style="position:absolute; right:15px; top:18px; background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;"><i
+            class="fas fa-times"></i></button>
+      </div>
+      <div class="intake-body">
+        <form id="intake-form">
+          <div class="intake-form-group">
+            <label>Name</label>
+            <input type="text" id="intake-name" class="intake-input" placeholder="Enter full name" required>
+          </div>
+
+          <div class="intake-row">
+            <div class="intake-form-group">
+              <label>Gender</label>
+              <select id="intake-gender" class="intake-input" required>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="intake-form-group">
+              <label>Occupation</label>
+              <input type="text" id="intake-occupation" class="intake-input" placeholder="e.g. Engineer" required>
+            </div>
+          </div>
+
+          <div class="intake-row">
+            <div class="intake-form-group">
+              <label>Date of Birth</label>
+              <input type="date" id="intake-dob" class="intake-input" required>
+            </div>
+            <div class="intake-form-group">
+              <label>Time of Birth</label>
+              <input type="time" id="intake-tob" class="intake-input" required>
+            </div>
+          </div>
+
+          <div class="intake-form-group" style="position:relative;">
+            <label>Place of Birth</label>
+            <input type="text" id="intake-pob" class="intake-input" placeholder="City, Country"
+              oninput="handleIntakeCitySearch(this.value)" autocomplete="off" required>
+            <div id="intakeCityResults"
+              style="position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #ddd; border-top:none; display:none; border-radius:0 0 10px 10px; z-index:10002; max-height:200px; overflow-y:auto; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+            </div>
+          </div>
+
+          <div class="intake-row">
+            <div class="intake-form-group">
+              <label>Marital Status</label>
+              <select id="intake-marital" class="intake-input" required>
+                <option value="Single">Single</option>
+                <option value="Married">Married</option>
+                <option value="Divorced">Divorced</option>
+                <option value="Widowed">Widowed</option>
+              </select>
+            </div>
+            <div class="intake-form-group">
+              <label>Topic / Question</label>
+              <select id="intake-topic" class="intake-input" required>
+                <option value="Marriage">Marriage</option>
+                <option value="Career">Career</option>
+                <option value="Health">Health</option>
+                <option value="Finance">Finance</option>
+                <option value="General">General</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="intake-footer">
+        <button class="intake-btn-cancel" onclick="closeIntake()">Cancel</button>
+        <button class="intake-btn-submit" onclick="submitIntake()">Start Consultation</button>
+      </div>
+    </div>
+  </div>
+
+
   <!-- Screen: Incoming Call Modal -->
   <div id="screen-incoming" class="modal-overlay hidden">
     <div class="call-popup">
@@ -3526,7 +3724,7 @@
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
   <script src="https://unpkg.com/simple-peer/simplepeer.min.js"></script>
   <script>
-    const state = { me: null, socket: null, session: null, peer: null, localStream: null, lang: 'ta' };
+    const state = { me: null, socket: null, session: null, peer: null, localStream: null, lang: 'ta', pendingAction: null };
     let allBanners = []; // Global store for banner data
     window.state = state; // Expose for Android onResume wallet refresh
 
@@ -4140,15 +4338,102 @@
         showLogin();
         return;
       }
-      // Execute the actual action
-      if (typeof actionType === 'function') {
+
+      // Store action for after intake form
+      state.pendingAction = { type: actionType, args: args };
+
+      // If action is call/video/chat, show intake form first
+      if (['chat', 'call', 'video'].includes(actionType)) {
+        openIntake();
+      } else if (typeof actionType === 'function') {
         actionType(...args);
-      } else if (actionType === 'chat') {
-        showChatWithBirthChart(...args); // args[0] is astroId
-      } else if (actionType === 'call') {
-        requestSession(args[0], 'audio');
-      } else if (actionType === 'video') {
-        requestSession(args[0], 'video');
+      }
+    }
+
+    function openIntake() {
+      document.getElementById('screen-intake').classList.remove('hidden');
+      // Pre-fill if available
+      if (state.me && state.me.intakeDetails) {
+        const d = state.me.intakeDetails;
+        document.getElementById('intake-name').value = d.name || '';
+        document.getElementById('intake-gender').value = d.gender || 'Male';
+        document.getElementById('intake-dob').value = d.dob || '';
+        document.getElementById('intake-tob').value = d.tob || '';
+        document.getElementById('intake-pob').value = d.pob || '';
+        document.getElementById('intake-occupation').value = d.occupation || '';
+        document.getElementById('intake-marital').value = d.maritalStatus || 'Single';
+        document.getElementById('intake-topic').value = d.topic || 'General';
+      } else if (state.me) {
+        document.getElementById('intake-name').value = state.me.name || '';
+      }
+    }
+
+    function closeIntake() {
+      document.getElementById('screen-intake').classList.add('hidden');
+      state.pendingAction = null;
+    }
+
+    async function submitIntake() {
+      const intakeData = {
+        name: document.getElementById('intake-name').value,
+        gender: document.getElementById('intake-gender').value,
+        dob: document.getElementById('intake-dob').value,
+        tob: document.getElementById('intake-tob').value,
+        pob: document.getElementById('intake-pob').value,
+        occupation: document.getElementById('intake-occupation').value,
+        maritalStatus: document.getElementById('intake-marital').value,
+        topic: document.getElementById('intake-topic').value
+      };
+
+      if (!intakeData.name || !intakeData.dob || !intakeData.pob) {
+        alert('Please fill all required fields');
+        return;
+      }
+
+      const submitBtn = document.querySelector('.intake-btn-submit');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving...';
+
+      try {
+        // Save to server
+        if (state.me && state.me.userId !== 'guest') {
+          await fetch('/api/user/intake', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: state.me.userId, intakeData })
+          });
+          state.me.intakeDetails = intakeData;
+          saveSession(state.me);
+        }
+
+        // Execute pending action
+        const action = state.pendingAction;
+        document.getElementById('screen-intake').classList.add('hidden');
+
+        if (action) {
+          if (action.type === 'chat') {
+            showChatWithBirthChart(action.args[0], intakeData);
+          } else if (action.type === 'call') {
+            requestSession(action.args[0], 'audio', intakeData);
+          } else if (action.type === 'video') {
+            requestSession(action.args[0], 'video', intakeData);
+          }
+        }
+      } catch (e) {
+        console.error('Submit Intake Error', e);
+        alert('Failed to save details. Moving forward anyway.');
+        // Move forward anyway
+        const action = state.pendingAction;
+        document.getElementById('screen-intake').classList.add('hidden');
+        if (action) {
+          if (action.type === 'chat') showChatWithBirthChart(action.args[0]);
+          else if (action.type === 'call') requestSession(action.args[0], 'audio');
+          else if (action.type === 'video') requestSession(action.args[0], 'video');
+        }
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Start Consultation';
+        state.pendingAction = null;
       }
     }
 
@@ -5144,7 +5429,7 @@
     let callingInterval = null;
     let callingTimeout = null;
 
-    window.requestSession = (targetId, type) => {
+    window.requestSession = (targetId, type, intakeData = null) => {
       const titles = { chat: 'Chat', audio: 'Audio Call', video: 'Video Call' };
 
       // 1. Create 30s Countdown Loader Modal
@@ -5213,7 +5498,7 @@
       }
 
       // 3. Emit Request
-      socket.emit('request-session', { toUserId: targetId, type }, (res) => {
+      socket.emit('request-session', { toUserId: targetId, type, intakeData }, (res) => {
         if (res.ok) {
           // Store pending session details for when 'session-answered' comes
           state.tempSessionId = res.sessionId;
@@ -5978,6 +6263,36 @@
     // Client Birth Chart Form
     let citySearchTimeout;
 
+    window.handleIntakeCitySearch = async function (query) {
+      clearTimeout(citySearchTimeout);
+      const resultsDiv = document.getElementById('intakeCityResults');
+      if (!query || query.trim().length < 2) { resultsDiv.style.display = 'none'; return; }
+
+      citySearchTimeout = setTimeout(async () => {
+        try {
+          const response = await fetch('/api/city-autocomplete', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: query.trim() })
+          });
+          const data = await response.json();
+          if (data.ok && data.results && data.results.length > 0) {
+            let html = '';
+            data.results.forEach(city => {
+              const stateLabel = city.state ? ` (${city.state})` : '';
+              html += `<div onclick="selectIntakeCity('${city.name}${stateLabel}')" style="padding:10px; cursor:pointer; border-bottom:1px solid #eee;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='white'">${city.name}${stateLabel}, ${city.country || ''}</div>`;
+            });
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+          }
+        } catch (e) { console.error('Intake POB search error', e); }
+      }, 300);
+    };
+
+    window.selectIntakeCity = function (cityName) {
+      document.getElementById('intake-pob').value = cityName;
+      document.getElementById('intakeCityResults').style.display = 'none';
+    };
+
     window.handleCityInput = async function (query) {
       clearTimeout(citySearchTimeout);
       const resultsDiv = document.getElementById('clientCityResults');
@@ -6051,7 +6366,7 @@
       }
     };
 
-    window.showChatWithBirthChart = function (astroId) {
+    window.showChatWithBirthChart = function (astroId, intakeData = null) {
       window.selectedAstroId = astroId;
 
       // Smart Check: If we already have intake details, skip the form!
@@ -6088,6 +6403,32 @@
           });
           return;
         }
+      }
+
+      // If intakeData is passed from our new modal, use it!
+      if (intakeData) {
+        // Construct birthData from intakeData for compatibility with chat handler
+        const bd = intakeData;
+        const [y, m, d] = bd.dob.split('-').map(Number);
+        const [h, min] = bd.tob.split(':').map(Number);
+
+        const birthData = {
+          name: bd.name,
+          gender: bd.gender,
+          marital: bd.maritalStatus,
+          occupation: bd.occupation,
+          topic: bd.topic,
+          year: y, month: m, day: d,
+          hour: h, minute: min,
+          city: bd.pob,
+          timezone: 5.5 // Default
+        };
+
+        socket.emit('request-session', { toUserId: astroId, type: 'chat', birthData, intakeData }, (res) => {
+          if (res.ok) initSession(res.sessionId, astroId, 'chat', true, null);
+          else alert('Request failed: ' + res.error);
+        });
+        return;
       }
 
       // If no details, show the form

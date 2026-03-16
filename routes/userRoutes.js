@@ -9,6 +9,7 @@ router.get('/astrology/history/:userId', userController.getSessionHistory);
 router.get('/payment/history/:userId', userController.getSessionHistory);
 router.post('/register', userController.registerDevice);
 router.get('/user/:userId/intake', userController.getIntakeDetails);
+router.post('/user/intake', userController.saveUserIntake);
 
 // Auth & Registration
 router.post('/send-otp', userController.sendOtp);

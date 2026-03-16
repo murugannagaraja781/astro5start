@@ -45,7 +45,11 @@ const broadcastAstroUpdate = async () => {
     if (!ioInstance) return;
     try {
         const formattedAstros = await getFormattedAstrologers();
-        ioInstance.emit('astrologer-update', formattedAstros);
+        // Wrap in object for Android app compatibility
+        const payload = { list: formattedAstros };
+        ioInstance.emit('astrologer-update', payload);
+        // Also emit 'astro-list' for broader compatibility
+        ioInstance.emit('astro-list', payload);
         console.log(`Broadcasting update for ${formattedAstros.length} astrologers.`);
     } catch (e) {
         console.error('Broadcast Error:', e);

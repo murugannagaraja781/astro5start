@@ -137,6 +137,25 @@ const getIntakeDetails = async (req, res) => {
     }
 };
 
+const saveUserIntake = async (req, res) => {
+    try {
+        const { userId, intakeData } = req.body;
+        if (!userId || !intakeData) {
+            return res.status(400).json({ success: false, error: 'Missing userId or intakeData' });
+        }
+
+        const user = await User.findOne({ userId });
+        if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+        user.intakeDetails = intakeData;
+        await user.save();
+
+        res.json({ success: true, message: 'Intake details saved' });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
 const sendOtp = async (req, res) => {
     try {
         const { phone } = req.body;
@@ -292,6 +311,7 @@ module.exports = {
     getSessionHistory,
     registerDevice,
     getIntakeDetails,
+    saveUserIntake,
     sendOtp,
     verifyOtp,
     registerAstrologer,
