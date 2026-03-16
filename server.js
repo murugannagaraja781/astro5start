@@ -23,6 +23,9 @@ connectDB().then(async () => {
   try {
     const res = await User.updateMany({ isBusy: true }, { isBusy: false });
     console.log(`[Startup] Cleaned up isBusy flag for ${res.modifiedCount} users.`);
+    // Sync isAvailable with isOnline on startup
+    const resAvail = await User.updateMany({ isOnline: true }, { isAvailable: true });
+    console.log(`[Startup] Synced isAvailable for ${resAvail.modifiedCount} online users.`);
   } catch (err) {
     console.error('[Startup] Failed to cleanup isBusy flags:', err);
   }
