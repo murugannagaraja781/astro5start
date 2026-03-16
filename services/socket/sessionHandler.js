@@ -18,7 +18,8 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         endSessionRecord,
         handleMissedCallLogic,
         sendCancelCallPush,
-        getOtherUserIdFromSession
+        getOtherUserIdFromSession,
+        handleUserConnection
     } = sessionService;
 
     socket.on('request-session', async (data, cb) => {
@@ -254,13 +255,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             const userId = socketToUser.get(socket.id);
             if (!userId || !sessionId) return;
 
-            // Robust check for the function to avoid "not a function" errors
-            const handler = sessionService.handleUserConnection || handleUserConnection;
-            if (typeof handler === 'function') {
-                await handler(sessionId, userId, io);
-            } else {
-                console.error('[SessionHandler] handleUserConnection is not available. Check exports.');
-            }
+            await handleUserConnection(sessionId, userId, io);
         } catch (err) {
             console.error('[SessionHandler] session-connect error:', err);
         }
