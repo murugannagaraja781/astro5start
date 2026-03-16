@@ -1125,7 +1125,7 @@
         function refreshData() {
             fetchStats();
             fetchAllUsers();
-            renderRequests();
+            if (activeTab === 'requests') fetchPendingRequests();
             if (activeTab === 'slabs') loadSlabRates();
             if (activeTab === 'academy') fetchAcademyVideos();
             if (activeTab === 'offers') fetchFcmUsers();
@@ -1386,27 +1386,6 @@
             `;
         }
 
-        function renderRequests() {
-            socket.emit('admin-get-pending-requests', (res) => {
-                const list = document.getElementById('pending-requests-list');
-                if (res.ok && res.requests.length > 0) {
-                    list.innerHTML = res.requests.map(u => `
-                        <div class="bg-white p-6 rounded-[2rem] border border-emerald-50 shadow-premium relative overflow-hidden">
-                            <div class="font-black text-slate-800 text-lg">${u.name}</div>
-                            <div class="text-slate-400 font-bold text-sm tracking-widest">${u.phone}</div>
-                            <div class="mt-6 flex gap-3 relative z-10">
-                                <button class="bg-emerald-50 text-brand-green p-3 rounded-2xl hover:bg-brand-green hover:text-white transition-all shadow-sm" onclick="openViewAstro('${u.userId}')" title="Review Details"><i class="fas fa-eye"></i></button>
-                                <button class="flex-1 bg-brand-green text-white font-black py-3 rounded-2xl shadow-lg shadow-emerald-100 hover:scale-[1.02] active:scale-95 transition-all text-xs uppercase" onclick="processAstro('${u.userId}', 'approve')">Approve Request</button>
-                                <button class="bg-red-50 text-red-500 font-black px-6 py-3 rounded-2xl hover:bg-red-100 transition-all text-xs" onclick="processAstro('${u.userId}', 'reject')">Reject</button>
-                            </div>
-                            <i class="fas fa-clock-rotate-left absolute -right-6 -bottom-6 text-7xl opacity-[0.03] -rotate-12"></i>
-                        </div>
-                    `).join('');
-                } else {
-                    list.innerHTML = '<div class="col-span-full bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium">No pending registrations found.</div>';
-                }
-            });
-        }
 
         function processAstro(userId, action) {
             if (confirm('Confirm ' + action + ' for this professional?')) socket.emit('admin-approve-astrologer', { userId, status: action === 'approve' ? 'approved' : 'rejected' }, () => refreshData());
@@ -1861,7 +1840,7 @@
                         <script src="https://cdn.tailwindcss.com"><\/script>
                         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
                         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
-                        <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+                        <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"><\/script>
     <style>
         body {
             font-family: 'Outfit', sans-serif;
@@ -1926,41 +1905,41 @@
                     </body>
                 </html>
             `);
-                printWindow.document.close();
-            }
+            printWindow.document.close();
+        }
 
-            function handleDeleteUser(userId) {
-                if (confirm('Are you ABSOLUTELY sure you want to delete this account? This action cannot be undone.')) {
-                    socket.emit('admin-delete-user', { userId }, (res) => {
-                        if (res.ok) {
-                            alert('User deleted successfully');
-                            refreshData();
-                        } else {
-                            alert('Error: ' + (res.error || 'Failed to delete user'));
-                        }
-                    });
-                }
+        function handleDeleteUser(userId) {
+            if (confirm('Are you ABSOLUTELY sure you want to delete this account? This action cannot be undone.')) {
+                socket.emit('admin-delete-user', { userId }, (res) => {
+                    if (res.ok) {
+                        alert('User deleted successfully');
+                        refreshData();
+                    } else {
+                        alert('Error: ' + (res.error || 'Failed to delete user'));
+                    }
+                });
             }
+        }
 
-            function closeModal(id) {
-                document.getElementById(id).classList.add('hidden');
-                const openModals = document.querySelectorAll('.fixed:not(.hidden)');
-                if (openModals.length === 0) {
-                    document.body.classList.remove('modal-active');
-                }
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            const openModals = document.querySelectorAll('.fixed:not(.hidden)');
+            if (openModals.length === 0) {
+                document.body.classList.remove('modal-active');
             }
-            function logout() { localStorage.removeItem('astro_session'); window.location.href = '/'; }
+        }
+        function logout() { localStorage.removeItem('astro_session'); window.location.href = '/'; }
 
-            function renderPhotoApprovals() {
-                socket.emit('admin-get-photo-approvals', (res) => {
-                    const list = document.getElementById('photo-approvals-list');
-                    const badge = document.getElementById('photo-pending-badge');
-                    if (res.ok && res.pendingUsers.length > 0) {
-                        if (badge) {
-                            badge.innerText = res.pendingUsers.length;
-                            badge.classList.remove('hidden');
-                        }
-                        list.innerHTML = res.pendingUsers.map(u => `
+        function renderPhotoApprovals() {
+            socket.emit('admin-get-photo-approvals', (res) => {
+                const list = document.getElementById('photo-approvals-list');
+                const badge = document.getElementById('photo-pending-badge');
+                if (res.ok && res.pendingUsers.length > 0) {
+                    if (badge) {
+                        badge.innerText = res.pendingUsers.length;
+                        badge.classList.remove('hidden');
+                    }
+                    list.innerHTML = res.pendingUsers.map(u => `
                         <div class="bg-white p-6 rounded-[2rem] border border-emerald-50 shadow-premium flex flex-col items-center text-center">
                             <div class="flex gap-4 items-center justify-center mb-6">
                                 <div class="text-center">
@@ -1981,91 +1960,91 @@
                             </div>
                         </div>
                     `).join('');
-                    } else {
-                        if (badge) badge.classList.add('hidden');
-                        list.innerHTML = '<div class="col-span-full bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium">No pending photo updates.</div>';
-                    }
-                });
-            }
+                } else {
+                    if (badge) badge.classList.add('hidden');
+                    list.innerHTML = '<div class="col-span-full bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium">No pending photo updates.</div>';
+                }
+            });
+        }
 
-            function resolvePhoto(userId, action) {
-                socket.emit('admin-resolve-photo-approval', { userId, action }, (res) => {
-                    if (res.ok) {
-                        alert(res.message);
-                        renderPhotoApprovals();
-                        refreshData();
-                        fetchAllUsers();
-                    } else alert(res.error);
-                });
-            }
+        function resolvePhoto(userId, action) {
+            socket.emit('admin-resolve-photo-approval', { userId, action }, (res) => {
+                if (res.ok) {
+                    alert(res.message);
+                    renderPhotoApprovals();
+                    refreshData();
+                    fetchAllUsers();
+                } else alert(res.error);
+            });
+        }
 
-            function triggerAdminPhotoUpload() {
-                const textId = document.getElementById('view-astro-id').innerText;
-                const userId = textId.replace('UID: ', '').trim();
-                if (!userId) return alert('Target missing');
+        function triggerAdminPhotoUpload() {
+            const textId = document.getElementById('view-astro-id').innerText;
+            const userId = textId.replace('UID: ', '').trim();
+            if (!userId) return alert('Target missing');
 
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'image/*';
-                input.onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    try {
-                        const res = await fetch('/upload', { method: 'POST', body: formData }).then(r => r.json());
-                        if (res.ok) {
-                            socket.emit('admin-update-user-details', { userId, updates: { image: res.url } }, (ack) => {
-                                if (ack.ok) {
-                                    alert('Infrastructure Updated: Profile Photo Synced');
-                                    document.getElementById('view-astro-img').src = getProfileImage(res.url, '');
-                                    fetchAllUsers();
-                                } else alert('Sync Failure');
-                            });
-                        }
-                    } catch (err) { alert('Node Link Error'); }
-                };
-                input.click();
-            }
-
-            function triggerEditPhotoUpload() {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'image/*';
-                input.onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    try {
-                        const res = await fetch('/upload', { method: 'POST', body: formData }).then(r => r.json());
-                        if (res.ok) {
-                            document.getElementById('edit-user-image').value = res.url;
-                            document.getElementById('edit-user-preview').src = getProfileImage(res.url, '');
-                        }
-                    } catch (err) { alert('Upload Link Error'); }
-                };
-                input.click();
-            }
-            async function fetchActiveReviews() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const formData = new FormData();
+                formData.append('file', file);
                 try {
-                    const res = await fetch('/api/reviews/active').then(r => r.json());
-                    const list = document.getElementById('reviews-list');
-                    list.innerHTML = '';
-                    if (res.ok && res.reviews) {
-                        res.reviews.forEach(r => {
-                            const dateStr = new Date(r.createdAt).toLocaleString('en-IN', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: true
-                            }).toUpperCase();
+                    const res = await fetch('/upload', { method: 'POST', body: formData }).then(r => r.json());
+                    if (res.ok) {
+                        socket.emit('admin-update-user-details', { userId, updates: { image: res.url } }, (ack) => {
+                            if (ack.ok) {
+                                alert('Infrastructure Updated: Profile Photo Synced');
+                                document.getElementById('view-astro-img').src = getProfileImage(res.url, '');
+                                fetchAllUsers();
+                            } else alert('Sync Failure');
+                        });
+                    }
+                } catch (err) { alert('Node Link Error'); }
+            };
+            input.click();
+        }
 
-                            const row = document.createElement('tr');
-                            row.className = 'border-b border-slate-50 hover:bg-slate-50/50 transition-colors duration-200';
-                            row.innerHTML = `
+        function triggerEditPhotoUpload() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                    const res = await fetch('/upload', { method: 'POST', body: formData }).then(r => r.json());
+                    if (res.ok) {
+                        document.getElementById('edit-user-image').value = res.url;
+                        document.getElementById('edit-user-preview').src = getProfileImage(res.url, '');
+                    }
+                } catch (err) { alert('Upload Link Error'); }
+            };
+            input.click();
+        }
+        async function fetchActiveReviews() {
+            try {
+                const res = await fetch('/api/reviews/active').then(r => r.json());
+                const list = document.getElementById('reviews-list');
+                list.innerHTML = '';
+                if (res.ok && res.reviews) {
+                    res.reviews.forEach(r => {
+                        const dateStr = new Date(r.createdAt).toLocaleString('en-IN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                        }).toUpperCase();
+
+                        const row = document.createElement('tr');
+                        row.className = 'border-b border-slate-50 hover:bg-slate-50/50 transition-colors duration-200';
+                        row.innerHTML = `
                             <td class="px-8 py-4 text-[0.7rem] font-bold text-slate-500">${dateStr}</td>
                             <td class="px-8 py-4">
                                 <div class="flex items-center gap-3">
@@ -2091,32 +2070,32 @@
                                 </button>
                             </td>
                         `;
-                            list.appendChild(row);
-                        });
-                    }
-                } catch (err) {
-                    console.error("Failed to fetch reviews", err);
+                        list.appendChild(row);
+                    });
                 }
+            } catch (err) {
+                console.error("Failed to fetch reviews", err);
             }
+        }
 
-            async function deleteReview(id) {
-                if (!confirm('Are you sure you want to permanently delete this review?')) return;
-                try {
-                    const res = await fetch('/api/reviews/delete/admin', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ reviewId: id })
-                    }).then(r => r.json());
-                    if (res.ok) {
-                        fetchActiveReviews();
-                    } else {
-                        alert('Error: ' + res.error);
-                    }
-                } catch (err) {
-                    alert('Connection error');
+        async function deleteReview(id) {
+            if (!confirm('Are you sure you want to permanently delete this review?')) return;
+            try {
+                const res = await fetch('/api/reviews/delete/admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reviewId: id })
+                }).then(r => r.json());
+                if (res.ok) {
+                    fetchActiveReviews();
+                } else {
+                    alert('Error: ' + res.error);
                 }
+            } catch (err) {
+                alert('Connection error');
             }
-        </script>
-    </body>
+        }
+    </script>
+</body>
 
 </html>
