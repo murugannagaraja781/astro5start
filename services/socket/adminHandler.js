@@ -229,7 +229,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             }
 
             if (typeof cb === "function") cb({ ok: true });
-            console.log(`[Admin] Forced user ${user.name} OFFLINE via web control.`);
+            console.log(`[Admin] Forced user ${user.name} OFFLINE via web control. (Available: ${user.isAvailable})`);
         } catch (e) {
             console.error('[Admin] Force Offline Error:', e);
             if (typeof cb === "function") cb({ ok: false, error: 'Operation Failed' });
@@ -247,7 +247,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             user.isAudioOnline = true;
             user.isVideoOnline = true;
             user.isOnline = true;
-            user.isAvailable = true;
+            user.isAvailable = !user.isBusy; // Online but check if already in a call
             user.lastSeen = new Date();
 
             await user.save();
@@ -262,7 +262,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             }
 
             if (typeof cb === "function") cb({ ok: true });
-            console.log(`[Admin] Forced user ${user.name} ONLINE via web control.`);
+            console.log(`[Admin] Forced user ${user.name} ONLINE via web control. (Available: ${user.isAvailable}, isBusy: ${user.isBusy})`);
         } catch (e) {
             console.error('[Admin] Force Online Error:', e);
             if (typeof cb === "function") cb({ ok: false, error: 'Operation Failed' });

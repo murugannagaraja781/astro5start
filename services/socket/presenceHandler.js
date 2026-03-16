@@ -27,16 +27,14 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
 
             Object.assign(user, update);
             user.isOnline = !!(user.isChatOnline || user.isAudioOnline || user.isVideoOnline);
-            user.isAvailable = user.isOnline;
+            // Fix: availability depends on both online status AND busy state
+            user.isAvailable = user.isOnline && !user.isBusy;
             user.lastSeen = new Date();
 
             // Restore FCM token if provided in payload (important for going online)
             if (data.fcmToken) {
                 user.fcmToken = data.fcmToken;
             }
-
-            // Clear FCM token only on explicit logout, not on simple status toggle
-            // to allow system notifications to still arrive.
 
             await user.save();
             broadcastAstroUpdate();
@@ -48,8 +46,8 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 io.to(sId).emit('my-profile-updated', formattedUser);
             }
 
-            console.log(`[Presence] ${user.name} toggled ${data.type}: ${data.online}, Available: ${user.isAvailable}`);
-        } catch (e) { console.error(e); }
+            console.log(`[Presence] ${user.name} toggled ${data.type}: ${data.online}, Available: ${user.isAvailable} (isBusy: ${user.isBusy})`);
+        } catch (e) { console.error('toggle-status error:', e); }
     });
 
     socket.on('update-service-status', async (data) => {
@@ -68,15 +66,13 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
             if (user) {
                 Object.assign(user, update);
                 user.isOnline = !!(user.isChatOnline || user.isAudioOnline || user.isVideoOnline);
-                user.isAvailable = user.isOnline;
+                // Fix: availability depends on online status and busy state
+                user.isAvailable = user.isOnline && !user.isBusy;
                 user.lastSeen = new Date();
 
-                // Restore FCM token if provided in payload
                 if (data.fcmToken) {
                     user.fcmToken = data.fcmToken;
                 }
-
-                // Keep FCM token for other notifications
 
                 await user.save();
                 broadcastAstroUpdate();
@@ -88,7 +84,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                     io.to(sId).emit('my-profile-updated', formattedUser);
                 }
 
-                console.log(`[Service Status] ${user.name} updated ${data.service}: ${isEnabled}, Available: ${user.isAvailable}`);
+                console.log(`[Service Status] ${user.name} updated ${data.service}: ${isEnabled}, Available: ${user.isAvailable} (isBusy: ${user.isBusy})`);
             }
         } catch (e) { console.error('update-service-status error:', e); }
     });
@@ -105,15 +101,12 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 user.isAudioOnline = isOnline;
                 user.isVideoOnline = isOnline;
                 user.isOnline = isOnline;
-                user.isAvailable = isOnline;
+                user.isAvailable = isOnline && !user.isBusy;
                 user.lastSeen = new Date();
 
-                // Restore FCM token if provided in payload
                 if (data.fcmToken) {
                     user.fcmToken = data.fcmToken;
                 }
-
-                // Keep FCM token for other notifications
 
                 await user.save();
                 broadcastAstroUpdate();
@@ -125,9 +118,9 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                     io.to(sId).emit('my-profile-updated', formattedUser);
                 }
 
-                console.log(`[Presence Mobile] ${user.name} updated status: ${isOnline}, Available: ${user.isAvailable}`);
+                console.log(`[Presence Mobile] ${user.name} updated status: ${isOnline}, Available: ${user.isAvailable} (isBusy: ${user.isBusy})`);
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error('update-status error:', e); }
     });
 
     socket.on('app-background', async () => {
@@ -138,8 +131,17 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
             const user = await User.findOne({ userId });
             if (user && user.role === 'astrologer') {
                 user.lastSeen = new Date();
+                
+                // SAVE status for restoration when app returns to foreground
+                savedAstroStatus.set(userId, {
+                    chat: user.isChatOnline,
+                    audio: user.isAudioOnline,
+                    video: user.isVideoOnline,
+                    timestamp: Date.now()
+                });
+                
                 await user.save();
-                console.log(`[Presence] ${user.name} went to background (lastSeen updated)`);
+                console.log(`[Presence] ${user.name} went to background. Status SAVED for restoration.`);
             }
         } catch (e) { console.error('[Presence] app-background error:', e); }
     });
