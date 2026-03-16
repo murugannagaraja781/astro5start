@@ -80,8 +80,12 @@ async function handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpd
 }
 
 async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) {
+    console.log(`[SessionService] endSessionRecord: sessionId=${sessionId}, reason=${endReason}`);
     const s = activeSessions.get(sessionId);
-    if (!s) return;
+    if (!s) {
+        console.log(`[SessionService] endSessionRecord: sessionId=${sessionId} NOT FOUND in memory`);
+        return;
+    }
 
     if (!s.isAnswered && s.astrologerId) {
         sendCancelCallPush(s.astrologerId, sessionId);
@@ -185,8 +189,12 @@ function getOtherUserIdFromSession(sessionId, userId) {
 }
 
 async function handleUserConnection(sessionId, userId, io) {
+    console.log(`[SessionService] handleUserConnection: sessionId=${sessionId}, userId=${userId}`);
     const session = await Session.findOne({ sessionId });
-    if (!session) return;
+    if (!session) {
+        console.log(`[SessionService] handleUserConnection: sessionId=${sessionId} NOT FOUND in DB`);
+        return;
+    }
 
     const now = Date.now();
     let updated = false;
