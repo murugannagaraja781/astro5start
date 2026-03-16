@@ -78,6 +78,11 @@
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Commission</span>
             </div>
             <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="reviews" onclick="showTab('reviews')">
+                <i class="fas fa-star text-lg lg:w-5 text-center"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Reviews</span>
+            </div>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
                 data-tab="academy" onclick="showTab('academy')">
                 <i class="fas fa-video text-lg lg:w-5 text-center"></i>
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Academy</span>
@@ -641,6 +646,51 @@
             </div>
         </section>
 
+        <!-- Reviews Tab -->
+        <section id="tab-reviews" class="tab-content hidden animate-up space-y-8">
+            <header class="flex items-center gap-4">
+                <button onclick="showTab('dashboard')"
+                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-slate-400 hover:text-brand-green transition-all shadow-sm"><i
+                        class="fas fa-arrow-left"></i></button>
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Customer Reviews</h1>
+                    <p class="text-slate-500 font-medium">Manage and moderate platform-wide reviews.</p>
+                </div>
+            </header>
+
+            <div class="bg-white rounded-[2.5rem] shadow-premium border border-slate-100 overflow-hidden">
+                <div class="overflow-x-auto p-4">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-slate-50/50 border-b border-slate-100">
+                                <th
+                                    class="px-8 py-5 text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">
+                                    Date & Time</th>
+                                <th
+                                    class="px-8 py-5 text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">
+                                    Astrologer</th>
+                                <th
+                                    class="px-8 py-5 text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">
+                                    Client</th>
+                                <th
+                                    class="px-8 py-5 text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">
+                                    Rating</th>
+                                <th
+                                    class="px-8 py-5 text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">
+                                    Comment</th>
+                                <th
+                                    class="px-8 py-5 text-[0.65rem] font-black text-slate-400 uppercase tracking-widest text-center">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reviews-list">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <div id="modal-edit-user"
@@ -1078,6 +1128,7 @@
             refreshData();
             if (id === 'ledger') fetchLedger();
             if (id === 'withdrawals') fetchWithdrawals();
+            if (id === 'reviews') fetchActiveReviews();
         }
 
         function fetchStats() {
@@ -1827,6 +1878,75 @@
                 } catch (err) { alert('Upload Link Error'); }
             };
             input.click();
+        }
+        async function fetchActiveReviews() {
+            try {
+                const res = await fetch('/api/reviews/active').then(r => r.json());
+                const list = document.getElementById('reviews-list');
+                list.innerHTML = '';
+                if (res.ok && res.reviews) {
+                    res.reviews.forEach(r => {
+                        const dateStr = new Date(r.createdAt).toLocaleString('en-IN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                        }).toUpperCase();
+
+                        const row = document.createElement('tr');
+                        row.className = 'border-b border-slate-50 hover:bg-slate-50/50 transition-colors duration-200';
+                        row.innerHTML = `
+                            <td class="px-8 py-4 text-[0.7rem] font-bold text-slate-500">${dateStr}</td>
+                            <td class="px-8 py-4">
+                                <div class="flex items-center gap-3">
+                                    <img src="${r.astrologerId?.image ? '/uploads/' + r.astrologerId.image : '/images/astro_icon.png'}" class="w-8 h-8 rounded-lg object-cover">
+                                    <span class="text-[0.75rem] font-black text-slate-800">${r.astrologerId?.name || 'N/A'}</span>
+                                </div>
+                            </td>
+                            <td class="px-8 py-4">
+                                <span class="text-[0.75rem] font-bold text-slate-600">${r.clientName || 'Anonymous'}</span>
+                            </td>
+                            <td class="px-8 py-4">
+                                <div class="flex items-center gap-1 text-amber-400">
+                                    <i class="fas fa-star text-[0.65rem]"></i>
+                                    <span class="text-sm font-black text-slate-800">${r.rating}</span>
+                                </div>
+                            </td>
+                            <td class="px-8 py-4">
+                                <p class="text-[0.7rem] font-medium text-slate-500 max-w-xs line-clamp-2">${r.comment || '-'}</p>
+                            </td>
+                            <td class="px-8 py-4 text-center">
+                                <button onclick="deleteReview('${r._id}')" class="w-8 h-8 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300">
+                                    <i class="fas fa-trash-can text-xs"></i>
+                                </button>
+                            </td>
+                        `;
+                        list.appendChild(row);
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to fetch reviews", err);
+            }
+        }
+
+        async function deleteReview(id) {
+            if (!confirm('Are you sure you want to permanently delete this review?')) return;
+            try {
+                const res = await fetch('/api/reviews/delete/admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reviewId: id })
+                }).then(r => r.json());
+                if (res.ok) {
+                    fetchActiveReviews();
+                } else {
+                    alert('Error: ' + res.error);
+                }
+            } catch (err) {
+                alert('Connection error');
+            }
         }
     </script>
 </body>
