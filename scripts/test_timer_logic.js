@@ -59,7 +59,7 @@ async function runTest() {
         console.log('Reconnecting Client...');
         clientSocket.connect();
         await new Promise(r => clientSocket.once('connect', r));
-        await register(clientSocket, '8880000001', clientId); // Re-register to link socket
+        await register(clientSocket, '8000000001', clientId); // Re-register to link socket
 
         // Check if we can get session status?
         // We don't have an endpoint for it.
