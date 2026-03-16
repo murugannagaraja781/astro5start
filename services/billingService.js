@@ -30,8 +30,11 @@ async function tickSessions(io) {
                 const currentMinuteIndex = Math.floor((secondsElapsed - 1) / 60) + 1;
                 
                 if (currentMinuteIndex > (session.lastBilledMinute || 0)) {
-                    const billingType = (currentMinuteIndex === 1) ? 'first_60_full' : 'slab';
-                    processBillingCharge(sessionId, 60, currentMinuteIndex, billingType, io);
+                    // CATCH-UP LOOP: Even if they reconnect after 2-3 mins, bill all skipped minutes
+                    for (let m = (session.lastBilledMinute || 0) + 1; m <= currentMinuteIndex; m++) {
+                        const billingType = (m === 1) ? 'first_60_full' : 'slab';
+                        processBillingCharge(sessionId, 60, m, billingType, io);
+                    }
                     session.lastBilledMinute = currentMinuteIndex;
                 }
 
