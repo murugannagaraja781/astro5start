@@ -10,6 +10,7 @@ const Session = require('../../models/Session');
 const crypto = require('crypto');
 const { sendFcmV1Push } = require('../fcmService');
 
+const { formatImageUrl } = require('../../utils/formatImage');
 const sessionService = require('../sessionService');
 
 const handleSession = (socket, io, broadcastAstroUpdate) => {
@@ -66,6 +67,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             });
 
             const callerDisplayName = birthData?.name || fromUser?.name || 'Client';
+            const callerImage = formatImageUrl(fromUser?.image, callerDisplayName);
 
             activeSessions.set(sessionId, {
                 type,
@@ -80,6 +82,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 totalEarned: 0,
                 isAnswered: false,
                 callerName: callerDisplayName,
+                callerImage,
                 birthData: birthData || null
             });
             userActiveSession.set(fromUserId, sessionId);
@@ -89,6 +92,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 sessionId,
                 fromUserId,
                 callerName: callerDisplayName,
+                callerImage,
                 type,
                 birthData: birthData || null
             });
@@ -100,6 +104,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     callType: type,
                     callerName: callerDisplayName,
                     callerId: fromUserId,
+                    callerImage,
                     timestamp: Date.now().toString(),
                     birthData: JSON.stringify(birthData || {}),
                     title: '📞 Incoming Call',
