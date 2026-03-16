@@ -1397,7 +1397,10 @@
                     <td class="px-3 py-2.5 text-right">
                         <div class="flex justify-end gap-1.5">
                             <button class="w-7 h-7 rounded-lg ${isBusy ? 'bg-red-500 text-white' : 'bg-emerald-50 text-brand-green'} hover:bg-emerald-500 hover:text-white transition-all active:scale-90" onclick="openViewAstro('${u.userId}')"><i class="fas fa-eye text-[10px]"></i></button>
-                            ${isOnline ? `<button class="w-7 h-7 rounded-lg bg-orange-50 text-orange-500 hover:bg-orange-500 hover:text-white transition-all active:scale-90" onclick="forceOffline('${u.userId}')" title="Force Offline"><i class="fas fa-power-off text-[10px]"></i></button>` : ''}
+                            ${isOnline ? 
+                                `<button class="w-7 h-7 rounded-lg bg-orange-50 text-orange-500 hover:bg-orange-500 hover:text-white transition-all active:scale-90" onclick="forceOffline('${u.userId}')" title="Force Offline"><i class="fas fa-power-off text-[10px]"></i></button>` : 
+                                `<button class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all active:scale-90" onclick="forceOnline('${u.userId}')" title="Force Online"><i class="fas fa-play text-[10px]"></i></button>`
+                            }
                             <button class="w-7 h-7 rounded-lg bg-slate-50 text-slate-400 hover:text-brand-green hover:bg-emerald-50 transition-all active:scale-90" onclick="openEditUser('${u.userId}')"><i class="fas fa-edit text-[10px]"></i></button>
                             <button class="w-7 h-7 rounded-lg bg-slate-50 text-slate-400 hover:text-red-500 transition-all active:scale-90" onclick="handleDeleteUser('${u.userId}')"><i class="fas fa-trash-alt text-[10px]"></i></button>
                         </div>
@@ -1441,7 +1444,10 @@
                     </div>
                     <div class="mt-4 flex gap-2 border-t border-slate-50 pt-4 overflow-x-auto scrollbar-hide">
                         <button class="flex-shrink-0 ${isBusy ? 'bg-red-500 text-white' : 'bg-emerald-50 text-brand-green'} p-2 rounded-xl hover:bg-brand-green hover:text-white transition-all" onclick="openViewAstro('${u.userId}')" title="View Full Details"><i class="fas fa-eye text-[0.7rem] lg:text-xs"></i></button>
-                        ${isAstro && isOnline ? `<button class="flex-shrink-0 bg-orange-50 text-orange-500 p-2 rounded-xl hover:bg-orange-500 hover:text-white transition-all" onclick="forceOffline('${u.userId}')" title="Force Offline"><i class="fas fa-power-off text-[0.7rem] lg:text-xs"></i></button>` : ''}
+                        ${isAstro ? (isOnline ? 
+                            `<button class="flex-shrink-0 bg-orange-50 text-orange-500 p-2 rounded-xl hover:bg-orange-500 hover:text-white transition-all" onclick="forceOffline('${u.userId}')" title="Force Offline"><i class="fas fa-power-off text-[0.7rem] lg:text-xs"></i></button>` :
+                            `<button class="flex-shrink-0 bg-emerald-50 text-emerald-600 p-2 rounded-xl hover:bg-emerald-600 hover:text-white transition-all" onclick="forceOnline('${u.userId}')" title="Force Online"><i class="fas fa-play text-[0.7rem] lg:text-xs"></i></button>`) : ''
+                        }
                         <button class="flex-1 min-w-[60px] ${isBusy ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'} font-bold py-2 rounded-xl transition-colors text-[0.65rem] lg:text-xs" onclick="openEditUser('${u.userId}')">Edit</button>
                         <button class="flex-shrink-0 bg-slate-50 text-slate-400 p-2 rounded-xl hover:bg-emerald-50 hover:text-brand-green transition-all" onclick="openRoleModal('${u.userId}', '${u.role}')"><i class="fas fa-shield text-[0.7rem] lg:text-xs"></i></button>
                         <button class="flex-shrink-0 bg-slate-50 text-slate-400 p-2 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all" onclick="handleDeleteUser('${u.userId}')"><i class="fas fa-trash-alt text-[0.7rem] lg:text-xs"></i></button>
@@ -1909,7 +1915,20 @@
             if (confirm('Force this astrologer offline?')) {
                 socket.emit('admin-force-offline', { userId }, (res) => {
                     if (res.ok) {
-                        alert('Astrologer is now offline');
+                        showToast('Astrologer is now Offline', 'warning');
+                        refreshData();
+                    } else {
+                        alert('Error: ' + res.error);
+                    }
+                });
+            }
+        }
+
+        function forceOnline(userId) {
+            if (confirm('Enable ALL services and force this astrologer LIVE?')) {
+                socket.emit('admin-force-online', { userId }, (res) => {
+                    if (res.ok) {
+                        showToast('Astrologer is now Active/Live', 'success');
                         refreshData();
                     } else {
                         alert('Error: ' + res.error);
