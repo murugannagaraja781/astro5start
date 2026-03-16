@@ -132,22 +132,26 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
     socket.on('admin-approve-astrologer', async (data, cb) => {
         if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
         try {
-            const { userId, action } = data;
+            const { userId, action, status } = data;
+            const finalAction = action || status; // Support both {action: 'approve'} and {status: 'approved'}
             const user = await User.findOne({ userId });
             if (!user) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
 
-            if (action === 'approve') {
+            if (finalAction === 'approve' || finalAction === 'approved') {
                 user.approvalStatus = 'approved';
                 user.isVerified = true;
                 user.documentStatus = 'verified';
-            } else if (action === 'reject') {
+                console.log(`[Admin] Approved astrologer: ${user.name}`);
+            } else if (finalAction === 'reject' || finalAction === 'rejected') {
                 user.approvalStatus = 'rejected';
+                console.log(`[Admin] Rejected astrologer: ${user.name}`);
             }
             await user.save();
             await broadcastAstroUpdate();
             broadcastAdminUpdate();
             if (typeof cb === "function") cb({ ok: true });
         } catch (e) {
+            console.error('[Admin] Approval Error:', e);
             if (typeof cb === "function") cb({ ok: false });
         }
     });
@@ -189,6 +193,57 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             if (typeof cb === "function") cb({ ok: true, stats, fullLedger });
         } catch (e) {
             if (typeof cb === "function") cb({ ok: false });
+        }
+    });
+
+    socket.on('admin-force-offline', async (data, cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false, error: 'Unauthorized' });
+        try {
+            const user = await User.findOne({ userId: data.userId });
+            if (!user) return cb?.({ ok: false, error: 'User not found' });
+
+            user.isChatOnline = false;
+            user.isAudioOnline = false;
+            user.isVideoOnline = false;
+            user.isOnline = false;
+            user.isAvailable = false;
+            user.isBusy = false;
+
+            await user.save();
+            await broadcastAstroUpdate();
+            broadcastAdminUpdate();
+
+            if (typeof cb === "function") cb({ ok: true });
+            console.log(`[Admin] Forced user ${user.name} OFFLINE via web control.`);
+        } catch (e) {
+            console.error('[Admin] Force Offline Error:', e);
+            if (typeof cb === "function") cb({ ok: false, error: 'Operation Failed' });
+        }
+    });
+
+    socket.on('admin-force-online', async (data, cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false, error: 'Unauthorized' });
+        try {
+            const user = await User.findOne({ userId: data.userId });
+            if (!user) return cb?.({ ok: false, error: 'User not found' });
+            if (user.role !== 'astrologer') return cb?.({ ok: false, error: 'Only astrologers can be forced online' });
+
+            user.isChatOnline = true;
+            user.isAudioOnline = true;
+            user.isVideoOnline = true;
+            user.isOnline = true;
+            user.isAvailable = true;
+            user.lastSeen = new Date();
+
+            await user.save();
+            await broadcastAstroUpdate();
+            broadcastAdminUpdate();
+
+            if (typeof cb === "function") cb({ ok: true });
+            console.log(`[Admin] Forced user ${user.name} ONLINE via web control.`);
+        } catch (e) {
+            console.error('[Admin] Force Online Error:', e);
+            if (typeof cb === "function") cb({ ok: false, error: 'Operation Failed' });
         }
     });
 
