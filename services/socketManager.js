@@ -82,19 +82,9 @@ const initSocket = (io) => {
 
         socket.on('register', async (data, cb) => {
             try {
-                let { userId, phone, fcmToken } = data || {};
-
-                if (!userId && phone) {
-                    const foundUser = await User.findOne({ phone: phone.replace(/\D/g, '') });
-                    if (foundUser) userId = foundUser.userId;
-                    else {
-                        if (typeof cb === 'function') cb({ ok: false, error: 'User not found for phone' });
-                        return;
-                    }
-                }
-
+                const { userId, fcmToken } = data || {};
                 if (!userId) {
-                    if (typeof cb === 'function') cb({ ok: false, error: 'No userId or phone provided' });
+                    if (typeof cb === 'function') cb({ ok: false, error: 'No userId' });
                     return;
                 }
 
@@ -138,7 +128,7 @@ const initSocket = (io) => {
                     broadcastAstroUpdate();
                 }
 
-                if (typeof cb === 'function') cb({ ok: true, userId: user.userId, user });
+                if (typeof cb === 'function') cb({ ok: true, user });
             } catch (err) {
                 console.error('register error', err);
                 if (typeof cb === 'function') cb({ ok: false, error: 'Internal error' });

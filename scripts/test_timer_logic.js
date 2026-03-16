@@ -14,8 +14,8 @@ async function runTest() {
 
     try {
         // 1. Register
-        clientId = await register(clientSocket, null, 'fc052336-700d-4629-b6c7-6974fdbf4f87');
-        astroId = await register(astroSocket, null, '492b706e-6a4d-4743-a1ab-b76c0dee6868'); // seeded #
+        clientId = await register(clientSocket, '8000000001');
+        astroId = await register(astroSocket, '9000000001'); // seeded #
         console.log('Registered:', clientId, astroId);
 
         // 2. Create Session
@@ -80,8 +80,8 @@ async function runTest() {
 
 function register(socket, phone, existingUserId) {
     return new Promise((resolve, reject) => {
-        socket.emit('register', { userId: existingUserId || phone }, (res) => {
-            if (res.ok) resolve(res.userId || (res.user && res.user.userId));
+        socket.emit('register', { phone, existingUserId }, (res) => {
+            if (res.ok) resolve(res.userId);
             else reject(res.error);
         });
     });
