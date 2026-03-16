@@ -22,6 +22,8 @@ const UserSchema = new mongoose.Schema({
     upiNumber: String,
     role: { type: String, enum: ['client', 'astrologer', 'superadmin'], default: 'client' },
     approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    languages: { type: [String], default: [] },
+    displayOrder: { type: Number, default: 0 },
     isOnline: { type: Boolean, default: false },
     isChatOnline: { type: Boolean, default: false },
     isAudioOnline: { type: Boolean, default: false },

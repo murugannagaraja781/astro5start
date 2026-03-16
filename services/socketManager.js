@@ -22,7 +22,8 @@ let ioInstance = null;
 
 const getFormattedAstrologers = async () => {
     const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
-        .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
+        .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified displayOrder')
+        .sort({ displayOrder: -1, isOnline: -1, createdAt: -1 })
         .lean();
 
     return astros.map(a => {

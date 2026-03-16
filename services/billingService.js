@@ -92,8 +92,9 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
             reason = 'first_60';
         } else if (type === 'early_exit') {
             amountToCharge = pricePerMin;
-            adminShare = amountToCharge;
-            astroShare = 0;
+            const rate = SLAB_RATES[1] || 0.30;
+            astroShare = amountToCharge * rate;
+            adminShare = amountToCharge - astroShare;
             reason = 'first_60_min_charge';
         } else if (type === 'slab') {
             const activeSess = activeSessions.get(sessionId);

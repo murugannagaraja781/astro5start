@@ -46,7 +46,13 @@ const handleAdmin = (socket, io, broadcastAstroUpdate) => {
             const user = await User.findOne({ userId });
             if (!user) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
 
-            Object.assign(user, updates); // Simplified for now, in a real app you'd sanitize this
+            // Allow updates to nested birthDetails if provided
+            if (updates.birthDetails) {
+                user.birthDetails = { ...user.birthDetails, ...updates.birthDetails };
+                delete updates.birthDetails;
+            }
+
+            Object.assign(user, updates);
             await user.save();
 
             if (user.role === 'astrologer') await broadcastAstroUpdate();
@@ -62,6 +68,31 @@ const handleAdmin = (socket, io, broadcastAstroUpdate) => {
         } catch (e) {
             console.error(e);
             if (typeof cb === "function") cb({ ok: false, error: 'Update Failed' });
+        }
+    });
+
+    socket.on('admin-get-pending-requests', async (cb) => {
+        if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
+        try {
+            const requests = await User.find({ role: 'astrologer', approvalStatus: 'pending' }).sort({ createdAt: -1 });
+            if (typeof cb === "function") cb({ ok: true, requests });
+        } catch (e) {
+            if (typeof cb === "function") cb({ ok: false });
+        }
+    });
+
+    socket.on('admin-update-astrologer-order', async (data, cb) => {
+        if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
+        try {
+            const { orders } = data; // Expecting [{userId, displayOrder}, ...]
+            for (const item of orders) {
+                await User.updateOne({ userId: item.userId }, { displayOrder: item.displayOrder });
+            }
+            await broadcastAstroUpdate();
+            if (typeof cb === "function") cb({ ok: true });
+        } catch (e) {
+            console.error(e);
+            if (typeof cb === "function") cb({ ok: false, error: 'Order Update Failed' });
         }
     });
 
