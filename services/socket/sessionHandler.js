@@ -65,6 +65,8 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 clientId, astrologerId
             });
 
+            const callerDisplayName = birthData?.name || fromUser?.name || 'Client';
+
             activeSessions.set(sessionId, {
                 type,
                 users: [fromUserId, toUserId],
@@ -77,7 +79,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 totalDeducted: 0,
                 totalEarned: 0,
                 isAnswered: false,
-                callerName: fromUser?.name || 'Client',
+                callerName: callerDisplayName,
                 birthData: birthData || null
             });
             userActiveSession.set(fromUserId, sessionId);
@@ -86,7 +88,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             io.to(toUserId).emit('incoming-session', {
                 sessionId,
                 fromUserId,
-                callerName: fromUser?.name || 'Client',
+                callerName: callerDisplayName,
                 type,
                 birthData: birthData || null
             });
@@ -96,12 +98,12 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     type: 'INCOMING_CALL',
                     sessionId: sessionId,
                     callType: type,
-                    callerName: fromUser?.name || 'Client',
+                    callerName: callerDisplayName,
                     callerId: fromUserId,
                     timestamp: Date.now().toString(),
                     birthData: JSON.stringify(birthData || {}),
                     title: '📞 Incoming Call',
-                    body: `${fromUser?.name || 'Someone'} is calling you`
+                    body: `${callerDisplayName} is calling you`
                 };
 
                 sendFcmV1Push(toUser.fcmToken, fcmData, null)
