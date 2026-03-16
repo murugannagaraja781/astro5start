@@ -47,10 +47,19 @@ const getUserProfile = async (req, res) => {
 const getAstrologers = async (req, res) => {
     try {
         const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
-            .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified displayOrder createdAt')
+            .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified displayOrder')
             .lean();
 
-        const formatted = astros.map(a => {
+        // Sort in memory: online astrologers first
+        const sortedAstros = astros.sort((a, b) => {
+            const aOnline = !!(a.isOnline || a.isChatOnline || a.isAudioOnline || a.isVideoOnline);
+            const bOnline = !!(b.isOnline || b.isChatOnline || b.isAudioOnline || b.isVideoOnline);
+            if (aOnline && !bOnline) return -1;
+            if (!aOnline && bOnline) return 1;
+            return 0;
+        });
+
+        const formatted = sortedAstros.map(a => {
             // Defensive: ensure all fields are properly serialized
             const isOnlineCalculated = !!(a.isOnline || a.isAudioOnline || a.isChatOnline || a.isVideoOnline);
             return {
