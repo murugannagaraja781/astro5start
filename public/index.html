@@ -4141,7 +4141,7 @@
         };
 
         // Wait for socket to be connected before registering
-        const waitForSocket = (retries = 30) => {
+        const waitForSocket = (retries = 75) => {
           console.log('[API Accept] Waiting for socket, connected:', socket.connected, 'retries:', retries);
 
           if (socket.connected) {

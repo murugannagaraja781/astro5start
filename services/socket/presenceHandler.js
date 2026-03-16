@@ -35,10 +35,8 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 user.fcmToken = data.fcmToken;
             }
 
-            // Clear FCM token if going offline and no token provided to ensure no notifications are sent
-            if (!user.isAvailable && !data.fcmToken) {
-                user.fcmToken = '';
-            }
+            // Clear FCM token only on explicit logout, not on simple status toggle
+            // to allow system notifications to still arrive.
 
             await user.save();
             broadcastAstroUpdate();
@@ -78,10 +76,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                     user.fcmToken = data.fcmToken;
                 }
 
-                // Clear FCM token if going offline and no token provided
-                if (!user.isAvailable && !data.fcmToken) {
-                    user.fcmToken = '';
-                }
+                // Keep FCM token for other notifications
 
                 await user.save();
                 broadcastAstroUpdate();
@@ -118,10 +113,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                     user.fcmToken = data.fcmToken;
                 }
 
-                // Clear FCM token if going offline and no token provided
-                if (!user.isAvailable && !data.fcmToken) {
-                    user.fcmToken = '';
-                }
+                // Keep FCM token for other notifications
 
                 await user.save();
                 broadcastAstroUpdate();

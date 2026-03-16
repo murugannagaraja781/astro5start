@@ -148,7 +148,31 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             
             console.log(`[Session] answer-session: sessionId=${sessionId}, astrologerId=${astrologerId}, accept=${accept}`);
 
-            const session = activeSessions.get(sessionId);
+            let session = activeSessions.get(sessionId);
+            if (!session) {
+                console.log(`[Session] Session ${sessionId} not found in memory, checking DB...`);
+                const dbSession = await Session.findOne({ sessionId, status: 'requested' });
+                if (dbSession) {
+                    session = {
+                        sessionId: dbSession.sessionId,
+                        type: dbSession.type,
+                        clientId: dbSession.clientId,
+                        astrologerId: dbSession.astrologerId,
+                        users: [dbSession.clientId, dbSession.astrologerId],
+                        startedAt: dbSession.startTime,
+                        isAnswered: false,
+                        elapsedBillableSeconds: 0,
+                        lastBilledMinute: 0,
+                        actualBillingStart: null,
+                        totalDeducted: 0,
+                        totalEarned: 0,
+                        timeoutId: null
+                    };
+                    activeSessions.set(sessionId, session);
+                    console.log(`[Session] Restored session from DB: ${sessionId}`);
+                }
+            }
+
             if (!session) {
                 if (typeof cb === "function") cb({ ok: false, error: 'Session expired' });
                 return;

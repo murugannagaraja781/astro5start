@@ -13,9 +13,19 @@ const { upload } = require('./config/multer');
 const { initFcmAuth } = require('./services/fcmService');
 
 // Connect to Database
-connectDB().then(() => {
+// Connect to Database
+connectDB().then(async () => {
   const { loadSlabRates } = require('./services/sharedState');
   loadSlabRates();
+
+  // Cleanup: Reset isBusy for all users on startup to prevent stale states
+  const User = require('./models/User');
+  try {
+    const res = await User.updateMany({ isBusy: true }, { isBusy: false });
+    console.log(`[Startup] Cleaned up isBusy flag for ${res.modifiedCount} users.`);
+  } catch (err) {
+    console.error('[Startup] Failed to cleanup isBusy flags:', err);
+  }
 });
 
 // Initialize FCM
