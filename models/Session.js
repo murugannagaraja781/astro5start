@@ -10,7 +10,7 @@ const SessionSchema = new mongoose.Schema({
     astrologerConnectedAt: Number, // Timestamp
     actualBillingStart: Number, // Timestamp
     sessionEndAt: Number, // Timestamp
-    status: { type: String, enum: ['active', 'ended'], default: 'active' },
+    status: { type: String, enum: ['requested', 'active', 'ended', 'missed', 'rejected'], default: 'requested' },
 
     // Legacy/Compatibility Fields
     fromUserId: String,
