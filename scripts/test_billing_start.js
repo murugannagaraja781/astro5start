@@ -1,19 +1,6 @@
 const io = require('socket.io-client');
-const assert = require('assert');
 
-// const SERVER_URL = 'http://localhost:3000'; // Make sure server is running
-const SERVER_URL = 'http://localhost:5000'; // Assuming 5000 or 3000? Checking server.js...
-// server.js doesn't show port. assuming default or env. usually 5000 or 8080.
-// Let's assume 3000 as per common practice if not specified,
-// wait, I can check server.js again or just try commonly used ports.
-// Server.js shows: const server = http.createServer(app);
-// but I missed the listen call in previous view.
-// I'll check port first in next step or assume 5000 and 3000.
-
-// Let's use a dynamic approach or just check the file again quickly.
-// Actually I'll write the script to accept PORT env var.
-
-const PORT = process.env.PORT || 8080; // server.js often uses 8080 or 5000.
+const PORT = process.env.PORT || 3000;
 const URL = `http://localhost:${PORT}`;
 
 async function runTest() {
@@ -27,8 +14,8 @@ async function runTest() {
     try {
         // 1. Register Client
         clientId = await new Promise((resolve, reject) => {
-            clientSocket.emit('register', { phone: '8000000001' }, (res) => {
-                if (res.ok) resolve(res.userId);
+            clientSocket.emit('register', { userId: 'fc052336-700d-4629-b6c7-6974fdbf4f87' }, (res) => {
+                if (res.ok) resolve(res.userId || (res.user && res.user.userId));
                 else reject(res.error);
             });
         });
@@ -36,8 +23,8 @@ async function runTest() {
 
         // 2. Register Astrologer
         astroId = await new Promise((resolve, reject) => {
-            astroSocket.emit('register', { phone: '9000000001' }, (res) => {
-                if (res.ok) resolve(res.userId);
+            astroSocket.emit('register', { userId: '492b706e-6a4d-4743-a1ab-b76c0dee6868' }, (res) => {
+                if (res.ok) resolve(res.userId || (res.user && res.user.userId));
                 else reject(res.error);
             });
         });
@@ -48,6 +35,7 @@ async function runTest() {
             clientSocket.emit('request-session', { toUserId: astroId, type: 'chat' }, (res) => {
                 if (res.ok) resolve(res.sessionId);
                 else reject(res.error);
+
             });
         });
         console.log('Session Created:', sessionId);

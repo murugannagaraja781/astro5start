@@ -23,21 +23,23 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
     } = sessionService;
 
     socket.on('request-session', async (data, cb) => {
+        const safeCallback = (res) => { if (typeof cb === 'function') cb(res); };
         try {
             const { toUserId, type, birthData } = data || {};
             const fromUserId = socketToUser.get(socket.id);
 
-            if (!fromUserId) if (typeof cb === "function") return cb({ ok: false, error: 'Not registered' });
-            if (!toUserId || !type) if (typeof cb === "function") return cb({ ok: false, error: 'Missing fields' });
+            // CRASH FIX 1: Proper guard - always return after calling cb
+            if (!fromUserId) return safeCallback({ ok: false, error: 'Not registered' });
+            if (!toUserId || !type) return safeCallback({ ok: false, error: 'Missing fields' });
 
-            const toUser = await User.findOne({ userId: toUserId });
-            const fromUser = await User.findOne({ userId: fromUserId });
+            const [toUser, fromUser] = await Promise.all([
+                User.findOne({ userId: toUserId }),
+                User.findOne({ userId: fromUserId })
+            ]);
 
-            if (!toUser) {
-                if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
-            }
-
-            const isAvailable = toUser.isAvailable === true;
+            // CRASH FIX 2: null check BEFORE accessing toUser properties
+            if (!toUser) return safeCallback({ ok: false, error: 'User not found' });
+            if (!fromUser) return safeCallback({ ok: false, error: 'Caller not found' });
 
             if (userActiveSession.has(toUserId)) {
                 const existingSessionId = userActiveSession.get(toUserId);
@@ -48,7 +50,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 } else if (existingSession.users.includes(fromUserId)) {
                     await endSessionRecord(existingSessionId, 'stale_clean', io, broadcastAstroUpdate);
                 } else {
-                    if (typeof cb === "function") return cb({ ok: false, error: 'User busy' });
+                    return safeCallback({ ok: false, error: 'User busy' });
                 }
             }
 
@@ -57,10 +59,10 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             let clientId = null;
             let astrologerId = null;
 
-            if (fromUser && fromUser.role === 'client') clientId = fromUserId;
-            if (fromUser && fromUser.role === 'astrologer') astrologerId = fromUserId;
-            if (toUser && toUser.role === 'client') clientId = toUserId;
-            if (toUser && toUser.role === 'astrologer') astrologerId = toUserId;
+            if (fromUser.role === 'client') clientId = fromUserId;
+            if (fromUser.role === 'astrologer') astrologerId = fromUserId;
+            if (toUser.role === 'client') clientId = toUserId;
+            if (toUser.role === 'astrologer') astrologerId = toUserId;
 
             await Session.create({
                 sessionId, fromUserId, toUserId, type, startTime: Date.now(),
@@ -98,7 +100,11 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 birthData: birthData || null
             });
 
-            if (toUser && toUser.fcmToken && toUser.isAvailable) {
+            if (toUser.fcmToken && toUser.isAvailable) {
+                // CRASH FIX 3: Safely serialize birthData for FCM
+                let birthDataStr = '{}';
+                try { birthDataStr = JSON.stringify(birthData || {}); } catch (e) { birthDataStr = '{}'; }
+
                 const fcmData = {
                     type: 'INCOMING_CALL',
                     sessionId: sessionId,
@@ -107,7 +113,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     callerId: fromUserId,
                     callerImage,
                     timestamp: Date.now().toString(),
-                    birthData: JSON.stringify(birthData || {}),
+                    birthData: birthDataStr,
                     title: '📞 Incoming Call',
                     body: `${callerDisplayName} is calling you`
                 };
@@ -116,28 +122,33 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     .catch(err => console.error('[FCM v1] Session Push Error:', err.message));
             }
 
-            if (typeof cb === "function") cb({ ok: true, sessionId });
+            safeCallback({ ok: true, sessionId });
 
             setTimeout(async () => {
-                const s = activeSessions.get(sessionId);
-                if (s && !s.isAnswered) {
-                    io.to(fromUserId).emit('session-ended', { sessionId, reason: 'no_answer' });
-                    io.to(toUserId).emit('session-ended', { sessionId, reason: 'missed' });
+                try {
+                    const s = activeSessions.get(sessionId);
+                    if (s && !s.isAnswered) {
+                        io.to(fromUserId).emit('session-ended', { sessionId, reason: 'no_answer' });
+                        io.to(toUserId).emit('session-ended', { sessionId, reason: 'missed' });
 
-                    await sendCancelCallPush(toUserId, sessionId);
-                    await handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpdate);
+                        await sendCancelCallPush(toUserId, sessionId);
+                        await handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpdate);
 
-                    userActiveSession.delete(fromUserId);
-                    userActiveSession.delete(toUserId);
-                    activeSessions.delete(sessionId);
-                    await Session.updateOne({ sessionId }, { status: 'missed', endTime: Date.now() }).catch(() => { });
+                        userActiveSession.delete(fromUserId);
+                        userActiveSession.delete(toUserId);
+                        activeSessions.delete(sessionId);
+                        await Session.updateOne({ sessionId }, { status: 'missed', endTime: Date.now() }).catch(() => { });
+                    }
+                } catch (timeoutErr) {
+                    console.error('[request-session timeout]', timeoutErr);
                 }
             }, 30000); // 30 Seconds Timeout
         } catch (err) {
             console.error('request-session error', err);
-            if (typeof cb === "function") cb({ ok: false, error: 'Internal error' });
+            safeCallback({ ok: false, error: 'Internal error' });
         }
     });
+
 
     socket.on('answer-session', (data) => {
         try {
