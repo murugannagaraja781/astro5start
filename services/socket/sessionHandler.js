@@ -199,7 +199,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
                 io.to(fromUserId).emit('session-answered', { sessionId, fromUserId: astrologerId, type: type || session.type, accept: true });
                 if (typeof cb === "function") cb({ ok: true });
-                console.log(`[Session] Call ${sessionId} accepted via web/standard. (Previously active: ${dbSession?.status === 'active'})`);
+                console.log(`[Session] Call ${sessionId} accepted via web/standard.`);
             } else {
                 io.to(fromUserId).emit('session-answered', { sessionId, fromUserId: astrologerId, accept: false });
                 endSessionRecord(sessionId, 'rejected', io, broadcastAstroUpdate);
@@ -267,11 +267,11 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 }
                 session.isAnswered = true;
                 session.status = 'active';
-                session.actualBillingStart = Date.now();
+                session.actualBillingStart = session.actualBillingStart || Date.now();
                 userActiveSession.set(astrologerId, sessionId);
                 userActiveSession.set(fromUserId, sessionId);
 
-                await Session.updateOne({ sessionId }, { status: 'active', startTime: Date.now() });
+                await Session.updateOne({ sessionId }, { status: 'active', startTime: session.startedAt || Date.now(), actualBillingStart: session.actualBillingStart });
 
                 io.to(fromUserId).emit('session-answered', {
                     sessionId,
