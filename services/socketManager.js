@@ -107,18 +107,18 @@ const initSocket = (io) => {
                     console.log(`[Admin] User ${userId} joined admin-room`);
                 }
 
+                // Clear session grace period if exists for ANY user
+                const { sessionDisconnectTimeouts } = require('./sharedState');
+                if (sessionDisconnectTimeouts.has(userId)) {
+                    clearTimeout(sessionDisconnectTimeouts.get(userId));
+                    sessionDisconnectTimeouts.delete(userId);
+                    console.log(`[Session] User ${userId} reconnected. Session grace period cleared.`);
+                }
+
                 if (user.role === 'astrologer') {
                     if (offlineTimeouts.has(userId)) {
                         clearTimeout(offlineTimeouts.get(userId));
                         offlineTimeouts.delete(userId);
-                    }
-
-                    // Clear session grace period if exists
-                    const { sessionDisconnectTimeouts } = require('./sharedState');
-                    if (sessionDisconnectTimeouts.has(userId)) {
-                        clearTimeout(sessionDisconnectTimeouts.get(userId));
-                        sessionDisconnectTimeouts.delete(userId);
-                        console.log(`[Session] User ${userId} reconnected. Grace period cleared.`);
                     }
 
                     // When astrologer connects (logins), mark them as online and available

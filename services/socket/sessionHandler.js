@@ -82,7 +82,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     activeSessions.delete(sessionId);
                     await Session.updateOne({ sessionId }, { status: 'missed', endTime: Date.now() }).catch(() => { });
                 }
-            }, 30000); // 30 Seconds Timeout
+            }, 60000); // 60 Seconds Timeout
 
             activeSessions.set(sessionId, {
                 sessionId,
