@@ -123,7 +123,7 @@ app.get('/wallet', (req, res) => {
 initSocket(io);
 
 // Start billing ticker
-setInterval(() => tickSessions(io), 2000);
+setInterval(() => tickSessions(io), 1000);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

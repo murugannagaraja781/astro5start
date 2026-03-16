@@ -22,16 +22,17 @@ async function tickSessions(io) {
             const isAstroConnected = !!userSockets.get(session.astrologerId);
 
             if (isClientConnected && isAstroConnected) {
-                session.elapsedBillableSeconds = (session.elapsedBillableSeconds || 0) + 1;
+                // Sync with mobile app timer using differential time
+                const secondsElapsed = Math.floor((now - session.actualBillingStart) / 1000) + 1;
+                session.elapsedBillableSeconds = secondsElapsed;
 
-                if (session.elapsedBillableSeconds === 60) {
-                    processBillingCharge(sessionId, 60, 1, 'first_60_full', io);
-                } else if (session.elapsedBillableSeconds > 60) {
-                    const totalShouldBeBilled = Math.floor((session.elapsedBillableSeconds - 60) / 60) + 1;
-                    if (totalShouldBeBilled > (session.lastBilledMinute || 1)) {
-                        processBillingCharge(sessionId, 60, totalShouldBeBilled, 'slab', io);
-                        session.lastBilledMinute = totalShouldBeBilled;
-                    }
+                // Charge logic: Trigger at 1s, 61s, 121s, etc. (Start of each minute)
+                const currentMinuteIndex = Math.floor((secondsElapsed - 1) / 60) + 1;
+                
+                if (currentMinuteIndex > (session.lastBilledMinute || 0)) {
+                    const billingType = (currentMinuteIndex === 1) ? 'first_60_full' : 'slab';
+                    processBillingCharge(sessionId, 60, currentMinuteIndex, billingType, io);
+                    session.lastBilledMinute = currentMinuteIndex;
                 }
 
                 if (session.elapsedBillableSeconds % 10 === 0 && session.pairMonthId) {
