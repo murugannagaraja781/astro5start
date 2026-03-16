@@ -1,16 +1,35 @@
 const Review = require('../models/Review');
 const User = require('../models/User');
+const Session = require('../models/Session');
 const { broadcastReviewUpdate } = require('../services/socketManager');
 
 exports.createReview = async (req, res) => {
     try {
         const { astrologerId, clientId, rating, comment, sessionId } = req.body;
+        console.log(`[Review] Submitting: Astro=${astrologerId}, Client=${clientId}, Session=${sessionId}`);
 
         const client = await User.findOne({ userId: clientId });
-        if (!client) return res.json({ ok: false, error: 'Client not found' });
+        if (!client) {
+            console.error(`[Review] Client not found: ${clientId}`);
+            return res.json({ ok: false, error: 'Client not found' });
+        }
 
         const astrologer = await User.findOne({ userId: astrologerId });
-        if (!astrologer) return res.json({ ok: false, error: 'Astrologer not found' });
+        if (!astrologer) {
+            console.error(`[Review] Astrologer not found: ${astrologerId}`);
+            return res.json({ ok: false, error: 'Astrologer not found' });
+        }
+
+        // Look up session by UUID string
+        let sessionDbId = null;
+        if (sessionId) {
+            const session = await Session.findOne({ sessionId: sessionId });
+            if (session) {
+                sessionDbId = session._id;
+            } else {
+                console.warn(`[Review] Session document not found for UUID: ${sessionId}`);
+            }
+        }
 
         const review = new Review({
             astrologerId: astrologer._id,
@@ -18,11 +37,11 @@ exports.createReview = async (req, res) => {
             clientName: client.name || 'Anonymous',
             rating,
             comment,
-            sessionId
+            sessionId: sessionDbId
         });
 
-
         await review.save();
+        console.log(`[Review] Saved: ${review._id}`);
 
         // Fetch the populated review for broadcasting
         const populatedReview = await Review.findById(review._id).populate('astrologerId', 'name image userId');
@@ -32,6 +51,7 @@ exports.createReview = async (req, res) => {
 
         res.json({ ok: true, message: 'Review submitted successfully' });
     } catch (error) {
+        console.error(`[Review] Error:`, error);
         res.json({ ok: false, error: error.message });
     }
 };
