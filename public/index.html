@@ -4571,7 +4571,8 @@
       navSwitch('home');
       fetchAstrologers();
 
-      socket.on('astrologer-update', (list) => {
+      socket.on('astrologer-update', (data) => {
+        const list = Array.isArray(data) ? data : (data && data.list ? data.list : []);
         state.astroList = list;
         const active = document.querySelector('.nav-item.active');
         if (active) {
@@ -4581,6 +4582,12 @@
         } else {
           renderAstroList(list);
         }
+      });
+
+      socket.on('astro-list', (data) => {
+        const list = Array.isArray(data) ? data : (data && data.list ? data.list : []);
+        state.astroList = list;
+        renderAstroList(list);
       });
 
       socket.on('my-profile-updated', (newUser) => {

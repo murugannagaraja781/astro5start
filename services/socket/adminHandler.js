@@ -149,6 +149,14 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             await user.save();
             await broadcastAstroUpdate();
             broadcastAdminUpdate();
+
+            const sId = userSockets.get(user.userId);
+            if (sId) {
+                const formattedUser = user.toObject ? user.toObject() : user;
+                formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
+                io.to(sId).emit('my-profile-updated', formattedUser);
+            }
+
             if (typeof cb === "function") cb({ ok: true });
         } catch (e) {
             console.error('[Admin] Approval Error:', e);
@@ -213,6 +221,13 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             await broadcastAstroUpdate();
             broadcastAdminUpdate();
 
+            const sId = userSockets.get(user.userId);
+            if (sId) {
+                const formattedUser = user.toObject ? user.toObject() : user;
+                formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
+                io.to(sId).emit('my-profile-updated', formattedUser);
+            }
+
             if (typeof cb === "function") cb({ ok: true });
             console.log(`[Admin] Forced user ${user.name} OFFLINE via web control.`);
         } catch (e) {
@@ -238,6 +253,13 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             await user.save();
             await broadcastAstroUpdate();
             broadcastAdminUpdate();
+
+            const sId = userSockets.get(user.userId);
+            if (sId) {
+                const formattedUser = user.toObject ? user.toObject() : user;
+                formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
+                io.to(sId).emit('my-profile-updated', formattedUser);
+            }
 
             if (typeof cb === "function") cb({ ok: true });
             console.log(`[Admin] Forced user ${user.name} ONLINE via web control.`);

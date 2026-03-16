@@ -7,6 +7,7 @@ const {
     OFFLINE_GRACE_PERIOD
 } = require('../sharedState');
 const User = require('../../models/User');
+const { formatImageUrl } = require('../../utils/formatImage');
 
 const handlePresence = (socket, io, broadcastAstroUpdate) => {
 
@@ -41,6 +42,14 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
 
             await user.save();
             broadcastAstroUpdate();
+
+            const sId = userSockets.get(userId);
+            if (sId) {
+                const formattedUser = user.toObject ? user.toObject() : user;
+                formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
+                io.to(sId).emit('my-profile-updated', formattedUser);
+            }
+
             console.log(`[Presence] ${user.name} toggled ${data.type}: ${data.online}, Available: ${user.isAvailable}`);
         } catch (e) { console.error(e); }
     });
@@ -76,6 +85,14 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
 
                 await user.save();
                 broadcastAstroUpdate();
+
+                const sId = userSockets.get(userId);
+                if (sId) {
+                    const formattedUser = user.toObject ? user.toObject() : user;
+                    formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
+                    io.to(sId).emit('my-profile-updated', formattedUser);
+                }
+
                 console.log(`[Service Status] ${user.name} updated ${data.service}: ${isEnabled}, Available: ${user.isAvailable}`);
             }
         } catch (e) { console.error('update-service-status error:', e); }
@@ -108,6 +125,14 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
 
                 await user.save();
                 broadcastAstroUpdate();
+
+                const sId = userSockets.get(userId);
+                if (sId) {
+                    const formattedUser = user.toObject ? user.toObject() : user;
+                    formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
+                    io.to(sId).emit('my-profile-updated', formattedUser);
+                }
+
                 console.log(`[Presence Mobile] ${user.name} updated status: ${isOnline}, Available: ${user.isAvailable}`);
             }
         } catch (e) { console.error(e); }
