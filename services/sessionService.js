@@ -149,6 +149,10 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
     };
 
     if (io) {
+        // Emit to the session room for collective notice
+        io.to(sessionId).emit('session-ended', payload);
+
+        // Also emit to individual user rooms to ensure delivery
         if (s.clientId) io.to(s.clientId).emit('session-ended', payload);
         if (s.astrologerId) {
             io.to(s.astrologerId).emit('session-ended', payload);
