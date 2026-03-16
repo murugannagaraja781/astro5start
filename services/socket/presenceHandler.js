@@ -42,7 +42,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
             await user.save();
             broadcastAstroUpdate();
             console.log(`[Presence] ${user.name} toggled ${data.type}: ${data.online}, Available: ${user.isAvailable}`);
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error('[toggle-status error]:', e.message); }
     });
 
     socket.on('update-service-status', async (data) => {
@@ -58,7 +58,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
             if (data.service === 'video') update.isVideoOnline = isEnabled;
 
             let user = await User.findOne({ userId });
-            if (user) {
+            if (user && user.role === 'astrologer' && user.approvalStatus === 'approved') {
                 Object.assign(user, update);
                 user.isOnline = !!(user.isChatOnline || user.isAudioOnline || user.isVideoOnline);
                 user.isAvailable = user.isOnline;
@@ -78,7 +78,9 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 broadcastAstroUpdate();
                 console.log(`[Service Status] ${user.name} updated ${data.service}: ${isEnabled}, Available: ${user.isAvailable}`);
             }
-        } catch (e) { console.error('update-service-status error:', e); }
+        } catch (e) {
+            console.error('[update-service-status error]:', e.message);
+        }
     });
 
     socket.on('update-status', async (data) => {
@@ -88,7 +90,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
         try {
             const isOnline = !!data.isOnline;
             let user = await User.findOne({ userId });
-            if (user) {
+            if (user && user.role === 'astrologer' && user.approvalStatus === 'approved') {
                 user.isChatOnline = isOnline;
                 user.isAudioOnline = isOnline;
                 user.isVideoOnline = isOnline;
@@ -110,7 +112,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 broadcastAstroUpdate();
                 console.log(`[Presence Mobile] ${user.name} updated status: ${isOnline}, Available: ${user.isAvailable}`);
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error('[update-status error]:', e.message); }
     });
 
     socket.on('app-background', async () => {

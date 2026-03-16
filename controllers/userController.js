@@ -47,15 +47,32 @@ const getUserProfile = async (req, res) => {
 const getAstrologers = async (req, res) => {
     try {
         const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
-            .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
+            .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified displayOrder createdAt')
             .lean();
 
         const formatted = astros.map(a => {
+            // Defensive: ensure all fields are properly serialized
             const isOnlineCalculated = !!(a.isOnline || a.isAudioOnline || a.isChatOnline || a.isVideoOnline);
             return {
-                ...a,
-                isOnline: isOnlineCalculated, // Match socketManager logic
+                userId: a.userId || '',
+                name: a.name || '',
+                phone: a.phone || '',
+                skills: Array.isArray(a.skills) ? a.skills : [],
+                price: Number(a.price) || 0,
+                isOnline: isOnlineCalculated,
+                isChatOnline: !!a.isChatOnline,
+                isAudioOnline: !!a.isAudioOnline,
+                isVideoOnline: !!a.isVideoOnline,
+                experience: Number(a.experience) || 0,
+                isVerified: !!a.isVerified,
                 image: formatImageUrl(a.image, a.name),
+                walletBalance: Number(a.walletBalance) || 0,
+                totalEarnings: Number(a.totalEarnings) || 0,
+                isBusy: !!a.isBusy,
+                languages: Array.isArray(a.languages) ? a.languages : [],
+                orderCount: Number(a.orderCount) || 0,
+                isDocumentVerified: !!a.isDocumentVerified,
+                displayOrder: Number(a.displayOrder) || 0,
                 // Mobile app helper flags
                 showAudio: !isOnlineCalculated || !!a.isAudioOnline,
                 showChat: !isOnlineCalculated || !!a.isChatOnline,

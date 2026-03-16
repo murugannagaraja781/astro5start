@@ -22,16 +22,33 @@ let ioInstance = null;
 
 const getFormattedAstrologers = async () => {
     const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
-        .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified displayOrder')
+        .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified displayOrder createdAt')
         .sort({ displayOrder: -1, isOnline: -1, createdAt: -1 })
         .lean();
 
     return astros.map(a => {
+        // Defensive: ensure all fields are properly serialized
         const isOnlineCalculated = !!(a.isOnline || a.isChatOnline || a.isAudioOnline || a.isVideoOnline);
         return {
-            ...a,
-            isOnline: isOnlineCalculated, // Override DB field for consistency
+            userId: a.userId || '',
+            name: a.name || '',
+            phone: a.phone || '',
+            skills: Array.isArray(a.skills) ? a.skills : [],
+            price: Number(a.price) || 0,
+            isOnline: isOnlineCalculated,
+            isChatOnline: !!a.isChatOnline,
+            isAudioOnline: !!a.isAudioOnline,
+            isVideoOnline: !!a.isVideoOnline,
+            experience: Number(a.experience) || 0,
+            isVerified: !!a.isVerified,
             image: formatImageUrl(a.image, a.name),
+            walletBalance: Number(a.walletBalance) || 0,
+            totalEarnings: Number(a.totalEarnings) || 0,
+            isBusy: !!a.isBusy,
+            languages: Array.isArray(a.languages) ? a.languages : [],
+            orderCount: Number(a.orderCount) || 0,
+            isDocumentVerified: !!a.isDocumentVerified,
+            displayOrder: Number(a.displayOrder) || 0,
             // Mobile app helper flags
             showAudio: !isOnlineCalculated || !!a.isAudioOnline,
             showChat: !isOnlineCalculated || !!a.isChatOnline,
@@ -47,12 +64,15 @@ const broadcastAstroUpdate = async () => {
         const formattedAstros = await getFormattedAstrologers();
         // Wrap in object for Android app compatibility
         const payload = { list: formattedAstros };
+
+        // Safe emit with error handling
         ioInstance.emit('astrologer-update', payload);
         // Also emit 'astro-list' for broader compatibility
         ioInstance.emit('astro-list', payload);
-        console.log(`Broadcasting update for ${formattedAstros.length} astrologers.`);
+
+        console.log(`[Broadcast] Updated ${formattedAstros.length} astrologers.`);
     } catch (e) {
-        console.error('Broadcast Error:', e);
+        console.error('[Broadcast Error]:', e.message);
     }
 };
 
