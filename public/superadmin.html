@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="tailwind-admin-built.css">
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 
 <body class="bg-milk text-slate-900 font-sans h-screen flex flex-col lg:flex-row overflow-hidden">
@@ -234,15 +235,50 @@
 
         <!-- Requests Tab -->
         <section id="tab-requests" class="tab-content hidden animate-up space-y-6">
-            <header>
-                <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Pending Applications</h1>
-                <p class="text-slate-500 font-medium">Review and verify new astrologer registrations</p>
-            </header>
-            <div id="pending-requests-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="col-span-full bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium"
-                    id="no-requests-msg">
-                    No pending registrations found.
+            <header class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Pending Applications</h1>
+                    <p class="text-slate-500 font-medium">Review and verify new astrologer registrations</p>
                 </div>
+                <div class="flex items-center gap-3 bg-white p-1.5 rounded-2xl border border-emerald-50 shadow-sm">
+                    <button onclick="setPendingView('table')" id="btn-pending-table"
+                        class="px-5 py-2 rounded-xl text-xs font-black transition-all bg-brand-green text-white">
+                        <i class="fas fa-list-ul mr-2"></i> Table View
+                    </button>
+                    <button onclick="setPendingView('grid')" id="btn-pending-grid"
+                        class="px-5 py-2 rounded-xl text-xs font-black transition-all text-slate-400 hover:bg-slate-50">
+                        <i class="fas fa-th-large mr-2"></i> Grid View
+                    </button>
+                </div>
+            </header>
+            <div id="pending-table-container"
+                class="bg-white rounded-[2.5rem] border border-emerald-50 shadow-premium overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-slate-50/50">
+                                <th
+                                    class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                    Astrologer</th>
+                                <th
+                                    class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                    Contact & Skills</th>
+                                <th
+                                    class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                    Applied Date</th>
+                                <th
+                                    class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pending-requests-table-body" class="divide-y divide-slate-50"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="pending-requests-grid" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            <div id="no-requests-msg"
+                class="hidden bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium col-span-full">
+                No pending registrations found.
             </div>
         </section>
 
@@ -698,85 +734,104 @@
     </main>
 
     <div id="modal-edit-user"
-        class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4 transition-all duration-300 hidden">
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-2 lg:p-4 transition-all duration-300 hidden">
         <div
-            class="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
-            <header class="p-8 border-b border-slate-50 flex justify-between items-center bg-emerald-50/50">
-                <h3 class="text-2xl font-black text-deep-green tracking-tight">Edit Profile</h3>
+            class="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300 max-h-[90vh] flex flex-col">
+            <header
+                class="p-6 lg:p-8 border-b border-slate-50 flex justify-between items-center bg-emerald-50/50 shrink-0">
+                <h3 class="text-xl lg:text-2xl font-black text-deep-green tracking-tight">Edit Profile</h3>
                 <button onclick="closeModal('modal-edit-user')"
-                    class="w-10 h-10 rounded-full hover:bg-white flex items-center justify-center text-slate-400 transition-colors">&times;</button>
+                    class="w-10 h-10 rounded-full hover:bg-white flex items-center justify-center text-slate-400 transition-colors text-2xl">&times;</button>
             </header>
-            <div class="p-8 space-y-6">
-                <input type="hidden" id="edit-user-id">
-                <input type="hidden" id="edit-user-image">
+            <div class="p-6 lg:p-8 overflow-y-auto custom-scrollbar flex-1">
+                <form onsubmit="saveAdminEditUser(event)" class="space-y-6">
+                    <input type="hidden" id="edit-user-id">
+                    <input type="hidden" id="edit-user-image">
 
-                <!-- Photo Edit Section -->
-                <div class="flex flex-col items-center gap-4 py-2 border-b border-slate-50 mb-4">
-                    <img id="edit-user-preview" src=""
-                        class="w-24 h-24 rounded-3xl object-cover ring-4 ring-emerald-50 shadow-xl">
-                    <button onclick="triggerEditPhotoUpload()"
-                        class="px-6 py-2 rounded-xl bg-emerald-50 text-brand-green font-black text-[10px] uppercase hover:bg-brand-green hover:text-white transition-all">Change
-                        Profile Photo</button>
-                </div>
-                <div class="space-y-2">
-                    <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Full Name</label>
-                    <input type="text" id="edit-user-name"
-                        class="w-full bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold">
-                </div>
-                <div id="edit-astro-fields" class="hidden space-y-6">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="space-y-2">
-                            <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Price / Min
-                                (₹)</label>
-                            <input type="number" id="edit-user-price"
-                                class="w-full bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold">
+                    <!-- Photo Edit Section -->
+                    <div
+                        class="flex flex-col items-center gap-4 py-4 bg-slate-50/50 rounded-3xl border border-dashed border-emerald-100 mb-6">
+                        <img id="edit-user-preview" src=""
+                            class="w-20 h-20 lg:w-28 lg:h-28 rounded-[2rem] object-cover ring-4 ring-white shadow-xl">
+                        <button type="button" onclick="triggerEditPhotoUpload()"
+                            class="px-6 py-2.5 rounded-xl bg-white text-brand-green font-black text-[10px] uppercase shadow-sm hover:bg-brand-green hover:text-white transition-all border border-emerald-100">Change
+                            Profile Photo</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full
+                                Name</label>
+                            <input type="text" id="edit-user-name"
+                                class="w-full bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-sm">
                         </div>
-                        <div class="space-y-2">
-                            <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Experience
-                                (Yrs)</label>
-                            <input type="number" id="edit-user-exp"
-                                class="w-full bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold">
+
+                        <div id="edit-astro-fields" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label
+                                    class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Price /
+                                    Min (₹)</label>
+                                <input type="number" id="edit-user-price"
+                                    class="w-full bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-sm">
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Experience
+                                    (Yrs)</label>
+                                <input type="number" id="edit-user-exp"
+                                    class="w-full bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-sm">
+                            </div>
+                            <div class="space-y-2 md:col-span-2">
+                                <label
+                                    class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Expertise
+                                    Skills (Comma Separated)</label>
+                                <input type="text" id="edit-user-skills"
+                                    class="w-full bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-sm"
+                                    placeholder="e.g. Vedic, Nadi, Numerology">
+                            </div>
+                            <div class="space-y-2 md:col-span-2">
+                                <label
+                                    class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Languages
+                                    (Comma Separated)</label>
+                                <input type="text" id="edit-user-languages"
+                                    class="w-full bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-sm"
+                                    placeholder="e.g. Tamil, English, Hindi">
+                            </div>
+                            <div class="space-y-2 md:col-span-2">
+                                <label
+                                    class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Professional
+                                    Bio</label>
+                                <textarea id="edit-user-bio"
+                                    class="w-full bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-sm min-h-[100px]"></textarea>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label
+                                    class="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl cursor-pointer border border-emerald-100">
+                                    <input type="checkbox" id="edit-user-verified"
+                                        class="w-6 h-6 rounded-lg text-brand-green focus:ring-brand-green border-emerald-200">
+                                    <span class="font-bold text-emerald-900 text-sm">Verified Professional Badge</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-2 bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                            <label
+                                class="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Wallet
+                                Adjustment (₹)</label>
+                            <input type="number" id="edit-user-wallet-adj"
+                                class="w-full bg-white p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-black text-xl shadow-sm"
+                                placeholder="e.g. 100 or -50">
+                            <p class="text-[10px] text-slate-400 mt-2 font-medium italic">Positive adds balance,
+                                negative subtracts.</p>
                         </div>
                     </div>
-                    <div class="space-y-2">
-                        <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Expertise Skills
-                            (Comma Separated)</label>
-                        <input type="text" id="edit-user-skills"
-                            class="w-full bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold"
-                            placeholder="e.g. Vedic, Nadi, Numerology">
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Languages (Comma
-                            Separated)</label>
-                        <input type="text" id="edit-user-languages"
-                            class="w-full bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold"
-                            placeholder="e.g. Tamil, English, Hindi">
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Professional
-                            Bio</label>
-                        <textarea id="edit-user-bio"
-                            class="w-full bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold min-h-[100px]"></textarea>
-                    </div>
-                    <label class="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl cursor-pointer">
-                        <input type="checkbox" id="edit-user-verified"
-                            class="w-6 h-6 rounded-lg text-brand-green focus:ring-brand-green border-emerald-200">
-                        <span class="font-bold text-emerald-900">Verified Professional Badge</span>
-                    </label>
-                </div>
-                <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                    <label class="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">Wallet
-                        Adjustment (₹)</label>
-                    <input type="number" id="edit-user-wallet-adj"
-                        class="w-full bg-white p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-black text-xl shadow-sm"
-                        placeholder="e.g. 100 or -50">
-                    <p class="text-[0.65rem] text-slate-400 mt-2 font-medium">Positive adds balance, negative subtracts.
-                    </p>
-                </div>
-                <button
-                    class="w-full bg-brand-green text-white font-black py-5 rounded-2xl shadow-xl shadow-emerald-100 hover:bg-deep-green transition-all"
-                    onclick="saveAdminEditUser(event)">Apply Changes</button>
+                </form>
             </div>
+            <footer class="p-6 lg:p-8 border-t border-slate-50 shrink-0 bg-white">
+                <button
+                    class="w-full bg-brand-green text-white font-black py-4 lg:py-5 rounded-2xl shadow-xl shadow-emerald-100 hover:bg-deep-green transition-all uppercase tracking-widest text-sm"
+                    onclick="document.forms[0].dispatchEvent(new Event('submit'))">Apply Infrastructure Update</button>
+            </footer>
         </div>
     </div>
 
@@ -1061,6 +1116,7 @@
         let usersCache = [];
         let fcmUsersCache = [];
         let currentAstroView = 'table';
+        let currentPendingView = 'table';
         let activeTab = 'dashboard';
         let onlineOnlyFilter = false;
         let sortableInstance = null;
@@ -1344,7 +1400,7 @@
             const isOnline = u.isOnline;
             const isBusy = u.isBusy;
             return `
-                <div class="bg-white p-4 lg:p-5 rounded-[1.8rem] border ${isBusy ? 'border-red-500 ring-4 ring-red-50 shadow-2xl' : 'border-emerald-50 shadow-premium'} group transition-all duration-300 relative" data-userid="${u.userId}">
+                <div class="bg-white p-4 lg:p-6 rounded-[2.2rem] border ${isBusy ? 'border-red-500 ring-4 ring-red-50 shadow-2xl' : 'border-emerald-50 shadow-premium'} group transition-all duration-300 relative flex flex-col h-full" data-userid="${u.userId}">
                     ${onlineOnlyFilter ? '<div class="drag-handle-card cursor-move absolute top-4 right-4 text-slate-200 hover:text-brand-green p-2 z-10"><i class="fas fa-grip-vertical"></i></div>' : ''}
                     <div class="flex flex-col sm:flex-row justify-between items-start gap-3">
                         <div class="flex gap-3 items-center min-w-0 flex-1">
@@ -1393,34 +1449,90 @@
 
         async function fetchPendingRequests() {
             socket.emit('admin-get-pending-requests', (res) => {
-                const container = document.getElementById('pending-requests-list');
-                if (!container) return;
+                const tableBody = document.getElementById('pending-requests-table-body');
+                const gridContainer = document.getElementById('pending-requests-grid');
+                const noMsg = document.getElementById('no-requests-msg');
+                const tableContainer = document.getElementById('pending-table-container');
 
                 if (res.ok && res.requests.length > 0) {
-                    container.innerHTML = res.requests.map(req => `
-                        <div class="bg-white p-6 rounded-3xl border border-emerald-50 shadow-sm flex items-center justify-between animate-in slide-in-from-bottom-4 duration-300">
-                            <div class="flex items-center gap-4">
-                                <img src="${getProfileImage(req.image, req.name)}" class="w-14 h-14 rounded-2xl object-cover ring-2 ring-emerald-50">
-                                <div>
-                                    <h4 class="font-black text-slate-800">${req.name}</h4>
-                                    <p class="text-xs font-bold text-slate-500">${req.phone} • ${req.skills?.join(', ') || 'No Skills'}</p>
-                                    <div class="text-[10px] text-brand-green font-black uppercase tracking-widest mt-1">${new Date(req.createdAt).toLocaleDateString()} Application</div>
+                    noMsg.classList.add('hidden');
+                    if (currentPendingView === 'table') {
+                        tableContainer.classList.remove('hidden');
+                        gridContainer.classList.add('hidden');
+                        tableBody.innerHTML = res.requests.map(req => `
+                            <tr class="hover:bg-slate-50 transition-all">
+                                <td class="px-8 py-5">
+                                    <div class="flex items-center gap-4">
+                                        <img src="${getProfileImage(req.image, req.name)}" class="w-12 h-12 rounded-xl object-cover ring-2 ring-emerald-50 bg-white">
+                                        <div class="font-black text-slate-800">${req.name}</div>
+                                    </div>
+                                </td>
+                                <td class="px-8 py-5">
+                                    <div class="text-sm font-bold text-slate-600">${req.phone}</div>
+                                    <div class="text-[10px] text-slate-400 font-bold uppercase truncate max-w-[200px]">${req.skills?.join(', ') || 'No Skills Listed'}</div>
+                                </td>
+                                <td class="px-8 py-5">
+                                    <div class="text-[11px] font-black text-brand-green uppercase tracking-widest">${new Date(req.createdAt).toLocaleDateString()}</div>
+                                    <div class="text-[9px] text-slate-400">${new Date(req.createdAt).toLocaleTimeString()}</div>
+                                </td>
+                                <td class="px-8 py-5 text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <button onclick="approvePending('${req.userId}')" class="px-4 py-2 rounded-xl bg-brand-green text-white font-black text-[10px] uppercase shadow-md hover:bg-deep-green transition-all">Approve</button>
+                                        <button onclick="rejectPending('${req.userId}')" class="px-4 py-2 rounded-xl bg-red-50 text-red-500 font-bold text-[10px] uppercase hover:bg-red-500 hover:text-white transition-all">Reject</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        tableContainer.classList.add('hidden');
+                        gridContainer.classList.remove('hidden');
+                        gridContainer.innerHTML = res.requests.map(req => `
+                            <div class="bg-white p-6 rounded-[2rem] border border-emerald-50 shadow-sm relative group overflow-hidden">
+                                <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-50 -mr-12 -mt-12 rounded-full opacity-50 group-hover:scale-150 transition-all duration-500"></div>
+                                <div class="flex items-start gap-4 mb-6 relative z-10">
+                                    <img src="${getProfileImage(req.image, req.name)}" class="w-16 h-16 rounded-2xl object-cover ring-4 ring-emerald-50 bg-white shadow-lg">
+                                    <div>
+                                        <h4 class="font-black text-slate-800 text-lg leading-tight mb-1">${req.name}</h4>
+                                        <p class="text-[11px] font-bold text-slate-500 flex items-center gap-1.5"><i class="fas fa-phone text-brand-green"></i> ${req.phone}</p>
+                                    </div>
                                 </div>
+                                <div class="bg-slate-50/80 p-4 rounded-2xl mb-6 relative z-10 border border-white">
+                                    <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Expertise</div>
+                                    <div class="text-xs font-bold text-slate-700">${req.skills?.join(', ') || 'General Astrology'}</div>
+                                </div>
+                                <div class="flex gap-3 relative z-10">
+                                    <button onclick="approvePending('${req.userId}')" class="flex-1 bg-brand-green text-white font-black py-3 rounded-xl shadow-lg shadow-emerald-100 hover:bg-deep-green transition-all text-xs uppercase tracking-wider">Accept</button>
+                                    <button onclick="rejectPending('${req.userId}')" class="px-5 bg-white border border-slate-100 text-slate-400 font-bold py-3 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all text-xs uppercase tracking-wider">Deny</button>
+                                </div>
+                                <div class="mt-4 text-[9px] text-center font-black text-slate-300 uppercase tracking-tighter">Applied on ${new Date(req.createdAt).toLocaleDateString()}</div>
                             </div>
-                            <div class="flex items-center gap-3">
-                                <button onclick="rejectPending('${req.userId}')" class="px-5 py-2.5 rounded-xl bg-slate-50 text-slate-400 font-bold text-xs hover:bg-red-50 hover:text-red-500 transition-all">Reject</button>
-                                <button onclick="approvePending('${req.userId}')" class="px-5 py-2.5 rounded-xl bg-brand-green text-white font-black text-xs shadow-lg shadow-emerald-100 hover:bg-deep-green transition-all">Approve & Live</button>
-                            </div>
-                        </div>
-                    `).join('');
+                        `).join('');
+                    }
                 } else {
-                    container.innerHTML = `
-                        <div class="bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium">
-                            No pending registrations under review.
-                        </div>
-                    `;
+                    tableContainer.classList.add('hidden');
+                    gridContainer.classList.add('hidden');
+                    noMsg.classList.remove('hidden');
                 }
             });
+        }
+
+        function setPendingView(view) {
+            currentPendingView = view;
+            const btnTable = document.getElementById('btn-pending-table');
+            const btnGrid = document.getElementById('btn-pending-grid');
+
+            if (view === 'table') {
+                btnTable.classList.add('bg-brand-green', 'text-white');
+                btnTable.classList.remove('text-slate-400');
+                btnGrid.classList.remove('bg-brand-green', 'text-white');
+                btnGrid.classList.add('text-slate-400');
+            } else {
+                btnGrid.classList.add('bg-brand-green', 'text-white');
+                btnGrid.classList.remove('text-slate-400');
+                btnTable.classList.remove('bg-brand-green', 'text-white');
+                btnTable.classList.add('text-slate-400');
+            }
+            fetchPendingRequests();
         }
 
         function approvePending(userId) {
@@ -1447,12 +1559,18 @@
             socket.emit('get-slab-rates', (res) => {
                 if (res.ok) {
                     document.getElementById('slab-inputs-container').innerHTML = Object.keys(res.rates).map(k => `
-                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 transition-all hover:bg-white hover:shadow-sm">
-                            <div class="text-[0.65rem] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">SLAB ${k} REVENUE (%)</div>
-                            <div class="relative">
-                                <input type="number" step="0.01" class="w-full bg-white px-5 py-4 rounded-xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-black text-xl text-slate-800 slab-rate-val" data-slab="${k}" value="${res.rates[k]}">
-                                <span class="absolute right-5 top-4 text-slate-400 font-bold">%</span>
+                        <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100 transition-all hover:bg-white hover:shadow-xl group">
+                            <div class="flex justify-between items-center mb-4">
+                                <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">SLAB ${k} REVENUE</div>
+                                <div class="w-8 h-8 rounded-xl bg-emerald-100 text-brand-green flex items-center justify-center opacity-50 group-hover:opacity-100 transition-opacity">
+                                    <i class="fas fa-edit text-[10px]"></i>
+                                </div>
                             </div>
+                            <div class="relative">
+                                <input type="number" step="0.01" class="w-full bg-white px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-black text-2xl text-slate-800 slab-rate-val shadow-sm" data-slab="${k}" value="${res.rates[k]}">
+                                <span class="absolute right-6 top-5 text-slate-300 font-bold text-xl">%</span>
+                            </div>
+                            <div class="mt-3 px-1 text-[9px] font-bold text-slate-400 italic">Platform platform commission for duration slab ${k}</div>
                         </div>
                     `).join('');
                 }
@@ -1840,7 +1958,6 @@
                         <script src="https://cdn.tailwindcss.com"><\/script>
                         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
                         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
-                        <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"><\/script>
     <style>
         body {
             font-family: 'Outfit', sans-serif;
