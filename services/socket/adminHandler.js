@@ -70,7 +70,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
 
             if (typeof cb === "function") cb({ ok: true, user });
         } catch (e) {
-            console.error(e);
+            console.error('[Admin] Update Failed:', e);
             if (typeof cb === "function") cb({ ok: false, error: 'Update Failed' });
         }
     });
@@ -195,6 +195,11 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
     socket.on('admin-force-offline', async (data, cb) => {
         if (!await checkAdmin(socket.id)) return cb?.({ ok: false, error: 'Unauthorized' });
         try {
+            if (!data || !data.userId) {
+                console.error('[Admin] Force Offline Error: Missing userId');
+                return cb?.({ ok: false, error: 'Missing userId' });
+            }
+
             const user = await User.findOne({ userId: data.userId });
             if (!user) return cb?.({ ok: false, error: 'User not found' });
 
@@ -210,9 +215,9 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             broadcastAdminUpdate();
 
             if (typeof cb === "function") cb({ ok: true });
-            console.log(`[Admin] Forced user ${user.name} offline`);
+            console.log(`[Admin] Forced user ${user.name} (${user.userId}) OFFLINE via web.`);
         } catch (e) {
-            console.error(e);
+            console.error('[Admin] Force Offline Exception:', e);
             if (typeof cb === "function") cb({ ok: false, error: 'Operation Failed' });
         }
     });
@@ -220,6 +225,11 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
     socket.on('admin-force-online', async (data, cb) => {
         if (!await checkAdmin(socket.id)) return cb?.({ ok: false, error: 'Unauthorized' });
         try {
+            if (!data || !data.userId) {
+                console.error('[Admin] Force Online Error: Missing userId');
+                return cb?.({ ok: false, error: 'Missing userId' });
+            }
+
             const user = await User.findOne({ userId: data.userId });
             if (!user) return cb?.({ ok: false, error: 'User not found' });
             if (user.role !== 'astrologer') return cb?.({ ok: false, error: 'Only astrologers can be forced online' });
@@ -237,9 +247,9 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             broadcastAdminUpdate();
 
             if (typeof cb === "function") cb({ ok: true });
-            console.log(`[Admin] Forced user ${user.name} online (All Services Enabled)`);
+            console.log(`[Admin] Forced user ${user.name} (${user.userId}) ONLINE/LIVE via web.`);
         } catch (e) {
-            console.error(e);
+            console.error('[Admin] Force Online Exception:', e);
             if (typeof cb === "function") cb({ ok: false, error: 'Operation Failed' });
         }
     });

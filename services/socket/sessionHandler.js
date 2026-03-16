@@ -157,10 +157,16 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             if (!fromUserId || !sessionId || !toUserId) return;
 
             if (!accept) {
+                console.log(`[Session] User ${fromUserId} REJECTED session ${sessionId}`);
                 endSessionRecord(sessionId, 'rejected', io, broadcastAstroUpdate);
             } else {
                 const session = activeSessions.get(sessionId);
-                if (session) session.isAnswered = true;
+                if (session) {
+                    session.isAnswered = true;
+                    console.log(`[Session] User ${fromUserId} ACCEPTED session ${sessionId}`);
+                } else {
+                    console.warn(`[Session] ACCEPTED session ${sessionId} but it was not found in activeSessions`);
+                }
             }
 
             io.to(toUserId).emit('session-answered', {
@@ -170,7 +176,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 accept: !!accept,
             });
 
-        } catch (err) { console.error('answer-session error', err); }
+        } catch (err) { console.error('[FATAL] answer-session error', err); }
     });
 
     socket.on('answer-session-native', async (data, cb) => {
@@ -185,18 +191,27 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
             if (accept) {
                 const activeSess = activeSessions.get(sessionId);
-                if (activeSess) activeSess.isAnswered = true;
+                if (activeSess) {
+                    activeSess.isAnswered = true;
+                    console.log(`[Session Native] Astrologer ${astrologerId} ACCEPTED session ${sessionId}`);
+                }
+            } else {
+                console.log(`[Session Native] Astrologer ${astrologerId} REJECTED session ${sessionId}`);
             }
 
             const session = activeSessions.get(sessionId);
             if (!session) {
+                console.warn(`[Session Native] Session ${sessionId} not in activeSessions, checking DB...`);
                 const dbSession = await Session.findOne({ sessionId });
                 if (!dbSession) {
+                    console.error(`[Session Native] Session ${sessionId} NOT FOUND in DB.`);
                     if (typeof cb === 'function') cb({ ok: false, error: 'Session not found' });
                     return;
                 }
 
                 const fromUserId = dbSession.fromUserId;
+                console.log(`[Session Native] Found DB session. Original caller: ${fromUserId}`);
+
                 if (accept) {
                     io.to(fromUserId).emit('session-answered', {
                         sessionId,
@@ -218,7 +233,20 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 return;
             }
 
+            // session exists in memory
+            if (!session.users || !Array.isArray(session.users)) {
+                console.error(`[Session Native] CRITICAL: session.users is missing or invalid for ${sessionId}`);
+                if (typeof cb === 'function') cb({ ok: false, error: 'Session data corrupted' });
+                return;
+            }
+
             const fromUserId = session.users.find(u => u !== astrologerId);
+            if (!fromUserId) {
+                console.error(`[Session Native] CRITICAL: Could not find other user in session ${sessionId}. Users:`, session.users);
+                if (typeof cb === 'function') cb({ ok: false, error: 'Peer not found' });
+                return;
+            }
+
             if (accept) {
                 io.to(fromUserId).emit('session-answered', {
                     sessionId,
@@ -237,7 +265,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 if (typeof cb === 'function') cb({ ok: true });
             }
 
-        } catch (err) { console.error('answer-session-native error', err); }
+        } catch (err) { console.error('[FATAL] answer-session-native error', err); }
     });
 
     socket.on('signal', (data) => {

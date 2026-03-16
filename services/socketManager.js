@@ -97,8 +97,12 @@ const broadcastReviewUpdate = async (review) => {
 
 const broadcastAdminUpdate = () => {
     if (!ioInstance) return;
-    ioInstance.to('admin-room').emit('admin-refresh');
-    console.log('[Admin] Broadcasting refresh signal to all admins.');
+    try {
+        ioInstance.to('admin-room').emit('admin-refresh');
+        console.log('[Admin] Broadcasting refresh signal to all admins.');
+    } catch (e) {
+        console.error('[Admin Broadcast Error]:', e.message);
+    }
 };
 
 

@@ -118,7 +118,13 @@ server.listen(PORT, () => {
 
 // Error handling for worker threads and unhandled rejections
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught Exception:', err.message);
+  console.error(err.stack);
+  // Optional: process.exit(1); 
 });
 
 module.exports = { app, server };
