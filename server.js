@@ -39,6 +39,7 @@ const io = new Server(server, {
   pingInterval: 25000,
   maxHttpBufferSize: 1e8
 });
+global.io = io;
 
 // Middlewares
 app.use(compression());

@@ -16,5 +16,6 @@ router.post('/send-otp', userController.sendOtp);
 router.post('/verify-otp', userController.verifyOtp);
 router.post('/astrologer/register', userController.registerAstrologer);
 router.get('/admin/notifications', userController.getNotifications);
+router.post('/native/accept-call', userController.acceptCall);
 
 module.exports = router;

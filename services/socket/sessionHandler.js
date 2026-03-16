@@ -141,161 +141,29 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
     });
 
     socket.on('answer-session', async (data, cb) => {
-        try {
-            const { sessionId, accept, type } = data || {};
-            const astrologerId = socketToUser.get(socket.id);
-            if (!astrologerId || !sessionId) return;
-            
-            console.log(`[Session] answer-session: sessionId=${sessionId}, astrologerId=${astrologerId}, accept=${accept}`);
-
-            let session = activeSessions.get(sessionId);
-            if (!session) {
-                console.log(`[Session] Session ${sessionId} not found in memory, checking DB...`);
-                const dbSession = await Session.findOne({ sessionId, status: { $in: ['requested', 'active'] } });
-                if (dbSession) {
-                    session = {
-                        sessionId: dbSession.sessionId,
-                        type: dbSession.type,
-                        clientId: dbSession.clientId,
-                        astrologerId: dbSession.astrologerId,
-                        users: [dbSession.clientId, dbSession.astrologerId],
-                        startedAt: dbSession.startTime,
-                        isAnswered: dbSession.status === 'active',
-                        elapsedBillableSeconds: 0,
-                        lastBilledMinute: 0,
-                        actualBillingStart: dbSession.actualBillingStart || null,
-                        totalDeducted: dbSession.totalCharged || 0,
-                        totalEarned: dbSession.totalEarned || 0,
-                        timeoutId: null
-                    };
-                    activeSessions.set(sessionId, session);
-                    console.log(`[Session] Restored session from DB: ${sessionId} (Status: ${dbSession.status})`);
-                }
-            }
-
-            if (!session) {
-                if (typeof cb === "function") cb({ ok: false, error: 'Session expired' });
-                return;
-            }
-
-            const fromUserId = session.users.find(u => u !== astrologerId);
-            if (!fromUserId) {
-                if (typeof cb === "function") cb({ ok: false, error: 'Counterpart not found' });
-                return;
-            }
-
-            if (accept) {
-                if (session.timeoutId) {
-                    clearTimeout(session.timeoutId);
-                    session.timeoutId = null;
-                }
-                session.isAnswered = true;
-                session.status = 'active';
-                session.actualBillingStart = session.actualBillingStart || Date.now();
-                userActiveSession.set(astrologerId, sessionId);
-                userActiveSession.set(fromUserId, sessionId);
-
-                await Session.updateOne({ sessionId }, { status: 'active', startTime: session.startedAt || Date.now(), actualBillingStart: session.actualBillingStart });
-
-                io.to(fromUserId).emit('session-answered', { sessionId, fromUserId: astrologerId, type: type || session.type, accept: true });
-                if (typeof cb === "function") cb({ ok: true });
-                console.log(`[Session] Call ${sessionId} accepted via web/standard.`);
-            } else {
-                io.to(fromUserId).emit('session-answered', { sessionId, fromUserId: astrologerId, accept: false });
-                endSessionRecord(sessionId, 'rejected', io, broadcastAstroUpdate);
-                if (typeof cb === "function") cb({ ok: true });
-            }
-        } catch (err) { 
-            console.error('answer-session error', err);
-            if (typeof cb === "function") cb({ ok: false, error: 'Internal Error' });
-        }
+        const { sessionId, accept, type } = data || {};
+        const astrologerId = socketToUser.get(socket.id);
+        if (!astrologerId || !sessionId) return;
+        
+        const result = await sessionService.acceptSession(sessionId, astrologerId, accept, type, io, broadcastAstroUpdate);
+        if (typeof cb === "function") cb(result);
     });
 
     socket.on('answer-session-native', async (data, cb) => {
-        try {
-            const { sessionId, accept, callType } = data || {};
-            const astrologerId = socketToUser.get(socket.id);
+        const { sessionId, accept, callType } = data || {};
+        const astrologerId = socketToUser.get(socket.id);
+        if (!astrologerId || !sessionId) {
+            if (typeof cb === 'function') cb({ ok: false, error: 'Invalid data' });
+            return;
+        }
 
-            if (!astrologerId || !sessionId) {
-                if (typeof cb === 'function') cb({ ok: false, error: 'Invalid data' });
-                return;
-            }
-
-            console.log(`[Session] answer-session-native: sessionId=${sessionId}, astrologerId=${astrologerId}, accept=${accept}`);
-            let session = activeSessions.get(sessionId);
-
-            if (!session) {
-                console.log(`[Session] Session ${sessionId} not found in memory, checking DB...`);
-                const dbSession = await Session.findOne({ sessionId, status: { $in: ['requested', 'active'] } });
-                if (dbSession) {
-                    session = {
-                        sessionId: dbSession.sessionId,
-                        type: dbSession.type,
-                        clientId: dbSession.clientId,
-                        astrologerId: dbSession.astrologerId,
-                        users: [dbSession.clientId, dbSession.astrologerId],
-                        startedAt: dbSession.startTime,
-                        isAnswered: dbSession.status === 'active',
-                        elapsedBillableSeconds: 0,
-                        lastBilledMinute: 0,
-                        actualBillingStart: dbSession.actualBillingStart || null,
-                        totalDeducted: dbSession.totalCharged || 0,
-                        totalEarned: dbSession.totalEarned || 0,
-                        timeoutId: null
-                    };
-                    activeSessions.set(sessionId, session);
-                    console.log(`[Session] Restored session from DB: ${sessionId} (Status: ${dbSession.status})`);
-                }
-            }
-
-            if (!session) {
-                console.error(`[Session] CRITICAL: Session ${sessionId} not found.`);
-                if (typeof cb === "function") cb({ ok: false, error: 'Session expired' });
-                return;
-            }
-
-            const fromUserId = session.users.find(u => u !== astrologerId);
-            if (!fromUserId) {
-                if (typeof cb === "function") cb({ ok: false, error: 'Client not found' });
-                return;
-            }
-
-            if (accept) {
-                if (session.timeoutId) {
-                    clearTimeout(session.timeoutId);
-                    session.timeoutId = null;
-                }
-                session.isAnswered = true;
-                session.status = 'active';
-                session.actualBillingStart = session.actualBillingStart || Date.now();
-                userActiveSession.set(astrologerId, sessionId);
-                userActiveSession.set(fromUserId, sessionId);
-
-                await Session.updateOne({ sessionId }, { status: 'active', startTime: session.startedAt || Date.now(), actualBillingStart: session.actualBillingStart });
-
-                io.to(fromUserId).emit('session-answered', {
-                    sessionId,
-                    fromUserId: astrologerId,
-                    type: callType || session.type,
-                    accept: true
-                });
-                if (typeof cb === 'function') cb({ ok: true, fromUserId });
-                console.log(`[Session] Native call ${sessionId} accepted.`);
+        const result = await sessionService.acceptSession(sessionId, astrologerId, accept, callType, io, broadcastAstroUpdate);
+        if (typeof cb === 'function') {
+            if (result.ok && result.counterpartId) {
+                cb({ ok: true, fromUserId: result.counterpartId });
             } else {
-                io.to(fromUserId).emit('session-answered', {
-                    sessionId,
-                    fromUserId: astrologerId,
-                    type: callType || session.type,
-                    accept: false
-                });
-                endSessionRecord(sessionId, 'rejected', io, broadcastAstroUpdate);
-                if (typeof cb === 'function') cb({ ok: true });
-                console.log(`[Session] Native call ${sessionId} rejected.`);
+                cb(result);
             }
-
-        } catch (err) { 
-            console.error('answer-session-native error', err);
-            if (typeof cb === "function") cb({ ok: false, error: 'System Error' });
         }
     });
 

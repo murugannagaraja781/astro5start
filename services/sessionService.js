@@ -261,10 +261,94 @@ async function handleUserConnection(sessionId, userId, io) {
     }
 }
 
+async function acceptSession(sessionId, astrologerId, accept, type, io, broadcastAstroUpdate) {
+    try {
+        console.log(`[SessionService] acceptSession: sid=${sessionId}, astroId=${astrologerId}, accept=${accept}`);
+
+        let session = activeSessions.get(sessionId);
+        if (!session) {
+            console.log(`[SessionService] Session ${sessionId} not found in memory, checking DB...`);
+            const dbSession = await Session.findOne({ sessionId, status: { $in: ['requested', 'active'] } });
+            if (dbSession) {
+                session = {
+                    sessionId: dbSession.sessionId,
+                    type: dbSession.type,
+                    clientId: dbSession.clientId,
+                    astrologerId: dbSession.astrologerId,
+                    users: [dbSession.clientId, dbSession.astrologerId],
+                    startedAt: dbSession.startTime,
+                    isAnswered: dbSession.status === 'active',
+                    elapsedBillableSeconds: 0,
+                    lastBilledMinute: 0,
+                    actualBillingStart: dbSession.actualBillingStart || null,
+                    totalDeducted: dbSession.totalCharged || 0,
+                    totalEarned: dbSession.totalEarned || 0,
+                    timeoutId: null
+                };
+                activeSessions.set(sessionId, session);
+                console.log(`[SessionService] Restored session from DB: ${sessionId}`);
+            }
+        }
+
+        if (!session) {
+            return { ok: false, error: 'Session expired or not found' };
+        }
+
+        const fromUserId = session.users.find(u => u !== astrologerId);
+        if (!fromUserId) {
+            return { ok: false, error: 'Counterpart not found' };
+        }
+
+        if (accept) {
+            if (session.timeoutId) {
+                clearTimeout(session.timeoutId);
+                session.timeoutId = null;
+            }
+            session.isAnswered = true;
+            session.status = 'active';
+            session.actualBillingStart = session.actualBillingStart || Date.now();
+            userActiveSession.set(astrologerId, sessionId);
+            userActiveSession.set(fromUserId, sessionId);
+
+            await Session.updateOne({ sessionId }, { 
+                status: 'active', 
+                startTime: session.startedAt || Date.now(),
+                actualBillingStart: session.actualBillingStart
+            });
+
+            if (io) {
+                io.to(fromUserId).emit('session-answered', { 
+                    sessionId, 
+                    fromUserId: astrologerId, 
+                    type: type || session.type, 
+                    accept: true 
+                });
+            }
+            console.log(`[SessionService] Call ${sessionId} accepted.`);
+            return { ok: true, counterpartId: fromUserId };
+        } else {
+            if (io) {
+                io.to(fromUserId).emit('session-answered', { 
+                    sessionId, 
+                    fromUserId: astrologerId, 
+                    accept: false 
+                });
+            }
+            await endSessionRecord(sessionId, 'rejected', io, broadcastAstroUpdate);
+            console.log(`[SessionService] Call ${sessionId} rejected.`);
+            return { ok: true };
+        }
+    } catch (err) {
+        console.error('[SessionService] acceptSession error', err);
+        return { ok: false, error: 'Internal Error' };
+    }
+}
+
 module.exports = {
     sendCancelCallPush,
     handleMissedCallLogic,
     endSessionRecord,
     getOtherUserIdFromSession,
-    handleUserConnection
+    handleUserConnection,
+    acceptSession
 };

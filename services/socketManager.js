@@ -113,6 +113,14 @@ const initSocket = (io) => {
                         offlineTimeouts.delete(userId);
                     }
 
+                    // Clear session grace period if exists
+                    const { sessionDisconnectTimeouts } = require('./sharedState');
+                    if (sessionDisconnectTimeouts.has(userId)) {
+                        clearTimeout(sessionDisconnectTimeouts.get(userId));
+                        sessionDisconnectTimeouts.delete(userId);
+                        console.log(`[Session] User ${userId} reconnected. Grace period cleared.`);
+                    }
+
                     // When astrologer connects (logins), mark them as online and available
                     user.isOnline = true;
                     user.isAvailable = true;
@@ -152,6 +160,22 @@ const initSocket = (io) => {
                     console.log(`[Presence] ${user.name} socket disconnected. STAYS ONLINE in DB. (isChat:${user.isChatOnline}, isAudio:${user.isAudioOnline}, isVideo:${user.isVideoOnline})`);
                     // We explicitly verify that we are NOT changing any flags here.
                 }
+            }
+
+            // Grace period for active sessions
+            const sessionId = userActiveSession.get(userId);
+            if (sessionId) {
+                const { SESSION_GRACE_PERIOD, sessionDisconnectTimeouts } = require('./sharedState');
+                const sessionService = require('./sessionService');
+                
+                const timeoutId = setTimeout(async () => {
+                    console.log(`[Session] Grace period expired for ${userId} in session ${sessionId}`);
+                    sessionDisconnectTimeouts.delete(userId);
+                    await sessionService.endSessionRecord(sessionId, 'disconnect_timeout', io, broadcastAstroUpdate);
+                }, SESSION_GRACE_PERIOD);
+                
+                sessionDisconnectTimeouts.set(userId, timeoutId);
+                console.log(`[Session] User ${userId} disconnected. Grace period (60s) started.`);
             }
         });
 

@@ -305,6 +305,25 @@ const getNotifications = async (req, res) => {
     }
 };
 
+const acceptCall = async (req, res) => {
+    try {
+        const { sessionId, astrologerId, accept, type } = req.body;
+        if (!sessionId || !astrologerId) {
+            return res.status(400).json({ ok: false, error: 'Missing sessionId or astrologerId' });
+        }
+
+        const sessionService = require('../services/sessionService');
+        const socketManager = require('../services/socketManager');
+        const { broadcastAstroUpdate } = socketManager;
+        
+        const result = await sessionService.acceptSession(sessionId, astrologerId, accept, type, global.io, broadcastAstroUpdate);
+        res.json(result);
+    } catch (err) {
+        console.error('REST accept-call error:', err);
+        res.status(500).json({ ok: false, error: 'Internal Error' });
+    }
+};
+
 module.exports = {
     getUserProfile,
     getAstrologers,
@@ -315,5 +334,6 @@ module.exports = {
     sendOtp,
     verifyOtp,
     registerAstrologer,
-    getNotifications
+    getNotifications,
+    acceptCall
 };
