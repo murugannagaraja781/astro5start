@@ -113,22 +113,27 @@ const initSocket = (io) => {
                         offlineTimeouts.delete(userId);
                     }
 
-                    // When astrologer connects (logins), mark them as online and available
-                    user.isOnline = true;
-                    user.isAvailable = true;
-
-                    // Ensure they have at least one service online if they are connecting
-                    if (!user.isChatOnline && !user.isAudioOnline && !user.isVideoOnline) {
-                        user.isChatOnline = true;
-                        user.isAudioOnline = true;
-                        user.isVideoOnline = true;
-                    }
+                    // FIX: Only update connection state — do NOT override service statuses.
+                    // Astrologer's chat/audio/video online status is set by their own toggle, not by socket connect.
+                    user.isOnline = !!(user.isChatOnline || user.isAudioOnline || user.isVideoOnline);
+                    user.isAvailable = user.isOnline;
 
                     await user.save();
                     broadcastAstroUpdate();
                 }
 
-                if (typeof cb === 'function') cb({ ok: true, user });
+                // FIX: Only send safe fields — never send full Mongoose doc to client
+                const safeUser = {
+                    userId: user.userId,
+                    name: user.name,
+                    role: user.role,
+                    phone: user.phone,
+                    walletBalance: user.walletBalance,
+                    isOnline: user.isOnline,
+                    isAvailable: user.isAvailable
+                };
+
+                if (typeof cb === 'function') cb({ ok: true, user: safeUser, userId: user.userId });
             } catch (err) {
                 console.error('register error', err);
                 if (typeof cb === 'function') cb({ ok: false, error: 'Internal error' });
@@ -243,4 +248,4 @@ const initSocket = (io) => {
     });
 };
 
-module.exports = { initSocket, broadcastAstroUpdate, broadcastReviewUpdate, broadcastAdminUpdate, handleUserConnection, getFormattedAstrologers };
+module.exports = { initSocket, broadcastAstroUpdate, broadcastReviewUpdate, broadcastAdminUpdate, getFormattedAstrologers };
