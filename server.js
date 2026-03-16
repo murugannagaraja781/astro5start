@@ -13,7 +13,10 @@ const { upload } = require('./config/multer');
 const { initFcmAuth } = require('./services/fcmService');
 
 // Connect to Database
-connectDB();
+connectDB().then(() => {
+  const { loadSlabRates } = require('./services/sharedState');
+  loadSlabRates();
+});
 
 // Initialize FCM
 initFcmAuth();

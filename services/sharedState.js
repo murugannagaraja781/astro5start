@@ -24,6 +24,35 @@ let SLAB_RATES = {
     4: 0.50
 };
 
+async function loadSlabRates() {
+    try {
+        const GlobalSettings = require('../models/GlobalSettings');
+        const doc = await GlobalSettings.findOne({ key: 'SLAB_RATES' });
+        if (doc && doc.value) {
+            Object.assign(SLAB_RATES, doc.value);
+            console.log('✓ Slab rates loaded from DB:', SLAB_RATES);
+        }
+    } catch (e) {
+        console.error('Error loading slab rates:', e);
+    }
+}
+
+async function updateSlabRates(newRates) {
+    try {
+        const GlobalSettings = require('../models/GlobalSettings');
+        Object.assign(SLAB_RATES, newRates);
+        await GlobalSettings.findOneAndUpdate(
+            { key: 'SLAB_RATES' },
+            { value: SLAB_RATES },
+            { upsert: true }
+        );
+        return true;
+    } catch (e) {
+        console.error('Error updating slab rates:', e);
+        return false;
+    }
+}
+
 const paymentTokens = new Map();
 
 module.exports = {
@@ -39,5 +68,7 @@ module.exports = {
     sessionDisconnectTimeouts,
     SESSION_GRACE_PERIOD,
     SLAB_RATES,
+    loadSlabRates,
+    updateSlabRates,
     paymentTokens
 };

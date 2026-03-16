@@ -2,7 +2,9 @@
 const {
     userSockets,
     socketToUser,
-    activeSessions
+    activeSessions,
+    SLAB_RATES,
+    updateSlabRates
 } = require('../sharedState');
 const User = require('../../models/User');
 const BillingLedger = require('../../models/BillingLedger');
@@ -15,7 +17,7 @@ const checkAdmin = async (sid) => {
     return u && u.role === 'superadmin';
 };
 
-const handleAdmin = (socket, io, broadcastAstroUpdate) => {
+const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => {
 
     socket.on('get-all-users', async (cb) => {
         if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
@@ -33,6 +35,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate) => {
             if (user.role === 'superadmin') if (typeof cb === "function") return cb({ ok: false, error: 'Cannot delete superadmin' });
 
             await User.deleteOne({ userId: data.userId });
+            broadcastAdminUpdate();
             if (typeof cb === "function") cb({ ok: true });
         } catch (e) {
             if (typeof cb === "function") cb({ ok: false, error: 'Deletion failed' });
@@ -56,6 +59,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate) => {
             await user.save();
 
             if (user.role === 'astrologer') await broadcastAstroUpdate();
+            broadcastAdminUpdate();
 
             const sId = userSockets.get(user.userId);
             if (sId) {
@@ -85,14 +89,43 @@ const handleAdmin = (socket, io, broadcastAstroUpdate) => {
         if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
         try {
             const { orders } = data; // Expecting [{userId, displayOrder}, ...]
-            for (const item of orders) {
-                await User.updateOne({ userId: item.userId }, { displayOrder: item.displayOrder });
-            }
+            if (!Array.isArray(orders)) throw new Error('Invalid data format');
+
+            const bulkOps = orders.map(item => ({
+                updateOne: {
+                    filter: { userId: item.userId },
+                    update: { displayOrder: item.displayOrder }
+                }
+            }));
+
+            await User.bulkWrite(bulkOps);
             await broadcastAstroUpdate();
+            broadcastAdminUpdate();
             if (typeof cb === "function") cb({ ok: true });
         } catch (e) {
             console.error(e);
             if (typeof cb === "function") cb({ ok: false, error: 'Order Update Failed' });
+        }
+    });
+
+    socket.on('get-slab-rates', async (cb) => {
+        if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
+        if (typeof cb === "function") cb({ ok: true, rates: SLAB_RATES });
+    });
+
+    socket.on('update-slab-rates', async (rates, cb) => {
+        if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
+        try {
+            const success = await updateSlabRates(rates);
+            if (success) {
+                if (typeof cb === "function") cb({ ok: true });
+                console.log('Slab rates updated by admin:', rates);
+            } else {
+                if (typeof cb === "function") cb({ ok: false, error: 'Sync Error' });
+            }
+        } catch (e) {
+            console.error(e);
+            if (typeof cb === "function") cb({ ok: false });
         }
     });
 
@@ -112,6 +145,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate) => {
             }
             await user.save();
             await broadcastAstroUpdate();
+            broadcastAdminUpdate();
             if (typeof cb === "function") cb({ ok: true });
         } catch (e) {
             if (typeof cb === "function") cb({ ok: false });

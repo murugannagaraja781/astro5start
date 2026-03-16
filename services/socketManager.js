@@ -63,6 +63,12 @@ const broadcastReviewUpdate = async (review) => {
     }
 };
 
+const broadcastAdminUpdate = () => {
+    if (!ioInstance) return;
+    ioInstance.to('admin-room').emit('admin-refresh');
+    console.log('[Admin] Broadcasting refresh signal to all admins.');
+};
+
 
 const initSocket = (io) => {
     ioInstance = io;
@@ -91,6 +97,11 @@ const initSocket = (io) => {
                 userSockets.set(userId, socket.id);
                 socketToUser.set(socket.id, userId);
                 socket.join(userId);
+
+                if (user.role === 'superadmin') {
+                    socket.join('admin-room');
+                    console.log(`[Admin] User ${userId} joined admin-room`);
+                }
 
                 if (user.role === 'astrologer') {
                     if (offlineTimeouts.has(userId)) {
@@ -153,7 +164,7 @@ const initSocket = (io) => {
         handlePresence(socket, io, broadcastAstroUpdate);
         handleSession(socket, io, broadcastAstroUpdate);
         handleChat(socket, io);
-        handleAdmin(socket, io, broadcastAstroUpdate);
+        handleAdmin(socket, io, broadcastAstroUpdate, broadcastAdminUpdate);
 
         // Add miscelaneous handlers here
         socket.on('get-wallet', async (data) => {
@@ -228,4 +239,4 @@ const initSocket = (io) => {
     });
 };
 
-module.exports = { initSocket, broadcastAstroUpdate, broadcastReviewUpdate, handleUserConnection, getFormattedAstrologers };
+module.exports = { initSocket, broadcastAstroUpdate, broadcastReviewUpdate, broadcastAdminUpdate, handleUserConnection, getFormattedAstrologers };
