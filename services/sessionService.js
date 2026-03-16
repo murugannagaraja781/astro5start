@@ -306,14 +306,21 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
             }
             session.isAnswered = true;
             session.status = 'active';
-            session.actualBillingStart = session.actualBillingStart || Date.now();
+
+            // CRITICAL: Clear any previous billing start; let handleUserConnection handle it 
+            // once both parties are technically connected in their activities.
+            session.actualBillingStart = null;
+            
             userActiveSession.set(astrologerId, sessionId);
             userActiveSession.set(fromUserId, sessionId);
+
+            // Mark astrologer as busy to prevent other calls
+            await User.updateOne({ userId: astrologerId }, { isBusy: true });
 
             await Session.updateOne({ sessionId }, { 
                 status: 'active', 
                 startTime: session.startedAt || Date.now(),
-                actualBillingStart: session.actualBillingStart
+                actualBillingStart: null 
             });
 
             if (io) {
@@ -323,8 +330,18 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
                     type: type || session.type, 
                     accept: true 
                 });
+                
+                // Notify the astrologer that they have accepted successfully (optional but good for debugging)
+                io.to(astrologerId).emit('session-answered', { 
+                    sessionId, 
+                    accept: true,
+                    status: 'active'
+                });
             }
-            console.log(`[SessionService] Call ${sessionId} accepted.`);
+            
+            if (broadcastAstroUpdate) broadcastAstroUpdate();
+            
+            console.log(`[SessionService] Call ${sessionId} accepted. Astrologer ${astrologerId} marked BUSY.`);
             return { ok: true, counterpartId: fromUserId };
         } else {
             if (io) {
