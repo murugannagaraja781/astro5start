@@ -271,7 +271,7 @@ async function handleUserConnection(sessionId, userId, io) {
                             slabLockedAt: 0
                         } 
                     },
-                    { upsert: true, new: true, setDefaultsOnInsert: true }
+                    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
                 );
             } catch (err) {
                 if (err.code === 11000) {
