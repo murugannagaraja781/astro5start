@@ -17,6 +17,7 @@ const handlePresence = require('./socket/presenceHandler');
 const handleSession = require('./socket/sessionHandler');
 const handleChat = require('./socket/chatHandler');
 const handleAdmin = require('./socket/adminHandler');
+const handlePayout = require('./socket/payoutHandler');
 
 let ioInstance = null;
 
@@ -193,6 +194,7 @@ const initSocket = (io) => {
         handleSession(socket, io, broadcastAstroUpdate);
         handleChat(socket, io);
         handleAdmin(socket, io, broadcastAstroUpdate, broadcastAdminUpdate);
+        handlePayout(socket, io);
 
         // Add miscelaneous handlers here
         socket.on('get-wallet', async (data) => {

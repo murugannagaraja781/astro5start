@@ -8,6 +8,7 @@ const {
 } = require('../sharedState');
 const User = require('../../models/User');
 const BillingLedger = require('../../models/BillingLedger');
+const Withdrawal = require('../../models/Withdrawal');
 const { formatImageUrl } = require('../../utils/formatImage');
 
 const checkAdmin = async (sid) => {
@@ -352,6 +353,72 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
         } catch (e) {
             console.error('[Admin] Bulk FCM Error:', e);
             cb?.({ ok: false, error: 'Broadcast Failed' });
+        }
+    });
+
+    socket.on('admin-get-withdrawals', async (data, cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false });
+        try {
+            const withdrawals = await Withdrawal.aggregate([
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'astroId',
+                        foreignField: 'userId',
+                        as: 'astrologer'
+                    }
+                },
+                { $unwind: '$astrologer' },
+                { $sort: { requestedAt: -1 } }
+            ]);
+            cb?.({ ok: true, withdrawals });
+        } catch (e) {
+            console.error('[Admin] admin-get-withdrawals error:', e);
+            cb?.({ ok: false });
+        }
+    });
+
+    socket.on('admin-update-withdrawal', async (data, cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false, error: 'Unauthorized' });
+        try {
+            const { withdrawalId, status } = data;
+            const withdrawal = await Withdrawal.findById(withdrawalId);
+            if (!withdrawal) return cb?.({ ok: false, error: 'Withdrawal not found' });
+
+            if (withdrawal.status !== 'pending' && status !== 'pending') {
+                 return cb?.({ ok: false, error: 'Withdrawal already processed' });
+            }
+
+            withdrawal.status = status;
+            if (status !== 'pending') {
+                withdrawal.processedAt = new Date();
+            }
+
+            // If approved, deduct from astrologer's balance
+            if (status === 'approved') {
+                const user = await User.findOne({ userId: withdrawal.astroId });
+                if (user) {
+                    if (user.walletBalance < withdrawal.amount) {
+                         return cb?.({ ok: false, error: 'Astrologer has insufficient balance now' });
+                    }
+                    user.walletBalance -= withdrawal.amount;
+                    await user.save();
+                    
+                    // Notify astrologer
+                    const sId = userSockets.get(user.userId);
+                    if (sId) {
+                        io.to(sId).emit('wallet-update', { balance: user.walletBalance });
+                    }
+                }
+            }
+
+            await withdrawal.save();
+            broadcastAdminUpdate();
+            cb?.({ ok: true });
+            console.log(`[Admin] Withdrawal ${withdrawalId} updated to ${status}`);
+        } catch (e) {
+            console.error('[Admin] admin-update-withdrawal error:', e);
+            cb?.({ ok: false, error: 'Update failed' });
         }
     });
 
