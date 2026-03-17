@@ -256,10 +256,20 @@ async function handleUserConnection(sessionId, userId, io) {
         try {
             const currentMonth = new Date().toISOString().slice(0, 7);
             const pairId = `${session.clientId}_${session.astrologerId}`;
-            let pairRec = await PairMonth.findOne({ pairId, yearMonth: currentMonth });
-            if (!pairRec) {
-                pairRec = await PairMonth.create({ pairId, clientId: session.clientId, astrologerId: session.astrologerId, yearMonth: currentMonth, currentSlab: 1 });
-            }
+            
+            // ATOMIC FIX: Use findOneAndUpdate with upsert to prevent duplicate key race conditions
+            let pairRec = await PairMonth.findOneAndUpdate(
+                { pairId, yearMonth: currentMonth },
+                { 
+                    $setOnInsert: { 
+                        clientId: session.clientId, 
+                        astrologerId: session.astrologerId, 
+                        currentSlab: 1,
+                        slabLockedAt: 0
+                    } 
+                },
+                { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
             activeSession.pairMonthId = pairRec._id;
             activeSession.currentSlab = pairRec.currentSlab;
             activeSession.initialPairSeconds = pairRec.slabLockedAt || 0;
