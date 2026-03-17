@@ -178,6 +178,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
         try {
             const user = await User.findOne({ userId });
             if (user) {
+                // Set ALL statuses to offline
                 user.isOnline = false;
                 user.isChatOnline = false;
                 user.isAudioOnline = false;
@@ -190,7 +191,18 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 if (user.role === 'astrologer') {
                     broadcastAstroUpdate();
                 }
-                console.log(`[Presence] User ${user.name} (${user.userId}) logged out - status and FCM token cleared`);
+                console.log(`[Presence] User ${user.name} (${user.userId}) logged out - chat/call/video ALL set OFFLINE, FCM token cleared`);
+            }
+
+            // Clean up all in-memory maps to prevent stale state
+            savedAstroStatus.delete(userId);  // Prevent background status restoration
+            userSockets.delete(userId);
+            socketToUser.delete(socket.id);
+
+            // Clear any pending offline timeout
+            if (offlineTimeouts.has(userId)) {
+                clearTimeout(offlineTimeouts.get(userId));
+                offlineTimeouts.delete(userId);
             }
         } catch (e) { console.error('[Logout Error]', e); }
     });
