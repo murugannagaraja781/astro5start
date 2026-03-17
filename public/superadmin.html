@@ -66,7 +66,9 @@
             <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
                 data-tab="withdrawals" onclick="showTab('withdrawals')">
                 <i class="fas fa-money-bill-transfer text-lg lg:w-5 text-center"></i>
-                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Payouts</span>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Withdrawals</span>
+                <span id="withdrawal-count-badge"
+                    class="lg:ml-auto bg-amber-500 text-white text-[0.6rem] font-black px-2 py-0.5 rounded-full shadow-lg border border-white/10 min-w-[22px] text-center hidden">0</span>
             </div>
             <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
                 data-tab="ledger" onclick="showTab('ledger')">
@@ -672,10 +674,10 @@
                         <div class="lg:col-span-4">
                             <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Visual Asset</label>
                             <div class="relative group cursor-pointer" onclick="triggerBannerUpload()">
-                                <div id="banner-preview-container" class="aspect-[16/9] w-full rounded-[2rem] bg-slate-50 border-2 border-dashed border-emerald-100 flex flex-col items-center justify-center text-slate-400 group-hover:bg-emerald-50/50 group-hover:border-emerald-300 transition-all overflow-hidden">
+                                <div id="banner-preview-container" class="aspect-[16/9] max-h-[280px] w-full rounded-[2rem] bg-slate-50 border-2 border-dashed border-emerald-100 flex flex-col items-center justify-center text-slate-400 group-hover:bg-emerald-50/50 group-hover:border-emerald-300 transition-all overflow-hidden shadow-inner">
                                     <i class="fas fa-cloud-upload text-4xl mb-3 group-hover:scale-110 transition-transform"></i>
-                                    <span class="font-bold text-xs">Drop Image or Click</span>
-                                    <img id="banner-preview" class="absolute inset-0 w-full h-full object-cover hidden">
+                                    <span class="font-bold text-xs uppercase tracking-widest">Select Visual Asset</span>
+                                    <img id="banner-preview" class="absolute inset-0 w-full h-full object-contain hidden bg-slate-900/5">
                                 </div>
                                 <input type="file" id="banner-file-input" hidden accept="image/*" onchange="handleBannerUpload(this)">
                                 <input type="hidden" id="banner-image">
@@ -1279,6 +1281,7 @@
             if (activeTab === 'academy') fetchAcademyVideos();
             if (activeTab === 'offers') fetchFcmUsers();
             if (activeTab === 'banner') fetchBanners();
+            if (activeTab === 'withdrawals') fetchWithdrawals();
             if (activeTab === 'photo-approvals') renderPhotoApprovals();
             if (activeTab === 'notifications') fetchNotifications();
             // Also refresh badges
@@ -1287,6 +1290,14 @@
                 if (badge && res.ok) {
                     badge.innerText = res.pendingUsers.length;
                     badge.classList.toggle('hidden', res.pendingUsers.length === 0);
+                }
+            });
+            socket.emit('get-withdrawals', (res) => {
+                const badge = document.getElementById('withdrawal-count-badge');
+                if (badge && res.ok) {
+                    const pendingCount = res.list.filter(w => w.status === 'pending').length;
+                    badge.innerText = pendingCount;
+                    badge.classList.toggle('hidden', pendingCount === 0);
                 }
             });
         }
@@ -1877,7 +1888,15 @@
         function fetchWithdrawals() {
             socket.emit('get-withdrawals', (res) => {
                 const list = document.getElementById('withdrawal-list');
-                if (res.ok && res.list.length > 0) {
+                const badge = document.getElementById('withdrawal-count-badge');
+                if (res.ok) {
+                    const pendingCount = res.list.filter(w => w.status === 'pending').length;
+                    if (badge) {
+                        badge.innerText = pendingCount;
+                        badge.classList.toggle('hidden', pendingCount === 0);
+                    }
+                    
+                    if (res.list.length > 0) {
                     list.innerHTML = res.list.map(w => `
                         <div class="bg-white p-6 rounded-[2rem] border border-emerald-50 shadow-premium flex flex-col md:flex-row justify-between items-center gap-6 group hover:scale-[1.01] transition-all">
                             <div class="flex items-center gap-5 w-full md:w-auto">
@@ -1901,6 +1920,7 @@
                 } else {
                     list.innerHTML = '<div class="bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium font-bold">No active payout requests.</div>';
                 }
+            }
             });
         }
 

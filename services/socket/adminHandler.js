@@ -429,8 +429,35 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
     });
 
     // Alias for superadmin.html
-    socket.on('get-withdrawals', (cb) => {
-        socket.emit('admin-get-withdrawals', {}, cb);
+    socket.on('get-withdrawals', async (cb) => {
+        try {
+            const withdrawals = await Withdrawal.aggregate([
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'astroId',
+                        foreignField: 'userId',
+                        as: 'astrologer'
+                    }
+                },
+                { $unwind: '$astrologer' },
+                { $sort: { requestedAt: -1 } }
+            ]);
+            const list = withdrawals.map(w => ({
+                _id: w._id,
+                amount: w.amount,
+                status: w.status,
+                astroName: w.astrologer?.name || 'Unknown',
+                bankingDetails: {
+                    upiId: w.astrologer?.upiId || w.astrologer?.upiNumber || 'N/A',
+                    accountNumber: w.astrologer?.bankDetails || 'N/A'
+                },
+                requestedAt: w.requestedAt
+            }));
+            cb?.({ ok: true, list });
+        } catch (e) {
+            cb?.({ ok: false });
+        }
     });
 
     socket.on('admin-update-withdrawal', async (data, cb) => {
