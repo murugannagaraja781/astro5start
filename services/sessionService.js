@@ -258,22 +258,37 @@ async function handleUserConnection(sessionId, userId, io) {
             const pairId = `${session.clientId}_${session.astrologerId}`;
             
             // ATOMIC FIX: Use findOneAndUpdate with upsert to prevent duplicate key race conditions
-            let pairRec = await PairMonth.findOneAndUpdate(
-                { pairId, yearMonth: currentMonth },
-                { 
-                    $setOnInsert: { 
-                        clientId: session.clientId, 
-                        astrologerId: session.astrologerId, 
-                        currentSlab: 1,
-                        slabLockedAt: 0
-                    } 
-                },
-                { upsert: true, new: true, setDefaultsOnInsert: true }
-            );
-            activeSession.pairMonthId = pairRec._id;
-            activeSession.currentSlab = pairRec.currentSlab;
-            activeSession.initialPairSeconds = pairRec.slabLockedAt || 0;
-        } catch (e) { console.error('PairMonth Init Error', e); }
+            // Note: MongoDB upsert can still throw 11000 in extreme race conditions, so we catch and findOne.
+            let pairRec;
+            try {
+                pairRec = await PairMonth.findOneAndUpdate(
+                    { pairId, yearMonth: currentMonth },
+                    { 
+                        $setOnInsert: { 
+                            clientId: session.clientId, 
+                            astrologerId: session.astrologerId, 
+                            currentSlab: 1,
+                            slabLockedAt: 0
+                        } 
+                    },
+                    { upsert: true, new: true, setDefaultsOnInsert: true }
+                );
+            } catch (err) {
+                if (err.code === 11000) {
+                    pairRec = await PairMonth.findOne({ pairId, yearMonth: currentMonth });
+                } else {
+                    throw err;
+                }
+            }
+
+            if (pairRec) {
+                activeSession.pairMonthId = pairRec._id;
+                activeSession.currentSlab = pairRec.currentSlab;
+                activeSession.initialPairSeconds = pairRec.slabLockedAt || 0;
+            }
+        } catch (e) { 
+            console.error('PairMonth Init Error', e);
+        }
 
         if (io) {
             console.log('STEP 4: emitting billing-started');
