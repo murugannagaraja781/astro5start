@@ -1,5 +1,21 @@
 // server.js
 require('dotenv').config();
+
+process.on('exit', (code) => {
+  console.log('🚨 EXIT EVENT:', code);
+  console.trace('EXIT TRACE');
+});
+
+process.on('SIGINT', () => {
+  console.log('🚨 SIGINT RECEIVED');
+  console.trace('SIGINT TRACE');
+});
+
+process.on('SIGTERM', () => {
+  console.log('🚨 SIGTERM RECEIVED');
+  console.trace('SIGTERM TRACE');
+});
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');

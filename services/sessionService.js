@@ -189,7 +189,8 @@ function getOtherUserIdFromSession(sessionId, userId) {
 }
 
 async function handleUserConnection(sessionId, userId, io) {
-    console.log(`[SessionService] handleUserConnection: sessionId=${sessionId}, userId=${userId}`);
+    console.log(`[SessionService] handleUserConnection START: sessionId=${sessionId}, userId=${userId}`);
+    console.log('STEP 1: searching session in DB');
     const session = await Session.findOne({ sessionId });
     if (!session) {
         console.log(`[SessionService] handleUserConnection: sessionId=${sessionId} NOT FOUND in DB`);
@@ -211,8 +212,10 @@ async function handleUserConnection(sessionId, userId, io) {
         }
     }
 
+    console.log('STEP 2: updating connection timestamp');
     if (updated) await session.save();
 
+    console.log('STEP 3: restoration/memory check');
     // RESTORE to memory if missing (CRITICAL for server restart recovery)
     let activeSession = activeSessions.get(sessionId);
     if (!activeSession) {
@@ -263,16 +266,19 @@ async function handleUserConnection(sessionId, userId, io) {
         } catch (e) { console.error('PairMonth Init Error', e); }
 
         if (io) {
+            console.log('STEP 4: emitting billing-started');
             io.to(session.clientId).emit('billing-started', { startTime: billingStart });
             io.to(session.astrologerId).emit('billing-started', { startTime: billingStart });
         }
     }
+    console.log('[SessionService] handleUserConnection END');
 }
 
 async function acceptSession(sessionId, astrologerId, accept, type, io, broadcastAstroUpdate) {
     try {
-        console.log(`[SessionService] acceptSession: sid=${sessionId}, astroId=${astrologerId}, accept=${accept}`);
+        console.log(`[SessionService] acceptSession START: sid=${sessionId}, astroId=${astrologerId}, accept=${accept}`);
 
+        console.log('STEP 1: memory check');
         let session = activeSessions.get(sessionId);
         if (!session) {
             console.log(`[SessionService] Session ${sessionId} not found in memory, checking DB...`);
@@ -300,6 +306,11 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
 
         if (!session) {
             return { ok: false, error: 'Session expired or not found' };
+        }
+
+        if (session.isAnswered && accept) {
+            console.log(`[SessionService] Session ${sessionId} already answered. Ignoring duplicate accept.`);
+            return { ok: true, counterpartId: session.users.find(u => u !== astrologerId) };
         }
 
         const fromUserId = session.users.find(u => u !== astrologerId);
@@ -332,6 +343,7 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
             });
 
             if (io) {
+                console.log('STEP 3: emitting session-answered');
                 io.to(fromUserId).emit('session-answered', { 
                     sessionId, 
                     fromUserId: astrologerId, 
@@ -349,7 +361,7 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
             
             if (broadcastAstroUpdate) broadcastAstroUpdate();
             
-            console.log(`[SessionService] Call ${sessionId} accepted. Astrologer ${astrologerId} marked BUSY.`);
+            console.log(`[SessionService] acceptSession END (Accept: true)`);
             return { ok: true, counterpartId: fromUserId };
         } else {
             if (io) {

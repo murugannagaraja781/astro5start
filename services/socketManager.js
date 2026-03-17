@@ -82,6 +82,7 @@ const initSocket = (io) => {
         console.log(`[Socket] New connection: ${socket.id}`);
 
         socket.on('register', async (data, cb) => {
+            console.log('🔥 FIRST REQUEST START (register)', new Date());
             try {
                 const { userId, fcmToken } = data || {};
                 if (!userId) {
