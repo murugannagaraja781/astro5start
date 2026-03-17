@@ -20,10 +20,9 @@ const handlePayout = (socket, io) => {
                 return cb?.({ ok: false, error: 'Only astrologers can request withdrawals' });
             }
 
-            // check if they have enough balance
-            if (user.walletBalance < amount) {
-                return cb?.({ ok: false, error: 'Insufficient balance' });
-            }
+            // Deduct the balance immediately
+            user.walletBalance -= amount;
+            await user.save();
 
             // Create withdrawal request
             await Withdrawal.create({
@@ -32,18 +31,11 @@ const handlePayout = (socket, io) => {
                 status: 'pending'
             });
 
-            // Optional: You might want to deduct the balance immediately or wait for approval
-            // For now, we just record the request as per standard flow.
-            // Some systems "freeze" the amount.
+            console.log(`[Payout] Withdrawal requested by ${user.name}: ₹${amount}. Balance deducted.`);
             
-            console.log(`[Payout] Withdrawal requested by ${user.name}: ₹${amount}`);
-            
-            // Notify admins to refresh their tables
-            if (typeof socket.broadcastAdminUpdate === 'function') {
-                socket.broadcastAdminUpdate();
-            }
-
+            // Emit wallet update to the astrologer
             cb?.({ ok: true });
+            socket.emit('wallet-update', { balance: user.walletBalance });
 
         } catch (e) {
             console.error('[Payout] request-withdrawal error:', e);

@@ -476,20 +476,42 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 withdrawal.processedAt = new Date();
             }
 
-            // If approved, deduct from astrologer's balance
+            // Status updates handled above. Now business logic for approval/rejection:
+            const user = await User.findOne({ userId: withdrawal.astroId });
+
             if (status === 'approved') {
-                const user = await User.findOne({ userId: withdrawal.astroId });
+                // Wallet deduction already happened at request time.
+                // Just send notification.
+                if (user && user.fcmToken) {
+                    const { sendFcmV1Push } = require('../fcmService');
+                    const notification = {
+                        title: "🟢 Payout Approved",
+                        body: `Your withdrawal of ₹${withdrawal.amount} has been approved. The amount will be credited to your bank account within 48 hours.`
+                    };
+                    const payload = { type: 'payout_update', status: 'approved' };
+                    sendFcmV1Push(user.fcmToken, payload, notification).catch(e => console.error('[Admin] Payout Push Fail:', e));
+                }
+            } else if (status === 'rejected') {
+                // Refund the amount to the astrologer
                 if (user) {
-                    if (user.walletBalance < withdrawal.amount) {
-                        return cb?.({ ok: false, error: 'Astrologer has insufficient balance now' });
-                    }
-                    user.walletBalance -= withdrawal.amount;
+                    user.walletBalance += withdrawal.amount;
                     await user.save();
 
-                    // Notify astrologer
+                    // Notify astrologer via socket
                     const sId = userSockets.get(user.userId);
                     if (sId) {
                         io.to(sId).emit('wallet-update', { balance: user.walletBalance });
+                    }
+
+                    // Send FCM notification about rejection
+                    if (user.fcmToken) {
+                        const { sendFcmV1Push } = require('../fcmService');
+                        const notification = {
+                            title: "🔴 Payout Rejected",
+                            body: `Your withdrawal request of ₹${withdrawal.amount} has been rejected. The amount has been refunded to your wallet.`
+                        };
+                        const payload = { type: 'payout_update', status: 'rejected' };
+                        sendFcmV1Push(user.fcmToken, payload, notification).catch(e => console.error('[Admin] Rejection Push Fail:', e));
                     }
                 }
             }
