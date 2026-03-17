@@ -674,11 +674,11 @@
                         <div class="lg:col-span-4">
                             <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Visual Asset</label>
                             <div class="relative group cursor-pointer" onclick="triggerBannerUpload()">
-                                <div id="banner-preview-container" class="aspect-[16/9] max-h-[280px] w-full rounded-[2rem] bg-slate-50 border-2 border-dashed border-emerald-100 flex flex-col items-center justify-center text-slate-400 group-hover:bg-emerald-50/50 group-hover:border-emerald-300 transition-all overflow-hidden shadow-inner">
+                                <div id="banner-preview-container" class="aspect-[16/9] max-h-[280px] w-full rounded-[2rem] bg-slate-50 border-2 border-dashed border-emerald-100 flex flex-col items-center justify-center text-slate-400 group-hover:bg-emerald-50/50 group-hover:border-emerald-300 transition-all overflow-hidden shadow-inner relative">
                                     <i class="fas fa-cloud-upload text-4xl mb-3 group-hover:scale-110 transition-transform"></i>
                                     <span class="font-bold text-xs uppercase tracking-widest">Select Visual Asset</span>
-                                    <img id="banner-preview" class="absolute inset-0 w-full h-full object-contain hidden bg-slate-900/5">
-                                    </div>
+                                    <img id="banner-preview" class="absolute inset-0 w-full h-full object-contain bg-slate-900/5 hidden">
+                                </div>
                                     <input type="file" id="banner-file-input" hidden accept="image/*" onchange="handleBannerUpload(this)">
                                 </div>
                                 <div class="mt-2">
