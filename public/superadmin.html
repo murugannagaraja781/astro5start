@@ -658,21 +658,62 @@
                     <p class="text-slate-500 font-medium">Manage visuals for the main application carousel</p>
                 </div>
             </header>
-            <div class="bg-white p-8 rounded-3xl shadow-premium border border-emerald-50">
-                <h4 class="text-lg font-bold text-slate-800 mb-6">Create New Banner</h4>
-                <form id="banner-form" onsubmit="createBanner(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <input type="text" id="banner-title"
-                        class="bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold"
-                        placeholder="Banner Title" required>
-                    <input type="text" id="banner-image"
-                        class="bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green"
-                        placeholder="Image Resource URL" required>
-                    <input type="number" id="banner-order"
-                        class="bg-slate-50 p-4 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green"
-                        placeholder="Order (0-9)" value="0">
-                    <button type="submit"
-                        class="bg-brand-green text-white font-bold rounded-2xl hover:bg-deep-green transition-all shadow-lg"><i
-                            class="fas fa-upload mr-2"></i> Publish Banner</button>
+            <div class="bg-white p-10 rounded-[2.5rem] shadow-premium border border-emerald-50 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-50/30 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+                
+                <h4 class="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3">
+                    <span class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-lg"><i class="fas fa-plus"></i></span>
+                    New Campaign Banner
+                </h4>
+
+                <form id="banner-form" onsubmit="createBanner(event)" class="space-y-8 relative">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        <!-- Image Upload Section -->
+                        <div class="lg:col-span-4">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Visual Asset</label>
+                            <div class="relative group cursor-pointer" onclick="triggerBannerUpload()">
+                                <div id="banner-preview-container" class="aspect-[16/9] w-full rounded-[2rem] bg-slate-50 border-2 border-dashed border-emerald-100 flex flex-col items-center justify-center text-slate-400 group-hover:bg-emerald-50/50 group-hover:border-emerald-300 transition-all overflow-hidden">
+                                    <i class="fas fa-cloud-upload text-4xl mb-3 group-hover:scale-110 transition-transform"></i>
+                                    <span class="font-bold text-xs">Drop Image or Click</span>
+                                    <img id="banner-preview" class="absolute inset-0 w-full h-full object-cover hidden">
+                                </div>
+                                <input type="file" id="banner-file-input" hidden accept="image/*" onchange="handleBannerUpload(this)">
+                                <input type="hidden" id="banner-image">
+                            </div>
+                        </div>
+
+                        <!-- Details Section -->
+                        <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-400 uppercase mb-1">Headline</label>
+                                <input type="text" id="banner-title" class="w-full bg-slate-50 p-5 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-slate-800 shadow-sm" placeholder="e.g. Navratri Special Offer" required>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-400 uppercase mb-1">Subtext / Summary</label>
+                                <input type="text" id="banner-subtitle" class="w-full bg-slate-50 p-5 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-medium text-slate-600 shadow-sm" placeholder="Limited time consultation price">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-400 uppercase mb-1">Offer Percentage (%)</label>
+                                <input type="number" id="banner-offer" class="w-full bg-slate-50 p-5 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-black text-emerald-600 shadow-sm" placeholder="0" value="0">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase mb-1">Sort Order</label>
+                                    <input type="number" id="banner-order" class="w-full bg-slate-50 p-5 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-slate-800 shadow-sm" value="0">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase mb-1">Expiry Date</label>
+                                    <input type="date" id="banner-expiry" class="w-full bg-slate-50 p-5 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-slate-800 shadow-sm">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-4">
+                        <button type="submit" class="bg-brand-green text-white font-black px-12 py-5 rounded-[2rem] shadow-2xl shadow-emerald-100 hover:bg-deep-green hover:-translate-y-1 active:translate-y-0 transition-all uppercase tracking-[0.2em] text-sm flex items-center gap-4">
+                            Launch Campaign <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
                 </form>
             </div>
             <div id="banner-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
@@ -1755,6 +1796,10 @@
                     const tbody = document.getElementById('ledger-table-body');
                     tbody.innerHTML = res.fullLedger.map(l => {
                         const s = l.sessionInfo || {};
+                        const type = s.type || 'call';
+                        const typeIcon = type === 'chat' ? 'fa-comments' : (type === 'video' ? 'fa-video' : 'fa-phone');
+                        const typeColor = type === 'chat' ? 'bg-blue-50 text-blue-600' : (type === 'video' ? 'bg-purple-50 text-purple-600' : 'bg-emerald-50 text-brand-green');
+
                         return `
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-6 py-5">
@@ -1762,25 +1807,43 @@
                                 <div class="text-[0.6rem] font-black text-slate-400 font-mono tracking-tighter">${new Date(l.createdAt).toLocaleTimeString()}</div>
                             </td>
                             <td class="px-6 py-5">
-                                <div class="flex flex-col gap-1">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-tighter w-10">Client:</span>
-                                        <span class="text-[9px] font-bold text-slate-700 font-mono bg-slate-50 px-1 rounded border border-slate-100">${s.clientId || 'N/A'}</span>
+                                <div class="flex flex-col gap-1.5">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[10px] font-black text-slate-700 leading-none">${l.clientName || 'Unknown User'}</span>
+                                            <span class="text-[8px] font-bold text-slate-400">${l.clientPhone || 'N/A'}</span>
+                                        </div>
                                     </div>
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-[8px] font-black text-brand-green uppercase tracking-tighter w-10">Astro:</span>
-                                        <span class="text-[9px] font-bold text-brand-green font-mono bg-emerald-50 px-1 rounded border border-emerald-100">${s.astrologerId || 'N/A'}</span>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-2 h-2 rounded-full bg-brand-green"></div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[10px] font-black text-brand-green leading-none">${l.astroName || 'Unknown Astro'}</span>
+                                            <span class="text-[8px] font-bold text-slate-500">${l.astroPhone || 'N/A'}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-6 py-5">
-                                <div class="px-2 py-1 rounded-lg bg-emerald-50 text-brand-green text-[0.6rem] font-black uppercase tracking-widest w-fit mb-1">${l.reason || 'session'}</div>
-                                <div class="text-[0.6rem] font-bold text-slate-400 uppercase tracking-tighter">SID: ${l.sessionId?.slice(-12) || 'N/A'}</div>
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    <span class="px-2 py-1 rounded-lg ${typeColor} text-[8px] font-black uppercase tracking-widest flex items-center gap-1">
+                                        <i class="fas ${typeIcon}"></i> ${type}
+                                    </span>
+                                    <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-500 text-[8px] font-black uppercase tracking-widest">${l.reason || 'success'}</span>
+                                </div>
+                                <div class="text-[0.6rem] font-bold text-slate-300 uppercase tracking-tighter font-mono">ID: ${l.sessionId?.slice(-8) || 'N/A'}</div>
                             </td>
-                            <td class="px-6 py-5 font-black text-slate-700 text-xs font-mono">₹${(l.chargedToClient || 0).toFixed(2)}</td>
-                            <td class="px-6 py-5 font-black text-indigo-600 text-xs font-mono">₹${(l.creditedToAstrologer || 0).toFixed(2)}</td>
                             <td class="px-6 py-5">
-                                <span class="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-xl font-black text-xs font-mono tracking-tighter shadow-sm">₹${(l.adminAmount || 0).toFixed(2)}</span>
+                                <div class="text-[8px] font-black text-slate-400 uppercase mb-0.5">Charged</div>
+                                <div class="font-black text-slate-700 text-xs font-mono">₹${(l.chargedToClient || 0).toFixed(2)}</div>
+                            </td>
+                            <td class="px-6 py-5">
+                                <div class="text-[8px] font-black text-indigo-400 uppercase mb-0.5">Astro Earn (${((l.appliedRate || 0.3) * 100).toFixed(0)}%)</div>
+                                <div class="font-black text-indigo-600 text-xs font-mono">₹${(l.creditedToAstrologer || 0).toFixed(2)}</div>
+                            </td>
+                            <td class="px-6 py-5">
+                                <div class="text-[8px] font-black text-emerald-600 uppercase mb-0.5">Admin Profit</div>
+                                <span class="bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-black text-xs font-mono tracking-tighter shadow-sm flex items-center justify-center w-fit">₹${(l.adminAmount || 0).toFixed(2)}</span>
                             </td>
                         </tr>
                         `;
@@ -1892,30 +1955,99 @@
         async function fetchBanners() {
             const res = await fetch('/api/admin/banners').then(r => r.json());
             if (res.ok) document.getElementById('banner-list').innerHTML = res.banners.map(b => `
-                <div class="bg-white p-4 rounded-3xl border border-slate-50 shadow-sm relative group overflow-hidden">
-                    <img src="${b.imageUrl}" class="w-full h-32 object-cover rounded-2xl mb-4 group-hover:scale-110 transition-transform duration-500">
-                    <div class="font-black text-slate-800 text-sm tracking-tight">${b.title}</div>
-                    <div class="text-[0.6rem] text-slate-400 font-black uppercase mt-1">Priority: ${b.order}</div>
-                    <button class="absolute top-2 right-2 w-8 h-8 rounded-full bg-red-500 text-white shadow-xl opacity-0 group-hover:opacity-100 transition-all scale-0 group-hover:scale-100" onclick="deleteBanner('${b._id}')">&times;</button>
+                <div class="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-premium relative group overflow-hidden">
+                    <div class="relative overflow-hidden aspect-[16/9] rounded-2xl mb-4">
+                        <img src="${b.imageUrl}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                        ${b.offerPercentage > 0 ? `<div class="absolute top-2 left-2 bg-red-600 text-white font-black text-[8px] px-2 py-1 rounded-md shadow-lg">-${b.offerPercentage}% OFF</div>` : ''}
+                    </div>
+                    <div class="px-2 pb-2">
+                        <div class="font-black text-slate-800 text-sm tracking-tight">${b.title}</div>
+                        <div class="flex items-center justify-between mt-2">
+                            <div class="text-[0.6rem] text-slate-400 font-bold uppercase tracking-widest">Order: ${b.order}</div>
+                            ${b.expiryDate ? `<div class="text-[0.5rem] font-black text-red-500 bg-red-50 px-2 py-0.5 rounded uppercase">Expiry: ${new Date(b.expiryDate).toLocaleDateString()}</div>` : ''}
+                        </div>
+                    </div>
+                    <button class="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 shadow-2xl opacity-0 group-hover:opacity-100 transition-all scale-0 group-hover:scale-100 flex items-center justify-center hover:bg-red-600 hover:border-red-600" onclick="deleteBanner('${b._id}')"><i class="fas fa-times"></i></button>
                 </div>
             `).join('');
         }
 
+        function triggerBannerUpload() { document.getElementById('banner-file-input').click(); }
+
+        async function handleBannerUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const preview = document.getElementById('banner-preview');
+            const previewContainer = document.getElementById('banner-preview-container');
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData }).then(r => r.json());
+                if (res.ok) {
+                    document.getElementById('banner-image').value = res.url;
+                    preview.src = res.url;
+                    preview.classList.remove('hidden');
+                    previewContainer.classList.add('border-solid', 'border-brand-green');
+                    showToast('Creative Visual Uploaded', 'success');
+                } else alert('Visual Node Failure');
+            } catch (e) { showToast('Asset Hub Busy', 'error'); }
+        }
+
         async function createBanner(e) {
             e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+
             const data = {
                 title: document.getElementById('banner-title').value,
+                subtitle: document.getElementById('banner-subtitle').value,
                 imageUrl: document.getElementById('banner-image').value,
                 order: parseInt(document.getElementById('banner-order').value),
-                ctaText: ''
+                offerPercentage: parseFloat(document.getElementById('banner-offer').value),
+                expiryDate: document.getElementById('banner-expiry').value,
+                ctaText: 'Explore Now'
             };
-            await fetch('/api/admin/banners', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            alert('Banner Synchronized');
-            fetchBanners();
+
+            if (!data.imageUrl) {
+                alert('Please upload a visual asset first.');
+                btn.disabled = false;
+                btn.innerHTML = 'Launch Campaign <i class="fas fa-arrow-right"></i>';
+                return;
+            }
+
+            try {
+                await fetch('/api/admin/banners', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify(data) 
+                });
+                
+                showToast('Campaign Launched Successfully!', 'success');
+                e.target.reset();
+                document.getElementById('banner-preview').classList.add('hidden');
+                document.getElementById('banner-preview-container').classList.remove('border-solid', 'border-brand-green');
+                fetchBanners();
+                
+                // Real-time broadcast
+                socket.emit('admin-broadcast-refresh', { type: 'banners' });
+            } catch (err) {
+                showToast('Campaign Node Error', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Launch Campaign <i class="fas fa-arrow-right"></i>';
+            }
         }
 
         async function deleteBanner(id) {
-            if (confirm('Erase this visual asset?')) { await fetch('/api/admin/banners/' + id, { method: 'DELETE' }); fetchBanners(); }
+            if (confirm('Erase this visual asset?')) { 
+                await fetch('/api/admin/banners/' + id, { method: 'DELETE' }); 
+                showToast('Asset Removed', 'success');
+                fetchBanners(); 
+                socket.emit('admin-broadcast-refresh', { type: 'banners' });
+            }
         }
 
         function openEditUser(id) {

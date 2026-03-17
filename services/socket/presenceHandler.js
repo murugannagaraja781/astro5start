@@ -207,6 +207,48 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
         }
     });
 
+    socket.on('update-profile', async (data, cb) => {
+        const userId = socketToUser.get(socket.id);
+        if (!userId) return cb?.({ ok: false, error: 'Not authenticated' });
+
+        try {
+            const user = await User.findOne({ userId });
+            if (!user) return cb?.({ ok: false, error: 'User not found' });
+
+            const updates = {};
+            // General fields
+            if (data.name) updates.name = data.name;
+            if (data.image) updates.image = data.image;
+            if (data.email) updates.email = data.email;
+
+            // Astrologer specific fields
+            if (user.role === 'astrologer') {
+                if (data.skills) updates.skills = Array.isArray(data.skills) ? data.skills : data.skills.split(',').map(s => s.trim());
+                if (data.languages) updates.languages = Array.isArray(data.languages) ? data.languages : data.languages.split(',').map(l => l.trim());
+                if (data.profession) updates.profession = data.profession;
+                if (data.bio) updates.profession = data.bio; // Bio maps to profession in this schema
+                if (data.experience) updates.experience = parseInt(data.experience);
+            }
+
+            Object.assign(user, updates);
+            await user.save();
+
+            if (user.role === 'astrologer') {
+                broadcastAstroUpdate();
+            }
+
+            const formattedUser = user.toObject ? user.toObject() : user;
+            formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
+            socket.emit('my-profile-updated', formattedUser);
+
+            cb?.({ ok: true, user: formattedUser });
+            console.log(`[Profile] User ${user.name} updated their profile.`);
+        } catch (e) {
+            console.error('[Profile Update Error]', e);
+            cb?.({ ok: false, error: 'Internal Server Error' });
+        }
+    });
+
 };
 
 module.exports = handlePresence;

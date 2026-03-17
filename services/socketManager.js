@@ -42,19 +42,24 @@ const getFormattedAstrologers = async () => {
     });
 };
 
+let broadcastTimeout = null;
 const broadcastAstroUpdate = async () => {
     if (!ioInstance) return;
-    try {
-        const formattedAstros = await getFormattedAstrologers();
-        // Wrap in object for Android app compatibility
-        const payload = { list: formattedAstros };
-        ioInstance.emit('astrologer-update', payload);
-        // Also emit 'astro-list' for broader compatibility
-        ioInstance.emit('astro-list', payload);
-        console.log(`Broadcasting update for ${formattedAstros.length} astrologers.`);
-    } catch (e) {
-        console.error('Broadcast Error:', e);
-    }
+    if (broadcastTimeout) return; // Already scheduled
+
+    broadcastTimeout = setTimeout(async () => {
+        try {
+            const formattedAstros = await getFormattedAstrologers();
+            const payload = { list: formattedAstros };
+            ioInstance.emit('astrologer-update', payload);
+            ioInstance.emit('astro-list', payload);
+            console.log(`[Broadcast] Updated ${formattedAstros.length} astrologers list to all clients.`);
+            broadcastTimeout = null;
+        } catch (e) {
+            console.error('Broadcast Error:', e);
+            broadcastTimeout = null;
+        }
+    }, 2000); // 2 second throttle (USER REQUEST: Reduce frequent list-broadcast overhead)
 };
 
 const broadcastReviewUpdate = async (review) => {
@@ -195,6 +200,9 @@ const initSocket = (io) => {
         handleSession(socket, io, broadcastAstroUpdate);
         handleChat(socket, io);
         handleAdmin(socket, io, broadcastAstroUpdate, broadcastAdminUpdate);
+        
+        // Attach helper to socket so depth sub-handlers can notify admins
+        socket.broadcastAdminUpdate = broadcastAdminUpdate;
         handlePayout(socket, io);
 
         // Add miscelaneous handlers here

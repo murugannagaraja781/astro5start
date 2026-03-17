@@ -16,6 +16,7 @@ const BillingLedgerSchema = new mongoose.Schema({
             'slab_11', 'slab_12', 'slab_13', 'slab_14', 'slab_15', 'slab_16', 'slab_17', 'slab_18', 'slab_19', 'slab_20'
         ]
     },
+    appliedRate: Number, // Percentage given to astrologer (e.g. 0.30)
     createdAt: { type: Date, default: Date.now }
 });
 

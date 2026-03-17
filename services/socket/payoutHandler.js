@@ -37,6 +37,12 @@ const handlePayout = (socket, io) => {
             // Some systems "freeze" the amount.
             
             console.log(`[Payout] Withdrawal requested by ${user.name}: ₹${amount}`);
+            
+            // Notify admins to refresh their tables
+            if (typeof socket.broadcastAdminUpdate === 'function') {
+                socket.broadcastAdminUpdate();
+            }
+
             cb?.({ ok: true });
 
         } catch (e) {

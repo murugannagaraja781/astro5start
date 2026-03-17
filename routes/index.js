@@ -10,12 +10,7 @@ const reviewRoutes = require('./reviewRoutes');
 
 router.use('/', userRoutes);
 router.use('/horoscope', horoscopeRoutes);
-router.use('/home', bannerRoutes);
-router.use('/admin/banners', (req, res, next) => {
-    // Note: In server.js some routes was /api/admin/banners
-    // I will mount them appropriately in server.js
-    next();
-});
+router.use('/', bannerRoutes);
 router.use('/', academyRoutes);
 router.use('/reviews', reviewRoutes);
 

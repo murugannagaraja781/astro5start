@@ -217,7 +217,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
 
             const totalRecords = await BillingLedger.countDocuments(match);
             
-            // Fetch ledger with join and pagination
+            // Fetch ledger with full audit trail (Joins for Session, Client, and Astrologer)
             const fullLedger = await BillingLedger.aggregate([
                 { $match: match },
                 { $sort: { [sortBy]: sortOrder } },
@@ -225,13 +225,51 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 { $limit: parseInt(limit) },
                 {
                     $lookup: {
-                        from: 'sessions', // collection name is usually plural
+                        from: 'sessions',
                         localField: 'sessionId',
                         foreignField: 'sessionId',
                         as: 'sessionInfo'
                     }
                 },
-                { $unwind: { path: '$sessionInfo', preserveNullAndEmptyArrays: true } }
+                { $unwind: { path: '$sessionInfo', preserveNullAndEmptyArrays: true } },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'sessionInfo.clientId',
+                        foreignField: 'userId',
+                        as: 'clientDetails'
+                    }
+                },
+                { $unwind: { path: '$clientDetails', preserveNullAndEmptyArrays: true } },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'sessionInfo.astrologerId',
+                        foreignField: 'userId',
+                        as: 'astroDetails'
+                    }
+                },
+                { $unwind: { path: '$astroDetails', preserveNullAndEmptyArrays: true } },
+                {
+                    $project: {
+                        _id: 1,
+                        sessionId: 1,
+                        minuteIndex: 1,
+                        chargedToClient: 1,
+                        creditedToAstrologer: 1,
+                        adminAmount: 1,
+                        appliedRate: 1,
+                        reason: 1,
+                        createdAt: 1,
+                        'sessionInfo.type': 1,
+                        'sessionInfo.clientId': 1,
+                        'sessionInfo.astrologerId': 1,
+                        clientName: '$clientDetails.name',
+                        clientPhone: '$clientDetails.phone',
+                        astroName: '$astroDetails.name',
+                        astroPhone: '$astroDetails.phone'
+                    }
+                }
             ]);
 
             const billing = billingStats[0] || {};
@@ -371,11 +409,28 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 { $unwind: '$astrologer' },
                 { $sort: { requestedAt: -1 } }
             ]);
-            cb?.({ ok: true, withdrawals });
+            // Format for HTML
+            const list = withdrawals.map(w => ({
+                _id: w._id,
+                amount: w.amount,
+                status: w.status,
+                astroName: w.astrologer?.name || 'Unknown',
+                bankingDetails: {
+                    upiId: w.astrologer?.upiId || w.astrologer?.upiNumber || 'N/A',
+                    accountNumber: w.astrologer?.bankDetails || 'N/A'
+                },
+                requestedAt: w.requestedAt
+            }));
+            cb?.({ ok: true, withdrawals: list, list: list });
         } catch (e) {
             console.error('[Admin] admin-get-withdrawals error:', e);
             cb?.({ ok: false });
         }
+    });
+
+    // Alias for superadmin.html
+    socket.on('get-withdrawals', (cb) => {
+        socket.emit('admin-get-withdrawals', {}, cb);
     });
 
     socket.on('admin-update-withdrawal', async (data, cb) => {
@@ -415,11 +470,26 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             await withdrawal.save();
             broadcastAdminUpdate();
             cb?.({ ok: true });
-            console.log(`[Admin] Withdrawal ${withdrawalId} updated to ${status}`);
         } catch (e) {
             console.error('[Admin] admin-update-withdrawal error:', e);
             cb?.({ ok: false, error: 'Update failed' });
         }
+    });
+
+    // Aliases for superadmin.html
+    socket.on('approve-withdrawal', (data, cb) => {
+        socket.emit('admin-update-withdrawal', { ...data, status: 'approved' }, cb);
+    });
+    socket.on('reject-withdrawal', (data, cb) => {
+        socket.emit('admin-update-withdrawal', { ...data, status: 'rejected' }, cb);
+    });
+    socket.on('admin-broadcast-refresh', ({ type }) => {
+        console.log(`[Admin] Global Refresh requested for: ${type}`);
+        if (type === 'banners') {
+            io.emit('refresh-banners'); // Notify all apps to re-fetch banners
+        }
+        broadcastAstroUpdate(); // Always trigger a list sync just in case
+        broadcastAdminUpdate(); // Update other admins too
     });
 
 };

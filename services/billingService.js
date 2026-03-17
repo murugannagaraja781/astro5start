@@ -153,7 +153,8 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
                 chargedToClient: amountToCharge,
                 creditedToAstrologer: astroShare,
                 adminAmount: adminShare,
-                reason
+                reason,
+                appliedRate: amountToCharge > 0 ? (astroShare / amountToCharge) : 0
             });
 
             const activeSess = activeSessions.get(sessionId);
