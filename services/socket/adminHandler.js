@@ -460,7 +460,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
         }
     });
 
-    socket.on('admin-update-withdrawal', async (data, cb) => {
+    const updateWithdrawalLogic = async (data, cb) => {
         if (!await checkAdmin(socket.id)) return cb?.({ ok: false, error: 'Unauthorized' });
         try {
             const { withdrawalId, status } = data;
@@ -468,7 +468,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             if (!withdrawal) return cb?.({ ok: false, error: 'Withdrawal not found' });
 
             if (withdrawal.status !== 'pending' && status !== 'pending') {
-                 return cb?.({ ok: false, error: 'Withdrawal already processed' });
+                return cb?.({ ok: false, error: 'Withdrawal already processed' });
             }
 
             withdrawal.status = status;
@@ -481,11 +481,11 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 const user = await User.findOne({ userId: withdrawal.astroId });
                 if (user) {
                     if (user.walletBalance < withdrawal.amount) {
-                         return cb?.({ ok: false, error: 'Astrologer has insufficient balance now' });
+                        return cb?.({ ok: false, error: 'Astrologer has insufficient balance now' });
                     }
                     user.walletBalance -= withdrawal.amount;
                     await user.save();
-                    
+
                     // Notify astrologer
                     const sId = userSockets.get(user.userId);
                     if (sId) {
@@ -498,18 +498,16 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             broadcastAdminUpdate();
             cb?.({ ok: true });
         } catch (e) {
-            console.error('[Admin] admin-update-withdrawal error:', e);
+            console.error('[Admin] updateWithdrawalLogic error:', e);
             cb?.({ ok: false, error: 'Update failed' });
         }
-    });
+    };
+
+    socket.on('admin-update-withdrawal', updateWithdrawalLogic);
 
     // Aliases for superadmin.html
-    socket.on('approve-withdrawal', (data, cb) => {
-        socket.emit('admin-update-withdrawal', { ...data, status: 'approved' }, cb);
-    });
-    socket.on('reject-withdrawal', (data, cb) => {
-        socket.emit('admin-update-withdrawal', { ...data, status: 'rejected' }, cb);
-    });
+    socket.on('approve-withdrawal', (data, cb) => updateWithdrawalLogic({ ...data, status: 'approved' }, cb));
+    socket.on('reject-withdrawal', (data, cb) => updateWithdrawalLogic({ ...data, status: 'rejected' }, cb));
     socket.on('admin-broadcast-refresh', ({ type }) => {
         console.log(`[Admin] Global Refresh requested for: ${type}`);
         if (type === 'banners') {
