@@ -76,6 +76,34 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
         }
     });
 
+    socket.on('admin-add-wallet', async (data, cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false, error: 'Unauthorized' });
+        try {
+            const { userId, amount } = data;
+            const user = await User.findOne({ userId });
+            if (!user) return cb?.({ ok: false, error: 'User not found' });
+
+            user.walletBalance = (user.walletBalance || 0) + parseFloat(amount);
+            await user.save();
+
+            // Notify user
+            const targetSid = userSockets.get(user.userId);
+            if (targetSid) {
+                io.to(targetSid).emit('wallet-update', { balance: user.walletBalance });
+                io.to(targetSid).emit('notification', { 
+                    title: 'Wallet Updated', 
+                    body: `Admin adjusted your wallet by ₹${amount}. New balance: ₹${user.walletBalance}` 
+                });
+            }
+
+            broadcastAdminUpdate();
+            cb?.({ ok: true });
+        } catch (e) {
+            console.error(e);
+            cb?.({ ok: false, error: 'Wallet sync failed' });
+        }
+    });
+
     socket.on('admin-get-pending-requests', async (cb) => {
         if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
         try {

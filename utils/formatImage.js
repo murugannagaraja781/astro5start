@@ -6,12 +6,18 @@ function formatImageUrl(imgPath, name) {
         return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=random`;
     }
     if (imgPath.startsWith('http')) return imgPath;
+    
+    let path = imgPath;
+    if (!path.startsWith('/') && !path.startsWith('images/') && !path.startsWith('uploads/')) {
+        path = '/uploads/' + path;
+    } else if (!path.startsWith('/')) {
+        path = '/' + path;
+    }
+
     if (SERVER_URL) {
-        // Ensure imgPath starts with / for joining
-        const path = imgPath.startsWith('/') ? imgPath : `/${imgPath}`;
         return `${SERVER_URL}${path}`;
     }
-    return imgPath;
+    return path;
 }
 
 module.exports = { formatImageUrl };

@@ -3,17 +3,16 @@ require('dotenv').config();
 
 process.on('exit', (code) => {
   console.log('🚨 EXIT EVENT:', code);
-  console.trace('EXIT TRACE');
 });
 
 process.on('SIGINT', () => {
-  console.log('🚨 SIGINT RECEIVED');
-  console.trace('SIGINT TRACE');
+  console.log('🚨 SIGINT RECEIVED - Shutting down');
+  process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  console.log('🚨 SIGTERM RECEIVED');
-  console.trace('SIGTERM TRACE');
+  console.log('🚨 SIGTERM RECEIVED - Shutting down');
+  process.exit(0);
 });
 
 const express = require('express');
