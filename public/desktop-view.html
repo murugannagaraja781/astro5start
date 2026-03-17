@@ -802,6 +802,19 @@
       background: white;
     }
 
+    .time-12h-group {
+      display: flex;
+      gap: 5px;
+    }
+    .time-12h-group select, .time-12h-group input {
+      flex: 1;
+      padding: 10px 5px;
+      border: 1px solid #D1D5DB;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
     .generate-btn {
       font-size: 1.1rem;
       padding: 15px;
@@ -3051,8 +3064,29 @@
               <input type="date" id="clientChartDate" class="app-input">
             </div>
             <div style="flex:1">
-              <label>Time of Birth</label>
-              <input type="time" id="clientChartTime" class="app-input">
+              <label>Time of Birth (12h)</label>
+              <div class="time-12h-group">
+                <select id="clientChartTime-h" class="app-input" style="padding: 10px 5px;">
+                  <option value="">Hour</option>
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                  <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                  <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                  <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                </select>
+                <select id="clientChartTime-m" class="app-input" style="padding: 10px 5px;">
+                  <option value="">Min</option>
+                  <script>
+                    for(let i=0; i<60; i++) {
+                      let v = i.toString().padStart(2,'0');
+                      document.write(`<option value="${v}">${v}</option>`);
+                    }
+                  </script>
+                </select>
+                <select id="clientChartTime-ampm" class="app-input" style="padding: 10px 5px;">
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              </div>
             </div>
           </div>
           <div style="margin-top:5px;">
@@ -3130,8 +3164,29 @@
             </div>
             <div class="input-row" style="margin-top:10px;">
               <div style="flex:1">
-                <label>Partner Time</label>
-                <input type="time" id="partnerTob" class="app-input">
+                <label>Partner Time (12h)</label>
+                <div class="time-12h-group">
+                  <select id="partnerTob-h" class="app-input" style="padding: 10px 5px;">
+                    <option value="">HH</option>
+                    <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                    <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                    <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                    <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                  </select>
+                  <select id="partnerTob-m" class="app-input" style="padding: 10px 5px;">
+                    <option value="">MM</option>
+                    <script>
+                      for(let i=0; i<60; i++) {
+                        let v = i.toString().padStart(2,'0');
+                        document.write(`<option value="${v}">${v}</option>`);
+                      }
+                    </script>
+                  </select>
+                  <select id="partnerTob-ampm" class="app-input" style="padding: 10px 5px;">
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                </div>
               </div>
               <div style="flex:1">
                 <label>Partner Place</label>
@@ -3867,7 +3922,37 @@
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
   <script src="https://unpkg.com/simple-peer/simplepeer.min.js"></script>
   <script>
-    const state = { me: null, socket: null, session: null, peer: null, localStream: null, lang: 'ta' };
+    const state = { me: null, socket: null, session: null, peer: null, localStream: null, lang: 'ta', pendingAction: null };
+
+    function set12hTime(prefix, tob) {
+      if (!tob) return;
+      try {
+        const [h24, m] = tob.split(':').map(Number);
+        const ampm = h24 >= 12 ? 'PM' : 'AM';
+        const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+        const h_el = document.getElementById(prefix + '-h');
+        const m_el = document.getElementById(prefix + '-m');
+        const ampm_el = document.getElementById(prefix + '-ampm');
+        if (h_el) h_el.value = h12;
+        if (m_el) m_el.value = m.toString().padStart(2, '0');
+        if (ampm_el) ampm_el.value = ampm;
+      } catch (e) { console.error("set12h error", e); }
+    }
+
+    function get24hTime(prefix) {
+      const h_el = document.getElementById(prefix + '-h');
+      const m_el = document.getElementById(prefix + '-m');
+      const ampm_el = document.getElementById(prefix + '-ampm');
+      if (!h_el || !m_el || !ampm_el) return "";
+      const h = parseInt(h_el.value);
+      const m = m_el.value;
+      const ampm = ampm_el.value;
+      if (isNaN(h) || !m) return "";
+      let h24 = h;
+      if (ampm === "PM" && h < 12) h24 += 12;
+      else if (ampm === "AM" && h === 12) h24 = 0;
+      return `${h24.toString().padStart(2, '0')}:${m}`;
+    }
     window.state = state; // Expose for Android onResume wallet refresh
 
     // --- Translation Logic ---
@@ -4476,11 +4561,25 @@
         showLogin();
         return;
       }
+      
+      // Enforce intake form if missing details (Consolation Form)
+      const me = state.me || {};
+      const id = me.intakeDetails || {};
+      const bd = me.birthDetails || {};
+      const isComplete = id.topic && bd.dob && bd.pob;
+
+      if (!isComplete) {
+        console.log("[Intake] Form incomplete, redirecting...");
+        state.pendingAction = { actionType, args };
+        openEditIntakeForm(); 
+        return;
+      }
+
       // Execute the actual action
       if (typeof actionType === 'function') {
         actionType(...args);
       } else if (actionType === 'chat') {
-        showChatWithBirthChart(...args); // args[0] is astroId
+        showChatWithBirthChart(...args); 
       } else if (actionType === 'call') {
         requestSession(args[0], 'audio');
       } else if (actionType === 'video') {
@@ -5562,7 +5661,27 @@
       }
 
       // 3. Emit Request
-      socket.emit('request-session', { toUserId: targetId, type }, (res) => {
+      const birthData = (function() {
+        if (!state.me) return null;
+        const bd = state.me.birthDetails;
+        const id = state.me.intakeDetails;
+        if (!bd || !bd.dob) return null;
+        const [y, m, d] = bd.dob.split('-').map(Number);
+        const [h, min] = (bd.tob || "00:00").split(':').map(Number);
+        return {
+           name: bd.name || state.me.name,
+           gender: id.gender || 'Male',
+           day: d, month: m, year: y,
+           hour: h, minute: min,
+           city: bd.pob, latitude: bd.lat, longitude: bd.lon,
+           timezone: bd.tz || 5.5,
+           topic: id.topic || 'General',
+           maritalStatus: id.marital || 'Single',
+           occupation: id.occupation || ''
+        };
+      })();
+
+      socket.emit('request-session', { toUserId: targetId, type, birthData }, (res) => {
         if (res.ok) {
           // Store pending session details for when 'session-answered' comes
           state.tempSessionId = res.sessionId;
@@ -6453,17 +6572,13 @@
     window.showChatWithBirthChart = function (astroId) {
       window.selectedAstroId = astroId;
 
-      // Smart Check: If we already have intake details, skip the form!
       if (state.me && state.me.intakeDetails && state.me.intakeDetails.topic) {
-        // We have details. Construct birthData for the request directly.
-        // NOTE: We need birthData (lat/lon etc) which are in state.me.birthDetails
         const bd = state.me.birthDetails;
         const id = state.me.intakeDetails;
 
         if (bd && bd.dob && bd.lat) {
-          // Parse DOB/Time
           const [y, m, d] = bd.dob.split('-').map(Number);
-          const [h, min] = bd.tob.split(':').map(Number);
+          const [h, min] = (bd.tob || "00:00").split(':').map(Number);
 
           const birthData = {
             name: state.me.name,
@@ -6477,10 +6592,9 @@
             latitude: bd.lat,
             longitude: bd.lon,
             city: bd.pob,
-            timezone: 5.5 // Default
+            timezone: 5.5
           };
 
-          // Direct Request
           socket.emit('request-session', { toUserId: astroId, type: 'chat', birthData }, (res) => {
             if (res.ok) initSession(res.sessionId, astroId, 'chat', true, null);
             else alert('Request failed: ' + res.error);
@@ -6494,7 +6608,7 @@
 
       const now = new Date();
       document.getElementById('clientChartDate').value = now.toISOString().split('T')[0];
-      document.getElementById('clientChartTime').value = now.toTimeString().slice(0, 5);
+      set12hTime('clientChartTime', `${now.getHours()}:${now.getMinutes()}`);
 
       if (state.me) {
         document.getElementById('clientChartName').value = state.me.name || '';
@@ -6502,7 +6616,7 @@
         // Pre-fill if partial data exists
         if (state.me.birthDetails && state.me.birthDetails.pob) {
           if (state.me.birthDetails.dob) document.getElementById('clientChartDate').value = state.me.birthDetails.dob;
-          if (state.me.birthDetails.tob) document.getElementById('clientChartTime').value = state.me.birthDetails.tob;
+          if (state.me.birthDetails.tob) set12hTime('clientChartTime', state.me.birthDetails.tob);
           if (state.me.birthDetails.pob) document.getElementById('clientCitySearch').value = state.me.birthDetails.pob;
           if (state.me.birthDetails.lat) document.getElementById('clientChartLat').value = state.me.birthDetails.lat;
           if (state.me.birthDetails.lon) document.getElementById('clientChartLon').value = state.me.birthDetails.lon;
@@ -6526,7 +6640,7 @@
         if (state.me.birthDetails) {
           const bd = state.me.birthDetails;
           if (bd.dob) document.getElementById('clientChartDate').value = bd.dob;
-          if (bd.tob) document.getElementById('clientChartTime').value = bd.tob;
+          if (bd.tob) set12hTime('clientChartTime', bd.tob);
           if (bd.pob) document.getElementById('clientCitySearch').value = bd.pob;
           if (bd.lat) document.getElementById('clientChartLat').value = bd.lat;
           if (bd.lon) document.getElementById('clientChartLon').value = bd.lon;
@@ -6546,7 +6660,7 @@
             document.getElementById('partnerFields').style.display = 'block';
             document.getElementById('partnerName').value = id.partner.name;
             document.getElementById('partnerDob').value = id.partner.dob;
-            document.getElementById('partnerTob').value = id.partner.tob;
+            if (id.partner.tob) set12hTime('partnerTob', id.partner.tob);
             document.getElementById('partnerPob').value = id.partner.pob;
           }
         }
@@ -6555,7 +6669,7 @@
 
     window.sendChatWithBirthChart = function () {
       const date = document.getElementById('clientChartDate').value;
-      const time = document.getElementById('clientChartTime').value;
+      const time = get24hTime('clientChartTime');
       const city = document.getElementById('clientCitySearch').value;
       const lat = document.getElementById('clientChartLat').value;
       const lon = document.getElementById('clientChartLon').value;
@@ -6581,7 +6695,7 @@
         partner = {
           name: document.getElementById('partnerName').value,
           dob: document.getElementById('partnerDob').value,
-          tob: document.getElementById('partnerTob').value,
+          tob: get24hTime('partnerTob'),
           pob: document.getElementById('partnerPob').value
         };
       }
@@ -6622,6 +6736,15 @@
       // 2. Decide: New Request OR Update Existing?
       // If we are definitely in a session (screen visible + session obj exists)
       const isInSession = state.session && !document.getElementById('screen-session').classList.contains('hidden');
+
+      if (state.pendingAction) {
+        const { actionType, args } = state.pendingAction;
+        state.pendingAction = null;
+        if (actionType === 'chat') showChatWithBirthChart(...args);
+        else if (actionType === 'call') requestSession(args[0], 'audio');
+        else if (actionType === 'video') requestSession(args[0], 'video');
+        return;
+      }
 
       if (isInSession) {
         // Just notify user (and maybe partner via chat system msg later)
