@@ -167,7 +167,28 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
     socket.on('admin-get-ledger-stats', async (data, cb) => {
         if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
         try {
+            const { 
+                page = 1, 
+                limit = 50, 
+                startDate, 
+                endDate, 
+                search, 
+                sortBy = 'createdAt', 
+                sortOrder = -1 
+            } = data;
+
+            const skip = (page - 1) * limit;
+
+            // Stats aggregation (remains mostly same but can be filtered by date)
+            const statsMatch = {};
+            if (startDate || endDate) {
+                statsMatch.createdAt = {};
+                if (startDate) statsMatch.createdAt.$gte = new Date(startDate);
+                if (endDate) statsMatch.createdAt.$lte = new Date(endDate);
+            }
+
             const billingStats = await BillingLedger.aggregate([
+                { $match: statsMatch },
                 {
                     $group: {
                         _id: null,
@@ -182,11 +203,37 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             const totalUsers = await User.countDocuments();
             const pendingRequests = await User.countDocuments({ role: 'astrologer', approvalStatus: 'pending' });
             const activeSessionCount = activeSessions.size;
-            const fullLedger = await BillingLedger.find({}).sort({ createdAt: -1 }).limit(100);
-
-            const billing = billingStats[0] || {};
             const onlineAstrologers = await User.countDocuments({ role: 'astrologer', isOnline: true });
 
+            // Build ledger query with filters
+            let match = { ...statsMatch };
+            if (search) {
+                match.$or = [
+                    { sessionId: { $regex: search, $options: 'i' } },
+                    { reason: { $regex: search, $options: 'i' } }
+                ];
+            }
+
+            const totalRecords = await BillingLedger.countDocuments(match);
+            
+            // Fetch ledger with join and pagination
+            const fullLedger = await BillingLedger.aggregate([
+                { $match: match },
+                { $sort: { [sortBy]: sortOrder } },
+                { $skip: skip },
+                { $limit: parseInt(limit) },
+                {
+                    $lookup: {
+                        from: 'sessions', // collection name is usually plural
+                        localField: 'sessionId',
+                        foreignField: 'sessionId',
+                        as: 'sessionInfo'
+                    }
+                },
+                { $unwind: { path: '$sessionInfo', preserveNullAndEmptyArrays: true } }
+            ]);
+
+            const billing = billingStats[0] || {};
             const stats = {
                 totalRevenue: billing.totalRevenue || 0,
                 adminProfit: billing.totalAdminRevenue || 0,
@@ -198,8 +245,9 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 onlineAstrologers
             };
 
-            if (typeof cb === "function") cb({ ok: true, stats, fullLedger });
+            if (typeof cb === "function") cb({ ok: true, stats, fullLedger, totalRecords, totalPages: Math.ceil(totalRecords / limit), currentPage: parseInt(page) });
         } catch (e) {
+            console.error('Ledger stats error:', e);
             if (typeof cb === "function") cb({ ok: false });
         }
     });

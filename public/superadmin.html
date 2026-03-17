@@ -410,39 +410,70 @@
 
         <!-- Ledger Tab -->
         <section id="tab-ledger" class="tab-content hidden animate-up space-y-6">
-            <header class="flex items-center gap-4">
-                <button onclick="showTab('dashboard')"
-                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-slate-400 hover:text-brand-green transition-all shadow-sm"><i
-                        class="fas fa-arrow-left"></i></button>
+            <header class="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Billing Records</h1>
                     <p class="text-slate-500 font-medium">Platform-wide transaction audit trail</p>
                 </div>
+                <!-- Filter Bar -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="relative group w-full md:w-48">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" id="ledger-search" placeholder="Session/Reason..."
+                            class="w-full bg-white border border-emerald-100 pl-9 pr-3 py-2 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-brand-green/20"
+                            oninput="ledgerPage=1; fetchLedger()">
+                    </div>
+                    <div class="flex items-center gap-2 bg-white border border-emerald-100 rounded-xl px-3 py-1.5 shadow-sm">
+                        <i class="fas fa-calendar-alt text-slate-400 text-xs"></i>
+                        <input type="date" id="ledger-start-date" class="text-xs font-bold text-slate-600 outline-none" onchange="ledgerPage=1; fetchLedger()">
+                        <span class="text-slate-300">-</span>
+                        <input type="date" id="ledger-end-date" class="text-xs font-bold text-slate-600 outline-none" onchange="ledgerPage=1; fetchLedger()">
+                    </div>
+                </div>
             </header>
+
             <div class="bg-white rounded-3xl border border-emerald-50 shadow-premium overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-slate-50">
-                                <th
-                                    class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
-                                    Transaction Time</th>
-                                <th
-                                    class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
-                                    Service Category</th>
-                                <th
-                                    class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
-                                    Charged</th>
-                                <th
-                                    class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
-                                    Astro Profit</th>
-                                <th
-                                    class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
-                                    Admin Margin</th>
+                                <th class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 cursor-pointer hover:text-brand-green transition-colors" onclick="sortLedger('createdAt')">
+                                    Time <i class="fas fa-sort ml-1 opacity-40"></i>
+                                </th>
+                                <th class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                    Participants
+                                </th>
+                                <th class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                    Service Info
+                                </th>
+                                <th class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 cursor-pointer hover:text-brand-green transition-colors" onclick="sortLedger('chargedToClient')">
+                                    Charged <i class="fas fa-sort ml-1 opacity-40"></i>
+                                </th>
+                                <th class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 cursor-pointer hover:text-brand-green transition-colors" onclick="sortLedger('creditedToAstrologer')">
+                                    Astro Profit <i class="fas fa-sort ml-1 opacity-40"></i>
+                                </th>
+                                <th class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 cursor-pointer hover:text-brand-green transition-colors" onclick="sortLedger('adminAmount')">
+                                    Margin <i class="fas fa-sort ml-1 opacity-40"></i>
+                                </th>
                             </tr>
                         </thead>
                         <tbody id="ledger-table-body" class="divide-y divide-slate-50"></tbody>
                     </table>
+                </div>
+                <!-- Pagination -->
+                <div class="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+                    <div class="text-[0.65rem] font-bold text-slate-400 uppercase tracking-widest">
+                        Total Records: <span id="ledger-total-count" class="text-slate-600">0</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="changeLedgerPage(-1)" id="ledger-prev-btn" class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-brand-green disabled:opacity-30 disabled:pointer-events-none transition-all shadow-sm">
+                            <i class="fas fa-chevron-left text-xs"></i>
+                        </button>
+                        <span class="text-[0.7rem] font-black text-slate-600 px-3 tracking-widest uppercase">Page <span id="ledger-current-page">1</span> / <span id="ledger-total-pages">1</span></span>
+                        <button onclick="changeLedgerPage(1)" id="ledger-next-btn" class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-brand-green disabled:opacity-30 disabled:pointer-events-none transition-all shadow-sm">
+                            <i class="fas fa-chevron-right text-xs"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1120,6 +1151,12 @@
         let onlineOnlyFilter = false;
         let sortableInstance = null;
 
+        // Ledger State
+        let ledgerPage = 1;
+        let ledgerLimit = 50;
+        let ledgerSortBy = 'createdAt';
+        let ledgerSortOrder = -1;
+
         function getProfileImage(img, name) {
             if (!img || img === 'null' || img === 'undefined') return `https://ui-avatars.com/api/?background=f0fdf4&color=059669&bold=true&name=${encodeURIComponent(name)}`;
             if (img.startsWith('http') || img.startsWith('data:')) return img;
@@ -1699,23 +1736,75 @@
         }
 
         function fetchLedger() {
-            socket.emit('admin-get-ledger-stats', {}, (res) => {
-                if (res.ok) document.getElementById('ledger-table-body').innerHTML = res.fullLedger.slice(0, 100).map(l => `
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-6 py-5">
-                            <div class="font-bold text-slate-800 text-sm whitespace-nowrap">${new Date(l.createdAt).toLocaleDateString()}</div>
-                            <div class="text-[0.6rem] font-black text-slate-400 font-mono tracking-tighter">${new Date(l.createdAt).toLocaleTimeString()}</div>
-                        </td>
-                        <td class="px-6 py-5">
-                            <div class="px-2 py-1 rounded-lg bg-emerald-50 text-brand-green text-[0.6rem] font-black uppercase tracking-widest w-fit mb-1">${l.reason || 'session'}</div>
-                            <div class="text-[0.6rem] font-bold text-slate-400 uppercase tracking-tighter">ID: ${l.sessionId?.slice(-8) || 'N/A'}</div>
-                        </td>
-                        <td class="px-6 py-5 font-black text-slate-700 text-sm font-mono">₹${(l.chargedToClient || 0).toFixed(2)}</td>
-                        <td class="px-6 py-5 font-black text-indigo-600 text-sm font-mono">₹${(l.creditedToAstrologer || 0).toFixed(2)}</td>
-                        <td class="px-6 py-5"><span class="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-xl font-black text-sm font-mono tracking-tighter shadow-sm">₹${(l.adminAmount || 0).toFixed(2)}</span></td>
-                    </tr>
-                `).join('');
+            const data = {
+                page: ledgerPage,
+                limit: ledgerLimit,
+                search: document.getElementById('ledger-search').value,
+                startDate: document.getElementById('ledger-start-date').value,
+                endDate: document.getElementById('ledger-end-date').value,
+                sortBy: ledgerSortBy,
+                sortOrder: ledgerSortOrder
+            };
+
+            socket.emit('admin-get-ledger-stats', data, (res) => {
+                if (res.ok) {
+                    const tbody = document.getElementById('ledger-table-body');
+                    tbody.innerHTML = res.fullLedger.map(l => {
+                        const s = l.sessionInfo || {};
+                        return `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-5">
+                                <div class="font-bold text-slate-800 text-[10px] whitespace-nowrap">${new Date(l.createdAt).toLocaleDateString()}</div>
+                                <div class="text-[0.6rem] font-black text-slate-400 font-mono tracking-tighter">${new Date(l.createdAt).toLocaleTimeString()}</div>
+                            </td>
+                            <td class="px-6 py-5">
+                                <div class="flex flex-col gap-1">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-tighter w-10">Client:</span>
+                                        <span class="text-[9px] font-bold text-slate-700 font-mono bg-slate-50 px-1 rounded border border-slate-100">${s.clientId || 'N/A'}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[8px] font-black text-brand-green uppercase tracking-tighter w-10">Astro:</span>
+                                        <span class="text-[9px] font-bold text-brand-green font-mono bg-emerald-50 px-1 rounded border border-emerald-100">${s.astrologerId || 'N/A'}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-5">
+                                <div class="px-2 py-1 rounded-lg bg-emerald-50 text-brand-green text-[0.6rem] font-black uppercase tracking-widest w-fit mb-1">${l.reason || 'session'}</div>
+                                <div class="text-[0.6rem] font-bold text-slate-400 uppercase tracking-tighter">SID: ${l.sessionId?.slice(-12) || 'N/A'}</div>
+                            </td>
+                            <td class="px-6 py-5 font-black text-slate-700 text-xs font-mono">₹${(l.chargedToClient || 0).toFixed(2)}</td>
+                            <td class="px-6 py-5 font-black text-indigo-600 text-xs font-mono">₹${(l.creditedToAstrologer || 0).toFixed(2)}</td>
+                            <td class="px-6 py-5">
+                                <span class="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-xl font-black text-xs font-mono tracking-tighter shadow-sm">₹${(l.adminAmount || 0).toFixed(2)}</span>
+                            </td>
+                        </tr>
+                        `;
+                    }).join('');
+
+                    // Update Pagination UI
+                    document.getElementById('ledger-total-count').innerText = res.totalRecords;
+                    document.getElementById('ledger-current-page').innerText = res.currentPage;
+                    document.getElementById('ledger-total-pages').innerText = res.totalPages;
+                    document.getElementById('ledger-prev-btn').disabled = res.currentPage <= 1;
+                    document.getElementById('ledger-next-btn').disabled = res.currentPage >= res.totalPages;
+                }
             });
+        }
+
+        function changeLedgerPage(delta) {
+            ledgerPage += delta;
+            fetchLedger();
+        }
+
+        function sortLedger(field) {
+            if (ledgerSortBy === field) {
+                ledgerSortOrder *= -1;
+            } else {
+                ledgerSortBy = field;
+                ledgerSortOrder = -1;
+            }
+            fetchLedger();
         }
 
         function fetchWithdrawals() {
