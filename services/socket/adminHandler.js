@@ -317,6 +317,44 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
         }
     });
 
+    socket.on('send-bulk-fcm', async (data, cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false, error: 'Unauthorized' });
+        try {
+            const { title, body, imageUrl, allUsers, userIds } = data;
+            const notification = { title, body, image: imageUrl };
+            const payload = { type: 'broadcast', screen: 'home' };
+
+            let targetUsers = [];
+            if (allUsers) {
+                targetUsers = await User.find({ fcmToken: { $exists: true, $ne: '' } }).select('fcmToken');
+            } else if (userIds && userIds.length > 0) {
+                targetUsers = await User.find({ userId: { $in: userIds }, fcmToken: { $exists: true, $ne: '' } }).select('fcmToken');
+            }
+
+            if (targetUsers.length === 0) {
+                return cb?.({ ok: true, sentCount: 0, message: 'No devices found' });
+            }
+
+            let sentCount = 0;
+            const { sendFcmV1Push } = require('../fcmService');
+            
+            // Dispatch to all tokens
+            const sendPromises = targetUsers.map(u => 
+                sendFcmV1Push(u.fcmToken, payload, notification)
+                    .then(res => { if (res.success) sentCount++; })
+                    .catch(e => console.error(`[Admin FCM] Single dispatch fail: ${e.message}`))
+            );
+
+            await Promise.all(sendPromises);
+
+            cb?.({ ok: true, sentCount });
+            console.log(`[Admin] Bulk FCM broadcast completed. Sent to ${sentCount} devices.`);
+        } catch (e) {
+            console.error('[Admin] Bulk FCM Error:', e);
+            cb?.({ ok: false, error: 'Broadcast Failed' });
+        }
+    });
+
 };
 
 module.exports = handleAdmin;
