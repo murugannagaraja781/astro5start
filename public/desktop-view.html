@@ -4622,7 +4622,8 @@
       navSwitch('home');
       fetchAstrologers();
 
-      socket.on('astrologer-update', (list) => {
+      socket.on('astrologer-update', (data) => {
+        const list = Array.isArray(data) ? data : (data && data.list ? data.list : []);
         state.astroList = list;
         const active = document.querySelector('.nav-item.active');
         if (active) {
@@ -4652,7 +4653,7 @@
 
         // Update Drawer image if exists
         const drawerImg = document.querySelector('.drawer-user-img');
-        if (drawerImg) drawerImg.src = state.me.image || 'images/default-user.png';
+        if (drawerImg) drawerImg.src = state.me.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(state.me.name) + '&background=d1fae5&color=059669&bold=true';
       });
 
       socket.on('wallet-update', (data) => {
@@ -5065,12 +5066,9 @@
 
     function fetchAstrologers() {
       socket.emit('get-astrologers', (res) => {
-        if (res.astrologers) {
-          state.astroList = res.astrologers;
-          renderAstroList(state.astroList);
-        } else {
-          renderAstroList([]);
-        }
+        const list = res.astrologers || (res.list ? res.list : []);
+        state.astroList = list;
+        renderAstroList(list);
       });
     }
 

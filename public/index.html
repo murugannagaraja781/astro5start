@@ -2176,6 +2176,20 @@
       cursor: pointer;
     }
 
+    .time-12h-group {
+      display: flex;
+      gap: 5px;
+    }
+
+    .time-12h-group select, .time-12h-group input {
+      flex: 1;
+      padding: 10px 5px;
+      border: 1px solid #D1D5DB;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
     .intake-btn-cancel {
       padding: 12px 20px;
       background: white;
@@ -2910,7 +2924,28 @@
             <div class="input-row" style="margin-top:10px;">
               <div style="flex:1">
                 <label>Partner Time</label>
-                <input type="time" id="partnerTob" class="app-input">
+              <div class="time-12h-group">
+                <select id="partnerTob-h" class="app-input" style="width:70px !important; flex:none;">
+                  <option value="">HH</option>
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                  <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                  <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                  <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                </select>
+                <select id="partnerTob-m" class="app-input" style="width:70px !important; flex:none;">
+                  <option value="">MM</option>
+                  <script>
+                    for(let i=0; i<60; i++) {
+                      let v = i.toString().padStart(2,'0');
+                      document.write(`<option value="${v}">${v}</option>`);
+                    }
+                  </script>
+                </select>
+                <select id="partnerTob-ampm" class="app-input" style="width:70px !important; flex:none;">
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              </div>
               </div>
               <div style="flex:1">
                 <label>Partner Place</label>
@@ -3254,8 +3289,28 @@
               <input type="date" id="intake-dob" class="intake-input" required>
             </div>
             <div class="intake-form-group">
-              <label>Time of Birth</label>
-              <input type="time" id="intake-tob" class="intake-input" required>
+              <label>Time of Birth (12 Hours AM/PM)</label>
+              <div class="time-12h-group">
+                <select id="intake-tob-h" required>
+                  <option value="">Hour</option>
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                  <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                  <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                  <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                </select>
+                <select id="intake-tob-m" required>
+                  <option value="">Min</option>
+                  <script>
+                    for(let i=0; i<60; i++) {
+                      document.write(`<option value="${i.toString().padStart(2,'0')}">${i.toString().padStart(2,'0')}</option>`);
+                    }
+                  </script>
+                </select>
+                <select id="intake-tob-ampm" required>
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -3358,10 +3413,29 @@
         <input id="profileDob" type="date" class="cosmic-input"
           style="background:#f9f9f9; color:black; border:1px solid #ddd; width:100%;">
 
-        <label style="display:block; margin-bottom:5px; margin-top:10px; font-size:0.9rem; color:#666;">Time of
-          Birth</label>
-        <input id="profileTime" type="time" class="cosmic-input"
-          style="background:#f9f9f9; color:black; border:1px solid #ddd; width:100%;">
+        <label style="display:block; margin-bottom:5px; margin-top:10px; font-size:0.9rem; color:#666;">Time of Birth (12 Hours AM/PM)</label>
+        <div class="time-12h-group">
+          <select id="profileTime-h" class="cosmic-input" style="background:#f9f9f9; color:black; border:1px solid #ddd; flex:1; margin:0 2px;">
+            <option value="">Hour</option>
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+            <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+            <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+            <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+          </select>
+          <select id="profileTime-m" class="cosmic-input" style="background:#f9f9f9; color:black; border:1px solid #ddd; flex:1; margin:0 2px;">
+            <option value="">Min</option>
+            <script>
+              for(let i=0; i<60; i++) {
+                let v = i.toString().padStart(2,'0');
+                document.write(`<option value="${v}">${v}</option>`);
+              }
+            </script>
+          </select>
+          <select id="profileTime-ampm" class="cosmic-input" style="background:#f9f9f9; color:black; border:1px solid #ddd; flex:1; margin:0 2px;">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+          </select>
+        </div>
 
         <label style="display:block; margin-bottom:5px; margin-top:10px; font-size:0.9rem; color:#666;">Place of
           Birth</label>
@@ -4358,7 +4432,14 @@
         document.getElementById('intake-name').value = d.name || '';
         document.getElementById('intake-gender').value = d.gender || 'Male';
         document.getElementById('intake-dob').value = d.dob || '';
-        document.getElementById('intake-tob').value = d.tob || '';
+        if (d.tob) {
+          const [h24, m] = d.tob.split(':').map(Number);
+          const ampm = h24 >= 12 ? 'PM' : 'AM';
+          const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+          document.getElementById('intake-tob-h').value = h12;
+          document.getElementById('intake-tob-m').value = m.toString().padStart(2, '0');
+          document.getElementById('intake-tob-ampm').value = ampm;
+        }
         document.getElementById('intake-pob').value = d.pob || '';
         document.getElementById('intake-occupation').value = d.occupation || '';
         document.getElementById('intake-marital').value = d.maritalStatus || 'Single';
@@ -4378,7 +4459,16 @@
         name: document.getElementById('intake-name').value,
         gender: document.getElementById('intake-gender').value,
         dob: document.getElementById('intake-dob').value,
-        tob: document.getElementById('intake-tob').value,
+        tob: (function() {
+          const h = parseInt(document.getElementById('intake-tob-h').value);
+          const m = document.getElementById('intake-tob-m').value;
+          const ampm = document.getElementById('intake-tob-ampm').value;
+          if (isNaN(h) || !m) return "";
+          let h24 = h;
+          if (ampm === "PM" && h < 12) h24 += 12;
+          else if (ampm === "AM" && h === 12) h24 = 0;
+          return `${h24.toString().padStart(2, '0')}:${m}`;
+        })(),
         pob: document.getElementById('intake-pob').value,
         occupation: document.getElementById('intake-occupation').value,
         maritalStatus: document.getElementById('intake-marital').value,
@@ -4608,7 +4698,7 @@
 
         // Update Drawer image if exists
         const drawerImg = document.querySelector('.drawer-user-img');
-        if (drawerImg) drawerImg.src = state.me.image || 'images/default-user.png';
+        if (drawerImg) drawerImg.src = state.me.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(state.me.name) + '&background=d1fae5&color=059669&bold=true';
       });
 
       socket.on('wallet-update', (data) => {
@@ -4961,7 +5051,17 @@
       // Fields
       if (user.birthDetails) {
         if (document.getElementById('profileDob')) document.getElementById('profileDob').value = user.birthDetails.dob || '';
-        if (document.getElementById('profileTime')) document.getElementById('profileTime').value = user.birthDetails.tob || '';
+        if (document.getElementById('profileTime-h')) {
+          const tob = user.birthDetails.tob || "";
+          if (tob) {
+            const [h24, m] = tob.split(':').map(Number);
+            const ampm = h24 >= 12 ? 'PM' : 'AM';
+            const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+            document.getElementById('profileTime-h').value = h12;
+            document.getElementById('profileTime-m').value = m.toString().padStart(2, '0');
+            document.getElementById('profileTime-ampm').value = ampm;
+          }
+        }
         if (document.getElementById('profileCity')) document.getElementById('profileCity').value = user.birthDetails.pob || '';
       }
 
@@ -4991,7 +5091,16 @@
 
       update.birthDetails = {
         dob: document.getElementById('profileDob').value,
-        tob: document.getElementById('profileTime').value,
+        tob: (function() {
+          const h = parseInt(document.getElementById('profileTime-h').value);
+          const m = document.getElementById('profileTime-m').value;
+          const ampm = document.getElementById('profileTime-ampm').value;
+          if (isNaN(h) || !m) return "";
+          let h24 = h;
+          if (ampm === "PM" && h < 12) h24 += 12;
+          else if (ampm === "AM" && h === 12) h24 = 0;
+          return `${h24.toString().padStart(2, '0')}:${m}`;
+        })(),
         pob: document.getElementById('profileCity').value
       };
 
@@ -5012,12 +5121,9 @@
 
     function fetchAstrologers() {
       socket.emit('get-astrologers', (res) => {
-        if (res.astrologers) {
-          state.astroList = res.astrologers;
-          renderAstroList(state.astroList);
-        } else {
-          renderAstroList([]);
-        }
+        const list = res.astrologers || (res.list ? res.list : []);
+        state.astroList = list;
+        renderAstroList(list);
       });
     }
 
