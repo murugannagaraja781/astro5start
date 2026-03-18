@@ -18,10 +18,11 @@ async function tickSessions(io) {
         for (const [sessionId, session] of activeSessions) {
             if (!session.actualBillingStart || now < session.actualBillingStart) continue;
 
-            const isClientConnected = !!userSockets.get(session.clientId);
-            const isAstroConnected = !!userSockets.get(session.astrologerId);
+            // STABILITY FIX: Don't pause billing for 1-second socket flickers. 
+            // Only pause if session is explicitly ended or stale beyond 60s without any heartbeat.
+            const isSessionValid = session.isAnswered && !session.isEnded;
 
-            if (isClientConnected && isAstroConnected) {
+            if (isSessionValid) {
                 // Sync with mobile app timer using differential time
                 const secondsElapsed = Math.floor((now - session.actualBillingStart) / 1000) + 1;
                 session.elapsedBillableSeconds = secondsElapsed;

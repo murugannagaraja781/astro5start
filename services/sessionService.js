@@ -37,15 +37,13 @@ async function handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpd
             astro.isAudioOnline = false;
             astro.isVideoOnline = false;
             astro.isAvailable = false;
-            astro.fcmToken = ''; // Forces auto-logout behavior on mobile
+            // REMOVED FORCED LOGOUT: Don't clear fcmToken or emit force-logout
+            // astro.fcmToken = ''; 
             await astro.save();
 
             if (broadcastAstroUpdate) broadcastAstroUpdate();
 
-            // Critical: Force logout on the mobile app side
-            if (io) io.to(toUserId).emit('force-logout', { reason: 'missed_call' });
-
-            const reasonMsg = `🚨 Missed Call: Astrologer ${astro.name} (${astro.phone}) did not attend the call. Automatically logged out and marked OFFLINE.`;
+            const reasonMsg = `🚨 Missed Call: Astrologer ${astro.name} (${astro.phone}) did not attend the call. Automatically marked OFFLINE.`;
 
             // Save notification for admin
             const Notification = require('../models/Notification');
@@ -238,8 +236,9 @@ async function handleUserConnection(sessionId, userId, io) {
         activeSessions.set(sessionId, activeSession);
     }
 
-    if (session.clientConnectedAt && session.astrologerConnectedAt && !session.actualBillingStart) {
-        const billingStart = Math.max(session.clientConnectedAt, session.astrologerConnectedAt) + 2000;
+    // Ensure billing starts if at least one person connects and call was answered
+    if ((session.clientConnectedAt || session.astrologerConnectedAt) && !session.actualBillingStart && session.status === 'active') {
+        const billingStart = (session.clientConnectedAt || session.astrologerConnectedAt) + 2000;
         session.actualBillingStart = billingStart;
         await session.save();
 
