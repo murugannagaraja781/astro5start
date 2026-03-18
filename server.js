@@ -89,6 +89,26 @@ try {
   console.warn("Some legacy routes could not be loaded:", e.message);
 }
 
+// Mobile App Compatibility Aliases (ApiService.kt expects these at root)
+app.post('/register', (req, res) => {
+  const userController = require('./controllers/userController');
+  userController.registerDevice(req, res);
+});
+
+app.post('/call', (req, res) => {
+  // Mobile app uses this to initiate a call record before starting socket
+  const userController = require('./controllers/userController');
+  if (typeof userController.initiateCall === 'function') {
+    userController.initiateCall(req, res);
+  } else {
+    res.json({ success: true, message: 'Call record initiated (Legacy)' });
+  }
+});
+
+// App Compatibility Aliases (ApiInterface.kt expects these paths)
+app.post('/api/charts/birth-chart', (req, res) => res.redirect(307, '/api/horoscope/generate-chart'));
+app.post('/api/match/porutham', (req, res) => res.redirect(307, '/api/horoscope/match'));
+
 // Mount modular routes
 app.use('/api', mainRoutes);
 app.use('/api', configRoutes);

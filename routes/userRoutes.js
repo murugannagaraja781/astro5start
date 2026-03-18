@@ -18,4 +18,12 @@ router.post('/astrologer/register', userController.registerAstrologer);
 router.get('/admin/notifications', userController.getNotifications);
 router.post('/native/accept-call', userController.acceptCall);
 
+// Additional APIs for Mobile App Compatibility
+router.post('/city-autocomplete', userController.searchCity);
+router.post('/city-timezone', userController.getCityTimezone);
+router.get('/chat/history/:sessionId', userController.getChatHistory);
+
+const { upload } = require('../config/multer');
+router.post('/user/profile-pic', upload.single('image'), userController.uploadProfilePic);
+
 module.exports = router;

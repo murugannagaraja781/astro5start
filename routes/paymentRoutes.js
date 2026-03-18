@@ -9,4 +9,8 @@ router.get('/verify-payment-token', paymentController.verifyPaymentToken);
 router.post('/validate-coupon', paymentController.validateCoupon);
 router.all('/callback', paymentController.handleCallback);
 
+// PhonePe Native SDK Support
+router.post('/phonepe/sign', paymentController.signPhonePe);
+router.get('/phonepe/status/:transactionId', paymentController.checkPaymentStatus);
+
 module.exports = router;

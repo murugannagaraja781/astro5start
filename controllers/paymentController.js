@@ -263,4 +263,40 @@ const validateCoupon = async (req, res) => {
     }
 };
 
-module.exports = { createPayment, handleCallback, getPaymentToken, verifyPaymentToken, validateCoupon };
+const signPhonePe = async (req, res) => {
+    try {
+        const { base64Payload, endpoint } = req.body;
+        if (!base64Payload || !endpoint) return res.status(400).json({ ok: false, error: 'Missing payload or endpoint' });
+
+        const saltKey = (process.env.PHONEPE_SALT_KEY || "").trim();
+        const saltIndex = (process.env.PHONEPE_SALT_INDEX || "1").trim();
+
+        const stringToSign = base64Payload + endpoint + saltKey;
+        const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
+        const checksum = sha256 + "###" + saltIndex;
+
+        res.json({ ok: true, checksum });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
+const checkPaymentStatus = async (req, res) => {
+    try {
+        const { transactionId } = req.params;
+        const result = await checkPhonePeStatus(transactionId);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
+module.exports = { 
+    createPayment, 
+    handleCallback, 
+    getPaymentToken, 
+    verifyPaymentToken, 
+    validateCoupon,
+    signPhonePe,
+    checkPaymentStatus
+};

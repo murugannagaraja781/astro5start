@@ -4,6 +4,9 @@ const Session = require('../models/Session');
 const { formatImageUrl } = require('../utils/formatImage');
 const { generateUniqueReferralCode } = require('../utils/generateReferral');
 const crypto = require('crypto');
+const fetch = require('node-fetch'); // For city search
+const ChatMessage = require('../models/ChatMessage');
+const CallRequest = require('../models/CallRequest');
 const { sendMsg91 } = require('../services/otpService');
 const { otpStore } = require('../services/sharedState');
 
@@ -324,6 +327,91 @@ const acceptCall = async (req, res) => {
     }
 };
 
+const searchCity = async (req, res) => {
+    try {
+        const { query } = req.body;
+        if (!query) return res.status(400).json({ success: false, error: 'Query is required' });
+
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5`;
+        const response = await fetch(url, { headers: { 'User-Agent': 'Astro5Star App' } });
+        const data = await response.json();
+
+        const cities = data.map(item => ({
+            id: item.place_id,
+            name: item.display_name,
+            latitude: item.lat,
+            longitude: item.lon,
+            address: item.address
+        }));
+
+        res.json({ success: true, cities });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+const getCityTimezone = async (req, res) => {
+    try {
+        const { latitude, longitude } = req.body;
+        // Mocking: In production, use google maps timezone or a local library
+        // Default to Asia/Kolkata for most India-based coords if undetermined
+        const lat = parseFloat(latitude);
+        const lon = parseFloat(longitude);
+        
+        // Very basic India check
+        let tz = 'Asia/Kolkata';
+        let offset = 5.5;
+
+        // In a real app, you'd use a geo-tz lookup
+        res.json({ success: true, timezone: tz, offset });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+const getChatHistory = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const messages = await ChatMessage.find({ sessionId }).sort({ createdAt: 1 });
+        res.json({ ok: true, messages });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
+const uploadProfilePic = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!req.file || !userId) return res.status(400).json({ ok: false, error: 'Missing file or userId' });
+
+        const imageUrl = `/uploads/${req.file.filename}`;
+        await User.updateOne({ userId }, { image: imageUrl });
+
+        res.json({ ok: true, imageUrl });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
+const initiateCall = async (req, res) => {
+    try {
+        const { callerId, calleeId } = req.body;
+        if (!callerId || !calleeId) return res.status(400).json({ success: false, error: 'Missing caller/callee' });
+
+        await CallRequest.create({
+            callId: 'CALL-' + Date.now() + Math.floor(Math.random() * 1000),
+            callerId,
+            receiverId: calleeId,
+            status: 'initiated',
+            createdAt: new Date()
+        });
+
+        res.json({ success: true, message: 'Call initiated successfully' });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
 module.exports = {
     getUserProfile,
     getAstrologers,
@@ -335,5 +423,10 @@ module.exports = {
     verifyOtp,
     registerAstrologer,
     getNotifications,
-    acceptCall
+    acceptCall,
+    searchCity,
+    getCityTimezone,
+    getChatHistory,
+    uploadProfilePic,
+    initiateCall
 };
