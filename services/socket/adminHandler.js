@@ -20,11 +20,29 @@ const checkAdmin = async (sid) => {
 
 const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => {
 
-    socket.on('get-all-users', async (cb) => {
+    socket.on('get-all-users', async (data, cb) => {
         if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
         try {
-            const users = await User.find({}).sort({ role: -1, createdAt: -1 });
-            if (typeof cb === "function") cb({ ok: true, users });
+            const { page = 1, limit = 50, search = '', role } = data || {};
+            const skip = (page - 1) * limit;
+
+            let query = {};
+            if (search) {
+                query.$or = [
+                    { name: { $regex: search, $options: 'i' } },
+                    { phone: { $regex: search, $options: 'i' } },
+                    { userId: { $regex: search, $options: 'i' } }
+                ];
+            }
+            if (role) query.role = role;
+
+            const total = await User.countDocuments(query);
+            const users = await User.find(query)
+                .sort({ role: -1, createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit));
+
+            if (typeof cb === "function") cb({ ok: true, users, total, totalPages: Math.ceil(total / limit), currentPage: parseInt(page) });
         } catch (e) { if (typeof cb === "function") cb({ ok: false }); }
     });
 
@@ -589,9 +607,18 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
     });
 
     // Alias for superadmin.html
-    socket.on('get-withdrawals', async (cb) => {
+    socket.on('get-withdrawals', async (data, cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false });
         try {
+            const { page = 1, limit = 50, status } = data || {};
+            const skip = (page - 1) * limit;
+
+            let match = {};
+            if (status) match.status = status;
+
+            const total = await Withdrawal.countDocuments(match);
             const withdrawals = await Withdrawal.aggregate([
+                { $match: match },
                 {
                     $lookup: {
                         from: 'users',
@@ -600,9 +627,12 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                         as: 'astrologer'
                     }
                 },
-                { $unwind: '$astrologer' },
-                { $sort: { requestedAt: -1 } }
+                { $unwind: { path: '$astrologer', preserveNullAndEmptyArrays: true } },
+                { $sort: { requestedAt: -1 } },
+                { $skip: skip },
+                { $limit: parseInt(limit) }
             ]);
+
             const list = withdrawals.map(w => ({
                 _id: w._id,
                 amount: w.amount,
@@ -614,8 +644,9 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 },
                 requestedAt: w.requestedAt
             }));
-            cb?.({ ok: true, list });
+            cb?.({ ok: true, list, total, totalPages: Math.ceil(total / limit), currentPage: parseInt(page) });
         } catch (e) {
+            console.error('[Admin] get-withdrawals error:', e);
             cb?.({ ok: false });
         }
     });

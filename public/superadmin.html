@@ -394,6 +394,7 @@
             </header>
             <div id="client-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
             </div>
+            <div id="user-pagination"></div>
         </section>
 
         <!-- Withdrawals Tab -->
@@ -413,6 +414,7 @@
                     No pending withdrawals.
                 </div>
             </div>
+            <div id="withdrawal-pagination"></div>
         </section>
 
         <!-- Performance Tab -->
@@ -475,7 +477,7 @@
                 </div>
             </header>
 
-            <div class="bg-white rounded-3xl border border-emerald-50 shadow-premium overflow-hidden">
+            <div id="ledger-table-container" class="bg-white rounded-3xl border border-emerald-50 shadow-premium overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -1304,6 +1306,11 @@
         let ledgerSortBy = 'createdAt';
         let ledgerSortOrder = -1;
 
+        let currentUserPage = 1;
+        let currentLedgerPage = 1;
+        let currentWithdrawalPage = 1;
+        const perPage = 50;
+
         function getProfileImage(img, name) {
             const fallback = `https://ui-avatars.com/api/?background=f0fdf4&color=059669&bold=true&name=${encodeURIComponent(name || 'User')}`;
             if (!img || img === 'null' || img === 'undefined' || img.includes('default-user.png')) return fallback;
@@ -1312,6 +1319,25 @@
                 return '/uploads/' + img;
             }
             return img.startsWith('/') ? img : '/' + img;
+        }
+
+        function toggleLoader(show, containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            let loader = container.querySelector('.loading-overlay');
+            if (show) {
+                if (!loader) {
+                    loader = document.createElement('div');
+                    loader.className = 'loading-overlay absolute inset-0 flex items-center justify-center';
+                    loader.innerHTML = '<div class="loader-spinner"></div>';
+                    container.style.position = 'relative';
+                    container.appendChild(loader);
+                }
+                loader.classList.remove('hidden');
+            } else {
+                if (loader) loader.classList.add('hidden');
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -1446,24 +1472,73 @@
             });
         }
 
-        function fetchAllUsers() {
-            const clientSearch = document.getElementById('client-search')?.value.toLowerCase() || '';
-            socket.emit('get-all-users', (res) => {
+        function fetchAllUsers(page = 1) {
+            currentUserPage = page;
+            const search = document.getElementById('user-search')?.value || '';
+            
+            toggleLoader(true, 'user-list-card'); 
+
+            socket.emit('get-all-users', { page, limit: perPage, search }, (res) => {
+                toggleLoader(false, 'user-list-card');
                 if (res.ok) {
                     usersCache = res.users;
-                    renderAstrologers();
-                    const clients = usersCache.filter(u => u.role === 'client' &&
-                        (u.name.toLowerCase().includes(clientSearch) ||
-                            u.phone.includes(clientSearch) ||
-                            u.userId.toLowerCase().includes(clientSearch)));
                     const astros = usersCache.filter(u => u.role === 'astrologer');
-                    document.getElementById('side-astro-count').innerText = astros.length;
-                    document.getElementById('side-client-count').innerText = usersCache.filter(u => u.role === 'client').length;
-                    document.getElementById('client-list').innerHTML = clients.map(u => renderUserCard(u)).join('');
-                    document.getElementById('online-astro-count').innerText = astros.filter(u => u.isOnline).length;
+                    const clients = usersCache.filter(u => u.role === 'client');
+                    
+                    document.getElementById('side-astro-count').innerText = res.total || astros.length; // Approximate if filter
+                    renderAstrologers();
+                    
+                    const clientList = document.getElementById('client-list');
+                    if (clientList) {
+                        clientList.innerHTML = clients.map(u => renderUserCard(u)).join('');
+                    }
+
+                    renderPagination('user-pagination', res.totalPages, res.currentPage, fetchAllUsers);
                 }
             });
         }
+
+        function renderPagination(containerId, totalPages, currentPage, onPageChange) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = `
+                <div class="flex items-center justify-center gap-2 mt-8 pb-4">
+                    <button class="px-4 py-2 rounded-xl bg-white border border-emerald-100 text-slate-400 hover:text-brand-green disabled:opacity-50" ${currentPage === 1 ? 'disabled' : ''} onclick="window.${onPageChange.name}(${currentPage - 1})">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+            `;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    html += `
+                        <button class="px-4 py-2 rounded-xl border ${i === currentPage ? 'bg-brand-green text-white border-brand-green' : 'bg-white border-emerald-100 text-slate-600 hover:bg-emerald-50'}" onclick="window.${onPageChange.name}(${i})">
+                            ${i}
+                        </button>
+                    `;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    html += `<span class="px-2 text-slate-400">...</span>`;
+                }
+            }
+
+            html += `
+                    <button class="px-4 py-2 rounded-xl bg-white border border-emerald-100 text-slate-400 hover:text-brand-green disabled:opacity-50" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.${onPageChange.name}(${currentPage + 1})">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+        
+        // Expose to window for onclick handlers
+        window.fetchAllUsers = fetchAllUsers;
+        window.fetchLedger = fetchLedger;
+        window.fetchWithdrawals = fetchWithdrawals;
 
         function setAstroView(view) {
             currentAstroView = view;
@@ -1890,19 +1965,22 @@
                 res.ok ? alert('Dispatch Successful: ' + res.sentCount + ' deliveries') : alert('FCM Node Error');
             });
         }
-
-        function fetchLedger() {
+        function fetchLedger(page = 1) {
+            currentLedgerPage = page;
             const data = {
-                page: ledgerPage,
-                limit: ledgerLimit,
-                search: document.getElementById('ledger-search').value,
+                page: currentLedgerPage,
+                limit: perPage,
+                search: document.getElementById('ledger-search')?.value,
                 startDate: document.getElementById('ledger-start-date').value,
                 endDate: document.getElementById('ledger-end-date').value,
                 sortBy: ledgerSortBy,
                 sortOrder: ledgerSortOrder
             };
 
+            toggleLoader(true, 'ledger-table-container');
+
             socket.emit('admin-get-ledger-stats', data, (res) => {
+                toggleLoader(false, 'ledger-table-container');
                 if (res.ok && res.fullLedger) {
                     const tbody = document.getElementById('ledger-table-body');
                     tbody.innerHTML = res.fullLedger.map(l => {
@@ -1923,56 +2001,43 @@
                                         <div class="w-2 h-2 rounded-full bg-slate-300"></div>
                                         <div class="flex flex-col">
                                             <span class="text-[10px] font-black text-slate-700 leading-none">${l.clientName || 'Unknown User'}</span>
-                                            <span class="text-[8px] font-bold text-slate-400">${l.clientPhone || 'N/A'}</span>
+                                            <span class="text-[0.6rem] text-slate-400 font-bold">${l.clientPhone || 'N/A'}</span>
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <div class="w-2 h-2 rounded-full bg-brand-green"></div>
+                                        <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
                                         <div class="flex flex-col">
-                                            <span class="text-[10px] font-black text-brand-green leading-none">${l.astroName || 'Unknown Astro'}</span>
-                                            <span class="text-[8px] font-bold text-slate-500">${l.astroPhone || 'N/A'}</span>
+                                            <span class="text-[10px] font-black text-slate-700 leading-none">${l.astroName || 'Unknown Astro'}</span>
+                                            <span class="text-[0.6rem] text-slate-400 font-bold">${l.astroPhone || 'N/A'}</span>
                                         </div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-6 py-5">
-                                <div class="flex items-center gap-2 mb-1.5">
-                                    <span class="px-2 py-1 rounded-lg ${typeColor} text-[8px] font-black uppercase tracking-widest flex items-center gap-1">
-                                        <i class="fas ${typeIcon}"></i> ${type}
-                                    </span>
-                                    <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-500 text-[8px] font-black uppercase tracking-widest">${l.reason || 'success'}</span>
+                            <td class="px-6 py-5 text-[10px] font-black text-slate-700">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-lg ${typeColor} flex items-center justify-center text-[10px]"><i class="fas ${typeIcon}"></i></span>
+                                    <span>${type.toUpperCase()}</span>
                                 </div>
-                                <div class="text-[0.6rem] font-bold text-slate-300 uppercase tracking-tighter font-mono">ID: ${l.sessionId?.slice(-8) || 'N/A'}</div>
+                                <div class="text-[0.6rem] text-slate-400 font-bold mt-1">Dur: ${l.minuteIndex || 0}m</div>
                             </td>
-                            <td class="px-6 py-5">
-                                <div class="text-[8px] font-black text-slate-400 uppercase mb-0.5">Charged</div>
-                                <div class="font-black text-slate-700 text-xs font-mono">₹${(l.chargedToClient || 0).toFixed(2)}</div>
-                            </td>
-                            <td class="px-6 py-5">
-                                <div class="text-[8px] font-black text-indigo-400 uppercase mb-0.5">Astro Earn (${((l.appliedRate || 0.3) * 100).toFixed(0)}%)</div>
-                                <div class="font-black text-indigo-600 text-xs font-mono">₹${(l.creditedToAstrologer || 0).toFixed(2)}</div>
-                            </td>
-                            <td class="px-6 py-5">
-                                <div class="text-[8px] font-black text-emerald-950 uppercase mb-0.5">Admin Profit</div>
-                                <span class="bg-emerald-100 text-emerald-900 border border-emerald-200 px-3 py-1.5 rounded-xl font-black text-xs font-mono tracking-tighter shadow-sm flex items-center justify-center w-fit">₹${(l.adminAmount || 0).toFixed(2)}</span>
-                            </td>
+                            <td class="px-6 py-5 font-mono text-xs font-black text-slate-800">₹${(l.chargedToClient || 0).toFixed(2)}</td>
+                            <td class="px-6 py-5 font-mono text-xs font-black text-emerald-600">₹${(l.creditedToAstrologer || 0).toFixed(2)}</td>
+                            <td class="px-6 py-5 font-mono text-xs font-black text-indigo-600">₹${(l.adminAmount || 0).toFixed(2)}</td>
                         </tr>
                         `;
                     }).join('');
 
-                    // Update Pagination UI
-                    document.getElementById('ledger-total-count').innerText = res.totalRecords;
-                    document.getElementById('ledger-current-page').innerText = res.currentPage;
-                    document.getElementById('ledger-total-pages').innerText = res.totalPages;
-                    document.getElementById('ledger-prev-btn').disabled = res.currentPage <= 1;
-                    document.getElementById('ledger-next-btn').disabled = res.currentPage >= res.totalPages;
+                    document.getElementById('ledger-total-count').innerText = res.totalRecords || 0;
+                    document.getElementById('ledger-current-page').innerText = res.currentPage || 1;
+                    document.getElementById('ledger-total-pages').innerText = res.totalPages || 1;
+                    document.getElementById('ledger-prev-btn').disabled = (res.currentPage || 1) <= 1;
+                    document.getElementById('ledger-next-btn').disabled = (res.currentPage || 1) >= (res.totalPages || 1);
                 }
             });
         }
 
         function changeLedgerPage(delta) {
-            ledgerPage += delta;
-            fetchLedger();
+            fetchLedger(currentLedgerPage + delta);
         }
 
         function sortLedger(field) {
@@ -1982,45 +2047,50 @@
                 ledgerSortBy = field;
                 ledgerSortOrder = -1;
             }
-            fetchLedger();
+            fetchLedger(1);
         }
 
-        function fetchWithdrawals() {
-            socket.emit('get-withdrawals', (res) => {
+        function fetchWithdrawals(page = 1) {
+            currentWithdrawalPage = page;
+            toggleLoader(true, 'withdrawal-list');
+            socket.emit('get-withdrawals', { page, limit: perPage }, (res) => {
+                toggleLoader(false, 'withdrawal-list');
                 const list = document.getElementById('withdrawal-list');
                 const badge = document.getElementById('withdrawal-count-badge');
                 if (res.ok) {
-                    const pendingCount = res.list.filter(w => w.status === 'pending').length;
                     if (badge) {
+                        const pendingCount = res.list.filter(w => w.status === 'pending').length;
                         badge.innerText = pendingCount;
                         badge.classList.toggle('hidden', pendingCount === 0);
                     }
                     
                     if (res.list.length > 0) {
-                    list.innerHTML = res.list.map(w => `
-                        <div class="bg-white p-6 rounded-[2rem] border border-emerald-50 shadow-premium flex flex-col md:flex-row justify-between items-center gap-6 group hover:scale-[1.01] transition-all">
-                            <div class="flex items-center gap-5 w-full md:w-auto">
-                                <div class="w-16 h-16 bg-emerald-100/50 rounded-2xl flex items-center justify-center text-brand-green text-3xl">
-                                    <i class="fas fa-money-bill-transfer"></i>
+                        list.innerHTML = res.list.map(w => `
+                            <div class="bg-white p-6 rounded-[2rem] border border-emerald-50 shadow-premium flex flex-col md:flex-row justify-between items-center gap-6 group hover:scale-[1.01] transition-all">
+                                <div class="flex items-center gap-5 w-full md:w-auto">
+                                    <div class="w-16 h-16 bg-emerald-100/50 rounded-2xl flex items-center justify-center text-brand-green text-3xl">
+                                        <i class="fas fa-money-bill-transfer"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="font-black text-slate-800 text-xl">${w.astroName}</div>
+                                        <div class="text-[0.65rem] font-bold text-brand-green uppercase tracking-widest mt-1">Amount: ₹${w.amount}</div>
+                                        <div class="text-[0.6rem] text-slate-400 font-bold mt-2 font-mono">${w.bankingDetails?.upiId || w.bankingDetails?.accountNumber || 'N/A'}</div>
+                                    </div>
                                 </div>
-                                <div class="flex-1">
-                                    <div class="font-black text-slate-800 text-xl">${w.astroName}</div>
-                                    <div class="text-[0.65rem] font-bold text-brand-green uppercase tracking-widest mt-1">Requested Amount: ₹${w.amount}</div>
-                                    <div class="text-[0.6rem] text-slate-400 font-bold mt-2 font-mono">${w.bankingDetails?.upiId || w.bankingDetails?.accountNumber || 'N/A'}</div>
+                                <div class="flex gap-3 w-full md:w-auto">
+                                    ${w.status === 'pending' ? `
+                                        <button class="flex-1 md:flex-none bg-brand-green text-white font-black px-8 py-4 rounded-2xl shadow-lg shadow-emerald-100 hover:scale-[1.05] transition-all uppercase text-xs" onclick="processWithdrawal('${w._id}', 'approve')">Approve Pay</button>
+                                        <button class="bg-red-50 text-red-500 font-bold px-6 py-4 rounded-2xl hover:bg-red-100 transition-all text-xs" onclick="processWithdrawal('${w._id}', 'reject')">Reject</button>
+                                    ` : `<span class="px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest ${w.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">${w.status}</span>`}
                                 </div>
                             </div>
-                            <div class="flex gap-3 w-full md:w-auto">
-                                ${w.status === 'pending' ? `
-                                    <button class="flex-1 md:flex-none bg-brand-green text-white font-black px-8 py-4 rounded-2xl shadow-lg shadow-emerald-100 hover:scale-[1.05] transition-all uppercase text-xs" onclick="processWithdrawal('${w._id}', 'approve')">Approve Pay</button>
-                                    <button class="bg-red-50 text-red-500 font-bold px-6 py-4 rounded-2xl hover:bg-red-100 transition-all text-xs" onclick="processWithdrawal('${w._id}', 'reject')">Reject</button>
-                                ` : `<span class="px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest ${w.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">${w.status}</span>`}
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    list.innerHTML = '<div class="bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium font-bold">No active payout requests.</div>';
+                        `).join('');
+                        renderPagination('withdrawal-pagination', res.totalPages, res.currentPage, fetchWithdrawals);
+                    } else {
+                        list.innerHTML = `<div class="bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium">No pending withdrawals.</div>`;
+                        document.getElementById('withdrawal-pagination').innerHTML = '';
+                    }
                 }
-            }
             });
         }
 
