@@ -105,6 +105,43 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
         }
     });
 
+    // Verify astrologer documents (aadhar, pan)
+    socket.on('admin-verify-documents', async (data, cb) => {
+        if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
+        try {
+            const { userId, status } = data; // status: 'verified', 'pending', 'rejected'
+            const user = await User.findOne({ userId });
+            if (!user) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
+
+            user.documentStatus = status;
+            user.isDocumentVerified = status === 'verified';
+            await user.save();
+
+            console.log(`[Admin] Document status updated for ${user.name}: ${status}`);
+
+            if (user.role === 'astrologer') await broadcastAstroUpdate();
+            broadcastAdminUpdate();
+
+            const sId = userSockets.get(user.userId);
+            if (sId) {
+                const formattedUser = user.toObject ? user.toObject() : user;
+                formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
+                io.to(sId).emit('my-profile-updated', formattedUser);
+                io.to(sId).emit('notification', {
+                    title: 'Document Verification Update',
+                    body: status === 'verified' ? 'Your documents have been verified!' :
+                        status === 'rejected' ? 'Your documents have been rejected. Please resubmit.' :
+                            'Your documents are under review.'
+                });
+            }
+
+            if (typeof cb === "function") cb({ ok: true });
+        } catch (e) {
+            console.error('[Admin] Document Verification Error:', e);
+            if (typeof cb === "function") cb({ ok: false, error: 'Verification Failed' });
+        }
+    });
+
     socket.on('admin-add-wallet', async (data, cb) => {
         if (!await checkAdmin(socket.id)) return cb?.({ ok: false, error: 'Unauthorized' });
         try {
@@ -119,9 +156,9 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             const targetSid = userSockets.get(user.userId);
             if (targetSid) {
                 io.to(targetSid).emit('wallet-update', { balance: user.walletBalance });
-                io.to(targetSid).emit('notification', { 
-                    title: 'Wallet Updated', 
-                    body: `Admin adjusted your wallet by ₹${amount}. New balance: ₹${user.walletBalance}` 
+                io.to(targetSid).emit('notification', {
+                    title: 'Wallet Updated',
+                    body: `Admin adjusted your wallet by ₹${amount}. New balance: ₹${user.walletBalance}`
                 });
             }
 
@@ -190,7 +227,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 user.photoStatus = 'rejected';
             }
             await user.save();
-            
+
             if (user.role === 'astrologer') await broadcastAstroUpdate();
             broadcastAdminUpdate();
 
@@ -210,12 +247,12 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             const today = new Date();
             const startOfWeek = new Date(today);
             startOfWeek.setDate(today.getDate() - today.getDay());
-            startOfWeek.setHours(0,0,0,0);
+            startOfWeek.setHours(0, 0, 0, 0);
 
             const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
             const astros = await User.find({ role: 'astrologer' }).select('userId name phone image totalEarnings createdAt');
-            
+
             // Aggregate session data
             const sessionStats = await Session.aggregate([
                 { $match: { status: 'ended', totalEarned: { $gt: 0 } } },
@@ -270,9 +307,9 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             }).sort((a, b) => b.totalEarnings - a.totalEarnings);
 
             cb?.({ ok: true, performance: result });
-        } catch (e) { 
+        } catch (e) {
             console.error(e);
-            cb?.({ ok: false }); 
+            cb?.({ ok: false });
         }
     });
 
@@ -283,7 +320,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             const sessions = await Session.find({ astrologerId: userId, status: 'ended' })
                 .sort({ endTime: -1 })
                 .limit(100);
-            
+
             // Populate client names
             const populatedSessions = await Promise.all(sessions.map(async (s) => {
                 const client = await User.findOne({ userId: s.clientId }).select('name phone image');
@@ -357,14 +394,14 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
     socket.on('admin-get-ledger-stats', async (data, cb) => {
         if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
         try {
-            const { 
-                page = 1, 
-                limit = 50, 
-                startDate, 
-                endDate, 
-                search, 
-                sortBy = 'createdAt', 
-                sortOrder = -1 
+            const {
+                page = 1,
+                limit = 50,
+                startDate,
+                endDate,
+                search,
+                sortBy = 'createdAt',
+                sortOrder = -1
             } = data;
 
             const skip = (page - 1) * limit;
@@ -405,7 +442,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             }
 
             const totalRecords = await BillingLedger.countDocuments(match);
-            
+
             // Fetch ledger with full audit trail (Joins for Session, Client, and Astrologer)
             const fullLedger = await BillingLedger.aggregate([
                 { $match: match },
@@ -565,9 +602,9 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
 
             let sentCount = 0;
             const { sendFcmV1Push } = require('../fcmService');
-            
+
             // Dispatch to all tokens
-            const sendPromises = targetUsers.map(u => 
+            const sendPromises = targetUsers.map(u =>
                 sendFcmV1Push(u.fcmToken, payload, notification)
                     .then(res => { if (res.success) sentCount++; })
                     .catch(e => console.error(`[Admin FCM] Single dispatch fail: ${e.message}`))
