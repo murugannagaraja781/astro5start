@@ -1333,7 +1333,7 @@
         let currentLedgerPage = 1;
         let currentWithdrawalPage = 1;
         const perPage = 10;
-        const ledgerPerPage = 5;
+        const ledgerPerPage = 10;
         let recentRechargeOnly = false;
 
         function getProfileImage(img, name) {
@@ -2088,10 +2088,7 @@
                 sortOrder: ledgerSortOrder
             };
 
-            toggleLoader(true, 'ledger-table-container');
-
             socket.emit('admin-get-ledger-stats', data, (res) => {
-                toggleLoader(false, 'ledger-table-container');
                 if (res.ok && res.fullLedger) {
                     const tbody = document.getElementById('ledger-table-body');
                     tbody.innerHTML = res.fullLedger.map(l => {
