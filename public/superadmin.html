@@ -1428,11 +1428,11 @@
 
         function fetchStats() {
             socket.emit('admin-get-ledger-stats', {}, (res) => {
-                if (res.ok) {
+                if (res.ok && res.stats) {
                     const s = res.stats;
-                    document.getElementById('stat-total-revenue').innerText = s.totalRevenue.toLocaleString();
-                    document.getElementById('stat-admin-profit').innerText = s.adminProfit.toLocaleString();
-                    document.getElementById('stat-astro-payout').innerText = s.astroPayout.toLocaleString();
+                    document.getElementById('stat-total-revenue').innerText = (s.totalRevenue || 0).toLocaleString();
+                    document.getElementById('stat-admin-profit').innerText = (s.adminProfit || 0).toLocaleString();
+                    document.getElementById('stat-astro-payout').innerText = (s.astroPayout || 0).toLocaleString();
                     document.getElementById('stat-active-sessions').innerText = s.activeSessions || 0;
                     document.getElementById('stat-total-users').innerText = s.totalUsers || 0;
                     document.getElementById('stat-online-astros').innerText = s.onlineAstrologers || 0;
@@ -1903,7 +1903,7 @@
             };
 
             socket.emit('admin-get-ledger-stats', data, (res) => {
-                if (res.ok) {
+                if (res.ok && res.fullLedger) {
                     const tbody = document.getElementById('ledger-table-body');
                     tbody.innerHTML = res.fullLedger.map(l => {
                         const s = l.sessionInfo || {};

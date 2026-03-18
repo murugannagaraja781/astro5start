@@ -269,7 +269,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
         } catch (e) { cb?.({ ok: false }); }
     });
 
-    socket.on('admin-get-ledger-stats', async (data, cb) => {
+    socket.on('get-slab-rates', async (cb) => {
         if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
         if (typeof cb === "function") cb({ ok: true, rates: SLAB_RATES });
     });
