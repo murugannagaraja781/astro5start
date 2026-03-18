@@ -1440,22 +1440,8 @@
         }
 
         function toggleLoader(show, containerId) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-
-            let loader = container.querySelector('.loading-overlay');
-            if (show) {
-                if (!loader) {
-                    loader = document.createElement('div');
-                    loader.className = 'loading-overlay absolute inset-0 flex items-center justify-center';
-                    loader.innerHTML = '<div class="loader-spinner"></div>';
-                    container.style.position = 'relative';
-                    container.appendChild(loader);
-                }
-                loader.classList.remove('hidden');
-            } else {
-                if (loader) loader.classList.add('hidden');
-            }
+            // Loader disabled - no spinner will be shown
+            return;
         }
 
         document.addEventListener('DOMContentLoaded', () => {
