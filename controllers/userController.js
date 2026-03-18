@@ -229,6 +229,15 @@ const verifyOtp = async (req, res) => {
             await user.save();
         }
 
+        if (user.role === 'astrologer') {
+            user.isOnline = false;
+            user.isChatOnline = false;
+            user.isAudioOnline = false;
+            user.isVideoOnline = false;
+            user.isAvailable = false;
+            await user.save();
+        }
+
         res.json({
             ok: true,
             userId: user.userId,

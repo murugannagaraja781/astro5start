@@ -94,6 +94,20 @@ const handleChat = (socket, io) => {
         } catch (err) { console.error('typing error', err); }
     });
 
+    socket.on('status-update', (data) => {
+        try {
+            const { toUserId, status, sessionId } = data || {};
+            const fromUserId = socketToUser.get(socket.id);
+            if (!fromUserId || !toUserId) return;
+
+            io.to(toUserId).emit('status-update', {
+                fromUserId,
+                status,
+                sessionId
+            });
+        } catch (err) { console.error('status-update error', err); }
+    });
+
 };
 
 module.exports = handleChat;

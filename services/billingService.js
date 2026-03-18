@@ -4,6 +4,7 @@ const Session = require('../models/Session');
 const User = require('../models/User');
 const PairMonth = require('../models/PairMonth');
 const BillingLedger = require('../models/BillingLedger');
+const { sendFcmV1Push } = require('./fcmService');
 const crypto = require('crypto');
 
 let isTicking = false;
@@ -41,6 +42,23 @@ async function tickSessions(io) {
 
                 if (session.elapsedBillableSeconds % 10 === 0 && session.pairMonthId) {
                     updateSessionSlab(session);
+                }
+
+                // Emit regular timer and wallet-based remaining time
+                const client = await User.findOne({ userId: session.clientId });
+                if (client) {
+                    const pricePerMin = session.pricePerMin || (await User.findOne({ userId: session.astrologerId }))?.price || 10;
+                    const totalBalance = (client.walletBalance || 0) + (client.superWalletBalance || 0);
+                    const remainingSeconds = Math.floor((totalBalance / pricePerMin) * 60);
+
+                    io.to(session.clientId).emit('timer-update', {
+                        elapsedSeconds: secondsElapsed,
+                        remainingSeconds: remainingSeconds
+                    });
+                    io.to(session.astrologerId).emit('timer-update', {
+                        elapsedSeconds: secondsElapsed,
+                        remainingSeconds: remainingSeconds
+                    });
                 }
             }
         }
@@ -175,6 +193,13 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
                 superBalance: astro.superWalletBalance || 0
             });
 
+            // Send FCM Notifications if users are likely away (optional but good for 'notifications')
+            if (client.fcmToken) {
+                sendFcmV1Push(client.fcmToken, { type: 'WALLET_DEBIT', amount: mainDeduct + superDeduct }, { title: 'Wallet Updated', body: `₹${(mainDeduct + superDeduct).toFixed(2)} deducted for session.` });
+            }
+            if (astro.fcmToken) {
+                sendFcmV1Push(astro.fcmToken, { type: 'WALLET_CREDIT', amount: astroShare }, { title: 'Earnings Updated', body: `₹${astroShare.toFixed(2)} credited to your wallet.` });
+            }
         } else {
             forceEndSession(sessionId, 'insufficient_funds', io);
         }
