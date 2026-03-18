@@ -137,7 +137,139 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
         }
     });
 
-    socket.on('get-slab-rates', async (cb) => {
+    socket.on('admin-get-pending-photos', async (cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false });
+        try {
+            const users = await User.find({ photoStatus: 'pending' }).select('userId name phone image pendingImage photoStatus updatedAt');
+            cb?.({ ok: true, users });
+        } catch (e) { cb?.({ ok: false }); }
+    });
+
+    socket.on('admin-approve-photo', async (data, cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false });
+        try {
+            const { userId, status } = data; // status: 'approved' or 'rejected'
+            const user = await User.findOne({ userId });
+            if (!user) return cb?.({ ok: false, error: 'User not found' });
+
+            if (status === 'approved' && user.pendingImage) {
+                user.image = user.pendingImage;
+                user.pendingImage = '';
+                user.photoStatus = 'approved';
+            } else {
+                user.pendingImage = '';
+                user.photoStatus = 'rejected';
+            }
+            await user.save();
+            
+            if (user.role === 'astrologer') await broadcastAstroUpdate();
+            broadcastAdminUpdate();
+
+            const sId = userSockets.get(user.userId);
+            if (sId) {
+                const formattedUser = user.toObject ? user.toObject() : user;
+                formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
+                io.to(sId).emit('my-profile-updated', formattedUser);
+            }
+            cb?.({ ok: true });
+        } catch (e) { cb?.({ ok: false }); }
+    });
+
+    socket.on('admin-get-performance-summary', async (cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false });
+        try {
+            const today = new Date();
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay());
+            startOfWeek.setHours(0,0,0,0);
+
+            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+            const astros = await User.find({ role: 'astrologer' }).select('userId name phone image totalEarnings createdAt');
+            
+            // Aggregate session data
+            const sessionStats = await Session.aggregate([
+                { $match: { status: 'ended', totalEarned: { $gt: 0 } } },
+                {
+                    $group: {
+                        _id: '$astrologerId',
+                        totalEarned: { $sum: '$totalEarned' },
+                        totalSessions: { $sum: 1 },
+                        totalDuration: { $sum: '$duration' }
+                    }
+                }
+            ]);
+
+            const monthlyStats = await Session.aggregate([
+                { $match: { status: 'ended', createdAt: { $gte: startOfMonth }, totalEarned: { $gt: 0 } } },
+                {
+                    $group: {
+                        _id: '$astrologerId',
+                        earned: { $sum: '$totalEarned' }
+                    }
+                }
+            ]);
+
+            const weeklyStats = await Session.aggregate([
+                { $match: { status: 'ended', createdAt: { $gte: startOfWeek }, totalEarned: { $gt: 0 } } },
+                {
+                    $group: {
+                        _id: '$astrologerId',
+                        earned: { $sum: '$totalEarned' }
+                    }
+                }
+            ]);
+
+            const statsMap = sessionStats.reduce((acc, s) => { acc[s._id] = s; return acc; }, {});
+            const monthMap = monthlyStats.reduce((acc, s) => { acc[s._id] = s; return acc; }, {});
+            const weekMap = weeklyStats.reduce((acc, s) => { acc[s._id] = s; return acc; }, {});
+
+            const result = astros.map(a => {
+                const s = statsMap[a.userId] || { totalEarned: 0, totalSessions: 0, totalDuration: 0 };
+                return {
+                    userId: a.userId,
+                    name: a.name,
+                    phone: a.phone,
+                    image: formatImageUrl(a.image, a.name),
+                    totalEarnings: s.totalEarned,
+                    totalSessions: s.totalSessions,
+                    totalDuration: s.totalDuration,
+                    monthlyEarnings: monthMap[a.userId]?.earned || 0,
+                    weeklyEarnings: weekMap[a.userId]?.earned || 0,
+                    joinedAt: a.createdAt
+                };
+            }).sort((a, b) => b.totalEarnings - a.totalEarnings);
+
+            cb?.({ ok: true, performance: result });
+        } catch (e) { 
+            console.error(e);
+            cb?.({ ok: false }); 
+        }
+    });
+
+    socket.on('admin-get-astrologer-work-details', async (data, cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false });
+        try {
+            const { userId } = data;
+            const sessions = await Session.find({ astrologerId: userId, status: 'ended' })
+                .sort({ endTime: -1 })
+                .limit(100);
+            
+            // Populate client names
+            const populatedSessions = await Promise.all(sessions.map(async (s) => {
+                const client = await User.findOne({ userId: s.clientId }).select('name phone image');
+                return {
+                    ...s.toObject(),
+                    clientName: client?.name || 'Unknown',
+                    clientPhone: client?.phone || 'N/A'
+                };
+            }));
+
+            cb?.({ ok: true, sessions: populatedSessions });
+        } catch (e) { cb?.({ ok: false }); }
+    });
+
+    socket.on('admin-get-ledger-stats', async (data, cb) => {
         if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
         if (typeof cb === "function") cb({ ok: true, rates: SLAB_RATES });
     });

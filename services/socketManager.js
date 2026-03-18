@@ -128,17 +128,12 @@ const initSocket = (io) => {
                         offlineTimeouts.delete(userId);
                     }
 
-                    // When astrologer connects (logins), mark them as online and available
-                    user.isOnline = true;
-                    user.isAvailable = true;
-
-                    // Ensure they have at least one service online if they are connecting
-                    if (!user.isChatOnline && !user.isAudioOnline && !user.isVideoOnline) {
-                        user.isChatOnline = true;
-                        user.isAudioOnline = true;
-                        user.isVideoOnline = true;
-                    }
-
+                    // USER REQUEST: Default to 'Offline' on login. 
+                    // They must explicitly toggle 'Online' in the app.
+                    user.isOnline = false;
+                    user.isAvailable = false;
+                    // Keep their specific service flags as they were, but main isOnline is false.
+                    
                     await user.save();
                     broadcastAstroUpdate();
                 }

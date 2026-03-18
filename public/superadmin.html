@@ -71,6 +71,11 @@
                     class="lg:ml-auto bg-amber-500 text-white text-[0.6rem] font-black px-2 py-0.5 rounded-full shadow-lg border border-white/10 min-w-[22px] text-center hidden">0</span>
             </div>
             <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="performance" onclick="showTab('performance')">
+                <i class="fas fa-chart-line text-lg lg:w-5 text-center"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Performance</span>
+            </div>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
                 data-tab="ledger" onclick="showTab('ledger')">
                 <i class="fas fa-receipt text-lg lg:w-5 text-center"></i>
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">History</span>
@@ -406,6 +411,42 @@
                 <div
                     class="bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium">
                     No pending withdrawals.
+                </div>
+            </div>
+        </section>
+
+        <!-- Performance Tab -->
+        <section id="tab-performance" class="tab-content hidden animate-up space-y-6">
+            <header class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Astrologer Performance</h1>
+                    <p class="text-slate-500 font-medium">Monthly/Weekly earnings and work depth metrics</p>
+                </div>
+                <div class="flex items-center gap-3">
+                     <div class="bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 flex items-center gap-2">
+                        <i class="fas fa-medal text-brand-green"></i>
+                        <span class="text-xs font-black text-brand-green uppercase">Monthly Leaders</span>
+                     </div>
+                </div>
+            </header>
+
+            <div class="bg-white rounded-[2.5rem] border border-emerald-50 shadow-premium overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-slate-50/50">
+                                <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Astrologer</th>
+                                <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Sessions</th>
+                                <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Weekly</th>
+                                <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Monthly</th>
+                                <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Total Life</th>
+                                <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="performance-table-body" class="divide-y divide-slate-50">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </section>
@@ -808,6 +849,65 @@
                 </div>
             </div>
         </section>
+
+        <!-- View Performance Detail Modal -->
+        <div id="modal-view-performance" class="modal-fixed fixed inset-0 z-[100] hidden">
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal('modal-view-performance')"></div>
+            <div class="absolute right-0 top-0 bottom-0 w-full max-w-2xl bg-white shadow-2xl animate-slide-in-right flex flex-col">
+                <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-emerald-50/30">
+                    <div class="flex items-center gap-4">
+                        <img id="perf-astro-img" src="" class="w-16 h-16 rounded-2xl object-cover ring-4 ring-white shadow-lg">
+                        <div>
+                            <h2 id="perf-astro-name" class="text-2xl font-black text-slate-800">Astrologer Name</h2>
+                            <p id="perf-astro-id" class="text-[0.6rem] font-black text-slate-400 uppercase tracking-widest">UID: 000000</p>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('modal-view-performance')" class="w-12 h-12 rounded-2xl bg-white text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center shadow-sm">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-8 space-y-8">
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="bg-slate-50 p-5 rounded-3xl border border-slate-100">
+                            <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Weekly</div>
+                            <div id="perf-weekly" class="text-xl font-black text-brand-green">₹0</div>
+                        </div>
+                        <div class="bg-slate-50 p-5 rounded-3xl border border-slate-100">
+                            <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Monthly</div>
+                            <div id="perf-monthly" class="text-xl font-black text-indigo-600">₹0</div>
+                        </div>
+                        <div class="bg-slate-50 p-5 rounded-3xl border border-slate-100 text-center">
+                             <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Sessions</div>
+                             <div id="perf-sessions" class="text-xl font-black text-slate-800">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Session History -->
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                             <i class="fas fa-history text-brand-green"></i> Recent Work History
+                        </h3>
+                        <div class="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="bg-slate-50/50">
+                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Date</th>
+                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Client</th>
+                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Duration</th>
+                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400 text-right">Earned</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="perf-sessions-body" class="divide-y divide-slate-50">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </main>
 
@@ -1287,13 +1387,15 @@
             if (activeTab === 'banner') fetchBanners();
             if (activeTab === 'withdrawals') fetchWithdrawals();
             if (activeTab === 'photo-approvals') renderPhotoApprovals();
+            if (activeTab === 'performance') fetchPerformanceSummary();
             if (activeTab === 'notifications') fetchNotifications();
+            if (activeTab === 'reviews') fetchActiveReviews();
             // Also refresh badges
-            socket.emit('admin-get-photo-approvals', (res) => {
+            socket.emit('admin-get-pending-photos', (res) => {
                 const badge = document.getElementById('photo-pending-badge');
                 if (badge && res.ok) {
-                    badge.innerText = res.pendingUsers.length;
-                    badge.classList.toggle('hidden', res.pendingUsers.length === 0);
+                    badge.innerText = res.users.length;
+                    badge.classList.toggle('hidden', res.users.length === 0);
                 }
             });
             socket.emit('get-withdrawals', (res) => {
@@ -1308,23 +1410,17 @@
 
         function showTab(id) {
             activeTab = id;
-            document.querySelectorAll('.tab-content').forEach(s => s.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(i => {
-                i.classList.remove('active');
-                i.classList.add('text-white/60');
-            });
-
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
             const content = document.getElementById('tab-' + id);
             if (content) content.classList.remove('hidden');
 
-            const nav = document.querySelector(`.nav-item[data-tab="${id}"]`);
-            if (nav) {
-                nav.classList.remove('text-white/60');
-                nav.classList.add('active');
-            }
+            document.querySelectorAll('.nav-item').forEach(i => {
+                i.classList.toggle('active', i.dataset.tab === id);
+            });
 
-            refreshData();
             if (id === 'ledger') fetchLedger();
+            if (id === 'performance') fetchPerformanceSummary();
+            if (id === 'photo-approvals') renderPhotoApprovals();
             if (id === 'withdrawals') fetchWithdrawals();
             if (id === 'reviews') fetchActiveReviews();
             if (id === 'requests') fetchPendingRequests();
@@ -2308,50 +2404,150 @@
         function logout() { localStorage.removeItem('astro_session'); window.location.href = '/'; }
 
         function renderPhotoApprovals() {
-            socket.emit('admin-get-photo-approvals', (res) => {
+            socket.emit('admin-get-pending-photos', (res) => {
                 const list = document.getElementById('photo-approvals-list');
                 const badge = document.getElementById('photo-pending-badge');
-                if (res.ok && res.pendingUsers.length > 0) {
+                if (res.ok) {
                     if (badge) {
-                        badge.innerText = res.pendingUsers.length;
-                        badge.classList.remove('hidden');
+                        badge.innerText = res.users.length;
+                        badge.classList.toggle('hidden', res.users.length === 0);
                     }
-                    list.innerHTML = res.pendingUsers.map(u => `
-                        <div class="bg-white p-6 rounded-[2rem] border border-emerald-50 shadow-premium flex flex-col items-center text-center">
-                            <div class="flex gap-4 items-center justify-center mb-6">
-                                <div class="text-center">
-                                    <div class="text-[0.5rem] font-bold text-slate-400 uppercase mb-2 leading-none">Old</div>
-                                    <img src="${getProfileImage(u.image, u.name)}" class="w-14 h-14 rounded-xl object-cover ring-2 ring-slate-100">
-                                </div>
-                                <i class="fas fa-chevron-right text-slate-200"></i>
-                                <div class="text-center">
-                                    <div class="text-[0.5rem] font-bold text-brand-green uppercase mb-2 leading-none">New Change</div>
-                                    <img src="${getProfileImage(u.pendingImage, u.name)}" class="w-16 h-16 rounded-2xl object-cover ring-4 ring-emerald-400 shadow-lg shadow-emerald-100">
-                                </div>
+                    if (res.users.length === 0) {
+                        list.innerHTML = '<div class="col-span-full py-20 text-center text-slate-400 font-bold border-2 border-dashed border-emerald-100 rounded-3xl">No pending photo updates.</div>';
+                        return;
+                    }
+                    list.innerHTML = res.users.map(u => `
+                        <div class="bg-white p-6 rounded-[2.5rem] border border-emerald-50 shadow-premium group">
+                            <div class="flex items-center gap-4 mb-6">
+                                <img src="${getProfileImage(u.image, u.name)}" class="w-12 h-12 rounded-xl object-cover opacity-50 grayscale ring-2 ring-slate-100 shadow-sm" title="CURRENT PHOTO">
+                                <i class="fas fa-arrow-right text-slate-300"></i>
+                                <img src="${getProfileImage(u.pendingImage, u.name)}" class="w-20 h-20 rounded-2xl object-cover ring-4 ring-emerald-500 shadow-2xl scale-110" title="NEW PHOTO">
                             </div>
-                            <div class="font-black text-slate-800 text-sm truncate w-full">${u.name}</div>
-                            <div class="text-slate-400 font-bold text-[10px] tracking-widest mb-6">${u.phone.slice(0, 5)}...</div>
-                            <div class="flex gap-2 w-full">
-                                <button class="flex-1 bg-brand-green text-white font-black py-3 rounded-xl shadow-lg shadow-emerald-50 hover:bg-deep-green active:scale-95 transition-all text-[10px] uppercase" onclick="resolvePhoto('${u.userId}', 'approve')">Sync Photo</button>
-                                <button class="bg-red-50 text-red-500 font-extrabold px-3 py-3 rounded-xl hover:bg-red-100 transition-all text-[10px] uppercase" onclick="resolvePhoto('${u.userId}', 'reject')">Drop</button>
+                            <div class="mb-6">
+                                <div class="font-black text-slate-800 text-lg">${u.name}</div>
+                                <div class="text-[0.65rem] font-bold text-slate-400 font-mono tracking-widest">${u.phone}</div>
+                            </div>
+                            <div class="flex gap-3">
+                                <button onclick="processPhotoApproval('${u.userId}', 'approved')" class="flex-1 bg-brand-green text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-100 hover:bg-deep-green transition-all uppercase text-[10px] tracking-widest">Approve</button>
+                                <button onclick="processPhotoApproval('${u.userId}', 'rejected')" class="bg-red-50 text-red-500 font-bold px-6 py-4 rounded-2xl hover:bg-red-500 hover:text-white transition-all text-[10px] uppercase">Reject</button>
                             </div>
                         </div>
                     `).join('');
-                } else {
-                    if (badge) badge.classList.add('hidden');
-                    list.innerHTML = '<div class="col-span-full bg-white/50 border-2 border-dashed border-emerald-100 rounded-3xl p-12 text-center text-slate-400 font-medium">No pending photo updates.</div>';
                 }
             });
         }
 
-        function resolvePhoto(userId, action) {
-            socket.emit('admin-resolve-photo-approval', { userId, action }, (res) => {
+        function processPhotoApproval(userId, status) {
+            socket.emit('admin-approve-photo', { userId, status }, (res) => {
                 if (res.ok) {
-                    alert(res.message);
+                    showToast(`Photo Update ${status.charAt(0).toUpperCase() + status.slice(1)}`, 'success');
                     renderPhotoApprovals();
                     refreshData();
                     fetchAllUsers();
-                } else alert(res.error);
+                } else alert('Visual Node Failure');
+            });
+        }
+
+        function fetchPerformanceSummary() {
+            socket.emit('admin-get-performance-summary', (res) => {
+                if (res.ok) {
+                    const tbody = document.getElementById('performance-table-body');
+                    tbody.innerHTML = res.performance.map(p => `
+                        <tr class="hover:bg-slate-50 transition-colors group">
+                            <td class="px-8 py-5">
+                                <div class="flex items-center gap-4">
+                                    <img src="${getProfileImage(p.image, p.name)}" class="w-10 h-10 rounded-xl object-cover ring-2 ring-slate-100 shadow-sm">
+                                    <div>
+                                        <div class="font-black text-slate-800 text-sm leading-tight">${p.name}</div>
+                                        <div class="text-[0.6rem] font-bold text-slate-400 font-mono">${p.phone}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-8 py-5">
+                                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600">
+                                    <span class="text-xs font-black">${p.totalSessions}</span>
+                                    <i class="fas fa-headset text-[8px] opacity-40"></i>
+                                </div>
+                            </td>
+                            <td class="px-8 py-5">
+                                <span class="bg-emerald-50 text-brand-green border border-emerald-100 px-3 py-1 rounded-lg text-xs font-black font-mono">₹${(p.weeklyEarnings || 0).toFixed(0)}</span>
+                            </td>
+                            <td class="px-8 py-5">
+                                <span class="bg-indigo-50 text-indigo-600 border border-indigo-100 px-3 py-1 rounded-lg text-xs font-black font-mono">₹${(p.monthlyEarnings || 0).toFixed(0)}</span>
+                            </td>
+                            <td class="px-8 py-5">
+                                <div class="flex flex-col">
+                                    <div class="font-black text-slate-800 text-xs">₹${(p.totalEarnings || 0).toFixed(0)}</div>
+                                    <div class="text-[0.55rem] font-bold text-slate-300 uppercase leading-none mt-1">Life Earnings</div>
+                                </div>
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <button onclick="openPerformanceDetail('${p.userId}')" class="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 group-hover:bg-brand-green group-hover:text-white transition-all shadow-sm flex items-center justify-center translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0">
+                                    <i class="fas fa-chevron-right text-xs"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            });
+        }
+
+        function openPerformanceDetail(userId) {
+            socket.emit('admin-get-performance-summary', (resSummary) => {
+                if (!resSummary.ok) return;
+                const p = resSummary.performance.find(x => x.userId === userId);
+                if (!p) return;
+
+                document.getElementById('perf-astro-img').src = getProfileImage(p.image, p.name);
+                document.getElementById('perf-astro-name').innerText = p.name;
+                document.getElementById('perf-astro-id').innerText = 'UID: ' + p.userId.slice(-10).toUpperCase();
+                document.getElementById('perf-weekly').innerText = '₹' + (p.weeklyEarnings || 0).toFixed(2);
+                document.getElementById('perf-monthly').innerText = '₹' + (p.monthlyEarnings || 0).toFixed(2);
+                document.getElementById('perf-sessions').innerText = p.totalSessions || 0;
+
+                const detailTbody = document.getElementById('perf-sessions-body');
+                detailTbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400 italic">Syncing session nodes...</td></tr>';
+
+                socket.emit('admin-get-astrologer-work-details', { userId }, (resDetails) => {
+                    if (resDetails.ok) {
+                        if (resDetails.sessions.length === 0) {
+                            detailTbody.innerHTML = '<tr><td colspan="4" class="p-12 text-center text-slate-400 font-bold italic">No finalized sessions found.</td></tr>';
+                            return;
+                        }
+                        detailTbody.innerHTML = resDetails.sessions.map(s => {
+                            const date = new Date(s.endTime || s.createdAt);
+                            const durationSeconds = Math.round((s.duration || 0) / 1000);
+                            const mins = Math.floor(durationSeconds / 60);
+                            const secs = durationSeconds % 60;
+                            const typeIcon = s.type === 'chat' ? 'fa-comments' : (s.type === 'video' ? 'fa-video' : 'fa-phone');
+                            
+                            return `
+                                <tr class="hover:bg-slate-50/50 transition-colors">
+                                    <td class="px-6 py-4">
+                                        <div class="text-[10px] font-black text-slate-800">${date.toLocaleDateString()}</div>
+                                        <div class="text-[8px] font-bold text-slate-400 mt-0.5">${date.toLocaleTimeString()}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-[10px] font-black text-slate-700">${s.clientName}</div>
+                                        <div class="text-[8px] font-bold text-slate-400">${s.clientPhone || 'N/A'}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas ${typeIcon} text-brand-green text-[10px]"></i>
+                                            <span class="text-[10px] font-black text-slate-600">${mins}m ${secs}s</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <div class="text-xs font-black text-brand-green">₹${(s.totalEarned || 0).toFixed(2)}</div>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                });
+
+                document.getElementById('modal-view-performance').classList.remove('hidden');
+                document.body.classList.add('modal-active');
             });
         }
 
