@@ -108,6 +108,7 @@ app.post('/call', (req, res) => {
 // App Compatibility Aliases (ApiInterface.kt expects these paths)
 app.post('/api/charts/birth-chart', (req, res) => res.redirect(307, '/api/horoscope/generate-chart'));
 app.post('/api/match/porutham', (req, res) => res.redirect(307, '/api/horoscope/match'));
+app.get('/api/daily-horoscope', (req, res) => res.redirect(301, '/api/horoscope/daily-horoscope'));
 app.post('/api/phonepe/sign', (req, res) => res.redirect(307, '/api/payment/phonepe/sign'));
 app.get('/api/phonepe/status/:transactionId', (req, res) => {
     res.redirect(307, `/api/payment/phonepe/status/${req.params.transactionId}`);

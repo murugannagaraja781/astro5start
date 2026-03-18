@@ -12,5 +12,6 @@ router.all('/callback', paymentController.handleCallback);
 // PhonePe Native SDK Support
 router.post('/phonepe/sign', paymentController.signPhonePe);
 router.get('/phonepe/status/:transactionId', paymentController.checkPaymentStatus);
+router.get('/history/:userId', paymentController.getPaymentHistory);
 
 module.exports = router;

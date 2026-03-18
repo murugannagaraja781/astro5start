@@ -291,6 +291,16 @@ const checkPaymentStatus = async (req, res) => {
     }
 };
 
+const getPaymentHistory = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const payments = await Payment.find({ userId }).sort({ createdAt: -1 });
+        res.json({ ok: true, payments });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
 module.exports = { 
     createPayment, 
     handleCallback, 
@@ -298,5 +308,6 @@ module.exports = {
     verifyPaymentToken, 
     validateCoupon,
     signPhonePe,
-    checkPaymentStatus
+    checkPaymentStatus,
+    getPaymentHistory
 };

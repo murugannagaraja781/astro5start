@@ -412,6 +412,40 @@ const initiateCall = async (req, res) => {
     }
 };
 
+const applyReferral = async (req, res) => {
+    try {
+        const { userId, referralCode } = req.body;
+        if (!userId || !referralCode) return res.status(400).json({ success: false, error: 'Missing fields' });
+
+        const referrer = await User.findOne({ referralCode: referralCode.toUpperCase() });
+        if (!referrer) return res.status(404).json({ success: false, error: 'Invalid referral code' });
+
+        if (referrer.userId === userId) {
+            return res.status(400).json({ success: false, error: 'Cannot refer yourself' });
+        }
+
+        const user = await User.findOne({ userId });
+        if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+        if (user.referredBy) {
+            return res.status(400).json({ success: false, error: 'Referral already applied' });
+        }
+
+        user.referredBy = referrer.userId;
+        // Credit welcome bonus to the new user
+        user.walletBalance = (user.walletBalance || 0) + 10;
+        await user.save();
+
+        // Increment referral count for the referrer
+        referrer.referralCount = (referrer.referralCount || 0) + 1;
+        await referrer.save();
+
+        res.json({ success: true, message: 'Referral applied successfully! ₹10 credited to your wallet.' });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
 module.exports = {
     getUserProfile,
     getAstrologers,
@@ -428,5 +462,6 @@ module.exports = {
     getCityTimezone,
     getChatHistory,
     uploadProfilePic,
-    initiateCall
+    initiateCall,
+    applyReferral
 };
