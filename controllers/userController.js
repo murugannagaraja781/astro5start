@@ -49,8 +49,18 @@ const getUserProfile = async (req, res) => {
 
 const getAstrologers = async (req, res) => {
     try {
+        // Pagination parameters with defaults
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
+
+        // Get total count for pagination metadata
+        const total = await User.countDocuments({ role: 'astrologer', approvalStatus: 'approved' });
+
         const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
             .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
+            .skip(skip)
+            .limit(limit)
             .lean();
 
         const formatted = astros.map(a => {
@@ -67,7 +77,16 @@ const getAstrologers = async (req, res) => {
             };
         });
 
-        res.json({ ok: true, astrologers: formatted });
+        res.json({
+            ok: true,
+            astrologers: formatted,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
     }
@@ -327,7 +346,7 @@ const acceptCall = async (req, res) => {
         const sessionService = require('../services/sessionService');
         const socketManager = require('../services/socketManager');
         const { broadcastAstroUpdate } = socketManager;
-        
+
         const result = await sessionService.acceptSession(sessionId, astrologerId, accept, type, global.io, broadcastAstroUpdate);
         res.json(result);
     } catch (err) {
@@ -366,7 +385,7 @@ const getCityTimezone = async (req, res) => {
         // Default to Asia/Kolkata for most India-based coords if undetermined
         const lat = parseFloat(latitude);
         const lon = parseFloat(longitude);
-        
+
         // Very basic India check
         let tz = 'Asia/Kolkata';
         let offset = 5.5;
