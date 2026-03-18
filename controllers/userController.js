@@ -83,7 +83,7 @@ const getSessionHistory = async (req, res) => {
                 { fromUserId: userId },
                 { toUserId: userId }
             ],
-            status: 'ended'
+            status: { $in: ['ended', 'missed', 'rejected'] }
         })
             .sort({ actualBillingStart: -1, startTime: -1 })
             .limit(50)
@@ -103,7 +103,7 @@ const getSessionHistory = async (req, res) => {
             };
         }));
 
-        res.json({ ok: true, data: populatedSessions });
+        res.json({ ok: true, sessions: populatedSessions });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
     }
