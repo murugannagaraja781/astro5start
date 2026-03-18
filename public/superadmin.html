@@ -1476,7 +1476,7 @@
             if (id === 'reviews') fetchActiveReviews();
             if (id === 'requests') fetchPendingRequests();
             if (id === 'notifications') fetchNotifications();
-            if (id === 'clients') fetchAllUsers(1);
+            if (id === 'users' || id === 'astrologers') fetchAllUsers(1);
         }
 
         function fetchNotifications() {
@@ -1526,22 +1526,25 @@
             currentUserPage = page;
             const search = (document.getElementById('user-search')?.value || document.getElementById('client-search')?.value || '');
             const filter = recentRechargeOnly ? 'recentRecharge' : null;
+            const role = activeTab === 'astrologers' ? 'astrologer' : (activeTab === 'users' ? 'client' : null);
 
-            toggleLoader(true, 'user-list-card'); 
+            const loaderId = activeTab === 'astrologers' ? 'astrologer-table-view' : 'client-table-body';
+            toggleLoader(true, loaderId); 
 
-            socket.emit('get-all-users', { page, limit: perPage, search, filter }, (res) => {
-                toggleLoader(false, 'user-list-card');
+            socket.emit('get-all-users', { page, limit: perPage, search, filter, role }, (res) => {
+                toggleLoader(false, loaderId);
                 if (res.ok) {
                     usersCache = res.users;
-                    const astros = usersCache.filter(u => u.role === 'astrologer');
-                    const clients = usersCache.filter(u => u.role === 'client');
                     
-                    document.getElementById('side-astro-count').innerText = res.total || astros.length; // Approximate if filter
-                    renderAstrologers();
-                    
-                    const clientTable = document.getElementById('client-table-body');
-                    if (clientTable) {
-                        clientTable.innerHTML = clients.map(u => renderClientRow(u)).join('');
+                    if (activeTab === 'astrologers') {
+                        document.getElementById('side-astro-count').innerText = res.total;
+                        renderAstrologers();
+                    } else if (activeTab === 'users') {
+                        document.getElementById('side-client-count').innerText = res.total;
+                        const clientTable = document.getElementById('client-table-body');
+                        if (clientTable) {
+                            clientTable.innerHTML = usersCache.map(u => renderClientRow(u)).join('');
+                        }
                     }
 
                     renderPagination('user-pagination', res.totalPages, res.currentPage, fetchAllUsers);
