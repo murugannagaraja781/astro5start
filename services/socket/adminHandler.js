@@ -9,6 +9,8 @@ const {
 const User = require('../../models/User');
 const BillingLedger = require('../../models/BillingLedger');
 const Withdrawal = require('../../models/Withdrawal');
+const Notification = require('../../models/Notification');
+const Payment = require('../../models/Payment');
 const { formatImageUrl } = require('../../utils/formatImage');
 
 const checkAdmin = async (sid) => {
@@ -23,7 +25,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
     socket.on('get-all-users', async (data, cb) => {
         if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
         try {
-            const { page = 1, limit = 50, search = '', role } = data || {};
+            const { page = 1, limit = 50, search = '', role, filter } = data || {};
             const skip = (page - 1) * limit;
 
             let query = {};
@@ -35,6 +37,15 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 ];
             }
             if (role) query.role = role;
+
+            if (filter === 'recentRecharge') {
+                // Find users who had a successful payment in the last 7 days
+                const recentPayments = await Payment.find({
+                    status: 'success',
+                    createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+                }).distinct('userId');
+                query.userId = { $in: recentPayments };
+            }
 
             const total = await User.countDocuments(query);
             const users = await User.find(query)
@@ -721,6 +732,16 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
     // Aliases for superadmin.html
     socket.on('approve-withdrawal', (data, cb) => updateWithdrawalLogic({ ...data, status: 'approved' }, cb));
     socket.on('reject-withdrawal', (data, cb) => updateWithdrawalLogic({ ...data, status: 'rejected' }, cb));
+    socket.on('admin-get-notifications', async (data, cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false });
+        try {
+            const notifications = await Notification.find({}).sort({ createdAt: -1 }).limit(100);
+            cb?.({ ok: true, notifications });
+        } catch (e) {
+            cb?.({ ok: false });
+        }
+    });
+
     socket.on('admin-broadcast-refresh', ({ type }) => {
         console.log(`[Admin] Global Refresh requested for: ${type}`);
         if (type === 'banners') {

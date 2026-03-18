@@ -391,8 +391,25 @@
                         class="w-full glass-input pl-11 pr-4 py-2.5 rounded-xl outline-none text-sm font-medium"
                         oninput="fetchAllUsers()">
                 </div>
+                <button onclick="toggleRecentRechargeFilter()" id="recent-recharge-btn" class="bg-white border border-emerald-100 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-brand-green transition-all shadow-sm">
+                    <i class="fas fa-filter mr-2"></i> Recent Recharge
+                </button>
             </header>
-            <div id="client-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
+            <div class="bg-white rounded-[2rem] border border-emerald-50 shadow-premium overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/50 border-b border-slate-100">
+                                <th class="px-6 py-4 text-[0.6rem] font-black uppercase tracking-widest text-slate-400">Client Info</th>
+                                <th class="px-6 py-4 text-[0.6rem] font-black uppercase tracking-widest text-slate-400">Contact</th>
+                                <th class="px-6 py-4 text-[0.6rem] font-black uppercase tracking-widest text-slate-400">Wallet Status</th>
+                                <th class="px-6 py-4 text-[0.6rem] font-black uppercase tracking-widest text-slate-400">Engagement</th>
+                                <th class="px-6 py-4 text-[0.6rem] font-black uppercase tracking-widest text-slate-400 text-right">Management</th>
+                            </tr>
+                        </thead>
+                        <tbody id="client-table-body" class="divide-y divide-slate-50"></tbody>
+                    </table>
+                </div>
             </div>
             <div id="user-pagination"></div>
         </section>
@@ -639,15 +656,21 @@
                         <span class="font-bold text-emerald-900">Broadcast to All Users</span>
                     </label>
                     <div id="fcm-user-search-box" class="mt-6 space-y-4">
-                        <div class="relative group">
-                            <i
-                                class="fas fa-search absolute left-5 top-5 text-slate-400 group-focus-within:text-brand-green transition-colors"></i>
-                            <input type="text" id="fcmUserSearch"
-                                class="w-full bg-slate-50 pl-14 pr-6 py-4 border-0 focus:ring-2 focus:ring-brand-green rounded-2xl transition-all"
-                                placeholder="Search users by name or phone..." oninput="searchFcmUsers()">
+                        <div class="flex gap-2">
+                            <div class="relative group flex-1">
+                                <i
+                                    class="fas fa-search absolute left-5 top-5 text-slate-400 group-focus-within:text-brand-green transition-colors"></i>
+                                <input type="text" id="fcmUserSearch"
+                                    class="w-full bg-slate-50 pl-14 pr-6 py-4 border-0 focus:ring-2 focus:ring-brand-green rounded-2xl transition-all font-bold text-sm"
+                                    placeholder="Search users..." oninput="searchFcmUsers()">
+                            </div>
+                            <button onclick="loadAllFcmUsers()" class="px-6 py-4 bg-white border border-emerald-100 rounded-2xl text-emerald-600 font-black text-xs uppercase shadow-sm hover:bg-emerald-50 transition-all flex items-center gap-2">
+                                <i class="fas fa-users"></i> Load All
+                            </button>
                         </div>
                         <div id="fcm-user-selection-list"
-                            class="max-h-[400px] overflow-y-auto rounded-3xl border border-slate-100 bg-slate-50 p-4 space-y-2">
+                            class="max-h-[400px] overflow-y-auto rounded-3xl border border-slate-100 bg-slate-50 p-4 space-y-2 shadow-inner">
+                            <div class="text-center py-8 text-slate-400 font-medium">Click "Load All" or search for users to select targets.</div>
                         </div>
                     </div>
                 </div>
@@ -1309,7 +1332,9 @@
         let currentUserPage = 1;
         let currentLedgerPage = 1;
         let currentWithdrawalPage = 1;
-        const perPage = 50;
+        const perPage = 10;
+        const ledgerPerPage = 5;
+        let recentRechargeOnly = false;
 
         function getProfileImage(img, name) {
             const fallback = `https://ui-avatars.com/api/?background=f0fdf4&color=059669&bold=true&name=${encodeURIComponent(name || 'User')}`;
@@ -1450,6 +1475,31 @@
             if (id === 'withdrawals') fetchWithdrawals();
             if (id === 'reviews') fetchActiveReviews();
             if (id === 'requests') fetchPendingRequests();
+            if (id === 'notifications') fetchNotifications();
+            if (id === 'clients') fetchAllUsers(1);
+        }
+
+        function fetchNotifications() {
+            toggleLoader(true, 'tab-notifications');
+            socket.emit('admin-get-notifications', {}, (res) => {
+                toggleLoader(false, 'tab-notifications');
+                if (res.ok) {
+                    const list = document.getElementById('notifications-list');
+                    list.innerHTML = res.notifications.map(n => `
+                        <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50">
+                            <td class="px-8 py-5">
+                                <div class="font-bold text-slate-800 text-[10px] whitespace-nowrap">${new Date(n.createdAt).toLocaleDateString()}</div>
+                                <div class="text-[0.6rem] font-black text-slate-400 font-mono tracking-tighter">${new Date(n.createdAt).toLocaleTimeString()}</div>
+                            </td>
+                            <td class="px-8 py-5 font-bold text-slate-700 text-xs">${n.astrologerName || 'System'}</td>
+                            <td class="px-8 py-5 font-medium text-slate-600 text-xs">${n.message}</td>
+                            <td class="px-8 py-5 text-center">
+                                <span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase">${n.type || 'Alert'}</span>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            });
         }
 
         function fetchStats() {
@@ -1474,11 +1524,12 @@
 
         function fetchAllUsers(page = 1) {
             currentUserPage = page;
-            const search = document.getElementById('user-search')?.value || '';
-            
+            const search = (document.getElementById('user-search')?.value || document.getElementById('client-search')?.value || '');
+            const filter = recentRechargeOnly ? 'recentRecharge' : null;
+
             toggleLoader(true, 'user-list-card'); 
 
-            socket.emit('get-all-users', { page, limit: perPage, search }, (res) => {
+            socket.emit('get-all-users', { page, limit: perPage, search, filter }, (res) => {
                 toggleLoader(false, 'user-list-card');
                 if (res.ok) {
                     usersCache = res.users;
@@ -1488,9 +1539,9 @@
                     document.getElementById('side-astro-count').innerText = res.total || astros.length; // Approximate if filter
                     renderAstrologers();
                     
-                    const clientList = document.getElementById('client-list');
-                    if (clientList) {
-                        clientList.innerHTML = clients.map(u => renderUserCard(u)).join('');
+                    const clientTable = document.getElementById('client-table-body');
+                    if (clientTable) {
+                        clientTable.innerHTML = clients.map(u => renderClientRow(u)).join('');
                     }
 
                     renderPagination('user-pagination', res.totalPages, res.currentPage, fetchAllUsers);
@@ -1674,6 +1725,63 @@
             `;
         }
 
+        function renderClientRow(u) {
+            return `
+                <tr class="hover:bg-slate-50 transition-colors group">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <img src="${getProfileImage(u.image, u.name)}" class="w-10 h-10 rounded-xl object-cover ring-4 ring-emerald-50 bg-white">
+                            <div>
+                                <div class="font-black text-slate-800 text-sm leading-none flex items-center gap-1">
+                                    ${u.name} ${u.isNewUser ? '<span class="text-[8px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full">NEW</span>' : ''}
+                                </div>
+                                <div class="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">${u.userId.slice(-8)}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-xs font-bold text-slate-600">${u.phone}</div>
+                        <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">${u.email || 'No Email'}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm font-black text-brand-green">₹${(u.walletBalance || 0).toFixed(2)}</div>
+                        <div class="text-[8px] text-slate-400 font-black uppercase tracking-widest">Available Balance</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-xs font-black text-slate-700">${u.orderCount || 0} Sessions</div>
+                        <div class="text-[8px] text-slate-400 font-bold uppercase mt-1 tracking-widest">Joined: ${new Date(u.createdAt).toLocaleDateString()}</div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex justify-end gap-2">
+                            <button class="w-8 h-8 rounded-lg bg-emerald-50 text-brand-green hover:bg-brand-green hover:text-white transition-all shadow-sm flex items-center justify-center active:scale-95" onclick="openEditUser('${u.userId}')" title="Edit Balance/Details"><i class="fas fa-edit text-xs"></i></button>
+                            <button class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-500 hover:bg-indigo-500 hover:text-white transition-all shadow-sm flex items-center justify-center active:scale-95" onclick="openUserHistory('${u.userId}')" title="Transaction History"><i class="fas fa-history text-xs"></i></button>
+                            <button class="w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-sm flex items-center justify-center active:scale-95" onclick="handleDeleteUser('${u.userId}')" title="Delete User"><i class="fas fa-trash-alt text-xs"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function toggleRecentRechargeFilter() {
+            recentRechargeOnly = !recentRechargeOnly;
+            const btn = document.getElementById('recent-recharge-btn');
+            if (recentRechargeOnly) {
+                btn.classList.add('bg-brand-green', 'text-white', 'border-brand-green');
+                btn.classList.remove('text-slate-500', 'bg-white', 'border-emerald-100');
+            } else {
+                btn.classList.remove('bg-brand-green', 'text-white', 'border-brand-green');
+                btn.classList.add('text-slate-500', 'bg-white', 'border-emerald-100');
+            }
+            fetchAllUsers(1);
+        }
+
+        function openUserHistory(uid) {
+            // Logic to open user history modal (already similar to performance details)
+            alert('Opening transaction ledger filtered for User: ' + uid);
+            showTab('ledger');
+            document.getElementById('ledger-search').value = uid;
+            fetchLedger(1);
+        }
         function renderUserCard(u) {
             const isAstro = u.role === 'astrologer';
             const isOnline = u.isOnline;
@@ -1969,7 +2077,7 @@
             currentLedgerPage = page;
             const data = {
                 page: currentLedgerPage,
-                limit: perPage,
+                limit: ledgerPerPage,
                 search: document.getElementById('ledger-search')?.value,
                 startDate: document.getElementById('ledger-start-date').value,
                 endDate: document.getElementById('ledger-end-date').value,

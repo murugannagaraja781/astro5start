@@ -230,7 +230,14 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
             const updates = {};
             // General fields
             if (data.name) updates.name = data.name;
-            if (data.image) updates.image = data.image;
+            if (data.image) {
+                if (user.role === 'astrologer') {
+                    user.pendingImage = data.image;
+                    user.photoStatus = 'pending';
+                } else {
+                    user.image = data.image;
+                }
+            }
             if (data.email) updates.email = data.email;
 
             // Astrologer specific fields

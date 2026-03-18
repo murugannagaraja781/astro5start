@@ -394,9 +394,19 @@ const uploadProfilePic = async (req, res) => {
         if (!req.file || !userId) return res.status(400).json({ ok: false, error: 'Missing file or userId' });
 
         const imageUrl = `/uploads/${req.file.filename}`;
-        await User.updateOne({ userId }, { image: imageUrl });
+        const user = await User.findOne({ userId });
+        if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
 
-        res.json({ ok: true, imageUrl });
+        if (user.role === 'astrologer') {
+            user.pendingImage = imageUrl;
+            user.photoStatus = 'pending';
+            await user.save();
+            res.json({ ok: true, imageUrl, message: 'Photo uploaded and pending approval' });
+        } else {
+            user.image = imageUrl;
+            await user.save();
+            res.json({ ok: true, imageUrl });
+        }
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
     }
