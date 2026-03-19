@@ -128,7 +128,15 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     body: `${callerDisplayName} is calling you`
                 };
 
-                sendFcmV1Push(toUser.fcmToken, fcmData, null)
+                // CRITICAL FIX: Pass notification object instead of null.
+                // This ensures the OS delivers it even if the app is killed or in deep sleep.
+                const fcmNotification = {
+                    title: '📞 Incoming Call',
+                    body: `${callerDisplayName} is calling you`,
+                    image: callerImage
+                };
+
+                sendFcmV1Push(toUser.fcmToken, fcmData, fcmNotification)
                     .catch(err => console.error('[FCM v1] Session Push Error:', err.message));
             }
 

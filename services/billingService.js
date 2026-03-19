@@ -122,7 +122,10 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
         } else if (type === 'slab') {
             const activeSess = activeSessions.get(sessionId);
             const currentSlab = activeSess?.currentSlab || 1;
-            const rate = SLAB_RATES[currentSlab] || 0.30;
+            let rate = SLAB_RATES[currentSlab] || 0.30;
+            
+            // Safety: If rate was saved as percentage (e.g. 30 instead of 0.3), fix it on the fly
+            if (rate > 1) rate = rate / 100;
 
             amountToCharge = pricePerMin;
             astroShare = amountToCharge * rate;
