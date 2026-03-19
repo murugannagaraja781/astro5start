@@ -26,7 +26,7 @@ function initFcmAuth() {
                 admin.initializeApp({
                     credential: admin.credential.cert(firebaseServiceAccount)
                 });
-                console.log('✓ Firebase Admin SDK initialized');
+                console.log('✓ Firebase Admin SDK initialized (v2-fix)');
             }
         } else {
             console.warn('[FCM v1] Service account file not found - push notifications disabled');
@@ -61,13 +61,23 @@ async function sendFcmV1Push(fcmToken, data, notification) {
     }
 
     try {
-        // FCM v1 requires all values in the 'data' object to be strings.
+        // FCM v1 requires all values in the 'data' object to be strings. (v2 Fix)
         const stringifiedData = {};
         if (data) {
             Object.keys(data).forEach(key => {
-                stringifiedData[key] = (data[key] !== null && data[key] !== undefined) 
-                    ? String(data[key]) 
-                    : "";
+                const val = data[key];
+                // Check for nested objects (rare but can happen)
+                if (typeof val === 'object' && val !== null) {
+                    stringifiedData[key] = JSON.stringify(val);
+                } else {
+                    stringifiedData[key] = (val !== null && val !== undefined) ? String(val) : "";
+                }
+                
+                // Final validation before sending
+                if (typeof stringifiedData[key] !== 'string') {
+                    console.warn(`[FCM Data Fix] Key ${key} is still not a string:`, typeof stringifiedData[key]);
+                    stringifiedData[key] = String(stringifiedData[key]);
+                }
             });
         }
         stringifiedData.priority = 'high';
@@ -90,21 +100,27 @@ async function sendFcmV1Push(fcmToken, data, notification) {
 
         if (notification) {
             messagePayload.notification = {
-                title: notification.title,
-                body: notification.body
+                title: String(notification.title || ""),
+                body: String(notification.body || "")
             };
             if (notification.image) {
-                messagePayload.notification.image = notification.image;
-                messagePayload.android.notification = { image: notification.image };
+                messagePayload.notification.image = String(notification.image);
+                messagePayload.android.notification = { image: String(notification.image) };
             }
         }
 
+        // console.log('[FCM v1] Sending to SDK:', JSON.stringify(messagePayload, null, 2));
         const response = await admin.messaging().send(messagePayload);
         console.log('[FCM v1] Successfully sent message:', response);
         return { success: true, messageId: response };
 
     } catch (err) {
-        console.error('[FCM v1] Error:', err.message);
+        console.error('[FCM v1] Error detail:', err.message);
+        // If it still says 'data must only contain string values', we log the keys
+        if (err.message.includes('data must only contain string values')) {
+             console.error('[FCM Data Keys]:', Object.keys(data).join(', '));
+             console.error('[FCM Data Values Types]:', Object.values(data).map(v => typeof v).join(', '));
+        }
         return await sendFcmLegacyPush(fcmToken, data, notification);
     }
 }
