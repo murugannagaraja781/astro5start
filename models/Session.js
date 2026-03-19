@@ -12,6 +12,11 @@ const SessionSchema = new mongoose.Schema({
     sessionEndAt: Number, // Timestamp
     status: { type: String, enum: ['requested', 'active', 'ended', 'missed', 'rejected'], default: 'requested' },
 
+    // Persistent Billing State (CRITICAL for restarts)
+    lastBilledMinute: { type: Number, default: 0 },
+    lastMaturedMinute: { type: Number, default: 0 },
+    currentSlab: { type: Number, default: 1 },
+
     // Legacy/Compatibility Fields
     fromUserId: String,
     toUserId: String,
@@ -19,8 +24,8 @@ const SessionSchema = new mongoose.Schema({
     startTime: Number,
     endTime: Number,
     duration: Number,
-    totalEarned: Number, // Phase 16: Track session earnings
-    totalCharged: Number // Track total client deduction
+    totalEarned: Number, 
+    totalCharged: Number 
 });
 
 module.exports = mongoose.model('Session', SessionSchema);

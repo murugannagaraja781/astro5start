@@ -57,6 +57,15 @@ async function tickSessions(io) {
                     updateSessionSlab(session);
                 }
 
+                // Persist state to DB to avoid double charging after restarts
+                await Session.updateOne({ sessionId }, {
+                    lastBilledMinute: session.lastBilledMinute,
+                    lastMaturedMinute: session.lastMaturedMinute,
+                    currentSlab: session.currentSlab,
+                    totalEarned: session.totalEarned,
+                    totalCharged: session.totalDeducted
+                }).catch(e => console.error('[Ticker] DB Sync Init Error', e));
+
                 // Emit regular timer and wallet-based remaining time
                 const client = await User.findOne({ userId: session.clientId });
                 if (client) {
@@ -196,6 +205,14 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
         if (activeSess) {
             activeSess.totalDeducted = (activeSess.totalDeducted || 0) + totalToClientDeduct;
             activeSess.totalEarned = (activeSess.totalEarned || 0) + astroAmount;
+
+            // Immediate DB Sync for financial fields
+            await Session.updateOne({ sessionId }, {
+                totalCharged: activeSess.totalDeducted,
+                totalEarned: activeSess.totalEarned,
+                lastBilledMinute: activeSess.lastBilledMinute,
+                lastMaturedMinute: activeSess.lastMaturedMinute
+            }).catch(e => console.error('[Billing] Financial Sync Error', e));
         }
 
         if (io) {

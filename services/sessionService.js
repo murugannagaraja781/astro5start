@@ -202,25 +202,30 @@ async function tryStartBilling(sessionId, io) {
 
     // Billing starts ONLY if:
     // 1. One side has technically connected to the activity
-    // 2. Billing hasn't already started
-    if ((session.clientConnectedAt || session.astrologerConnectedAt) && !session.actualBillingStart) {
-        console.log(`[Billing] Starting billing for ${sessionId}...`);
-        
-        const billingStart = (session.clientConnectedAt || session.astrologerConnectedAt) + 1500;
-        session.actualBillingStart = billingStart;
-        await session.save();
+    // 2. Billing hasn't already started (or we are re-broadcasting to a reconnecting user)
+    if (session.clientConnectedAt || session.astrologerConnectedAt) {
+        let billingStart = session.actualBillingStart;
 
-        activeSession.actualBillingStart = billingStart;
+        if (!billingStart) {
+            console.log(`[Billing] Starting NEW billing for ${sessionId}...`);
+            billingStart = (session.clientConnectedAt || session.astrologerConnectedAt) + 1500;
+            session.actualBillingStart = billingStart;
+            await session.save();
+            activeSession.actualBillingStart = billingStart;
+        } else {
+            console.log(`[Billing] Re-broadcasting existing billing for ${sessionId} to reconnecting user.`);
+        }
         
-        // Initialize billing state if not already done
+        // Initialize/Restore billing state
         if (typeof activeSession.elapsedBillableSeconds === 'undefined' || activeSession.elapsedBillableSeconds === 0) {
             Object.assign(activeSession, {
-                elapsedBillableSeconds: 0,
-                lastBilledMinute: 0, 
-                lastMaturedMinute: 1, 
-                currentSlab: 1,
+                elapsedBillableSeconds: billingStart ? Math.max(0, Math.floor((Date.now() - billingStart) / 1000)) : 0,
+                lastBilledMinute: session.lastBilledMinute || 0, 
+                lastMaturedMinute: session.lastMaturedMinute || 1, 
+                currentSlab: session.currentSlab || 1,
                 totalDeducted: session.totalCharged || 0,
-                totalEarned: session.totalEarned || 0
+                totalEarned: session.totalEarned || 0,
+                pairMonthId: activeSession.pairMonthId // Preserve if already set
             });
         }
 
@@ -312,8 +317,10 @@ async function handleUserConnection(sessionId, userId, io) {
             users: [session.clientId, session.astrologerId],
             startedAt: session.startTime,
             isAnswered: session.status === 'active',
-            elapsedBillableSeconds: 0,
-            lastBilledMinute: 0,
+            elapsedBillableSeconds: session.actualBillingStart ? Math.max(0, Math.floor((Date.now() - session.actualBillingStart) / 1000)) : 0,
+            lastBilledMinute: session.lastBilledMinute || 0,
+            lastMaturedMinute: session.lastMaturedMinute || 1,
+            currentSlab: session.currentSlab || 1,
             actualBillingStart: session.actualBillingStart,
             totalDeducted: session.totalCharged || 0,
             totalEarned: session.totalEarned || 0,
