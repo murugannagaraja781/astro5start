@@ -38,7 +38,7 @@ const getUserProfile = async (req, res) => {
             isAudioOnline: user.isAudioOnline || false,
             isVideoOnline: user.isVideoOnline || false,
             totalEarnings: user.totalEarnings || 0,
-            image: formatImageUrl(user.image, user.name),
+            image: formatImageUrl((user.role === 'astrologer' && !user.image) ? user.pendingImage : user.image, user.name),
             referralCode: user.referralCode,
             isNewUser: user.isNewUser
         });

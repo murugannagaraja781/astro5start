@@ -165,6 +165,34 @@ initSocket(io);
 // Start billing ticker
 setInterval(() => tickSessions(io), 1000);
 
+// Start presence heartbeat ticker
+setInterval(async () => {
+  const User = require('./models/User');
+  const { broadcastAstroUpdate } = require('./services/socketManager');
+  try {
+    const thirtySecondsAgo = new Date(Date.now() - 30000);
+    // USER REQUEST: Only mark CLIENTS offline automatically. 
+    // Astrologers STAY ONLINE even if app is killed to receive calls anytime.
+    const expiredClients = await User.find({
+      role: 'client',
+      isOnline: true,
+      lastSeen: { $lt: thirtySecondsAgo }
+    });
+
+    if (expiredClients.length > 0) {
+      for (const user of expiredClients) {
+        user.isOnline = false;
+        await user.save();
+        console.log(`[Presence] Marked client ${user.name || user.userId} offline due to heartbeat timeout.`);
+      }
+      // No need to broadcastAstroUpdate for client changes usually, 
+      // but broadcast to any listeners who care about general presence if needed.
+    }
+  } catch (err) {
+    console.error('[Presence] Heartbeat cleanup error:', err);
+  }
+}, 10000);
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`✓ Astro5star server started on port ${PORT}`);

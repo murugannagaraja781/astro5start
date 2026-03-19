@@ -146,6 +146,15 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
         } catch (e) { console.error('[Presence] app-background error:', e); }
     });
 
+    socket.on('heartbeat', async () => {
+        try {
+            const userId = socketToUser.get(socket.id);
+            if (userId) {
+                await User.updateOne({ userId }, { lastSeen: new Date() });
+            }
+        } catch (e) { console.error('heartbeat error:', e); }
+    });
+
     socket.on('app-foreground', async () => {
         const userId = socketToUser.get(socket.id);
         if (!userId) return;
