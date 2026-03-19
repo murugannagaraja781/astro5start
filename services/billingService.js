@@ -24,22 +24,35 @@ async function tickSessions(io) {
             const isSessionValid = session.isAnswered && !session.isEnded;
 
             if (isSessionValid) {
-                // Sync with mobile app timer using differential time
+                // Sync with mobile app timer using differential time (seconds from start)
                 const secondsElapsed = Math.floor((now - session.actualBillingStart) / 1000) + 1;
                 session.elapsedBillableSeconds = secondsElapsed;
 
-                // Charge logic: Trigger at 1s, 61s, 121s, etc. (Start of each minute)
+                // RULE 1: Charge Client at the START of each minute (Minute 1, 2, 3...)
+                // These charges are 100% Admin-credited initially.
                 const currentMinuteIndex = Math.floor((secondsElapsed - 1) / 60) + 1;
                 
                 if (currentMinuteIndex > (session.lastBilledMinute || 0)) {
-                    // CATCH-UP LOOP: Even if they reconnect after 2-3 mins, bill all skipped minutes
+                    // Start of a new minute -> Charge Client full price
                     for (let m = (session.lastBilledMinute || 0) + 1; m <= currentMinuteIndex; m++) {
-                        const billingType = (m === 1) ? 'first_60_full' : 'slab';
-                        processBillingCharge(sessionId, 60, m, billingType, io);
+                        processBillingCharge(sessionId, m, 'client_full_charge', io);
                     }
                     session.lastBilledMinute = currentMinuteIndex;
                 }
 
+                // RULE 2: Pay Astrologer AFTER a full minute is completed.
+                // A minute M is completed when secondsElapsed reaches M * 60.
+                // Minute 1 is Admin-only, so we only pay for m >= 2.
+                const completedMinutes = Math.floor(secondsElapsed / 60);
+                if (completedMinutes >= 2 && completedMinutes > (session.lastMaturedMinute || 1)) {
+                    for (let m = (session.lastMaturedMinute || 1) + 1; m <= completedMinutes; m++) {
+                        // Pay share for matured minute 'm'
+                        processBillingCharge(sessionId, m, 'astro_share_payout', io);
+                    }
+                    session.lastMaturedMinute = completedMinutes;
+                }
+
+                // Periodic slab check (every 10s)
                 if (session.elapsedBillableSeconds % 10 === 0 && session.pairMonthId) {
                     updateSessionSlab(session);
                 }
@@ -84,7 +97,7 @@ function updateSessionSlab(session) {
     }
 }
 
-async function processBillingCharge(sessionId, durationSeconds, minuteIndex, type, io) {
+async function processBillingCharge(sessionId, minuteIndex, type, io) {
     try {
         const session = await Session.findOne({ sessionId });
         if (!session) return;
@@ -103,89 +116,89 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
             if (session.type === 'video') pricePerMin = 20;
         }
 
-        let amountToCharge = 0;
-        let adminShare = 0;
-        let astroShare = 0;
+        let totalToClientDeduct = 0;
+        let adminAmount = 0;
+        let astroAmount = 0;
         let reason = '';
+        let isFinalBalanceUpdate = false;
 
-        if (type === 'first_60_full') {
-            amountToCharge = pricePerMin;
-            adminShare = amountToCharge;
-            astroShare = 0;
-            reason = 'first_60';
-        } else if (type === 'early_exit') {
-            amountToCharge = pricePerMin;
-            const rate = SLAB_RATES[1] || 0.30;
-            astroShare = amountToCharge * rate;
-            adminShare = amountToCharge - astroShare;
-            reason = 'first_60_min_charge';
-        } else if (type === 'slab') {
+        // TYPE 1: Charge the client for a whole minute. Start/Fractional minutes are 100% Admin-owned.
+        if (type === 'client_full_charge') {
+            totalToClientDeduct = pricePerMin;
+            adminAmount = pricePerMin;
+            astroAmount = 0;
+            reason = (minuteIndex === 1) ? 'first_minute_admin' : 'minute_start_admin';
+            isFinalBalanceUpdate = true;
+        } 
+        // TYPE 2: Pay the astrologer their share for a COMPLETED minute (M >= 2).
+        else if (type === 'astro_share_payout') {
             const activeSess = activeSessions.get(sessionId);
             const currentSlab = activeSess?.currentSlab || 1;
             let rate = SLAB_RATES[currentSlab] || 0.30;
-            
-            // Safety: If rate was saved as percentage (e.g. 30 instead of 0.3), fix it on the fly
             if (rate > 1) rate = rate / 100;
 
-            amountToCharge = pricePerMin;
-            astroShare = amountToCharge * rate;
-            adminShare = amountToCharge - astroShare;
-            reason = `slab_${currentSlab}`;
-        } else if (type === 'fraction') {
-            amountToCharge = pricePerMin;
-            adminShare = amountToCharge;
-            astroShare = 0;
-            reason = 'fraction_roundup';
+            const shareAmount = pricePerMin * rate;
+            
+            // We transfer the share from Admin back to Astro for this matured minute.
+            // Client is NOT deducted again.
+            totalToClientDeduct = 0; 
+            astroAmount = shareAmount;
+            adminAmount = -shareAmount; // Deduct from Admin's previous 100% hold
+            reason = `slab_${currentSlab}_payout`;
+            isFinalBalanceUpdate = true;
         } else {
             return;
         }
 
-        const totalToDeduct = amountToCharge;
-        if (client.walletBalance >= totalToDeduct) {
-            let mainDeduct = totalToDeduct;
+        if (totalToClientDeduct > 0) {
+            if (client.walletBalance < totalToClientDeduct) {
+                return forceEndSession(sessionId, 'insufficient_funds', io);
+            }
+
+            let mainDeduct = totalToClientDeduct;
             let superDeduct = 0;
 
-            // Apply Super Wallet Logic (30% logic mentioned in original code)
-            // If super wallet has balance, use it for 30% of the charge
-            let potentialSuperDeduct = totalToDeduct * 0.3;
+            // Super Wallet Logic (30% discount/pay)
+            let potentialSuperDeduct = totalToClientDeduct * 0.3;
             if (client.superWalletBalance > 0) {
                 if (client.superWalletBalance >= potentialSuperDeduct) {
                     superDeduct = potentialSuperDeduct;
-                    mainDeduct = totalToDeduct - superDeduct;
                 } else {
                     superDeduct = client.superWalletBalance;
-                    mainDeduct = totalToDeduct - superDeduct;
                 }
                 client.superWalletBalance -= superDeduct;
+                mainDeduct = totalToClientDeduct - superDeduct;
             }
 
             client.walletBalance -= mainDeduct;
             await client.save();
+        }
 
-            if (astroShare > 0) {
-                astro.walletBalance += astroShare;
-                astro.totalEarnings = (astro.totalEarnings || 0) + astroShare;
-                await astro.save();
-            }
+        if (astroAmount > 0) {
+            astro.walletBalance += astroAmount;
+            astro.totalEarnings = (astro.totalEarnings || 0) + astroAmount;
+            await astro.save();
+        }
 
-            await BillingLedger.create({
-                billingId: crypto.randomUUID(),
-                sessionId,
-                minuteIndex,
-                chargedToClient: amountToCharge,
-                creditedToAstrologer: astroShare,
-                adminAmount: adminShare,
-                reason,
-                appliedRate: amountToCharge > 0 ? (astroShare / amountToCharge) : 0
-            });
+        // Create Ledger Record
+        await BillingLedger.create({
+            billingId: crypto.randomUUID(),
+            sessionId,
+            minuteIndex,
+            chargedToClient: totalToClientDeduct,
+            creditedToAstrologer: astroAmount,
+            adminAmount: adminAmount,
+            reason,
+            appliedRate: totalToClientDeduct > 0 ? (astroAmount / totalToClientDeduct) : 0
+        });
 
-            const activeSess = activeSessions.get(sessionId);
-            if (activeSess) {
-                activeSess.totalDeducted = (activeSess.totalDeducted || 0) + amountToCharge;
-                activeSess.totalEarned = (activeSess.totalEarned || 0) + astroShare;
-            }
+        const activeSess = activeSessions.get(sessionId);
+        if (activeSess) {
+            activeSess.totalDeducted = (activeSess.totalDeducted || 0) + totalToClientDeduct;
+            activeSess.totalEarned = (activeSess.totalEarned || 0) + astroAmount;
+        }
 
-            // Notify via Rooms
+        if (io) {
             io.to(client.userId).emit('wallet-update', {
                 balance: client.walletBalance,
                 superBalance: client.superWalletBalance || 0
@@ -195,17 +208,16 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
                 totalEarnings: astro.totalEarnings || 0,
                 superBalance: astro.superWalletBalance || 0
             });
-
-            // Send FCM Notifications if users are likely away (optional but good for 'notifications')
-            if (client.fcmToken) {
-                sendFcmV1Push(client.fcmToken, { type: 'WALLET_DEBIT', amount: mainDeduct + superDeduct }, { title: 'Wallet Updated', body: `₹${(mainDeduct + superDeduct).toFixed(2)} deducted for session.` });
-            }
-            if (astro.fcmToken) {
-                sendFcmV1Push(astro.fcmToken, { type: 'WALLET_CREDIT', amount: astroShare }, { title: 'Earnings Updated', body: `₹${astroShare.toFixed(2)} credited to your wallet.` });
-            }
-        } else {
-            forceEndSession(sessionId, 'insufficient_funds', io);
         }
+
+        // Send FCM Notifications
+        if (totalToClientDeduct > 0 && client.fcmToken) {
+            sendFcmV1Push(client.fcmToken, { type: 'WALLET_DEBIT', amount: totalToClientDeduct }, { title: 'Wallet Updated', body: `₹${totalToClientDeduct.toFixed(2)} deducted for session.` }).catch(() => {});
+        }
+        if (astroAmount > 0 && astro.fcmToken) {
+            sendFcmV1Push(astro.fcmToken, { type: 'WALLET_CREDIT', amount: astroAmount }, { title: 'Earnings Updated', body: `₹${astroAmount.toFixed(2)} credited to your wallet.` }).catch(() => {});
+        }
+
     } catch (err) {
         console.error('processBillingCharge error', err);
     }
