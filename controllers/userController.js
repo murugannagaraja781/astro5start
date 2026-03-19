@@ -420,6 +420,19 @@ const uploadProfilePic = async (req, res) => {
             user.pendingImage = imageUrl;
             user.photoStatus = 'pending';
             await user.save();
+            
+            // Notify Admin
+            const { broadcastAdminUpdate } = require('../services/socketManager');
+            broadcastAdminUpdate();
+
+            // Emit toast notification to admin-room
+            if (global.io) {
+                global.io.to('admin-room').emit('admin-notification', {
+                    type: 'photo_request',
+                    text: `New Photo Approval Request from ${user.name || 'Astrologer'}`
+                });
+            }
+
             res.json({ ok: true, imageUrl, message: 'Photo uploaded and pending approval' });
         } else {
             user.image = imageUrl;
