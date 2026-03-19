@@ -61,12 +61,20 @@ async function sendFcmV1Push(fcmToken, data, notification) {
     }
 
     try {
+        // FCM v1 requires all values in the 'data' object to be strings.
+        const stringifiedData = {};
+        if (data) {
+            Object.keys(data).forEach(key => {
+                stringifiedData[key] = (data[key] !== null && data[key] !== undefined) 
+                    ? String(data[key]) 
+                    : "";
+            });
+        }
+        stringifiedData.priority = 'high';
+
         const messagePayload = {
             token: fcmToken,
-            data: {
-                ...data,
-                priority: 'high'
-            },
+            data: stringifiedData,
             android: {
                 priority: 'high',
                 ttl: 0, 
