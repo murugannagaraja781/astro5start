@@ -113,17 +113,14 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
 
     const { processBillingCharge } = require('./billingService');
 
-    if (billableSeconds > 0 && billableSeconds < 60) {
-        await processBillingCharge(sessionId, billableSeconds, 1, 'early_exit', io);
-    } else if (billableSeconds > 60) {
-        const lastBilled = s.lastBilledMinute || 1;
+    if (billableSeconds > 0) {
+        const lastBilled = s.lastBilledMinute || 0; 
         const totalMinutes = Math.ceil(billableSeconds / 60);
 
         if (totalMinutes > lastBilled) {
             for (let i = lastBilled + 1; i <= totalMinutes; i++) {
-                const isFraction = (i === totalMinutes && (billableSeconds % 60) !== 0);
-                const billingType = isFraction ? 'fraction' : 'slab';
-                await processBillingCharge(sessionId, 60, i, billingType, io);
+                // Charge the client for any missing or final partial minute (100% Admin)
+                await processBillingCharge(sessionId, i, 'client_full_charge', io);
             }
         }
     }
@@ -246,7 +243,8 @@ async function handleUserConnection(sessionId, userId, io) {
         if (typeof activeSession.elapsedBillableSeconds === 'undefined' || activeSession.elapsedBillableSeconds === 0) {
             Object.assign(activeSession, {
                 elapsedBillableSeconds: 0,
-                lastBilledMinute: 1,
+                lastBilledMinute: 0, // CRITICAL: Start at 0 to enable Minute 1 charge
+                lastMaturedMinute: 1, // Astro share starts AFTER minute 1 matures (at 120s)
                 currentSlab: 1,
                 totalDeducted: session.totalCharged || 0,
                 totalEarned: session.totalEarned || 0
