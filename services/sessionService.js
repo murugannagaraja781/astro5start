@@ -291,8 +291,21 @@ async function handleUserConnection(sessionId, userId, io) {
 
         if (io) {
             console.log('STEP 4: emitting billing-started');
-            io.to(session.clientId).emit('billing-started', { startTime: billingStart });
-            io.to(session.astrologerId).emit('billing-started', { startTime: billingStart });
+            const client = await User.findOne({ userId: session.clientId });
+            const astro = await User.findOne({ userId: session.astrologerId });
+            const price = astro?.price || 10;
+            const balance = (client?.walletBalance || 0) + (client?.superWalletBalance || 0);
+            const availableMinutes = Math.floor(balance / price);
+
+            const billingPayload = { 
+                startTime: billingStart,
+                availableMinutes: availableMinutes,
+                clientBalance: balance,
+                ratePerMinute: price
+            };
+
+            io.to(session.clientId).emit('billing-started', billingPayload);
+            io.to(session.astrologerId).emit('billing-started', billingPayload);
         }
     }
     console.log('[SessionService] handleUserConnection END');
