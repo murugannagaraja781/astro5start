@@ -56,73 +56,45 @@ async function getCachedFcmToken() {
 }
 
 async function sendFcmV1Push(fcmToken, data, notification) {
-    // try v1 first, if not available, fallback to legacy
-    if (!fcmAuth) {
+    if (!admin.apps.length) {
         return await sendFcmLegacyPush(fcmToken, data, notification);
     }
 
     try {
-        const accessToken = await getCachedFcmToken();
-        if (!accessToken) return { success: false, error: 'Failed to get auth token' };
-
         const messagePayload = {
             token: fcmToken,
-            notification: notification && notification.image ? {
-                title: notification.title,
-                body: notification.body,
-                image: notification.image
-            } : (notification ? { title: notification.title, body: notification.body } : undefined),
             data: {
                 ...data,
-                ...(notification ? {
-                    title: notification.title || '',
-                    body: notification.body || '',
-                    image: notification.image || ''
-                } : {}),
                 priority: 'high'
             },
             android: {
                 priority: 'high',
-                ttl: '0s',
-                notification: notification && notification.image ? {
-                    image: notification.image
-                } : undefined
+                ttl: 0, 
             },
             apns: {
                 payload: {
                     aps: {
                         contentAvailable: true,
-                        mutableContent: true,
-                        priority: 10
                     }
-                },
-                fcm_options: notification && notification.image ? {
-                    image: notification.image
-                } : undefined
+                }
             }
         };
 
-        const message = { message: messagePayload };
-
-        const response = await fetch(
-            `https://fcm.googleapis.com/v1/projects/${FCM_PROJECT_ID}/messages:send`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                body: JSON.stringify(message)
+        if (notification) {
+            messagePayload.notification = {
+                title: notification.title,
+                body: notification.body
+            };
+            if (notification.image) {
+                messagePayload.notification.image = notification.image;
+                messagePayload.android.notification = { image: notification.image };
             }
-        );
-
-        const result = await response.json();
-        if (result.name) {
-            return { success: true, messageId: result.name };
-        } else {
-            // If v1 fails because project ID is wrong or other issues, try legacy
-            return await sendFcmLegacyPush(fcmToken, data, notification);
         }
+
+        const response = await admin.messaging().send(messagePayload);
+        console.log('[FCM v1] Successfully sent message:', response);
+        return { success: true, messageId: response };
+
     } catch (err) {
         console.error('[FCM v1] Error:', err.message);
         return await sendFcmLegacyPush(fcmToken, data, notification);
