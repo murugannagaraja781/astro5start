@@ -128,15 +128,9 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     body: `${callerDisplayName} is calling you`
                 };
 
-                // CRITICAL FIX: Pass notification object instead of null.
-                // This ensures the OS delivers it even if the app is killed or in deep sleep.
-                const fcmNotification = {
-                    title: '📞 Incoming Call',
-                    body: `${callerDisplayName} is calling you`,
-                    image: callerImage
-                };
-
-                sendFcmV1Push(toUser.fcmToken, fcmData, fcmNotification)
+                // CRITICAL FIX: Data-only messages are required for triggering onMessageReceived 
+                // reliably even if app is killed. OS intercepts messages with 'notification' objects.
+                sendFcmV1Push(toUser.fcmToken, fcmData, null)
                     .catch(err => console.error('[FCM v1] Session Push Error:', err.message));
             }
 
