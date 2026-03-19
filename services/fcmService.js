@@ -87,7 +87,7 @@ async function sendFcmV1Push(fcmToken, data, notification) {
             data: stringifiedData,
             android: {
                 priority: 'high',
-                ttl: 0, 
+                ttl: 60 * 1000, // 60 seconds to ensure delivery during momentary glitch
             },
             apns: {
                 payload: {
@@ -111,7 +111,7 @@ async function sendFcmV1Push(fcmToken, data, notification) {
 
         // console.log('[FCM v1] Sending to SDK:', JSON.stringify(messagePayload, null, 2));
         const response = await admin.messaging().send(messagePayload);
-        console.log('[FCM v1] Successfully sent message:', response);
+        console.log('[FCM v1] Successfully sent message (v3-deep-fix):', response);
         return { success: true, messageId: response };
 
     } catch (err) {
