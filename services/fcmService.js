@@ -56,7 +56,9 @@ async function getCachedFcmToken() {
 }
 
 async function sendFcmV1Push(fcmToken, data, notification) {
+    console.log(`[FCM v1] sendFcmV1Push triggered. Token: ${fcmToken ? fcmToken.substring(0, 10) + '...' : 'NULL'}`);
     if (!admin.apps.length) {
+
         return await sendFcmLegacyPush(fcmToken, data, notification);
     }
 

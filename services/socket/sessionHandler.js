@@ -115,6 +115,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             });
 
             if (toUser && toUser.fcmToken && toUser.isAvailable) {
+                console.log(`[FCM v1] Triggering INCOMING_CALL for ${toUser.name} (${toUserId}). Token: ${toUser.fcmToken.substring(0, 10)}...`);
                 const fcmData = {
                     type: 'INCOMING_CALL',
                     sessionId: sessionId,
@@ -131,8 +132,12 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 // CRITICAL FIX: Data-only messages are required for triggering onMessageReceived 
                 // reliably even if app is killed. OS intercepts messages with 'notification' objects.
                 sendFcmV1Push(toUser.fcmToken, fcmData, null)
+                    .then(res => console.log(`[FCM v1] Session Push Sent: ${JSON.stringify(res)}`))
                     .catch(err => console.error('[FCM v1] Session Push Error:', err.message));
+            } else {
+                console.log(`[FCM v1] Skipping INCOMING_CALL for ${toUserId}. reasons: toUser=${!!toUser}, hasToken=${!!(toUser && toUser.fcmToken)}, isAvailable=${toUser ? toUser.isAvailable : 'N/A'}`);
             }
+
 
             if (typeof cb === "function") cb({ ok: true, sessionId });
 
