@@ -183,6 +183,95 @@ function getOtherUserIdFromSession(sessionId, userId) {
     return s.users.find(u => u !== userId);
 }
 
+/**
+ * Resiliently attempts to start the billing ticker for a session.
+ * Triggered by both socket connection (handleUserConnection) AND 
+ * call acceptance (acceptSession) to prevent race conditions.
+ */
+async function tryStartBilling(sessionId, io) {
+    console.log(`[Billing] tryStartBilling check for ${sessionId}`);
+    const activeSession = activeSessions.get(sessionId);
+    if (!activeSession) return;
+
+    // Fetch fresh database state to ensure status is 'active'
+    const session = await Session.findOne({ sessionId });
+    if (!session || session.status !== 'active') {
+        console.log(`[Billing] Session ${sessionId} not yet active in DB. Skipping.`);
+        return;
+    }
+
+    // Billing starts ONLY if:
+    // 1. One side has technically connected to the activity
+    // 2. Billing hasn't already started
+    if ((session.clientConnectedAt || session.astrologerConnectedAt) && !session.actualBillingStart) {
+        console.log(`[Billing] Starting billing for ${sessionId}...`);
+        
+        const billingStart = (session.clientConnectedAt || session.astrologerConnectedAt) + 1500;
+        session.actualBillingStart = billingStart;
+        await session.save();
+
+        activeSession.actualBillingStart = billingStart;
+        
+        // Initialize billing state if not already done
+        if (typeof activeSession.elapsedBillableSeconds === 'undefined' || activeSession.elapsedBillableSeconds === 0) {
+            Object.assign(activeSession, {
+                elapsedBillableSeconds: 0,
+                lastBilledMinute: 0, 
+                lastMaturedMinute: 1, 
+                currentSlab: 1,
+                totalDeducted: session.totalCharged || 0,
+                totalEarned: session.totalEarned || 0
+            });
+        }
+
+        // Initialize PairMonth for slab tracking
+        try {
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            const pairId = `${session.clientId}_${session.astrologerId}`;
+            
+            let pairRec = await PairMonth.findOneAndUpdate(
+                { pairId, yearMonth: currentMonth },
+                { 
+                    $setOnInsert: { 
+                        clientId: session.clientId, 
+                        astrologerId: session.astrologerId, 
+                        currentSlab: 1,
+                        slabLockedAt: 0
+                    } 
+                },
+                { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+            );
+
+            if (pairRec) {
+                activeSession.pairMonthId = pairRec._id;
+                activeSession.currentSlab = pairRec.currentSlab;
+                activeSession.initialPairSeconds = pairRec.slabLockedAt || 0;
+            }
+        } catch (e) { 
+            console.error('[Billing] PairMonth Init Error', e);
+        }
+
+        if (io) {
+            const client = await User.findOne({ userId: session.clientId });
+            const astro = await User.findOne({ userId: session.astrologerId });
+            const price = astro?.price || 10;
+            const balance = (client?.walletBalance || 0) + (client?.superWalletBalance || 0);
+            const availableMinutes = Math.floor(balance / price);
+
+            const billingPayload = { 
+                startTime: billingStart,
+                availableMinutes: availableMinutes,
+                clientBalance: balance,
+                ratePerMinute: price
+            };
+
+            io.to(session.clientId).emit('billing-started', billingPayload);
+            io.to(session.astrologerId).emit('billing-started', billingPayload);
+            console.log(`[Billing] 'billing-started' emitted for session ${sessionId}`);
+        }
+    }
+}
+
 async function handleUserConnection(sessionId, userId, io) {
     console.log(`[SessionService] handleUserConnection START: sessionId=${sessionId}, userId=${userId}`);
     console.log('STEP 1: searching session in DB');
@@ -233,79 +322,9 @@ async function handleUserConnection(sessionId, userId, io) {
         activeSessions.set(sessionId, activeSession);
     }
 
-    // Ensure billing starts if at least one person connects and call was answered
-    if ((session.clientConnectedAt || session.astrologerConnectedAt) && !session.actualBillingStart && session.status === 'active') {
-        const billingStart = (session.clientConnectedAt || session.astrologerConnectedAt) + 2000;
-        session.actualBillingStart = billingStart;
-        await session.save();
+    // Attempt to start billing (resilient check)
+    await tryStartBilling(sessionId, io);
 
-        activeSession.actualBillingStart = billingStart;
-        if (typeof activeSession.elapsedBillableSeconds === 'undefined' || activeSession.elapsedBillableSeconds === 0) {
-            Object.assign(activeSession, {
-                elapsedBillableSeconds: 0,
-                lastBilledMinute: 0, // CRITICAL: Start at 0 to enable Minute 1 charge
-                lastMaturedMinute: 1, // Astro share starts AFTER minute 1 matures (at 120s)
-                currentSlab: 1,
-                totalDeducted: session.totalCharged || 0,
-                totalEarned: session.totalEarned || 0
-            });
-        }
-        try {
-            const currentMonth = new Date().toISOString().slice(0, 7);
-            const pairId = `${session.clientId}_${session.astrologerId}`;
-            
-            // ATOMIC FIX: Use findOneAndUpdate with upsert to prevent duplicate key race conditions
-            // Note: MongoDB upsert can still throw 11000 in extreme race conditions, so we catch and findOne.
-            let pairRec;
-            try {
-                pairRec = await PairMonth.findOneAndUpdate(
-                    { pairId, yearMonth: currentMonth },
-                    { 
-                        $setOnInsert: { 
-                            clientId: session.clientId, 
-                            astrologerId: session.astrologerId, 
-                            currentSlab: 1,
-                            slabLockedAt: 0
-                        } 
-                    },
-                    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
-                );
-            } catch (err) {
-                if (err.code === 11000) {
-                    pairRec = await PairMonth.findOne({ pairId, yearMonth: currentMonth });
-                } else {
-                    throw err;
-                }
-            }
-
-            if (pairRec) {
-                activeSession.pairMonthId = pairRec._id;
-                activeSession.currentSlab = pairRec.currentSlab;
-                activeSession.initialPairSeconds = pairRec.slabLockedAt || 0;
-            }
-        } catch (e) { 
-            console.error('PairMonth Init Error', e);
-        }
-
-        if (io) {
-            console.log('STEP 4: emitting billing-started');
-            const client = await User.findOne({ userId: session.clientId });
-            const astro = await User.findOne({ userId: session.astrologerId });
-            const price = astro?.price || 10;
-            const balance = (client?.walletBalance || 0) + (client?.superWalletBalance || 0);
-            const availableMinutes = Math.floor(balance / price);
-
-            const billingPayload = { 
-                startTime: billingStart,
-                availableMinutes: availableMinutes,
-                clientBalance: balance,
-                ratePerMinute: price
-            };
-
-            io.to(session.clientId).emit('billing-started', billingPayload);
-            io.to(session.astrologerId).emit('billing-started', billingPayload);
-        }
-    }
     console.log('[SessionService] handleUserConnection END');
 }
 
@@ -396,6 +415,9 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
             
             if (broadcastAstroUpdate) broadcastAstroUpdate();
             
+            // Attempt to start billing (resilient check: user might already be connected)
+            await tryStartBilling(sessionId, io);
+
             console.log(`[SessionService] acceptSession END (Accept: true)`);
             return { ok: true, counterpartId: fromUserId };
         } else {
