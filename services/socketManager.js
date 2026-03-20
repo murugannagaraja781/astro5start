@@ -128,11 +128,12 @@ const initSocket = (io) => {
                         offlineTimeouts.delete(userId);
                     }
 
-                    // USER REQUEST: Default to 'Offline' on login. 
-                    // They must explicitly toggle 'Online' in the app.
-                    user.isOnline = false;
-                    user.isAvailable = false;
-                    // Keep their specific service flags as they were, but main isOnline is false.
+                    // USER REQUEST: Default to 'Offline' ONLY IF not already online.
+                    // This allows them to STAY ONLINE even after socket reconnection/app restart.
+                    if (user.isOnline === undefined || user.isOnline === null) {
+                        user.isOnline = false;
+                        user.isAvailable = false;
+                    }
                     
                     await user.save();
                     broadcastAstroUpdate();

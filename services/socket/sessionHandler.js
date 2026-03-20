@@ -114,8 +114,9 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 birthData: birthData || null
             });
 
-            if (toUser && toUser.fcmToken && toUser.isAvailable) {
-                console.log(`[FCM v1] Triggering INCOMING_CALL for ${toUser.name} (${toUserId}). Token: ${toUser.fcmToken.substring(0, 10)}...`);
+            const isLogicallyAvailable = toUser.isAvailable || (toUser.isOnline && !toUser.isBusy);
+            if (toUser && toUser.fcmToken && isLogicallyAvailable) {
+                console.log(`[FCM v1] Triggering INCOMING_CALL for ${toUser.name} (${toUserId}). LogicalAvail: ${isLogicallyAvailable}. Token: ${toUser.fcmToken.substring(0, 10)}...`);
                 const fcmData = {
                     type: 'INCOMING_CALL',
                     sessionId: sessionId,
