@@ -151,6 +151,9 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             }
 
 
+            // Join the room as the creator
+            socket.join(sessionId);
+
             if (typeof cb === "function") cb({ ok: true, sessionId });
 
         } catch (err) {
@@ -164,6 +167,9 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         const astrologerId = socketToUser.get(socket.id);
         if (!astrologerId || !sessionId) return;
         
+        // Join the session room for signaling and events
+        socket.join(sessionId);
+
         const result = await sessionService.acceptSession(sessionId, astrologerId, accept, type, io, broadcastAstroUpdate);
         if (typeof cb === "function") cb(result);
     });
@@ -175,6 +181,9 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             if (typeof cb === 'function') cb({ ok: false, error: 'Invalid data' });
             return;
         }
+
+        // Join the session room for signaling and events
+        socket.join(sessionId);
 
         const result = await sessionService.acceptSession(sessionId, astrologerId, accept, callType, io, broadcastAstroUpdate);
         if (typeof cb === 'function') {
@@ -211,6 +220,9 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             const { sessionId } = data || {};
             const userId = socketToUser.get(socket.id);
             if (!userId || !sessionId) return;
+
+            // Ensure socket is in the session room
+            socket.join(sessionId);
 
             const handler = sessionService.handleUserConnection;
             if (typeof handler === 'function') {

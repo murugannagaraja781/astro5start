@@ -78,103 +78,115 @@ async function handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpd
 }
 
 async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) {
-    console.log(`[SessionService] endSessionRecord: sessionId=${sessionId}, reason=${endReason}`);
-    const s = activeSessions.get(sessionId);
-    if (!s) {
-        console.log(`[SessionService] endSessionRecord: sessionId=${sessionId} NOT FOUND in memory`);
-        return;
-    }
-
-    if (!s.isAnswered && s.astrologerId) {
-        sendCancelCallPush(s.astrologerId, sessionId);
-        if (endReason !== 'caller_cancel') {
-            const callerId = s.clientId || s.users.find(u => u !== s.astrologerId);
-            handleMissedCallLogic(s.astrologerId, callerId, io, broadcastAstroUpdate);
+    try {
+        console.log(`[SessionService] endSessionRecord: sessionId=${sessionId}, reason=${endReason}`);
+        const s = activeSessions.get(sessionId);
+        if (!s) {
+            console.log(`[SessionService] endSessionRecord: sessionId=${sessionId} NOT FOUND in memory`);
+            // Even if not in memory, ensure DB consistency if possible
+            Session.updateOne({ sessionId }, { status: 'ended', endTime: Date.now() }).catch(() => {});
+            return;
         }
-    }
 
-    const endTime = Date.now();
-    const billableSeconds = s.elapsedBillableSeconds || 0;
+        const endTime = Date.now();
+        const billableSeconds = s.elapsedBillableSeconds || 0;
 
-    await Session.updateOne({ sessionId }, {
-        endTime,
-        duration: billableSeconds * 1000,
-        totalEarned: s.totalEarned || 0,
-        totalCharged: s.totalDeducted || 0,
-        status: 'ended'
-    });
+        // --- 1. PREPARE PAYLOAD AND EMIT IMMEDIATELY FOR BEST UX ---
+        const payload = {
+            reason: endReason || 'ended',
+            summary: {
+                deducted: s.totalDeducted || 0,
+                earned: s.totalEarned || 0,
+                duration: billableSeconds
+            }
+        };
 
-    if (s.pairMonthId) {
-        await PairMonth.updateOne(
-            { _id: s.pairMonthId },
-            { $inc: { slabLockedAt: billableSeconds } }
-        );
-    }
+        if (io) {
+            // Emit to the session room AND individual user rooms for maximum reliability
+            io.to(sessionId).emit('session-ended', payload);
+            if (s.clientId) io.to(s.clientId).emit('session-ended', payload);
+            if (s.astrologerId) io.to(s.astrologerId).emit('session-ended', payload);
+        }
 
-    const { processBillingCharge } = require('./billingService');
+        // --- 2. CLEANUP MEMORY AND RELEASE BUSY STATE IMMEDIATELY ---
+        activeSessions.delete(sessionId);
+        if (s.users) {
+            s.users.forEach((u) => {
+                if (userActiveSession.get(u) === sessionId) {
+                    userActiveSession.delete(u);
+                }
+                if (sessionDisconnectTimeouts.has(u)) {
+                    clearTimeout(sessionDisconnectTimeouts.get(u));
+                    sessionDisconnectTimeouts.delete(u);
+                }
+            });
+        }
 
-    if (billableSeconds > 0) {
-        const lastBilled = s.lastBilledMinute || 0; 
-        const totalMinutes = Math.ceil(billableSeconds / 60);
+        // Release busy status for all involved astrologers
+        User.updateMany({ userId: { $in: s.users }, role: 'astrologer' }, { isBusy: false, isAvailable: true })
+            .then(() => { if (broadcastAstroUpdate) broadcastAstroUpdate(); })
+            .catch(e => console.error('[EndSession] Busy release error:', e));
 
-        if (totalMinutes > lastBilled) {
-            for (let i = lastBilled + 1; i <= totalMinutes; i++) {
-                // Charge the client for any missing or final partial minute (100% Admin)
-                await processBillingCharge(sessionId, i, 'client_full_charge', io);
+        // --- 3. BACKGROUND TASKS (Billing, DB Sync, Missed Call Logic) ---
+        
+        // Handle cancelled/missed calls
+        if (!s.isAnswered && s.astrologerId) {
+            sendCancelCallPush(s.astrologerId, sessionId);
+            if (endReason !== 'caller_cancel') {
+                const callerId = s.clientId || s.users.find(u => u !== s.astrologerId);
+                handleMissedCallLogic(s.astrologerId, callerId, io, broadcastAstroUpdate);
             }
         }
-    }
 
-    activeSessions.delete(sessionId);
-    if (s.users) {
-        s.users.forEach((u) => {
-            if (userActiveSession.get(u) === sessionId) {
-                userActiveSession.delete(u);
-            }
-            if (sessionDisconnectTimeouts.has(u)) {
-                clearTimeout(sessionDisconnectTimeouts.get(u));
-                sessionDisconnectTimeouts.delete(u);
-            }
-        });
-    }
+        // Finalize Session in DB
+        Session.updateOne({ sessionId }, {
+            endTime,
+            duration: billableSeconds * 1000,
+            totalEarned: s.totalEarned || 0,
+            totalCharged: s.totalDeducted || 0,
+            status: 'ended'
+        }).catch(e => console.error('[EndSession] DB update failed:', e));
 
-    const payload = {
-        reason: 'ended',
-        summary: {
-            deducted: s.totalDeducted || 0,
-            earned: s.totalEarned || 0,
-            duration: billableSeconds
+        if (s.pairMonthId) {
+            PairMonth.updateOne(
+                { _id: s.pairMonthId },
+                { $inc: { slabLockedAt: billableSeconds } }
+            ).catch(() => {});
         }
-    };
 
-    if (io) {
-        // Emit to the session room for collective notice
-        io.to(sessionId).emit('session-ended', payload);
+        // Process any missing final fractional minutes
+        const { processBillingCharge } = require('./billingService');
+        if (billableSeconds > 0) {
+            const lastBilled = s.lastBilledMinute || 0; 
+            const totalMinutes = Math.ceil(billableSeconds / 60);
 
-        // Also emit to individual user rooms to ensure delivery
-        if (s.clientId) io.to(s.clientId).emit('session-ended', payload);
-        if (s.astrologerId) {
-            io.to(s.astrologerId).emit('session-ended', payload);
-            if (s.totalEarned > 0) {
-                User.findOne({ userId: s.astrologerId }).then(astro => {
-                    if (astro && astro.fcmToken && astro.isAvailable) {
-                        const { sendFcmV1Push } = require('./fcmService');
-                        sendFcmV1Push(astro.fcmToken, {
-                            type: 'EARNING_UPDATE',
-                            amount: String(s.totalEarned),
-                            click_action: 'FLUTTER_NOTIFICATION_CLICK'
-                        }, {
-                            title: "🟢 Payment Credited",
-                            body: `₹${s.totalEarned.toFixed(2)} has been credited to your wallet for the recent session.`
-                        }).catch(e => console.error('[FCM] Earning push failed:', e));
-                    }
-                });
+            if (totalMinutes > lastBilled) {
+                // Trigger background billing charges (don't await to avoid blocking)
+                for (let i = lastBilled + 1; i <= totalMinutes; i++) {
+                    processBillingCharge(sessionId, i, 'client_full_charge', io);
+                }
             }
         }
-    }
 
-    User.updateMany({ userId: { $in: s.users }, role: 'astrologer' }, { isBusy: false })
-        .then(() => { if (broadcastAstroUpdate) broadcastAstroUpdate(); });
+        // Astrologer earnings push
+        if (s.astrologerId && (s.totalEarned > 0)) {
+            User.findOne({ userId: s.astrologerId }).then(astro => {
+                if (astro && astro.fcmToken) {
+                    const { sendFcmV1Push } = require('./fcmService');
+                    sendFcmV1Push(astro.fcmToken, {
+                        type: 'EARNING_UPDATE',
+                        amount: String(s.totalEarned)
+                    }, {
+                        title: "🟢 Payment Credited",
+                        body: `₹${s.totalEarned.toFixed(2)} credited to your wallet.`
+                    }).catch(() => {});
+                }
+            }).catch(() => {});
+        }
+
+    } catch (err) {
+        console.error('[EndSession] CRITICAL ERROR:', err);
+    }
 }
 
 function getOtherUserIdFromSession(sessionId, userId) {
