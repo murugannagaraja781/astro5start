@@ -270,9 +270,18 @@ async function tryStartBilling(sessionId, io) {
                 ratePerMinute: price
             };
 
-            io.to(session.clientId).emit('billing-started', billingPayload);
-            io.to(session.astrologerId).emit('billing-started', billingPayload);
-            console.log(`[Billing] 'billing-started' emitted for session ${sessionId}`);
+            // RESILIENT BROADCAST: The mobile app might have a race condition where it registers 
+            // listeners slightly after connection. We emit immediately, then again after 2s and 5s.
+            const broadcast = () => {
+                if (!activeSessions.has(sessionId)) return; // Stop if session ended
+                io.to(session.clientId).emit('billing-started', billingPayload);
+                io.to(session.astrologerId).emit('billing-started', billingPayload);
+                console.log(`[Billing] 'billing-started' emitted for session ${sessionId} (Resilient Broadcast)`);
+            };
+
+            broadcast(); // Immediate
+            setTimeout(broadcast, 2000); // 2s Delay
+            setTimeout(broadcast, 5000); // 5s Delay
         }
     }
 }
