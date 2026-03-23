@@ -54,10 +54,21 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             let clientId = null;
             let astrologerId = null;
 
-            if (fromUser && fromUser.role === 'client') clientId = fromUserId;
-            if (fromUser && fromUser.role === 'astrologer') astrologerId = fromUserId;
-            if (toUser && toUser.role === 'client') clientId = toUserId;
-            if (toUser && toUser.role === 'astrologer') astrologerId = toUserId;
+            if (fromUser && fromUser.role === 'client' && toUser && toUser.role === 'astrologer') {
+                clientId = fromUserId;
+                astrologerId = toUserId;
+            } else if (fromUser && fromUser.role === 'astrologer' && toUser && toUser.role === 'client') {
+                clientId = toUserId;
+                astrologerId = fromUserId;
+            } else if (toUser && toUser.role === 'astrologer') {
+                // Testing fallback: if target is an astrologer, treat them as the astrologer side
+                astrologerId = toUserId;
+                clientId = fromUserId;
+            } else {
+                // Secondary fallback: from is client, to is astrologer
+                clientId = fromUserId;
+                astrologerId = toUserId;
+            }
 
             await Session.create({
                 sessionId, fromUserId, toUserId, type, startTime: Date.now(),
