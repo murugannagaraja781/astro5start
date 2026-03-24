@@ -1556,6 +1556,10 @@
             if (id === 'requests') fetchPendingRequests();
             if (id === 'notifications') fetchNotifications();
             if (id === 'users' || id === 'astrologers') fetchAllUsers(1);
+            if (id === 'slabs') loadSlabRates();
+            if (id === 'academy') fetchAcademyVideos();
+            if (id === 'offers') fetchFcmUsers();
+            if (id === 'banner') fetchBanners();
         }
 
         function fetchNotifications() {
