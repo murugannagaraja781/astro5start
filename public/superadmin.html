@@ -769,8 +769,11 @@
                     <span
                         class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-lg"><i
                             class="fas fa-plus"></i></span>
-                    New Campaign Banner <li>Ideal Resolution: 1200 x 675 pixels (or 1080 x 608 pixels)</li>
-                    <li>Aspect Ratio: 16:9</li>
+                    New Campaign Banner
+                    <ul class="text-[10px] font-medium text-emerald-600 mt-1 list-disc list-inside">
+                        <li>Ideal Resolution: 1200 x 675 pixels (or 1080 x 608 pixels)</li>
+                        <li>Aspect Ratio: 16:9</li>
+                    </ul>
                 </h4>
 
                 <form id="banner-form" onsubmit="createBanner(event)" class="space-y-8 relative">
@@ -839,15 +842,14 @@
                             </div>
                         </div>
                     </div>
-            </div>
 
-            <div class="flex justify-end pt-4">
-                <button type="submit"
-                    class="bg-brand-green text-white font-black px-12 py-5 rounded-[2rem] shadow-2xl shadow-emerald-100 hover:bg-deep-green hover:-translate-y-1 active:translate-y-0 transition-all uppercase tracking-[0.2em] text-sm flex items-center gap-4">
-                    Launch Campaign <i class="fas fa-arrow-right"></i>
-                </button>
-            </div>
-            </form>
+                    <div class="flex justify-end pt-4">
+                        <button type="submit"
+                            class="bg-brand-green text-white font-black px-12 py-5 rounded-[2rem] shadow-2xl shadow-emerald-100 hover:bg-deep-green hover:-translate-y-1 active:translate-y-0 transition-all uppercase tracking-[0.2em] text-sm flex items-center gap-4">
+                            Launch Campaign <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </form>
             </div>
             <div id="banner-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
         </section>
