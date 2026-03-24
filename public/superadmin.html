@@ -769,7 +769,8 @@
                     <span
                         class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-lg"><i
                             class="fas fa-plus"></i></span>
-                    New Campaign Banner
+                    New Campaign Banner <li>Ideal Resolution: 1200 x 675 pixels (or 1080 x 608 pixels)</li>
+                    <li>Aspect Ratio: 16:9</li>
                 </h4>
 
                 <form id="banner-form" onsubmit="createBanner(event)" class="space-y-8 relative">
@@ -2059,7 +2060,7 @@
                 rates[i.dataset.slab] = parseFloat(i.value) / 100;
             });
             socket.emit('update-slab-rates', rates, (res) => {
-                if(res.ok) {
+                if (res.ok) {
                     showToast('Rates Synchronized Successfully', 'success');
                 } else {
                     showToast('Hardware Sync Error', 'error');
