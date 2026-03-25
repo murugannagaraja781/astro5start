@@ -2229,6 +2229,13 @@
                             <td class="px-6 py-5 font-mono text-xs font-black text-emerald-600">₹${(l.creditedToAstrologer || 0).toFixed(2)}</td>
                             <td class="px-6 py-5 font-mono text-xs font-black text-indigo-600">₹${(l.adminAmount || 0).toFixed(2)}</td>
                         </tr>
+                        <tr class="bg-slate-50/20 border-b border-slate-100">
+                            <td colspan="6" class="px-6 py-2">
+                                <div class="text-[8px] font-bold text-slate-400 bg-white/50 px-3 py-1 rounded-full border border-slate-100 inline-block">
+                                    <i class="fas fa-info-circle mr-1 text-slate-300"></i> ${l.readableSummary}
+                                </div>
+                            </td>
+                        </tr>
                         `;
                     }).join('');
 
@@ -2854,11 +2861,14 @@
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-2">
                                             <i class="fas ${typeIcon} text-brand-green text-[10px]"></i>
-                                            <span class="text-[10px] font-black text-slate-600">${mins}m ${secs}s</span>
+                                            <span class="text-[10px] font-black text-slate-600">${s.durationFormatted || (mins + 'm ' + secs + 's')}</span>
                                         </div>
+                                        <div class="text-[7px] text-slate-400 font-bold mt-1 max-w-[200px] leading-tight">${s.readableSummary || ''}</div>
                                     </td>
                                     <td class="px-6 py-4 text-right">
-                                        <div class="text-xs font-black text-brand-green">₹${(s.totalEarned || 0).toFixed(2)}</div>
+                                        <div class="text-[10px] font-black text-slate-800">Paid: ₹${(s.totalCharged || 0).toFixed(2)}</div>
+                                        <div class="text-[9px] font-black text-brand-green">Earnings: ₹${(s.totalEarned || 0).toFixed(2)}</div>
+                                        <div class="text-[8px] font-black text-indigo-600">Admin: ₹${(s.adminProfit || 0).toFixed(2)}</div>
                                     </td>
                                 </tr>
                             `;

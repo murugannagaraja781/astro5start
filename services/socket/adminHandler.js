@@ -321,13 +321,31 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 .sort({ endTime: -1 })
                 .limit(100);
 
-            // Populate client names
+            // Populate client names and add formatted financial details
             const populatedSessions = await Promise.all(sessions.map(async (s) => {
                 const client = await User.findOne({ userId: s.clientId }).select('name phone image');
+                const sessObj = s.toObject();
+                
+                const cName = client?.name || 'Unknown';
+                const totalCharged = sessObj.totalCharged || 0;
+                const totalEarned = sessObj.totalEarned || 0;
+                const adminProfit = totalCharged - totalEarned;
+                const durationSec = sessObj.duration || 0;
+                
+                const mins = Math.floor(durationSec / 60);
+                const secs = durationSec % 60;
+                const durationFormatted = `${mins}m ${secs}s`;
+
+                const readableSummary = `Client: ${cName} -> Astro: ${sessObj.astrologerName || 'This Astro'} | Duration: ${durationFormatted} | Total Paid: ₹${totalCharged.toFixed(2)} | Astro Profit: ₹${totalEarned.toFixed(2)} | Admin Profit: ₹${adminProfit.toFixed(2)}`;
+
                 return {
-                    ...s.toObject(),
-                    clientName: client?.name || 'Unknown',
-                    clientPhone: client?.phone || 'N/A'
+                    ...sessObj,
+                    clientName: cName,
+                    clientPhone: client?.phone || 'N/A',
+                    totalCharged,
+                    adminProfit,
+                    durationFormatted,
+                    readableSummary
                 };
             }));
 
@@ -490,6 +508,9 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                         'sessionInfo.type': 1,
                         'sessionInfo.clientId': 1,
                         'sessionInfo.astrologerId': 1,
+                        'sessionInfo.duration': 1,
+                        'sessionInfo.totalCharged': 1,
+                        'sessionInfo.totalEarned': 1,
                         clientName: '$clientDetails.name',
                         clientPhone: '$clientDetails.phone',
                         astroName: '$astroDetails.name',
@@ -497,6 +518,25 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                     }
                 }
             ]);
+
+            // Add readableSummary to each ledger record
+            const processedLedger = fullLedger.map(l => {
+                const totalCharged = l.sessionInfo?.totalCharged || 0;
+                const totalEarned = l.sessionInfo?.totalEarned || 0;
+                const adminProfit = totalCharged - totalEarned;
+                const durationSec = l.sessionInfo?.duration || 0;
+                const mins = Math.floor(durationSec / 60);
+                const secs = durationSec % 60;
+                const durationFormatted = `${mins}m ${secs}s`;
+
+                const readableSummary = `Session: ${l.sessionId} | Total Paid: ₹${totalCharged.toFixed(2)} | Astro: ₹${totalEarned.toFixed(2)} | Admin: ₹${adminProfit.toFixed(2)} | Duration: ${durationFormatted}`;
+                
+                return {
+                    ...l,
+                    readableSummary,
+                    durationFormatted
+                };
+            });
 
             const billing = billingStats[0] || {};
             const stats = {
@@ -510,7 +550,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 onlineAstrologers
             };
 
-            if (typeof cb === "function") cb({ ok: true, stats, fullLedger, totalRecords, totalPages: Math.ceil(totalRecords / limit), currentPage: parseInt(page) });
+            if (typeof cb === "function") cb({ ok: true, stats, fullLedger: processedLedger, totalRecords, totalPages: Math.ceil(totalRecords / limit), currentPage: parseInt(page) });
         } catch (e) {
             console.error('Ledger stats error:', e);
             if (typeof cb === "function") cb({ ok: false });
