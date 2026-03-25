@@ -115,10 +115,29 @@ const getSessionHistory = async (req, res) => {
                 User.findOne({ userId: cId }).select('name').lean(),
                 User.findOne({ userId: aId }).select('name').lean()
             ]);
+
+            const cName = client ? client.name : 'Unknown Client';
+            const aName = astro ? astro.name : 'Unknown Astrologer';
+            const durationSec = s.duration || 0;
+            const totalCharged = s.totalCharged || 0;
+            const totalEarned = s.totalEarned || 0;
+            const adminProfit = totalCharged - totalEarned;
+
+            const minutes = Math.floor(durationSec / 60);
+            const seconds = durationSec % 60;
+            const durationFormatted = `${minutes}m ${seconds}s`;
+
+            const readableSummary = `Client: ${cName} -> Astro: ${aName} | Duration: ${durationFormatted} | Total Paid: ₹${totalCharged.toFixed(2)} | Astro Profit: ₹${totalEarned.toFixed(2)} | Admin Profit: ₹${adminProfit.toFixed(2)}`;
+
             return {
                 ...s,
-                clientName: client ? client.name : 'Unknown Client',
-                astrologerName: astro ? astro.name : 'Unknown Astrologer'
+                clientName: cName,
+                astrologerName: aName,
+                totalAmount: totalCharged,
+                astroProfit: totalEarned,
+                adminProfit: adminProfit,
+                durationFormatted: durationFormatted,
+                readableSummary: readableSummary
             };
         }));
 
