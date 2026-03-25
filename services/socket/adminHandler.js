@@ -51,11 +51,33 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 query.isOnline = true;
             }
 
-            const total = await User.countDocuments(query);
-            const users = await User.find(query)
-                .sort({ role: -1, createdAt: -1 })
-                .skip(skip)
-                .limit(parseInt(limit));
+            let users = [];
+            let total = 0;
+
+            if (role === 'astrologer') {
+                const aggregatePipeline = [
+                    { $match: query },
+                    { $sort: { displayOrder: -1, isOnline: -1, createdAt: -1 } },
+                    {
+                        $group: {
+                            _id: '$phone',
+                            doc: { $first: '$$ROOT' }
+                        }
+                    },
+                    { $replaceRoot: { newRoot: '$doc' } },
+                    { $sort: { role: -1, createdAt: -1 } }
+                ];
+
+                const allFiltered = await User.aggregate(aggregatePipeline);
+                total = allFiltered.length;
+                users = allFiltered.slice(skip, skip + parseInt(limit));
+            } else {
+                total = await User.countDocuments(query);
+                users = await User.find(query)
+                    .sort({ role: -1, createdAt: -1 })
+                    .skip(skip)
+                    .limit(parseInt(limit));
+            }
 
             if (typeof cb === "function") cb({ ok: true, users, total, totalPages: Math.ceil(total / limit), currentPage: parseInt(page) });
         } catch (e) { if (typeof cb === "function") cb({ ok: false }); }
@@ -387,6 +409,21 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             if (!user) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
 
             if (finalAction === 'approve' || finalAction === 'approved') {
+                // Check for duplicate phone number
+                const duplicate = await User.findOne({ 
+                    phone: user.phone, 
+                    role: 'astrologer', 
+                    approvalStatus: 'approved',
+                    userId: { $ne: user.userId }
+                });
+
+                if (duplicate) {
+                    if (typeof cb === "function") return cb({ 
+                        ok: false, 
+                        error: `Duplicate Astrologer! A user with phone ${user.phone} is already approved as ${duplicate.name}. Please reject this request.` 
+                    });
+                }
+
                 user.approvalStatus = 'approved';
                 user.isVerified = true;
                 user.documentStatus = 'verified';

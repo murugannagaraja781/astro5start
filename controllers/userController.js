@@ -54,22 +54,42 @@ const getAstrologers = async (req, res) => {
         const limit = parseInt(req.query.limit) || 20;
         const skip = (page - 1) * limit;
 
-        // Get total count for pagination metadata
-        const total = await User.countDocuments({ role: 'astrologer', approvalStatus: 'approved' });
+        // Get unique counts using aggregation
+        const uniqueCounts = await User.aggregate([
+            { $match: { role: 'astrologer', approvalStatus: 'approved' } },
+            { $group: { _id: '$phone' } },
+            { $count: 'total' }
+        ]);
+        const total = uniqueCounts[0]?.total || 0;
 
-        const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
-            .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
-            .skip(skip)
-            .limit(limit)
-            .lean();
+        const astros = await User.aggregate([
+            { $match: { role: 'astrologer', approvalStatus: 'approved' } },
+            { $sort: { displayOrder: -1, isOnline: -1, createdAt: -1 } },
+            {
+                $group: {
+                    _id: '$phone',
+                    doc: { $first: '$$ROOT' }
+                }
+            },
+            { $replaceRoot: { newRoot: '$doc' } },
+            { $sort: { displayOrder: -1, isOnline: -1, createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+            {
+                $project: {
+                    userId: 1, name: 1, phone: 1, skills: 1, price: 1, isOnline: 1, isChatOnline: 1, isAudioOnline: 1, isVideoOnline: 1,
+                    experience: 1, isVerified: 1, image: 1, walletBalance: 1, totalEarnings: 1, isBusy: 1, languages: 1,
+                    orderCount: 1, isDocumentVerified: 1, displayOrder: 1
+                }
+            }
+        ]);
 
         const formatted = astros.map(a => {
             const isOnlineCalculated = !!(a.isOnline || a.isAudioOnline || a.isChatOnline || a.isVideoOnline);
             return {
                 ...a,
-                isOnline: isOnlineCalculated, // Match socketManager logic
+                isOnline: isOnlineCalculated,
                 image: formatImageUrl(a.image, a.name),
-                // Mobile app helper flags
                 showAudio: !isOnlineCalculated || !!a.isAudioOnline,
                 showChat: !isOnlineCalculated || !!a.isChatOnline,
                 showVideo: !isOnlineCalculated || !!a.isVideoOnline,
