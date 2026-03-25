@@ -461,11 +461,25 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
 
             const totalRecords = await BillingLedger.countDocuments(match);
 
-            // Fetch ledger with full audit trail (Joins for Session, Client, and Astrologer)
+            // Fetch ledger with grouping by sessionId to avoid perceived duplication
+            // We group by sessionId, but for entries without it (like manual adjustments), we use the _id
             const fullLedger = await BillingLedger.aggregate([
                 { $match: match },
-                { $sort: { [sortBy]: sortOrder } },
-                { $skip: skip },
+                {
+                    $group: {
+                        _id: { $ifNull: ['$sessionId', '$_id'] },
+                        sessionId: { $first: '$sessionId' },
+                        chargedToClient: { $sum: '$chargedToClient' },
+                        creditedToAstrologer: { $sum: '$creditedToAstrologer' },
+                        adminAmount: { $sum: '$adminAmount' },
+                        appliedRate: { $first: '$appliedRate' },
+                        reason: { $first: '$reason' },
+                        createdAt: { $first: '$createdAt' }, // Take the first occurrence's time
+                        minuteIndex: { $max: '$minuteIndex' } // Use max as a proxy for total minutes
+                    }
+                },
+                { $sort: { [sortBy === 'createdAt' ? 'createdAt' : sortBy]: sortOrder } },
+                { $skip: (parseInt(page) - 1) * parseInt(limit) },
                 { $limit: parseInt(limit) },
                 {
                     $lookup: {
@@ -521,19 +535,16 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
 
             // Add readableSummary to each ledger record
             const processedLedger = fullLedger.map(l => {
-                const totalCharged = l.sessionInfo?.totalCharged || 0;
-                const totalEarned = l.sessionInfo?.totalEarned || 0;
+                const totalCharged = l.sessionInfo?.totalCharged || l.chargedToClient || 0;
+                const totalEarned = l.sessionInfo?.totalEarned || l.creditedToAstrologer || 0;
                 const adminProfit = totalCharged - totalEarned;
-                const durationSec = l.sessionInfo?.duration || 0;
+                const durationSec = l.sessionInfo?.duration || (l.minuteIndex * 60) || 0;
                 const mins = Math.floor(durationSec / 60);
                 const secs = durationSec % 60;
                 const durationFormatted = `${mins}m ${secs}s`;
-
-                const readableSummary = `Session: ${l.sessionId} | Total Paid: ₹${totalCharged.toFixed(2)} | Astro: ₹${totalEarned.toFixed(2)} | Admin: ₹${adminProfit.toFixed(2)} | Duration: ${durationFormatted}`;
                 
                 return {
                     ...l,
-                    readableSummary,
                     durationFormatted
                 };
             });

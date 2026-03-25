@@ -502,16 +502,16 @@
                         <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                         <input type="text" id="ledger-search" placeholder="Session/Reason..."
                             class="w-full bg-white border border-emerald-100 pl-9 pr-3 py-2 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-brand-green/20"
-                            oninput="ledgerPage=1; fetchLedger()">
+                            oninput="currentLedgerPage=1; fetchLedger()">
                     </div>
                     <div
                         class="flex items-center gap-2 bg-white border border-emerald-100 rounded-xl px-3 py-1.5 shadow-sm">
                         <i class="fas fa-calendar-alt text-slate-400 text-xs"></i>
                         <input type="date" id="ledger-start-date" class="text-xs font-bold text-slate-600 outline-none"
-                            onchange="ledgerPage=1; fetchLedger()">
+                            onchange="currentLedgerPage=1; fetchLedger()">
                         <span class="text-slate-300">-</span>
                         <input type="date" id="ledger-end-date" class="text-xs font-bold text-slate-600 outline-none"
-                            onchange="ledgerPage=1; fetchLedger()">
+                            onchange="currentLedgerPage=1; fetchLedger()">
                     </div>
                 </div>
             </header>
@@ -1417,16 +1417,14 @@
         let sortableInstance = null;
 
         // Ledger State
-        let ledgerPage = 1;
-        let ledgerLimit = 50;
+        let currentLedgerPage = 1;
+        let ledgerPerPage = 10;
         let ledgerSortBy = 'createdAt';
         let ledgerSortOrder = -1;
 
         let currentUserPage = 1;
-        let currentLedgerPage = 1;
         let currentWithdrawalPage = 1;
         const perPage = 10;
-        const ledgerPerPage = 10;
         let recentRechargeOnly = false;
 
         function getProfileImage(img, name) {
