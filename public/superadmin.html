@@ -532,19 +532,16 @@
                                 </th>
                                 <th
                                     class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
-                                    Service Info
+                                    Duration
                                 </th>
-                                <th class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 cursor-pointer hover:text-brand-green transition-colors"
-                                    onclick="sortLedger('chargedToClient')">
-                                    Charged <i class="fas fa-sort ml-1 opacity-40"></i>
+                                <th class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                    Total Paid
                                 </th>
-                                <th class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 cursor-pointer hover:text-brand-green transition-colors"
-                                    onclick="sortLedger('creditedToAstrologer')">
-                                    Astro Profit <i class="fas fa-sort ml-1 opacity-40"></i>
+                                <th class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                    Astro Profit
                                 </th>
-                                <th class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 cursor-pointer hover:text-brand-green transition-colors"
-                                    onclick="sortLedger('adminAmount')">
-                                    Margin <i class="fas fa-sort ml-1 opacity-40"></i>
+                                <th class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                    Admin Margin
                                 </th>
                             </tr>
                         </thead>
@@ -993,10 +990,10 @@
                                     <tr class="bg-slate-50/50">
                                         <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Date</th>
                                         <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Client</th>
-                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Duration
-                                        </th>
-                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400 text-right">
-                                            Earned</th>
+                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Duration</th>
+                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Total Paid</th>
+                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Astro Profit</th>
+                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400 text-right">Admin Margin</th>
                                     </tr>
                                 </thead>
                                 <tbody id="perf-sessions-body" class="divide-y divide-slate-50">
@@ -2195,7 +2192,7 @@
                         const typeColor = type === 'chat' ? 'bg-blue-50 text-blue-600' : (type === 'video' ? 'bg-purple-50 text-purple-600' : 'bg-emerald-50 text-brand-green');
 
                         return `
-                        <tr class="hover:bg-slate-50 transition-colors">
+                        <tr class="hover:bg-slate-50 border-b border-slate-100 transition-colors">
                             <td class="px-6 py-5">
                                 <div class="font-bold text-slate-800 text-[10px] whitespace-nowrap">${new Date(l.createdAt).toLocaleDateString()}</div>
                                 <div class="text-[0.6rem] font-black text-slate-400 font-mono tracking-tighter">${new Date(l.createdAt).toLocaleTimeString()}</div>
@@ -2218,23 +2215,15 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-6 py-5 text-[10px] font-black text-slate-700">
+                            <td class="px-6 py-5">
                                 <div class="flex items-center gap-2">
                                     <span class="w-6 h-6 rounded-lg ${typeColor} flex items-center justify-center text-[10px]"><i class="fas ${typeIcon}"></i></span>
-                                    <span>${type.toUpperCase()}</span>
-                                </div>
-                                <div class="text-[0.6rem] text-slate-400 font-bold mt-1">Dur: ${l.minuteIndex || 0}m</div>
-                            </td>
-                            <td class="px-6 py-5 font-mono text-xs font-black text-slate-800">₹${(l.chargedToClient || 0).toFixed(2)}</td>
-                            <td class="px-6 py-5 font-mono text-xs font-black text-emerald-600">₹${(l.creditedToAstrologer || 0).toFixed(2)}</td>
-                            <td class="px-6 py-5 font-mono text-xs font-black text-indigo-600">₹${(l.adminAmount || 0).toFixed(2)}</td>
-                        </tr>
-                        <tr class="bg-slate-50/20 border-b border-slate-100">
-                            <td colspan="6" class="px-6 py-2">
-                                <div class="text-[8px] font-bold text-slate-400 bg-white/50 px-3 py-1 rounded-full border border-slate-100 inline-block">
-                                    <i class="fas fa-info-circle mr-1 text-slate-300"></i> ${l.readableSummary}
+                                    <span class="text-[10px] font-black text-slate-600">${l.durationFormatted || (l.minuteIndex + 'm')}</span>
                                 </div>
                             </td>
+                            <td class="px-6 py-5 font-mono text-xs font-black text-slate-800">₹${(l.sessionInfo?.totalCharged || l.chargedToClient || 0).toFixed(2)}</td>
+                            <td class="px-6 py-5 font-mono text-xs font-black text-emerald-600">₹${(l.sessionInfo?.totalEarned || l.creditedToAstrologer || 0).toFixed(2)}</td>
+                            <td class="px-6 py-5 font-mono text-xs font-black text-indigo-600">₹${((l.sessionInfo?.totalCharged - l.sessionInfo?.totalEarned) || l.adminAmount || 0).toFixed(2)}</td>
                         </tr>
                         `;
                     }).join('');
