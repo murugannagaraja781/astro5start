@@ -47,6 +47,10 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 query.userId = { $in: recentPayments };
             }
 
+            if (filter === 'online') {
+                query.isOnline = true;
+            }
+
             const total = await User.countDocuments(query);
             const users = await User.find(query)
                 .sort({ role: -1, createdAt: -1 })

@@ -309,6 +309,10 @@
                             class="w-full glass-input pl-11 pr-4 py-2.5 rounded-xl outline-none text-sm font-medium"
                             oninput="filterAstrologers()">
                     </div>
+                    <button onclick="fetchAllUsers(1, 1000)"
+                        class="px-4 py-2.5 rounded-xl bg-white border border-emerald-100 text-brand-green font-black text-[10px] uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-sm flex items-center gap-2">
+                        <i class="fas fa-users"></i> Load All
+                    </button>
                     <div class="flex bg-white p-1 rounded-xl border border-emerald-50 shadow-sm">
                         <button id="view-table-btn"
                             class="p-2 px-4 rounded-lg bg-emerald-50 text-brand-green transition-all"
@@ -372,6 +376,8 @@
             <!-- Grid View -->
             <div id="astrologer-grid-view"
                 class="hidden grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6"></div>
+
+            <div id="astro-pagination"></div>
         </section>
 
         <!-- Client Users Tab -->
@@ -1603,16 +1609,23 @@
             });
         }
 
-        function fetchAllUsers(page = 1) {
+        function fetchAllUsers(page = 1, overrideLimit = null) {
             currentUserPage = page;
-            const search = (document.getElementById('user-search')?.value || document.getElementById('client-search')?.value || '');
-            const filter = recentRechargeOnly ? 'recentRecharge' : null;
+            const search = (
+                document.getElementById('user-search')?.value || 
+                document.getElementById('client-search')?.value || 
+                document.getElementById('astrologer-search')?.value || 
+                ''
+            );
+            const isOnlineFilter = onlineOnlyFilter && activeTab === 'astrologers';
+            const filter = overrideLimit ? null : (recentRechargeOnly ? 'recentRecharge' : (isOnlineFilter ? 'online' : null));
             const role = activeTab === 'astrologers' ? 'astrologer' : (activeTab === 'users' ? 'client' : null);
+            const limit = overrideLimit || perPage;
 
             const loaderId = activeTab === 'astrologers' ? 'astrologer-table-view' : 'client-table-body';
             toggleLoader(true, loaderId);
 
-            socket.emit('get-all-users', { page, limit: perPage, search, filter, role }, (res) => {
+            socket.emit('get-all-users', { page, limit, search, filter, role }, (res) => {
                 toggleLoader(false, loaderId);
                 if (res.ok) {
                     usersCache = res.users;
@@ -1620,15 +1633,15 @@
                     if (activeTab === 'astrologers') {
                         document.getElementById('side-astro-count').innerText = res.total;
                         renderAstrologers();
+                        renderPagination('astro-pagination', res.totalPages, res.currentPage, fetchAllUsers);
                     } else if (activeTab === 'users') {
                         document.getElementById('side-client-count').innerText = res.total;
                         const clientTable = document.getElementById('client-table-body');
                         if (clientTable) {
                             clientTable.innerHTML = usersCache.map(u => renderClientRow(u)).join('');
                         }
+                        renderPagination('user-pagination', res.totalPages, res.currentPage, fetchAllUsers);
                     }
-
-                    renderPagination('user-pagination', res.totalPages, res.currentPage, fetchAllUsers);
                 }
             });
         }
@@ -1696,7 +1709,7 @@
             if (onlineOnlyFilter) setTimeout(initSortable, 100);
         }
 
-        function filterAstrologers() { renderAstrologers(); }
+        function filterAstrologers() { fetchAllUsers(1); }
 
         function toggleOnlineFilter() {
             onlineOnlyFilter = !onlineOnlyFilter;
@@ -1710,7 +1723,7 @@
                 btn.classList.add('bg-white', 'text-slate-400', 'border-emerald-100');
                 saveNewOrder(); // Auto-save when exiting filter
             }
-            renderAstrologers();
+            fetchAllUsers(1);
         }
 
         function initSortable() {
@@ -1745,7 +1758,11 @@
 
         function renderAstrologers() {
             const searchTerm = document.getElementById('astrologer-search')?.value.toLowerCase() || '';
-            let filteredAstros = usersCache.filter(u => u.role === 'astrologer' && (u.name.toLowerCase().includes(searchTerm) || u.phone.includes(searchTerm)));
+            let filteredAstros = usersCache.filter(u => u.role === 'astrologer');
+            
+            if (searchTerm) {
+                filteredAstros = filteredAstros.filter(u => u.name.toLowerCase().includes(searchTerm) || u.phone.includes(searchTerm));
+            }
 
             if (onlineOnlyFilter) {
                 filteredAstros = filteredAstros.filter(u => u.isOnline);
