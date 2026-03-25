@@ -2099,7 +2099,7 @@
         }
 
         function fetchFcmUsers() {
-            socket.emit('get-all-users', (res) => {
+            socket.emit('get-all-users', { limit: 500 }, (res) => {
                 if (res.ok) {
                     fcmUsersCache = res.users.filter(u => u.fcmToken);
                     renderFcmList(fcmUsersCache);
