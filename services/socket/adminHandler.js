@@ -533,12 +533,15 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 }
             ]);
 
-            // Add readableSummary to each ledger record
             const processedLedger = fullLedger.map(l => {
                 const totalCharged = l.sessionInfo?.totalCharged || l.chargedToClient || 0;
                 const totalEarned = l.sessionInfo?.totalEarned || l.creditedToAstrologer || 0;
                 const adminProfit = totalCharged - totalEarned;
-                const durationSec = l.sessionInfo?.duration || (l.minuteIndex * 60) || 0;
+                
+                // Session duration is in ms, convert to seconds
+                // Fallback to (max minuteIndex * 60) if session record is missing
+                const durationSec = l.sessionInfo?.duration ? Math.floor(l.sessionInfo.duration / 1000) : ((l.minuteIndex || 0) * 60);
+                
                 const mins = Math.floor(durationSec / 60);
                 const secs = durationSec % 60;
                 const durationFormatted = `${mins}m ${secs}s`;
