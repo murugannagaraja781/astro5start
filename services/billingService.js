@@ -66,21 +66,24 @@ async function tickSessions(io) {
                     totalCharged: session.totalDeducted
                 }).catch(e => console.error('[Ticker] DB Sync Init Error', e));
 
-                // Emit regular timer and wallet-based remaining time
-                const client = await User.findOne({ userId: session.clientId });
-                if (client) {
-                    const pricePerMin = session.pricePerMin || (await User.findOne({ userId: session.astrologerId }))?.price || 10;
-                    const totalBalance = (client.walletBalance || 0) + (client.superWalletBalance || 0);
-                    const remainingSeconds = Math.floor((totalBalance / pricePerMin) * 60);
+                // PERFORMANCE FIX: Only emit timer-update every 5 ticks to save DB load and socket traffic.
+                // The app keeps its own local countdown too.
+                if (secondsElapsed % 5 === 0) {
+                    const client = await User.findOne({ userId: session.clientId }).select('walletBalance superWalletBalance').lean();
+                    if (client) {
+                        const price = session.pricePerMin || 10;
+                        const totalBalance = (client.walletBalance || 0) + (client.superWalletBalance || 0);
+                        const remainingSeconds = Math.floor((totalBalance / price) * 60);
 
-                    io.to(session.clientId).emit('timer-update', {
-                        elapsedSeconds: secondsElapsed,
-                        remainingSeconds: remainingSeconds
-                    });
-                    io.to(session.astrologerId).emit('timer-update', {
-                        elapsedSeconds: secondsElapsed,
-                        remainingSeconds: remainingSeconds
-                    });
+                        io.to(session.clientId).emit('timer-update', {
+                            elapsedSeconds: secondsElapsed,
+                            remainingSeconds: remainingSeconds
+                        });
+                        io.to(session.astrologerId).emit('timer-update', {
+                            elapsedSeconds: secondsElapsed,
+                            remainingSeconds: remainingSeconds
+                        });
+                    }
                 }
             }
         }

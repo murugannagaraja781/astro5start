@@ -29,6 +29,8 @@ router.post('/full', async (req, res) => {
             timezone = 5.5,
             ayanamsa = 'Lahiri'
         } = req.body;
+        
+        console.log(`[HoroscopeAPI] Request: ${date} ${time}, lat=${lat}, lng=${lng}, tz=${timezone}`);
 
         const offsetHours = Math.floor(Math.abs(timezone));
         const offsetMinutes = Math.round((Math.abs(timezone) - offsetHours) * 60);
@@ -143,7 +145,11 @@ router.post('/full', async (req, res) => {
         });
     } catch (error) {
         console.error('Charts Full API error:', error);
-        res.status(500).json({ error: error.message || 'Calculation failed' });
+        res.status(500).json({ 
+            error: error.message || 'Calculation failed',
+            details: error.stack,
+            type: 'calculation_error'
+        });
     }
 });
 

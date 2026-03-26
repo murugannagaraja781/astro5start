@@ -230,11 +230,13 @@ async function tryStartBilling(sessionId, io) {
         
         // Initialize/Restore billing state
         if (typeof activeSession.elapsedBillableSeconds === 'undefined' || activeSession.elapsedBillableSeconds === 0) {
+            const astro = await User.findOne({ userId: session.astrologerId }).select('price').lean();
             Object.assign(activeSession, {
                 elapsedBillableSeconds: billingStart ? Math.max(0, Math.floor((Date.now() - billingStart) / 1000)) : 0,
                 lastBilledMinute: session.lastBilledMinute || 0, 
                 lastMaturedMinute: session.lastMaturedMinute || 1, 
                 currentSlab: session.currentSlab || 1,
+                pricePerMin: astro?.price || 10,
                 totalDeducted: session.totalCharged || 0,
                 totalEarned: session.totalEarned || 0,
                 pairMonthId: activeSession.pairMonthId // Preserve if already set
@@ -330,6 +332,7 @@ async function handleUserConnection(sessionId, userId, io) {
     let activeSession = activeSessions.get(sessionId);
     if (!activeSession) {
         console.log(`[SessionService] Restoring session ${sessionId} to memory...`);
+        const astro = await User.findOne({ userId: session.astrologerId }).select('price').lean();
         activeSession = {
             sessionId: session.sessionId,
             type: session.type,
@@ -337,6 +340,7 @@ async function handleUserConnection(sessionId, userId, io) {
             astrologerId: session.astrologerId,
             users: [session.clientId, session.astrologerId],
             startedAt: session.startTime,
+            pricePerMin: astro?.price || 10,
             isAnswered: session.status === 'active',
             elapsedBillableSeconds: session.actualBillingStart ? Math.max(0, Math.floor((Date.now() - session.actualBillingStart) / 1000)) : 0,
             lastBilledMinute: session.lastBilledMinute || 0,
