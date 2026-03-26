@@ -11,6 +11,7 @@ const BillingLedger = require('../../models/BillingLedger');
 const Withdrawal = require('../../models/Withdrawal');
 const Notification = require('../../models/Notification');
 const Payment = require('../../models/Payment');
+const Session = require('../../models/Session');
 const { formatImageUrl } = require('../../utils/formatImage');
 
 const checkAdmin = async (sid) => {
