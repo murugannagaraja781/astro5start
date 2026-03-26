@@ -101,6 +101,11 @@
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Broadcast</span>
             </div>
             <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="server-logs" onclick="showTab('server-logs')">
+                <i class="fas fa-terminal text-lg lg:w-5 text-center"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Server Logs</span>
+            </div>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
                 data-tab="banner" onclick="showTab('banner')">
                 <i class="fas fa-images text-lg lg:w-5 text-center"></i>
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Banners</span>
@@ -753,7 +758,45 @@
             </div>
         </section>
 
-        <section id="tab-banner" class="tab-content hidden animate-up space-y-6">
+        <!-- Server Logs Tab -->
+        <section id="tab-server-logs" class="tab-content hidden animate-up space-y-6">
+            <header class="flex flex-col md:flex-row md:items-end justify-between gap-4 font-sans">
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight text-red-600">System Logs</h1>
+                    <p class="text-slate-500 font-medium">Real-time error tracking and performance warnings</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select id="log-level-filter" onchange="fetchSystemLogs()" class="bg-white border border-slate-200 rounded-xl px-4 py-2 font-bold text-xs uppercase cursor-pointer outline-none shadow-sm text-slate-700">
+                        <option value="all">All Logs</option>
+                        <option value="error">Errors Only</option>
+                        <option value="warn">Warnings</option>
+                        <option value="info">Info</option>
+                    </select>
+                    <button onclick="clearSystemLogs()" class="bg-red-50 text-red-600 border border-red-100 px-5 py-2 rounded-xl text-xs font-black hover:bg-red-600 hover:text-white transition-all">
+                        <i class="fas fa-trash-can mr-2"></i> Clear Logs
+                    </button>
+                    <button onclick="fetchSystemLogs()" class="bg-emerald-50 text-brand-green border border-emerald-100 px-5 py-2 rounded-xl text-xs font-black hover:bg-brand-green hover:text-white transition-all">
+                        <i class="fas fa-sync-alt mr-2"></i> Refresh
+                    </button>
+                </div>
+            </header>
+
+            <div class="bg-slate-900 rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden flex flex-col min-h-[600px] font-mono">
+                <div class="flex items-center gap-2 px-6 py-3 bg-slate-800/50 border-b border-slate-800">
+                    <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-500/50"></div>
+                        <div class="w-3 h-3 rounded-full bg-amber-500/50"></div>
+                        <div class="w-3 h-3 rounded-full bg-emerald-500/50"></div>
+                    </div>
+                    <span class="text-[0.6rem] font-black tracking-widest text-slate-500 uppercase ml-4">Terminal Production v1.0.4</span>
+                </div>
+                <div id="logs-container" class="flex-1 p-6 overflow-y-auto max-h-[70vh] space-y-3 text-[11px] leading-relaxed custom-scrollbar text-slate-300">
+                    <div class="text-slate-500 italic py-10 text-center font-sans tracking-wide">Syncing with server nodes...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Banner Tab -->
             <header class="flex items-center gap-4">
                 <button onclick="showTab('dashboard')"
                     class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-slate-400 hover:text-brand-green transition-all shadow-sm"><i
@@ -1564,6 +1607,7 @@
             if (id === 'academy') fetchAcademyVideos();
             if (id === 'offers') fetchFcmUsers();
             if (id === 'banner') fetchBanners();
+            if (id === 'server-logs') fetchSystemLogs();
         }
 
         function fetchNotifications() {
@@ -3002,7 +3046,50 @@
                 alert('Connection error');
             }
         }
+
+        function fetchSystemLogs() {
+            const level = document.getElementById('log-level-filter').value;
+            socket.emit('admin-get-system-logs', { limit: 100, level }, (res) => {
+                const container = document.getElementById('logs-container');
+                if (res.ok) {
+                    if (res.logs.length === 0) {
+                        container.innerHTML = '<div class="text-slate-500 italic py-10 text-center">No system events logged at this time.</div>';
+                        return;
+                    }
+                    container.innerHTML = res.logs.map(log => {
+                        const date = new Date(log.timestamp);
+                        const timeStr = date.toLocaleString('en-IN', { hour12: false });
+                        const levelClass = log.level === 'error' ? 'text-red-400' : (log.level === 'warn' ? 'text-amber-300' : 'text-blue-300');
+                        const levelIcon = log.level === 'error' ? '🔴' : (log.level === 'warn' ? '🟡' : '🔵');
+                        
+                        return `
+                            <div class="group border-b border-white/5 pb-3 last:border-0 hover:bg-white/5 p-2 rounded-lg transition-all">
+                                <div class="flex gap-4 items-start">
+                                    <span class="text-slate-500 shrink-0 select-none">[${timeStr}]</span>
+                                    <span class="font-black uppercase tracking-wider ${levelClass} shrink-0 w-16">${levelIcon} ${log.level}</span>
+                                    <div class="flex-1">
+                                        <div class="text-slate-100 font-bold break-all">${log.message}</div>
+                                        ${log.path ? `<div class="text-[9px] text-slate-500 mt-1 italic font-sans font-medium uppercase tracking-widest opacity-60">Path: ${log.path}</div>` : ''}
+                                        ${log.stack ? `<pre class="mt-2 p-3 bg-black/40 rounded-xl text-[9px] text-red-300/60 overflow-x-auto border border-red-500/10 custom-scrollbar whitespace-pre-wrap">${log.stack}</pre>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            });
+        }
+
+        function clearSystemLogs() {
+            if (confirm('Permanently erase all production history?')) {
+                socket.emit('admin-clear-logs', (res) => {
+                    if (res.ok) {
+                        showToast('Production Logs Purged', 'success');
+                        fetchSystemLogs();
+                    }
+                });
+            }
+        }
     </script>
 </body>
-
 </html>

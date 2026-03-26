@@ -12,6 +12,7 @@ const Withdrawal = require('../../models/Withdrawal');
 const Notification = require('../../models/Notification');
 const Payment = require('../../models/Payment');
 const Session = require('../../models/Session');
+const SystemLog = require('../../models/SystemLog');
 const { formatImageUrl } = require('../../utils/formatImage');
 
 const checkAdmin = async (sid) => {
@@ -791,6 +792,35 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             cb?.({ ok: true, list, total, totalPages: Math.ceil(total / limit), currentPage: parseInt(page) });
         } catch (e) {
             console.error('[Admin] get-withdrawals error:', e);
+            cb?.({ ok: false });
+        }
+    });
+
+    socket.on('admin-get-system-logs', async (data, cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false, error: 'Unauthorized' });
+        try {
+            const { limit = 100, level } = data || {};
+            let query = {};
+            if (level && level !== 'all') query.level = level;
+            
+            const logs = await SystemLog.find(query)
+                .sort({ timestamp: -1 })
+                .limit(parseInt(limit));
+                
+            cb?.({ ok: true, logs });
+        } catch (e) {
+            console.error('[Admin] admin-get-system-logs error:', e);
+            cb?.({ ok: false });
+        }
+    });
+
+    socket.on('admin-clear-logs', async (cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false, error: 'Unauthorized' });
+        try {
+            await SystemLog.deleteMany({});
+            broadcastAdminUpdate();
+            cb?.({ ok: true });
+        } catch (e) {
             cb?.({ ok: false });
         }
     });

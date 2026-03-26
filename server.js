@@ -1,6 +1,8 @@
 // server.js
 require('dotenv').config();
 
+const logger = require('./utils/logger');
+
 process.on('exit', (code) => {
   console.log('🚨 EXIT EVENT:', code);
 });
@@ -13,6 +15,15 @@ process.on('SIGINT', () => {
 process.on('SIGTERM', () => {
   console.log('🚨 SIGTERM RECEIVED - Shutting down');
   process.exit(0);
+});
+
+// Global Error Handlers for Dashboard Tracking
+process.on('uncaughtException', (err) => {
+    logger.error(`Uncaught Exception: ${err.message}`, err.stack, 'GLOBAL-SERVER');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled Rejection', reason?.stack || reason?.toString(), 'GLOBAL-PROMISE');
 });
 
 const express = require('express');

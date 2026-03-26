@@ -1,5 +1,6 @@
 // routes/rasiEng/charts.js
 const express = require('express');
+const logger = require('../../utils/logger');
 const { DateTime } = require('luxon');
 const { swissEph } = require('../../utils/rasiEng/swisseph');
 const { getPlanetsWithDetails, getHouseCusps } = require('../../utils/rasiEng/calculations');
@@ -145,6 +146,7 @@ router.post('/full', async (req, res) => {
         });
     } catch (error) {
         console.error('Charts Full API error:', error);
+        logger.error(`Chart Calc Error: ${error.message}`, error.stack, '/api/rasi-eng/charts/full', { payload: req.body });
         res.status(500).json({ 
             error: error.message || 'Calculation failed',
             details: error.stack,
