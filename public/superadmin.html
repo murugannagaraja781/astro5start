@@ -797,6 +797,7 @@
         </section>
 
         <!-- Banner Tab -->
+        <section id="tab-banner" class="tab-content hidden animate-up space-y-6">
             <header class="flex items-center gap-4">
                 <button onclick="showTab('dashboard')"
                     class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-slate-400 hover:text-brand-green transition-all shadow-sm"><i
@@ -1464,6 +1465,8 @@
         let activeTab = 'dashboard';
         let onlineOnlyFilter = false;
         let sortableInstance = null;
+        let editingBannerId = null;
+        let bannersCache = [];
 
         // Ledger State
         let currentLedgerPage = 1;
@@ -2414,12 +2417,16 @@
                         <div class="font-black text-slate-800 text-sm tracking-tight">${b.title}</div>
                         <div class="flex items-center justify-between mt-2">
                             <div class="text-[0.6rem] text-slate-400 font-bold uppercase tracking-widest">Order: ${b.order}</div>
-                            ${b.expiryDate ? `<div class="text-[0.5rem] font-black text-red-500 bg-red-50 px-2 py-0.5 rounded uppercase">Expiry: ${new Date(b.expiryDate).toLocaleDateString()}</div>` : ''}
+                            ${b.expiryDate ? `<div class="text-[0.5rem] font-black text-red-500 bg-red-50 px-2 py-0.5 rounded uppercase font-mono italic">Exp: ${new Date(b.expiryDate).toLocaleDateString()}</div>` : ''}
                         </div>
                     </div>
-                    <button class="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 shadow-2xl opacity-0 group-hover:opacity-100 transition-all scale-0 group-hover:scale-100 flex items-center justify-center hover:bg-red-600 hover:border-red-600" onclick="deleteBanner('${b._id}')"><i class="fas fa-times"></i></button>
+                    <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
+                        <button class="w-8 h-8 rounded-full bg-white/40 backdrop-blur-md text-emerald-600 border border-white/30 shadow-xl flex items-center justify-center hover:bg-emerald-600 hover:text-white" onclick="editBanner('${b._id}')"><i class="fas fa-pencil"></i></button>
+                        <button class="w-8 h-8 rounded-full bg-white/40 backdrop-blur-md text-red-600 border border-white/30 shadow-xl flex items-center justify-center hover:bg-red-600 hover:text-white" onclick="deleteBanner('${b._id}')"><i class="fas fa-times"></i></button>
+                    </div>
                 </div>
             `).join('');
+            bannersCache = res.banners;
         }
 
         function triggerBannerUpload() { document.getElementById('banner-file-input').click(); }
@@ -2451,6 +2458,9 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
 
+            const method = editingBannerId ? 'PUT' : 'POST';
+            const url = editingBannerId ? `/api/admin/banners/${editingBannerId}` : '/api/admin/banners';
+
             const data = {
                 title: document.getElementById('banner-title').value,
                 subtitle: document.getElementById('banner-subtitle').value,
@@ -2464,31 +2474,86 @@
             if (!data.imageUrl) {
                 alert('Please upload a visual asset first.');
                 btn.disabled = false;
-                btn.innerHTML = 'Launch Campaign <i class="fas fa-arrow-right"></i>';
+                btn.innerHTML = editingBannerId ? 'Update Campaign <i class="fas fa-save"></i>' : 'Launch Campaign <i class="fas fa-arrow-right"></i>';
                 return;
             }
 
             try {
-                await fetch('/api/admin/banners', {
-                    method: 'POST',
+                const res = await fetch(url, {
+                    method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
-                });
+                }).then(r => r.json());
 
-                showToast('Campaign Launched Successfully!', 'success');
-                e.target.reset();
-                document.getElementById('banner-preview').classList.add('hidden');
-                document.getElementById('banner-preview-container').classList.remove('border-solid', 'border-brand-green');
-                fetchBanners();
-
-                // Real-time broadcast
-                socket.emit('admin-broadcast-refresh', { type: 'banners' });
+                if (res.ok) {
+                    showToast(editingBannerId ? 'Campaign Updated!' : 'Campaign Launched Successfully!', 'success');
+                    cancelBannerEdit();
+                    fetchBanners();
+                    socket.emit('admin-broadcast-refresh', { type: 'banners' });
+                } else {
+                    showToast('Data Error: ' + res.error, 'error');
+                }
             } catch (err) {
                 showToast('Campaign Node Error', 'error');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = 'Launch Campaign <i class="fas fa-arrow-right"></i>';
+                if (!editingBannerId) btn.innerHTML = 'Launch Campaign <i class="fas fa-arrow-right"></i>';
             }
+        }
+
+        function editBanner(id) {
+            const b = bannersCache.find(x => x._id === id);
+            if (!b) return;
+            
+            editingBannerId = id;
+            document.getElementById('banner-title').value = b.title || '';
+            document.getElementById('banner-subtitle').value = b.subtitle || '';
+            document.getElementById('banner-image').value = b.imageUrl || '';
+            document.getElementById('banner-order').value = b.order || 0;
+            document.getElementById('banner-offer').value = b.offerPercentage || 0;
+            
+            if (b.expiryDate) {
+                const d = new Date(b.expiryDate);
+                document.getElementById('banner-expiry').value = d.toISOString().split('T')[0];
+            } else {
+                document.getElementById('banner-expiry').value = '';
+            }
+
+            const preview = document.getElementById('banner-preview');
+            preview.src = b.imageUrl;
+            preview.classList.remove('hidden');
+            document.getElementById('banner-preview-container').classList.add('border-solid', 'border-brand-green');
+
+            // Change button text and add cancel button
+            const submitBtn = document.querySelector('#banner-form button[type="submit"]');
+            submitBtn.innerHTML = 'Update Campaign <i class="fas fa-save"></i>';
+            submitBtn.classList.replace('bg-brand-green', 'bg-emerald-600');
+
+            if (!document.getElementById('btn-cancel-banner-edit')) {
+                const cancelBtn = document.createElement('button');
+                cancelBtn.id = 'btn-cancel-banner-edit';
+                cancelBtn.type = 'button';
+                cancelBtn.className = 'ml-4 bg-slate-100 text-slate-500 font-black px-8 py-5 rounded-[3rem] hover:bg-slate-200 transition-all uppercase tracking-widest text-xs';
+                cancelBtn.innerText = 'Cancel Edit';
+                cancelBtn.onclick = cancelBannerEdit;
+                submitBtn.parentNode.appendChild(cancelBtn);
+            }
+
+            document.getElementById('tab-banner').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelBannerEdit() {
+            editingBannerId = null;
+            document.getElementById('banner-form').reset();
+            document.getElementById('banner-preview').classList.add('hidden');
+            document.getElementById('banner-preview-container').classList.remove('border-solid', 'border-brand-green');
+            
+            const submitBtn = document.querySelector('#banner-form button[type="submit"]');
+            submitBtn.innerHTML = 'Launch Campaign <i class="fas fa-arrow-right"></i>';
+            submitBtn.classList.replace('bg-emerald-600', 'bg-brand-green');
+            
+            const cancelBtn = document.getElementById('btn-cancel-banner-edit');
+            if (cancelBtn) cancelBtn.remove();
         }
 
         async function deleteBanner(id) {
