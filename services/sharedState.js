@@ -13,9 +13,9 @@ const offlineTimeouts = new Map(); // userId -> timeoutId
 const savedAstroStatus = new Map(); // userId -> { chat, audio, video, timestamp }
 const OFFLINE_GRACE_PERIOD = 5 * 60 * 1000; // 5 minutes
 
-// Session Disconnect Persistence (1-min grace period for calls)
+// Session Disconnect Persistence (10-sec grace period for calls - USER REQUESTED FAST CUT)
 const sessionDisconnectTimeouts = new Map(); // userId -> timeoutId
-const SESSION_GRACE_PERIOD = 60 * 1000; // 60 seconds
+const SESSION_GRACE_PERIOD = 10 * 1000; // 10 seconds
 
 let SLAB_RATES = {
     1: 0.30,

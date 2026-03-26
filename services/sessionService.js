@@ -13,7 +13,7 @@ const fs = require('fs');
 async function sendCancelCallPush(toUserId, sessionId) {
     try {
         const toUser = await User.findOne({ userId: toUserId });
-        if (toUser && toUser.fcmToken && toUser.isAvailable) {
+        if (toUser && toUser.fcmToken) {
             const payload = {
                 type: 'CANCEL_CALL',
                 sessionId: sessionId || ''
@@ -129,13 +129,16 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
 
         // --- 3. BACKGROUND TASKS (Billing, DB Sync, Missed Call Logic) ---
         
-        // Handle cancelled/missed calls
-        if (!s.isAnswered && s.astrologerId) {
+        // Handle cancelled/ended/missed calls with FCM Fallback (USER REQUEST: STABLE CUT)
+        if (s.astrologerId) {
             sendCancelCallPush(s.astrologerId, sessionId);
-            if (endReason !== 'caller_cancel') {
+            if (!s.isAnswered && endReason !== 'caller_cancel') {
                 const callerId = s.clientId || s.users.find(u => u !== s.astrologerId);
                 handleMissedCallLogic(s.astrologerId, callerId, io, broadcastAstroUpdate);
             }
+        }
+        if (s.clientId) {
+            sendCancelCallPush(s.clientId, sessionId);
         }
 
         // Finalize Session in DB
