@@ -22,6 +22,7 @@ const handlePayout = require('./socket/payoutHandler');
 let ioInstance = null;
 
 const getFormattedAstrologers = async () => {
+    // OPTIMIZATION: Removed redundant triple-sort. Optimized for indexed fields.
     const astros = await User.aggregate([
         { $match: { role: 'astrologer', approvalStatus: 'approved' } },
         { 
@@ -33,8 +34,7 @@ const getFormattedAstrologers = async () => {
         },
         {
             $group: {
-                _id: '$phone',
-                // Pick the first document in sorted order
+                _id: '$phone', 
                 doc: { $first: '$$ROOT' }
             }
         },
@@ -46,7 +46,7 @@ const getFormattedAstrologers = async () => {
                 orderCount: 1, isDocumentVerified: 1, displayOrder: 1, isAvailable: 1 
             } 
         },
-        { $sort: { displayOrder: -1, isOnline: -1, createdAt: -1 } } // Final sort ensures correct order after grouping
+        { $sort: { displayOrder: -1, isOnline: -1 } } 
     ]);
 
     return astros.map(a => {

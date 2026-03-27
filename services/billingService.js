@@ -28,8 +28,9 @@ async function tickSessions(io) {
                 const secondsElapsed = Math.floor((now - session.actualBillingStart) / 1000) + 1;
                 session.elapsedBillableSeconds = secondsElapsed;
 
+                let needsDbSync = false;
+
                 // RULE 1: Charge Client at the START of each minute (Minute 1, 2, 3...)
-                // These charges are 100% Admin-credited initially.
                 const currentMinuteIndex = Math.floor((secondsElapsed - 1) / 60) + 1;
                 
                 if (currentMinuteIndex > (session.lastBilledMinute || 0)) {
@@ -38,36 +39,39 @@ async function tickSessions(io) {
                         processBillingCharge(sessionId, m, 'client_full_charge', io);
                     }
                     session.lastBilledMinute = currentMinuteIndex;
+                    needsDbSync = true;
                 }
 
                 // RULE 2: Pay Astrologer AFTER a full minute is completed.
-                // A minute M is completed when secondsElapsed reaches M * 60.
-                // Minute 1 is Admin-only, so we only pay for m >= 2.
                 const completedMinutes = Math.floor(secondsElapsed / 60);
                 if (completedMinutes >= 2 && completedMinutes > (session.lastMaturedMinute || 1)) {
                     for (let m = (session.lastMaturedMinute || 1) + 1; m <= completedMinutes; m++) {
-                        // Pay share for matured minute 'm'
                         processBillingCharge(sessionId, m, 'astro_share_payout', io);
                     }
                     session.lastMaturedMinute = completedMinutes;
+                    needsDbSync = true;
                 }
 
                 // Periodic slab check (every 10s)
                 if (session.elapsedBillableSeconds % 10 === 0 && session.pairMonthId) {
+                    const oldSlab = session.currentSlab;
                     updateSessionSlab(session);
+                    if (session.currentSlab !== oldSlab) needsDbSync = true;
                 }
 
-                // Persist state to DB to avoid double charging after restarts
-                await Session.updateOne({ sessionId }, {
-                    lastBilledMinute: session.lastBilledMinute,
-                    lastMaturedMinute: session.lastMaturedMinute,
-                    currentSlab: session.currentSlab,
-                    totalEarned: session.totalEarned,
-                    totalCharged: session.totalDeducted
-                }).catch(e => console.error('[Ticker] DB Sync Init Error', e));
+                // PERFORMANCE FIX: Only persist state to DB when billing markers change.
+                // This removes the heavy 1-second write loop.
+                if (needsDbSync) {
+                    Session.updateOne({ sessionId }, {
+                        lastBilledMinute: session.lastBilledMinute,
+                        lastMaturedMinute: session.lastMaturedMinute,
+                        currentSlab: session.currentSlab,
+                        totalEarned: session.totalEarned,
+                        totalCharged: session.totalDeducted
+                    }).catch(e => console.error('[Ticker] DB Sync Error', e));
+                }
 
-                // PERFORMANCE FIX: Only emit timer-update every 5 ticks to save DB load and socket traffic.
-                // The app keeps its own local countdown too.
+                // PERFORMANCE FIX: Only emit timer-update every 5 ticks to save socket traffic.
                 if (secondsElapsed % 5 === 0) {
                     const client = await User.findOne({ userId: session.clientId }).select('walletBalance superWalletBalance').lean();
                     if (client) {

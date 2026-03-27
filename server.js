@@ -60,6 +60,8 @@ connectDB().then(async () => {
 // Initialize FCM
 initFcmAuth();
 
+const User = require('./models/User');
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -178,7 +180,6 @@ setInterval(() => tickSessions(io), 1000);
 
 // Start presence heartbeat ticker
 setInterval(async () => {
-  const User = require('./models/User');
   try {
     const thirtySecondsAgo = new Date(Date.now() - 30000);
     // OPTIMIZATION: Use updateMany for batch updates instead of a loop
