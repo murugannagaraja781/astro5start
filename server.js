@@ -175,14 +175,22 @@ app.get('/wallet', (req, res) => {
 // Initialize Socket.io logic
 initSocket(io);
 
-// Start billing ticker
-setInterval(() => tickSessions(io), 1000);
+// Start billing ticker with throttled scheduling
+async function runBillingTick() {
+  try {
+    const { tickSessions } = require('./services/billingService');
+    await tickSessions(global.io);
+  } catch (e) { }
+  finally {
+    setTimeout(runBillingTick, 1000);
+  }
+}
+runBillingTick();
 
-// Start presence heartbeat ticker
-setInterval(async () => {
+// Start presence heartbeat ticker (Throttled to avoid CPU-intensive overlaps)
+async function runPresenceHeartbeat() {
   try {
     const thirtySecondsAgo = new Date(Date.now() - 30000);
-    // OPTIMIZATION: Use updateMany for batch updates instead of a loop
     const result = await User.updateMany(
       {
         role: 'client',
@@ -193,12 +201,16 @@ setInterval(async () => {
     );
 
     if (result.modifiedCount > 0) {
-      console.log(`[Presence] Marked ${result.modifiedCount} clients offline due to heartbeat timeout.`);
+      console.log(`[Presence] Marked ${result.modifiedCount} clients offline due to timeout.`);
     }
   } catch (err) {
     console.error('[Presence] Heartbeat cleanup error:', err);
+  } finally {
+    // Schedule next run in 10 seconds
+    setTimeout(runPresenceHeartbeat, 10000);
   }
-}, 10000);
+}
+runPresenceHeartbeat();
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

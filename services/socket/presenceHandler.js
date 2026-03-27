@@ -146,11 +146,18 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
         } catch (e) { console.error('[Presence] app-background error:', e); }
     });
 
+    const { lastSeenCache } = require('../sharedState');
     socket.on('heartbeat', async () => {
         try {
             const userId = socketToUser.get(socket.id);
             if (userId) {
-                await User.updateOne({ userId }, { lastSeen: new Date() });
+                // PERFORMANCE FIX: Only update DB if last seen in cache is more than 2 minutes ago
+                const cachedTime = lastSeenCache.get(userId) || 0;
+                const now = Date.now();
+                if (now - cachedTime > 120000) { // 2 minutes
+                    lastSeenCache.set(userId, now);
+                    await User.updateOne({ userId }, { $set: { lastSeen: new Date() } });
+                }
             }
         } catch (e) { console.error('heartbeat error:', e); }
     });

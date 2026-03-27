@@ -7,6 +7,7 @@ const userActiveSession = new Map(); // userId -> sessionId
 const activeSessions = new Map(); // sessionId -> { type, users... }
 const pendingMessages = new Map();
 const otpStore = new Map();
+const lastSeenCache = new Map(); // userId -> lastUpdateTime
 
 // Astrologer Status Persistence (5-min grace period)
 const offlineTimeouts = new Map(); // userId -> timeoutId
@@ -70,5 +71,6 @@ module.exports = {
     SLAB_RATES,
     loadSlabRates,
     updateSlabRates,
-    paymentTokens
+    paymentTokens,
+    lastSeenCache
 };

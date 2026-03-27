@@ -67,15 +67,15 @@ const UserSchema = new mongoose.Schema({
     isNewUser: { type: Boolean, default: true }
 }, { timestamps: true });
 
-// Performance Optimization: Add indexes for frequently queried/sorted fields
-UserSchema.index({ role: 1 });
-UserSchema.index({ isOnline: -1 });
-UserSchema.index({ approvalStatus: 1 });
-UserSchema.index({ displayOrder: -1 });
-UserSchema.index({ lastSeen: -1 });
-UserSchema.index({ isChatOnline: -1 });
-UserSchema.index({ isAudioOnline: -1 });
-UserSchema.index({ isVideoOnline: -1 });
-UserSchema.index({ isBusy: 1 });
+// Performance Optimization: Add indexes for frequently queried/sorted fields with background build to avoid blocking
+UserSchema.index({ role: 1 }, { background: true });
+UserSchema.index({ isOnline: -1 }, { background: true });
+UserSchema.index({ approvalStatus: 1 }, { background: true });
+UserSchema.index({ displayOrder: -1 }, { background: true });
+UserSchema.index({ lastSeen: -1 }, { background: true });
+UserSchema.index({ isChatOnline: -1 }, { background: true });
+UserSchema.index({ isAudioOnline: -1 }, { background: true });
+UserSchema.index({ isVideoOnline: -1 }, { background: true });
+UserSchema.index({ isBusy: 1 }, { background: true });
 
 module.exports = mongoose.model('User', UserSchema);
