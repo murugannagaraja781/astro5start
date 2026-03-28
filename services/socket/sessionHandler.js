@@ -225,6 +225,9 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         const fromUserId = socketToUser.get(socket.id);
         if (!fromUserId || !sessionId || !signal) return;
 
+        // Trace signaling for debugging No-Audio/No-Video issues
+        console.log(`[Signal] From:${fromUserId} To:${toUserId || 'Room'} Session:${sessionId} Type:${signal.type || 'ICE'}`);
+
         // Using room-based signaling (socket.to) is more reliable than mapping individual socket IDs
         // because it ensures anyone currently in the session room gets the signal.
         socket.to(sessionId).emit('signal', {

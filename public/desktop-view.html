@@ -6058,20 +6058,27 @@
           if (loader) loader.classList.add('hidden');
 
           const rv = document.getElementById('remoteVideo');
-          rv.srcObject = s;
-          rv.muted = false; // Ensure audio is on
-
-          rv.play().then(() => {
-            console.log('[WebRTC] Remote Video/Audio Playing');
-          }).catch(e => {
-            console.error('[WebRTC] Remote Video Play Error:', e);
-            // Fallback: Show a "Tap to Unmute" button if autoplay blocked?
-          });
+          if (rv) {
+            rv.srcObject = s;
+            rv.muted = false;
+            rv.autoplay = true;
+            rv.setAttribute('playsinline', 'true');
+            
+            // Forcing immediate play to bypass potential autoplay blocks
+            const playPromise = rv.play();
+            if (playPromise !== undefined) {
+              playPromise.then(() => {
+                console.log('[WebRTC] Remote Audio/Video playing successfully');
+              }).catch(e => {
+                console.warn('[WebRTC] Autoplay blocked or failed:', e);
+              });
+            }
+          }
 
           if (state.session.type === 'audio') {
-            rv.style.opacity = 0;
+            if (rv) rv.style.opacity = 0;
           } else {
-            rv.style.opacity = 1;
+            if (rv) rv.style.opacity = 1;
           }
           startTimer();
         });
