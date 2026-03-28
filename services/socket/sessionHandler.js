@@ -223,13 +223,20 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
     socket.on('signal', (data) => {
         const { sessionId, toUserId, signal } = data || {};
         const fromUserId = socketToUser.get(socket.id);
-        if (!fromUserId || !sessionId || !toUserId || !signal) return;
+        if (!fromUserId || !sessionId || !signal) return;
 
-        io.to(toUserId).emit('signal', {
+        // Using room-based signaling (socket.to) is more reliable than mapping individual socket IDs
+        // because it ensures anyone currently in the session room gets the signal.
+        socket.to(sessionId).emit('signal', {
             sessionId,
             fromUserId,
             signal,
         });
+
+        // Fallback: If for some reason the room broadcast isn't enough, we still try the individual ID
+        if (toUserId) {
+            io.to(toUserId).emit('signal', { sessionId, fromUserId, signal });
+        }
     });
 
     socket.on('end-session', async (data) => {
@@ -263,8 +270,17 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             const { sessionId } = data || {};
             const userId = socketToUser.get(socket.id);
             if (sessionId && userId) {
+                console.log(`[Session] User ${userId} rejoining room ${sessionId}`);
                 socket.join(sessionId);
+                
+                // Notify others in the room to restart signaling
                 socket.to(sessionId).emit('peer-reconnected', { userId });
+                
+                // Also explicitly notify the other user if they are online but lost room state
+                const otherId = sessionService.getOtherUserIdFromSession(sessionId, userId);
+                if (otherId) {
+                    io.to(otherId).emit('peer-reconnected', { userId });
+                }
             }
         } catch (err) {
             console.error('[SessionHandler] rejoin-session error:', err);

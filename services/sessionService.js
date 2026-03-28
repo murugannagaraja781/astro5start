@@ -122,10 +122,18 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
             });
         }
 
-        // Release busy status for all involved astrologers
-        User.updateMany({ userId: { $in: s.users }, role: 'astrologer' }, { isBusy: false, isAvailable: true })
-            .then(() => { if (broadcastAstroUpdate) broadcastAstroUpdate(); })
-            .catch(e => console.error('[EndSession] Busy release error:', e));
+        // Release busy status for involved astrologers. Use the current isOnline value for isAvailable.
+        // We use an aggregation update to correctly compute availability based on the online status.
+        User.updateMany(
+            { userId: { $in: s.users }, role: 'astrologer' },
+            [{ 
+                $set: { 
+                    isBusy: false, 
+                    isAvailable: "$isOnline" 
+                } 
+            }]
+        ).then(() => { if (broadcastAstroUpdate) broadcastAstroUpdate(); })
+        .catch(e => console.error('[EndSession] Busy release error:', e));
 
         // --- 3. BACKGROUND TASKS (Billing, DB Sync, Missed Call Logic) ---
         

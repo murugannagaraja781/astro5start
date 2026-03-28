@@ -22,32 +22,22 @@ const handlePayout = require('./socket/payoutHandler');
 let ioInstance = null;
 
 const getFormattedAstrologers = async () => {
-    // OPTIMIZATION: Removed redundant triple-sort. Optimized for indexed fields.
-    const astros = await User.aggregate([
-        { $match: { role: 'astrologer', approvalStatus: 'approved' } },
-        { 
-            $sort: { 
-                displayOrder: -1, 
-                isOnline: -1, 
-                createdAt: -1 
-            } 
-        },
-        {
-            $group: {
-                _id: '$phone', 
-                doc: { $first: '$$ROOT' }
-            }
-        },
-        { $replaceRoot: { newRoot: '$doc' } },
-        { 
-            $project: { 
-                userId: 1, name: 1, phone: 1, skills: 1, price: 1, isOnline: 1, isChatOnline: 1, isAudioOnline: 1, isVideoOnline: 1, 
-                experience: 1, isVerified: 1, image: 1, walletBalance: 1, totalEarnings: 1, isBusy: 1, languages: 1, 
-                orderCount: 1, isDocumentVerified: 1, displayOrder: 1, isAvailable: 1 
-            } 
-        },
-        { $sort: { displayOrder: -1, isOnline: -1 } } 
-    ]);
+    // PERFORMANCE FIX: Optimized for indexed fields, removed redundant group and sort.
+    const astros = await User.find({ 
+        role: 'astrologer', 
+        approvalStatus: 'approved' 
+    })
+    .select({
+        userId: 1, name: 1, phone: 1, skills: 1, price: 1, isOnline: 1, isChatOnline: 1, isAudioOnline: 1, isVideoOnline: 1, 
+        experience: 1, isVerified: 1, image: 1, walletBalance: 1, totalEarnings: 1, isBusy: 1, languages: 1, 
+        orderCount: 1, isDocumentVerified: 1, displayOrder: 1, isAvailable: 1
+    })
+    .sort({ 
+        displayOrder: -1, 
+        isOnline: -1, 
+        createdAt: -1 
+    })
+    .lean();
 
     return astros.map(a => {
         const isOnlineCalculated = !!(a.isOnline || a.isChatOnline || a.isAudioOnline || a.isVideoOnline);
