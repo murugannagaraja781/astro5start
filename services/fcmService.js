@@ -117,7 +117,7 @@ async function sendFcmV1Push(fcmToken, data, notification) {
         return { success: true, messageId: response };
 
     } catch (err) {
-        console.error('[FCM v1] Error detail:', err.message);
+        console.error(`[FCM v1] Error sending to token: ${fcmToken ? fcmToken.substring(0, 15) : 'NULL'}... error: ${err.message}`);
         // If it still says 'data must only contain string values', we log the keys
         if (err.message.includes('data must only contain string values')) {
              console.error('[FCM Data Keys]:', Object.keys(data).join(', '));

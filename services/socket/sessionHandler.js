@@ -36,13 +36,23 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
             }
 
-            if (userActiveSession.has(toUserId)) {
+            if (userActiveSession.has(toUserId) || toUser.isBusy) {
                 const existingSessionId = userActiveSession.get(toUserId);
-                const existingSession = activeSessions.get(existingSessionId);
+                const existingSessionInMem = existingSessionId ? activeSessions.get(existingSessionId) : null;
+                
+                // Double check if there's actually an active session in DB too
+                const activeSessionInDb = await Session.findOne({ 
+                    $or: [{ clientId: toUserId }, { astrologerId: toUserId }], 
+                    status: 'active' 
+                });
 
-                if (!existingSession) {
+                if (!existingSessionInMem && !activeSessionInDb) {
+                    console.log(`[Session] Stale busy state detected for ${toUserId}. Clearing...`);
                     userActiveSession.delete(toUserId);
-                } else if (existingSession.users.includes(fromUserId)) {
+                    toUser.isBusy = false;
+                    toUser.isAvailable = toUser.isOnline; // Restore availability
+                    await toUser.save();
+                } else if (existingSessionInMem && existingSessionInMem.users.includes(fromUserId)) {
                     await endSessionRecord(existingSessionId, 'stale_clean', io, broadcastAstroUpdate);
                 } else {
                     if (typeof cb === "function") return cb({ ok: false, error: 'User busy' });
@@ -78,6 +88,9 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             const callerDisplayName = birthData?.name || fromUser?.name || 'Client';
             const callerImage = formatImageUrl(fromUser?.image, callerDisplayName);
 
+            // Log session request state
+            console.log(`[Session] New Request: ${sessionId} Type:${type} from:${fromUserId}(${fromUser?.name}) to:${toUserId}(${toUser?.name})`);
+
             const timeoutId = setTimeout(async () => {
                 const s = activeSessions.get(sessionId);
                 if (s && !s.isAnswered) {
@@ -93,7 +106,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     activeSessions.delete(sessionId);
                     await Session.updateOne({ sessionId }, { status: 'missed', endTime: Date.now() }).catch(() => { });
                 }
-            }, 30000); // 30 Seconds Timeout (USER REQUEST)
+            }, 30000); // 30 Seconds Timeout
 
             activeSessions.set(sessionId, {
                 sessionId,
@@ -116,6 +129,10 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             userActiveSession.set(fromUserId, sessionId);
             userActiveSession.set(toUserId, sessionId);
 
+            // Join the creator to the room
+            socket.join(sessionId);
+
+            // Emit to socket room
             io.to(toUserId).emit('incoming-session', {
                 sessionId,
                 fromUserId,
@@ -127,6 +144,10 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
             const isLogicallyOnline = toUser.isOnline || toUser.isChatOnline || toUser.isAudioOnline || toUser.isVideoOnline || toUser.isAvailable;
             const isLogicallyAvailable = isLogicallyOnline && !toUser.isBusy;
+
+            // Log if the recipient is actually connected via socket
+            const targetSocketId = userSockets.get(toUserId);
+            console.log(`[Session] Recipient ${toUserId} is ${targetSocketId ? 'CONNECTED' : 'NOT CONNECTED'} via socket.`);
 
             if (toUser && toUser.fcmToken && isLogicallyAvailable) {
                 console.log(`[FCM v1] Triggering INCOMING_CALL for ${toUser.name} (${toUserId}). LogicallyAvail: ${isLogicallyAvailable} (Online:${!!isLogicallyOnline}, Busy:${!!toUser.isBusy}). Token: ${toUser.fcmToken.substring(0, 10)}...`);
@@ -151,9 +172,6 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             }
 
 
-            // Join the room as the creator
-            socket.join(sessionId);
-
             if (typeof cb === "function") cb({ ok: true, sessionId });
 
         } catch (err) {
@@ -163,9 +181,16 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
     });
 
     socket.on('answer-session', async (data, cb) => {
-        const { sessionId, accept, type } = data || {};
-        const astrologerId = socketToUser.get(socket.id);
-        if (!astrologerId || !sessionId) return;
+        const { sessionId, accept, type, userId } = data || {};
+        const astrologerId = userId || socketToUser.get(socket.id);
+        
+        if (!astrologerId || !sessionId) {
+            console.error('[Session] answer-session: Missing astrologerId or sessionId', { astrologerId, sessionId });
+            if (typeof cb === "function") cb({ ok: false, error: 'Authorization error' });
+            return;
+        }
+
+        console.log(`[Session] User ${astrologerId} answering ${sessionId}: Accept=${accept}`);
         
         // Join the session room for signaling and events
         socket.join(sessionId);

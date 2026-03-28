@@ -15,6 +15,14 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
         const userId = data.userId || socketToUser.get(socket.id);
         if (!userId) return;
 
+        // Ensure socket mapping is current
+        if (data.userId && userSockets.get(userId) !== socket.id) {
+            userSockets.set(userId, socket.id);
+            socketToUser.set(socket.id, userId);
+            socket.join(userId);
+            console.log(`[Presence] Mapping updated on toggle-status for: ${userId}`);
+        }
+
         try {
             const update = {};
             if (data.type === 'chat') update.isChatOnline = !!data.online;
@@ -54,6 +62,14 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
         const userId = data.userId || socketToUser.get(socket.id);
         if (!userId) return;
 
+        // Ensure socket mapping is current
+        if (data.userId && userSockets.get(userId) !== socket.id) {
+            userSockets.set(userId, socket.id);
+            socketToUser.set(socket.id, userId);
+            socket.join(userId);
+            console.log(`[Presence] Mapping updated on update-service-status for: ${userId}`);
+        }
+
         try {
             const update = {};
             const isEnabled = !!data.isEnabled;
@@ -92,6 +108,14 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
     socket.on('update-status', async (data) => {
         const userId = data.userId || socketToUser.get(socket.id);
         if (!userId) return;
+
+        // Ensure socket mapping is current
+        if (data.userId && userSockets.get(userId) !== socket.id) {
+            userSockets.set(userId, socket.id);
+            socketToUser.set(socket.id, userId);
+            socket.join(userId);
+            console.log(`[Presence] Mapping updated on update-status for: ${userId}`);
+        }
 
         try {
             const isOnline = !!data.isOnline;
