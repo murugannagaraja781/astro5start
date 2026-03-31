@@ -5,7 +5,17 @@ const router = express.Router();
 router.get('/ice-config', (req, res) => {
     res.json({
         iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
+            { 
+                urls: [
+                    "stun:stun.l.google.com:19302",
+                    "stun:stun1.l.google.com:19302",
+                    "stun:stun2.l.google.com:19302",
+                    "stun:stun3.l.google.com:19302",
+                    "stun:stun4.l.google.com:19302",
+                    "stun:stun.voiparound.com",
+                    "stun:stun.voipgateway.org"
+                ] 
+            },
             {
                 urls: [
                     `turn:${process.env.TURN_URL || 'turn.astro5star.com'}:3478?transport=udp`,
