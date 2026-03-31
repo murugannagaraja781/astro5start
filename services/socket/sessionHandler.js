@@ -339,6 +339,10 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         }
     });
 
+    socket.on('app-log', (data) => {
+        const { userId, msg, sessionId } = data || {};
+        console.log(`[AppLog] User:${userId || 'unknown'} Ses:${sessionId || 'none'} - ${msg}`);
+    });
 };
 
 module.exports = handleSession;
