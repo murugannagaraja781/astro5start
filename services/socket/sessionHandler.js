@@ -264,9 +264,19 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             // Ensure socket is in the session room
             socket.join(sessionId);
 
-            const handler = sessionService.handleUserConnection;
-            if (typeof handler === 'function') {
+            if (handler) {
                 await handler(sessionId, userId, io);
+            }
+
+            // SELF-HEALING: Tell the connecting user who their counterpart is 
+            // in case they lost local state (avoids "Unknown" toUserId)
+            const otherId = sessionService.getOtherUserIdFromSession(sessionId, userId);
+            if (otherId) {
+                socket.emit('session-info', {
+                    sessionId,
+                    counterpartId: otherId,
+                    role: 'counterpart'
+                });
             }
         } catch (err) {
             console.error('[SessionHandler] session-connect error:', err);
@@ -284,9 +294,10 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 // Notify others in the room to restart signaling
                 socket.to(sessionId).emit('peer-reconnected', { userId });
 
-                // Also explicitly notify the other user if they are online but lost room state
+                // SELF-HEALING: Also tell the rejoining user who their partner is
                 const otherId = sessionService.getOtherUserIdFromSession(sessionId, userId);
                 if (otherId) {
+                    socket.emit('session-info', { sessionId, counterpartId: otherId });
                     io.to(otherId).emit('peer-reconnected', { userId });
                 }
             }
