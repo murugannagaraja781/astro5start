@@ -182,11 +182,21 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
     socket.on('answer-session', async (data, cb) => {
         const { sessionId, accept, type, userId } = data || {};
+        
+        // LAZY REGISTRATION: If userId is provided but not in mapping, update it.
+        // This handles cases where the app reconnects and answers prior to register().
+        if (userId && (socketToUser.get(socket.id) !== userId)) {
+            console.log(`[Session] Lazy registration on answer-session for ${userId}`);
+            socketToUser.set(socket.id, userId);
+            userSockets.set(userId, socket.id);
+            socket.join(userId);
+        }
+
         const astrologerId = userId || socketToUser.get(socket.id);
         
         if (!astrologerId || !sessionId) {
-            console.error('[Session] answer-session: Missing astrologerId or sessionId', { astrologerId, sessionId });
-            if (typeof cb === "function") cb({ ok: false, error: 'Authorization error' });
+            console.error(`[Session] answer-session: Missing astrologerId (${astrologerId}) or sessionId (${sessionId || 'EMPTY'}) for socket ${socket.id}`);
+            if (typeof cb === "function") cb({ ok: false, error: 'Authorization error or missing ID' });
             return;
         }
 
@@ -200,9 +210,19 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
     });
 
     socket.on('answer-session-native', async (data, cb) => {
-        const { sessionId, accept, callType } = data || {};
-        const astrologerId = socketToUser.get(socket.id);
+        const { sessionId, accept, callType, userId } = data || {};
+        
+        // LAZY REGISTRATION
+        if (userId && (socketToUser.get(socket.id) !== userId)) {
+            console.log(`[Session] Lazy registration on answer-session-native for ${userId}`);
+            socketToUser.set(socket.id, userId);
+            userSockets.set(userId, socket.id);
+            socket.join(userId);
+        }
+
+        const astrologerId = userId || socketToUser.get(socket.id);
         if (!astrologerId || !sessionId) {
+            console.error(`[Session] answer-session-native: Missing IDs. astroId:${astrologerId}, sid:${sessionId || 'EMPTY'}`);
             if (typeof cb === 'function') cb({ ok: false, error: 'Invalid data' });
             return;
         }
