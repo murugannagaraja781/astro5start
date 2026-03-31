@@ -17,7 +17,15 @@ async function tickSessions(io) {
         const tickTime = Math.floor(now / 1000);
 
         for (const [sessionId, session] of activeSessions) {
-            if (!session.actualBillingStart || now < session.actualBillingStart) continue;
+            if (!session.actualBillingStart) {
+                // If it's a valid session but missing start time, log it once
+                if (session.isAnswered && !session._skipLogSent) {
+                    console.log(`[Ticker] Skipping session ${sessionId}: missing actualBillingStart. isAnswered=${session.isAnswered}`);
+                    session._skipLogSent = true;
+                }
+                continue;
+            }
+            if (now < session.actualBillingStart) continue;
 
             // STABILITY FIX: Don't pause billing for 1-second socket flickers. 
             // Only pause if session is explicitly ended or stale beyond 60s without any heartbeat.
@@ -71,23 +79,21 @@ async function tickSessions(io) {
                     }).catch(e => console.error('[Ticker] DB Sync Error', e));
                 }
 
-                // PERFORMANCE FIX: Only emit timer-update every 5 ticks to save socket traffic.
-                if (secondsElapsed % 5 === 0) {
-                    const client = await User.findOne({ userId: session.clientId }).select('walletBalance superWalletBalance').lean();
-                    if (client) {
-                        const price = session.pricePerMin || 10;
-                        const totalBalance = (client.walletBalance || 0) + (client.superWalletBalance || 0);
-                        const remainingSeconds = Math.floor((totalBalance / price) * 60);
+                // PERFORMANCE FIX: Emit timer-update EVERY second for better UX
+                // but only if the users are connected.
+                const client = await User.findOne({ userId: session.clientId }).select('walletBalance superWalletBalance').lean();
+                if (client) {
+                    const price = session.pricePerMin || 10;
+                    const totalBalance = (client.walletBalance || 0) + (client.superWalletBalance || 0);
+                    const remainingSeconds = Math.floor((totalBalance / price) * 60);
 
-                        io.to(session.clientId).emit('timer-update', {
-                            elapsedSeconds: secondsElapsed,
-                            remainingSeconds: remainingSeconds
-                        });
-                        io.to(session.astrologerId).emit('timer-update', {
-                            elapsedSeconds: secondsElapsed,
-                            remainingSeconds: remainingSeconds
-                        });
-                    }
+                    const timerPayload = {
+                        elapsedSeconds: secondsElapsed,
+                        remainingSeconds: Math.max(0, remainingSeconds)
+                    };
+
+                    io.to(session.clientId).emit('timer-update', timerPayload);
+                    io.to(session.astrologerId).emit('timer-update', timerPayload);
                 }
             }
         }

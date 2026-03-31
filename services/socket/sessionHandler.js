@@ -264,7 +264,8 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             // Ensure socket is in the session room
             socket.join(sessionId);
 
-            if (handler) {
+            const handler = sessionService.handleUserConnection;
+            if (typeof handler === 'function') {
                 await handler(sessionId, userId, io);
             }
 
