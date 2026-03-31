@@ -234,6 +234,15 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         // Trace signaling for debugging
         console.log(`[Signal] From:${fromUserId} To:${targetId || 'Room'} Session:${sessionId} Type:${signal.type || 'ICE'}`);
 
+        // SIGNAL BUFFERING: Store the last offer/answer to prevent race conditions 
+        // if the recipient is still joining the room.
+        const activeSess = activeSessions.get(sessionId);
+        if (activeSess) {
+            if (signal.type === 'offer' || signal.type === 'answer') {
+                activeSess.lastMediaSignal = { sessionId, fromUserId, signal };
+            }
+        }
+
         // Using room-based signaling (socket.to) is more reliable than mapping individual socket IDs
         socket.to(sessionId).emit('signal', {
             sessionId,
@@ -272,12 +281,20 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             // SELF-HEALING: Tell the connecting user who their counterpart is 
             // in case they lost local state (avoids "Unknown" toUserId)
             const otherId = sessionService.getOtherUserIdFromSession(sessionId, userId);
+            const activeSess = activeSessions.get(sessionId);
+            
             if (otherId) {
                 socket.emit('session-info', {
                     sessionId,
                     counterpartId: otherId,
                     role: 'counterpart'
                 });
+
+                // BUFFER RE-EMISSION: If there's a pending signal (offer/answer), send it now
+                if (activeSess?.lastMediaSignal && activeSess.lastMediaSignal.fromUserId !== userId) {
+                    console.log(`[Signal] Re-emitting buffered ${activeSess.lastMediaSignal.signal?.type} to ${userId}`);
+                    socket.emit('signal', activeSess.lastMediaSignal);
+                }
             }
         } catch (err) {
             console.error('[SessionHandler] session-connect error:', err);
@@ -297,9 +314,16 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
                 // SELF-HEALING: Also tell the rejoining user who their partner is
                 const otherId = sessionService.getOtherUserIdFromSession(sessionId, userId);
+                const activeSess = activeSessions.get(sessionId);
                 if (otherId) {
                     socket.emit('session-info', { sessionId, counterpartId: otherId });
                     io.to(otherId).emit('peer-reconnected', { userId });
+
+                    // BUFFER RE-EMISSION: Send last signal if exists
+                    if (activeSess?.lastMediaSignal && activeSess.lastMediaSignal.fromUserId !== userId) {
+                        console.log(`[Signal] Re-emitting buffered ${activeSess.lastMediaSignal.signal?.type} to rejoining user ${userId}`);
+                        socket.emit('signal', activeSess.lastMediaSignal);
+                    }
                 }
             }
         } catch (err) {
