@@ -270,10 +270,9 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         console.log(`[Signal] From:${fromUserId} To:${toUserId || 'Room'} Session:${sessionId} Type:${signal.type || 'ICE'}`);
 
         // OPTIMIZED SIGNALING: 
-        // 1. If toUserId is provided, send directly to that user's private room.
-        //    This is the most reliable way to reach them even if they haven't joined the session room yet.
-        // 2. Fallback to room broadcast only if toUserId is missing.
-        if (toUserId) {
+        // 1. If a valid toUserId is provided, send directly to that user.
+        // 2. If toUserId is missing or "Unknown", fallback to room broadcast.
+        if (toUserId && toUserId !== 'Unknown' && toUserId !== 'undefined') {
             io.to(toUserId).emit('signal', { sessionId, fromUserId, signal });
         } else {
             socket.to(sessionId).emit('signal', {
