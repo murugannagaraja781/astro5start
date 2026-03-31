@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 
 router.get('/ice-config', (req, res) => {
+    console.log(`[ICE Config] Request received from ${req.ip}`);
     res.json({
         iceServers: [
             { 
