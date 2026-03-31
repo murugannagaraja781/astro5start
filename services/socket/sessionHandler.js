@@ -23,21 +23,11 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
     socket.on('request-session', async (data, cb) => {
         try {
-            const { toUserId, type, birthData, userId } = data || {};
-            const requestedType = type || data.callType;
-            
-            // LAZY REGISTRATION
-            if (userId && (socketToUser.get(socket.id) !== userId)) {
-                console.log(`[Session] Lazy registration on request-session for ${userId}`);
-                socketToUser.set(socket.id, userId);
-                userSockets.set(userId, socket.id);
-                socket.join(userId);
-            }
-
+            const { toUserId, type, birthData } = data || {};
             const fromUserId = socketToUser.get(socket.id);
 
             if (!fromUserId) if (typeof cb === "function") return cb({ ok: false, error: 'Not registered' });
-            if (!toUserId || !requestedType) if (typeof cb === "function") return cb({ ok: false, error: 'Missing fields' });
+            if (!toUserId || !type) if (typeof cb === "function") return cb({ ok: false, error: 'Missing fields' });
 
             const toUser = await User.findOne({ userId: toUserId });
             const fromUser = await User.findOne({ userId: fromUserId });
@@ -49,11 +39,11 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             if (userActiveSession.has(toUserId) || toUser.isBusy) {
                 const existingSessionId = userActiveSession.get(toUserId);
                 const existingSessionInMem = existingSessionId ? activeSessions.get(existingSessionId) : null;
-                
+
                 // Double check if there's actually an active session in DB too
-                const activeSessionInDb = await Session.findOne({ 
-                    $or: [{ clientId: toUserId }, { astrologerId: toUserId }], 
-                    status: 'active' 
+                const activeSessionInDb = await Session.findOne({
+                    $or: [{ clientId: toUserId }, { astrologerId: toUserId }],
+                    status: 'active'
                 });
 
                 if (!existingSessionInMem && !activeSessionInDb) {
@@ -91,7 +81,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             }
 
             await Session.create({
-                sessionId, fromUserId, toUserId, type: requestedType, startTime: Date.now(),
+                sessionId, fromUserId, toUserId, type, startTime: Date.now(),
                 clientId, astrologerId, status: 'requested'
             });
 
@@ -99,7 +89,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             const callerImage = formatImageUrl(fromUser?.image, callerDisplayName);
 
             // Log session request state
-            console.log(`[Session] New Request: ${sessionId} Type:${requestedType} from:${fromUserId}(${fromUser?.name}) to:${toUserId}(${toUser?.name})`);
+            console.log(`[Session] New Request: ${sessionId} Type:${type} from:${fromUserId}(${fromUser?.name}) to:${toUserId}(${toUser?.name})`);
 
             const timeoutId = setTimeout(async () => {
                 const s = activeSessions.get(sessionId);
@@ -148,8 +138,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 fromUserId,
                 callerName: callerDisplayName,
                 callerImage,
-                type: requestedType, 
-                callType: requestedType,
+                type,
                 birthData: birthData || null
             });
 
@@ -165,8 +154,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 const fcmData = {
                     type: 'INCOMING_CALL',
                     sessionId: sessionId,
-                    callType: requestedType,
-                    type: requestedType,
+                    callType: type,
                     callerName: callerDisplayName,
                     callerId: fromUserId,
                     callerImage,
@@ -194,26 +182,16 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
     socket.on('answer-session', async (data, cb) => {
         const { sessionId, accept, type, userId } = data || {};
-        
-        // LAZY REGISTRATION: If userId is provided but not in mapping, update it.
-        // This handles cases where the app reconnects and answers prior to register().
-        if (userId && (socketToUser.get(socket.id) !== userId)) {
-            console.log(`[Session] Lazy registration on answer-session for ${userId}`);
-            socketToUser.set(socket.id, userId);
-            userSockets.set(userId, socket.id);
-            socket.join(userId);
-        }
-
         const astrologerId = userId || socketToUser.get(socket.id);
-        
+
         if (!astrologerId || !sessionId) {
-            console.error(`[Session] answer-session: Missing astrologerId (${astrologerId}) or sessionId (${sessionId || 'EMPTY'}) for socket ${socket.id}`);
-            if (typeof cb === "function") cb({ ok: false, error: 'Authorization error or missing ID' });
+            console.error('[Session] answer-session: Missing astrologerId or sessionId', { astrologerId, sessionId });
+            if (typeof cb === "function") cb({ ok: false, error: 'Authorization error' });
             return;
         }
 
         console.log(`[Session] User ${astrologerId} answering ${sessionId}: Accept=${accept}`);
-        
+
         // Join the session room for signaling and events
         socket.join(sessionId);
 
@@ -222,19 +200,9 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
     });
 
     socket.on('answer-session-native', async (data, cb) => {
-        const { sessionId, accept, callType, userId } = data || {};
-        
-        // LAZY REGISTRATION
-        if (userId && (socketToUser.get(socket.id) !== userId)) {
-            console.log(`[Session] Lazy registration on answer-session-native for ${userId}`);
-            socketToUser.set(socket.id, userId);
-            userSockets.set(userId, socket.id);
-            socket.join(userId);
-        }
-
-        const astrologerId = userId || socketToUser.get(socket.id);
+        const { sessionId, accept, callType } = data || {};
+        const astrologerId = socketToUser.get(socket.id);
         if (!astrologerId || !sessionId) {
-            console.error(`[Session] answer-session-native: Missing IDs. astroId:${astrologerId}, sid:${sessionId || 'EMPTY'}`);
             if (typeof cb === 'function') cb({ ok: false, error: 'Invalid data' });
             return;
         }
@@ -253,46 +221,29 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
     });
 
     socket.on('signal', (data) => {
-        const { sessionId, toUserId, signal, userId } = data || {};
-        
-        // LAZY REGISTRATION
-        if (userId && (socketToUser.get(socket.id) !== userId)) {
-            console.log(`[Signal] Lazy registration for ${userId}`);
-            socketToUser.set(socket.id, userId);
-            userSockets.set(userId, socket.id);
-            socket.join(userId);
-        }
-
+        const { sessionId, toUserId, signal } = data || {};
         const fromUserId = socketToUser.get(socket.id);
         if (!fromUserId || !sessionId || !signal) return;
 
         // Trace signaling for debugging No-Audio/No-Video issues
         console.log(`[Signal] From:${fromUserId} To:${toUserId || 'Room'} Session:${sessionId} Type:${signal.type || 'ICE'}`);
 
-        // OPTIMIZED SIGNALING: 
-        // 1. If a valid toUserId is provided, send directly to that user.
-        // 2. If toUserId is missing or "Unknown", fallback to room broadcast.
-        if (toUserId && toUserId !== 'Unknown' && toUserId !== 'undefined') {
+        // Using room-based signaling (socket.to) is more reliable than mapping individual socket IDs
+        // because it ensures anyone currently in the session room gets the signal.
+        socket.to(sessionId).emit('signal', {
+            sessionId,
+            fromUserId,
+            signal,
+        });
+
+        // Fallback: If for some reason the room broadcast isn't enough, we still try the individual ID
+        if (toUserId) {
             io.to(toUserId).emit('signal', { sessionId, fromUserId, signal });
-        } else {
-            socket.to(sessionId).emit('signal', {
-                sessionId,
-                fromUserId,
-                signal,
-            });
         }
     });
 
     socket.on('end-session', async (data) => {
-        const { sessionId, reason, userId } = data || {};
-        
-        // LAZY REGISTRATION
-        if (userId && (socketToUser.get(socket.id) !== userId)) {
-            socketToUser.set(socket.id, userId);
-            userSockets.set(userId, socket.id);
-            socket.join(userId);
-        }
-
+        const { sessionId, reason } = data || {};
         const fromUserId = socketToUser.get(socket.id);
         if (!fromUserId || !sessionId) return;
 
@@ -301,15 +252,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
     socket.on('session-connect', async (data) => {
         try {
-            const { sessionId, userId: providedUserId } = data || {};
-            
-            // LAZY REGISTRATION
-            if (providedUserId && (socketToUser.get(socket.id) !== providedUserId)) {
-                socketToUser.set(socket.id, providedUserId);
-                userSockets.set(providedUserId, socket.id);
-                socket.join(providedUserId);
-            }
-
+            const { sessionId } = data || {};
             const userId = socketToUser.get(socket.id);
             if (!userId || !sessionId) return;
 
@@ -327,23 +270,15 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
     socket.on('rejoin-session', (data) => {
         try {
-            const { sessionId, userId: providedUserId } = data || {};
-            
-            // LAZY REGISTRATION
-            if (providedUserId && (socketToUser.get(socket.id) !== providedUserId)) {
-                socketToUser.set(socket.id, providedUserId);
-                userSockets.set(providedUserId, socket.id);
-                socket.join(providedUserId);
-            }
-
+            const { sessionId } = data || {};
             const userId = socketToUser.get(socket.id);
             if (sessionId && userId) {
                 console.log(`[Session] User ${userId} rejoining room ${sessionId}`);
                 socket.join(sessionId);
-                
+
                 // Notify others in the room to restart signaling
                 socket.to(sessionId).emit('peer-reconnected', { userId });
-                
+
                 // Also explicitly notify the other user if they are online but lost room state
                 const otherId = sessionService.getOtherUserIdFromSession(sessionId, userId);
                 if (otherId) {
