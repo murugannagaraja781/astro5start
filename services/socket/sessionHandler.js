@@ -241,24 +241,47 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
     });
 
     socket.on('signal', (data) => {
-        const { sessionId, toUserId, signal } = data || {};
+        const { sessionId, toUserId, signal, userId } = data || {};
+        
+        // LAZY REGISTRATION
+        if (userId && (socketToUser.get(socket.id) !== userId)) {
+            console.log(`[Signal] Lazy registration for ${userId}`);
+            socketToUser.set(socket.id, userId);
+            userSockets.set(userId, socket.id);
+            socket.join(userId);
+        }
+
         const fromUserId = socketToUser.get(socket.id);
         if (!fromUserId || !sessionId || !signal) return;
 
         // Trace signaling for debugging No-Audio/No-Video issues
         console.log(`[Signal] From:${fromUserId} To:${toUserId || 'Room'} Session:${sessionId} Type:${signal.type || 'ICE'}`);
 
-        // Using room-based signaling (socket.to) is the most reliable way 
-        // to reach the other party without sending duplicate signals.
-        socket.to(sessionId).emit('signal', {
-            sessionId,
-            fromUserId,
-            signal,
-        });
+        // OPTIMIZED SIGNALING: 
+        // 1. If toUserId is provided, send directly to that user's private room.
+        //    This is the most reliable way to reach them even if they haven't joined the session room yet.
+        // 2. Fallback to room broadcast only if toUserId is missing.
+        if (toUserId) {
+            io.to(toUserId).emit('signal', { sessionId, fromUserId, signal });
+        } else {
+            socket.to(sessionId).emit('signal', {
+                sessionId,
+                fromUserId,
+                signal,
+            });
+        }
     });
 
     socket.on('end-session', async (data) => {
-        const { sessionId, reason } = data || {};
+        const { sessionId, reason, userId } = data || {};
+        
+        // LAZY REGISTRATION
+        if (userId && (socketToUser.get(socket.id) !== userId)) {
+            socketToUser.set(socket.id, userId);
+            userSockets.set(userId, socket.id);
+            socket.join(userId);
+        }
+
         const fromUserId = socketToUser.get(socket.id);
         if (!fromUserId || !sessionId) return;
 
@@ -267,7 +290,15 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
     socket.on('session-connect', async (data) => {
         try {
-            const { sessionId } = data || {};
+            const { sessionId, userId: providedUserId } = data || {};
+            
+            // LAZY REGISTRATION
+            if (providedUserId && (socketToUser.get(socket.id) !== providedUserId)) {
+                socketToUser.set(socket.id, providedUserId);
+                userSockets.set(providedUserId, socket.id);
+                socket.join(providedUserId);
+            }
+
             const userId = socketToUser.get(socket.id);
             if (!userId || !sessionId) return;
 
@@ -285,7 +316,15 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
     socket.on('rejoin-session', (data) => {
         try {
-            const { sessionId } = data || {};
+            const { sessionId, userId: providedUserId } = data || {};
+            
+            // LAZY REGISTRATION
+            if (providedUserId && (socketToUser.get(socket.id) !== providedUserId)) {
+                socketToUser.set(socket.id, providedUserId);
+                userSockets.set(providedUserId, socket.id);
+                socket.join(providedUserId);
+            }
+
             const userId = socketToUser.get(socket.id);
             if (sessionId && userId) {
                 console.log(`[Session] User ${userId} rejoining room ${sessionId}`);
