@@ -234,10 +234,18 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         // Trace signaling for debugging
         console.log(`[Signal] From:${fromUserId} To:${targetId || 'Room'} Session:${sessionId} Type:${signal.type || 'ICE'}`);
 
-        // SIGNAL BUFFERING: Store the last offer/answer to prevent race conditions 
-        // if the recipient is still joining the room.
+        // SIGNAL BUFFERING & GLARE SUPPRESSION
+        // On slow networks, both sides might try to initiate. 
+        // We prioritize the true initiator (original clientId) to avoid "glare".
         const activeSess = activeSessions.get(sessionId);
         if (activeSess) {
+            // GLARE FILTER: If recipient sends an offer while initiator's offer is already buffered, suppress it.
+            if (signal.type === 'offer' && fromUserId !== activeSess.clientId && activeSess.lastMediaSignal?.signal?.type === 'offer') {
+                console.log(`[Signal] Suppressing glare offer from Recipient:${fromUserId} (Initiator offer exists)`);
+                return;
+            }
+
+            // Buffer the last legitimate media signal (offer/answer)
             if (signal.type === 'offer' || signal.type === 'answer') {
                 activeSess.lastMediaSignal = { sessionId, fromUserId, signal };
             }
