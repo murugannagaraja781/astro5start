@@ -225,20 +225,25 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         const fromUserId = socketToUser.get(socket.id);
         if (!fromUserId || !sessionId || !signal) return;
 
-        // Trace signaling for debugging No-Audio/No-Video issues
-        console.log(`[Signal] From:${fromUserId} To:${toUserId || 'Room'} Session:${sessionId} Type:${signal.type || 'ICE'}`);
+        let targetId = toUserId;
+        // If recipient is unknown or missing, resolve from session cache
+        if (!targetId || targetId === 'Unknown') {
+            targetId = getOtherUserIdFromSession(sessionId, fromUserId);
+        }
+
+        // Trace signaling for debugging
+        console.log(`[Signal] From:${fromUserId} To:${targetId || 'Room'} Session:${sessionId} Type:${signal.type || 'ICE'}`);
 
         // Using room-based signaling (socket.to) is more reliable than mapping individual socket IDs
-        // because it ensures anyone currently in the session room gets the signal.
         socket.to(sessionId).emit('signal', {
             sessionId,
             fromUserId,
             signal,
         });
 
-        // Fallback: If for some reason the room broadcast isn't enough, we still try the individual ID
-        if (toUserId) {
-            io.to(toUserId).emit('signal', { sessionId, fromUserId, signal });
+        // Fallback: Individual ID emission (enriched with resolved targetId)
+        if (targetId && targetId !== 'Room') {
+            io.to(targetId).emit('signal', { sessionId, fromUserId, signal });
         }
     });
 

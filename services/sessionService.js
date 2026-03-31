@@ -451,9 +451,10 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
                     accept: true 
                 });
                 
-                // Notify the astrologer that they have accepted successfully (optional but good for debugging)
+                // Notify the astrologer that they have accepted successfully (enriched with fromUserId/counterpart)
                 io.to(astrologerId).emit('session-answered', { 
                     sessionId, 
+                    fromUserId: fromUserId, // The client's ID
                     accept: true,
                     status: 'active'
                 });

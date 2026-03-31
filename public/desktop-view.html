@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -4561,7 +4561,7 @@
         showLogin();
         return;
       }
-      
+
       // Enforce intake form if missing details (Consolation Form)
       const me = state.me || {};
       const id = me.intakeDetails || {};
@@ -4571,7 +4571,7 @@
       if (!isComplete) {
         console.log("[Intake] Form incomplete, redirecting...");
         state.pendingAction = { actionType, args };
-        openEditIntakeForm(); 
+        openEditIntakeForm();
         return;
       }
 
@@ -4579,7 +4579,7 @@
       if (typeof actionType === 'function') {
         actionType(...args);
       } else if (actionType === 'chat') {
-        showChatWithBirthChart(...args); 
+        showChatWithBirthChart(...args);
       } else if (actionType === 'call') {
         requestSession(args[0], 'audio');
       } else if (actionType === 'video') {
@@ -6063,7 +6063,7 @@
             rv.muted = false;
             rv.autoplay = true;
             rv.setAttribute('playsinline', 'true');
-            
+
             // Forcing immediate play to bypass potential autoplay blocks
             const playPromise = rv.play();
             if (playPromise !== undefined) {
