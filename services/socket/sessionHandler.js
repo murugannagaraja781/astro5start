@@ -23,11 +23,21 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
     socket.on('request-session', async (data, cb) => {
         try {
-            const { toUserId, type, birthData } = data || {};
+            const { toUserId, type, birthData, userId } = data || {};
+            const requestedType = type || data.callType;
+            
+            // LAZY REGISTRATION
+            if (userId && (socketToUser.get(socket.id) !== userId)) {
+                console.log(`[Session] Lazy registration on request-session for ${userId}`);
+                socketToUser.set(socket.id, userId);
+                userSockets.set(userId, socket.id);
+                socket.join(userId);
+            }
+
             const fromUserId = socketToUser.get(socket.id);
 
             if (!fromUserId) if (typeof cb === "function") return cb({ ok: false, error: 'Not registered' });
-            if (!toUserId || !type) if (typeof cb === "function") return cb({ ok: false, error: 'Missing fields' });
+            if (!toUserId || !requestedType) if (typeof cb === "function") return cb({ ok: false, error: 'Missing fields' });
 
             const toUser = await User.findOne({ userId: toUserId });
             const fromUser = await User.findOne({ userId: fromUserId });
@@ -81,7 +91,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             }
 
             await Session.create({
-                sessionId, fromUserId, toUserId, type, startTime: Date.now(),
+                sessionId, fromUserId, toUserId, type: requestedType, startTime: Date.now(),
                 clientId, astrologerId, status: 'requested'
             });
 
@@ -89,7 +99,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             const callerImage = formatImageUrl(fromUser?.image, callerDisplayName);
 
             // Log session request state
-            console.log(`[Session] New Request: ${sessionId} Type:${type} from:${fromUserId}(${fromUser?.name}) to:${toUserId}(${toUser?.name})`);
+            console.log(`[Session] New Request: ${sessionId} Type:${requestedType} from:${fromUserId}(${fromUser?.name}) to:${toUserId}(${toUser?.name})`);
 
             const timeoutId = setTimeout(async () => {
                 const s = activeSessions.get(sessionId);
@@ -138,7 +148,8 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 fromUserId,
                 callerName: callerDisplayName,
                 callerImage,
-                type,
+                type: requestedType, 
+                callType: requestedType,
                 birthData: birthData || null
             });
 
@@ -154,7 +165,8 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 const fcmData = {
                     type: 'INCOMING_CALL',
                     sessionId: sessionId,
-                    callType: type,
+                    callType: requestedType,
+                    type: requestedType,
                     callerName: callerDisplayName,
                     callerId: fromUserId,
                     callerImage,
