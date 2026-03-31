@@ -248,18 +248,13 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         // Trace signaling for debugging No-Audio/No-Video issues
         console.log(`[Signal] From:${fromUserId} To:${toUserId || 'Room'} Session:${sessionId} Type:${signal.type || 'ICE'}`);
 
-        // Using room-based signaling (socket.to) is more reliable than mapping individual socket IDs
-        // because it ensures anyone currently in the session room gets the signal.
+        // Using room-based signaling (socket.to) is the most reliable way 
+        // to reach the other party without sending duplicate signals.
         socket.to(sessionId).emit('signal', {
             sessionId,
             fromUserId,
             signal,
         });
-
-        // Fallback: If for some reason the room broadcast isn't enough, we still try the individual ID
-        if (toUserId) {
-            io.to(toUserId).emit('signal', { sessionId, fromUserId, signal });
-        }
     });
 
     socket.on('end-session', async (data) => {
