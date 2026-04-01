@@ -239,9 +239,10 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         // We prioritize the true initiator (original clientId) to avoid "glare".
         const activeSess = activeSessions.get(sessionId);
         if (activeSess) {
-            // GLARE FILTER: If recipient sends an offer while initiator's offer is already buffered, suppress it.
-            if (signal.type === 'offer' && fromUserId !== activeSess.clientId && activeSess.lastMediaSignal?.signal?.type === 'offer') {
-                console.log(`[Signal] Suppressing glare offer from Recipient:${fromUserId} (Initiator offer exists)`);
+            // GLARE FILTER: Only the original initiator (clientId) is allowed to send an 'offer'.
+            // This prevents the recipient's app from sending redundant offers during setup or restarts.
+            if (signal.type === 'offer' && fromUserId !== activeSess.clientId) {
+                console.log(`[Signal] Suppressing unauthorized offer from Recipient:${fromUserId} (Only Client can initiate)`);
                 return;
             }
 
