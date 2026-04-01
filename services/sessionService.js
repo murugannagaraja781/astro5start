@@ -308,8 +308,16 @@ async function tryStartBilling(sessionId, io) {
             };
 
             broadcast(); // Immediate
-            setTimeout(broadcast, 2000); // 2s Delay
-            setTimeout(broadcast, 5000); // 5s Delay
+
+            // Only schedule the 2s and 5s delays IF this is the first time we are starting billing for this session.
+            // This prevents redundant emissions when both users connect or during a session-accept race.
+            if (!activeSession.billingBroadcastStarted) {
+                activeSession.billingBroadcastStarted = true;
+                setTimeout(broadcast, 2000); // 2s Delay
+                setTimeout(broadcast, 5000); // 5s Delay
+            } else {
+                console.log(`[Billing] Billing broadcast already active for ${sessionId}. Skipping additional delays.`);
+            }
         }
     }
 }
@@ -361,6 +369,7 @@ async function handleUserConnection(sessionId, userId, io) {
             lastMaturedMinute: session.lastMaturedMinute || 1,
             currentSlab: session.currentSlab || 1,
             actualBillingStart: session.actualBillingStart,
+            billingBroadcastStarted: !!session.actualBillingStart,
             totalDeducted: session.totalCharged || 0,
             totalEarned: session.totalEarned || 0,
             timeoutId: null
@@ -395,6 +404,7 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
                     elapsedBillableSeconds: 0,
                     lastBilledMinute: 0,
                     actualBillingStart: dbSession.actualBillingStart || null,
+                    billingBroadcastStarted: !!dbSession.actualBillingStart,
                     totalDeducted: dbSession.totalCharged || 0,
                     totalEarned: dbSession.totalEarned || 0,
                     timeoutId: null
