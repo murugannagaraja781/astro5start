@@ -253,11 +253,11 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         }
 
         // Room-based broadcast
-        console.log(`[Signal] [ROUTING] Emitting ${signal.type || 'ICE'} from:${fromUserId} to Room:${sessionId}`);
+        console.log(`[Signal] [ROUTING] Emitting ${signal.type} from:${fromUserId} to Peer in Room:${sessionId}`);
         socket.to(sessionId).emit('signal', {
             sessionId,
             fromUserId,
-            signal,
+            signal
         });
 
         // Fallback: Individual ID emission (enriched with resolved targetId)
