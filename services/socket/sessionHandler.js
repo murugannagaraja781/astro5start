@@ -154,10 +154,12 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 const fcmData = {
                     type: 'INCOMING_CALL',
                     sessionId: sessionId,
-                    callType: type,
+                    callType: type,          // Android looks for this
+                    call_type: type,         // Fallback
                     callerName: callerDisplayName,
                     callerId: fromUserId,
                     callerImage,
+                    priority: 'high',        // Direct data priority
                     timestamp: Date.now().toString(),
                     birthData: JSON.stringify(birthData || {}),
                     title: '📞 Incoming Call',

@@ -89,9 +89,13 @@ async function sendFcmV1Push(fcmToken, data, notification) {
             data: stringifiedData,
             android: {
                 priority: 'high',
-                ttl: 60 * 1000, // 60 seconds to ensure delivery during momentary glitch
+                ttl: 0, // Deliver immediately or fail (Best for real-time calls)
             },
             apns: {
+                headers: {
+                    'apns-priority': '10',
+                    'apns-push-type': 'alert'
+                },
                 payload: {
                     aps: {
                         contentAvailable: true,
