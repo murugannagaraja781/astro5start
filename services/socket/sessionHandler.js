@@ -260,10 +260,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             signal
         });
 
-        // Fallback: Individual ID emission (enriched with resolved targetId)
-        if (targetId && targetId !== 'Room') {
-            io.to(targetId).emit('signal', { sessionId, fromUserId, signal });
-        }
+        // NO FALLBACK (Room broadcast is sufficient and avoids duplicates)
     });
 
     socket.on('end-session', async (data) => {
