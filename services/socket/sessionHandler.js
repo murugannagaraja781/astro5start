@@ -235,24 +235,23 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         console.log(`[Signal] From:${fromUserId} To:${targetId || 'Room'} Session:${sessionId} Type:${signal.type || 'ICE'}`);
 
         // SIGNAL BUFFERING & GLARE SUPPRESSION
-        // On slow networks, both sides might try to initiate. 
-        // We prioritize the true initiator (original clientId) to avoid "glare".
         const activeSess = activeSessions.get(sessionId);
         if (activeSess) {
             // GLARE FILTER: Only the original initiator (clientId) is allowed to send an 'offer'.
-            // This prevents the recipient's app from sending redundant offers during setup or restarts.
             if (signal.type === 'offer' && fromUserId !== activeSess.clientId) {
-                console.log(`[Signal] Suppressing unauthorized offer from Recipient:${fromUserId} (Only Client can initiate)`);
+                console.log(`[Signal] [GLARE] Suppressing unauthorized offer from Recipient:${fromUserId} on session:${sessionId}`);
                 return;
             }
 
             // Buffer the last legitimate media signal (offer/answer)
             if (signal.type === 'offer' || signal.type === 'answer') {
                 activeSess.lastMediaSignal = { sessionId, fromUserId, signal };
+                console.log(`[Signal] [BUFFERED] Stored ${signal.type} from ${fromUserId} for session:${sessionId}`);
             }
         }
 
-        // Using room-based signaling (socket.to) is more reliable than mapping individual socket IDs
+        // Room-based broadcast
+        console.log(`[Signal] [ROUTING] Emitting ${signal.type || 'ICE'} from:${fromUserId} to Room:${sessionId}`);
         socket.to(sessionId).emit('signal', {
             sessionId,
             fromUserId,
@@ -315,24 +314,24 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             const { sessionId } = data || {};
             const userId = socketToUser.get(socket.id);
             if (sessionId && userId) {
-                console.log(`[Session] User ${userId} rejoining room ${sessionId}`);
+                const activeSess = activeSessions.get(sessionId);
+                const otherId = sessionService.getOtherUserIdFromSession(sessionId, userId);
+
+                // REJOIN LOGGING
+                console.log(`[Session] [REJOIN] User:${userId} Session:${sessionId} Other:${otherId || 'none'}`);
                 socket.join(sessionId);
 
-                // Notify others in the room to restart signaling
+                // NOTIFY PARTNER
                 socket.to(sessionId).emit('peer-reconnected', { userId });
-
-                // SELF-HEALING: Also tell the rejoining user who their partner is
-                const otherId = sessionService.getOtherUserIdFromSession(sessionId, userId);
-                const activeSess = activeSessions.get(sessionId);
                 if (otherId) {
                     socket.emit('session-info', { sessionId, counterpartId: otherId });
                     io.to(otherId).emit('peer-reconnected', { userId });
+                }
 
-                    // BUFFER RE-EMISSION: Send last signal if exists
-                    if (activeSess?.lastMediaSignal && activeSess.lastMediaSignal.fromUserId !== userId) {
-                        console.log(`[Signal] Re-emitting buffered ${activeSess.lastMediaSignal.signal?.type} to rejoining user ${userId}`);
-                        socket.emit('signal', activeSess.lastMediaSignal);
-                    }
+                // BUFFER RE-EMISSION
+                if (activeSess?.lastMediaSignal && activeSess.lastMediaSignal.fromUserId !== userId) {
+                    console.log(`[Signal] [RE-EMIT] Delivering buffered ${activeSess.lastMediaSignal.signal?.type} to rejoining user:${userId}`);
+                    socket.emit('signal', activeSess.lastMediaSignal);
                 }
             }
         } catch (err) {
