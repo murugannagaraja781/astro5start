@@ -24,7 +24,8 @@ router.get('/ice-config', (req, res) => {
                     `turns:${process.env.TURN_URL || '139.59.0.107'}:5349`
                 ],
                 username: process.env.TURN_USERNAME || "webrtcuser",
-                credential: process.env.TURN_PASSWORD || "strongpassword123"
+                credential: process.env.TURN_PASSWORD || "strongpassword123",
+                realm: "astro5star.com"
             }
         ]
     });
