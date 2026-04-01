@@ -19,9 +19,9 @@ router.get('/ice-config', (req, res) => {
             },
             {
                 urls: [
-                    `turn:${process.env.TURN_URL || 'turn.astro5star.com'}:3478?transport=udp`,
-                    `turn:${process.env.TURN_URL || 'turn.astro5star.com'}:3478?transport=tcp`,
-                    `turns:${process.env.TURN_URL || 'turn.astro5star.com'}:5349`
+                    `turn:${process.env.TURN_URL || '139.59.0.107'}:3478?transport=udp`,
+                    `turn:${process.env.TURN_URL || '139.59.0.107'}:3478?transport=tcp`,
+                    `turns:${process.env.TURN_URL || '139.59.0.107'}:5349`
                 ],
                 username: process.env.TURN_USERNAME || "webrtcuser",
                 credential: process.env.TURN_PASSWORD || "strongpassword123"
