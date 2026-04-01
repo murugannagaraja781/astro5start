@@ -298,9 +298,9 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     role: 'counterpart'
                 });
 
-                // BUFFER RE-EMISSION: If there's a pending signal (offer/answer), send it now
-                if (activeSess?.lastMediaSignal && activeSess.lastMediaSignal.fromUserId !== userId) {
-                    console.log(`[Signal] Re-emitting buffered ${activeSess.lastMediaSignal.signal?.type} to ${userId}`);
+                // BUFFER RE-EMISSION: Only re-emit 'offer' to avoid stable state collisions with answers.
+                if (activeSess?.lastMediaSignal?.signal?.type === 'offer' && activeSess.lastMediaSignal.fromUserId !== userId) {
+                    console.log(`[Signal] [RE-EMIT] Delivering buffered offer to joining user:${userId}`);
                     socket.emit('signal', activeSess.lastMediaSignal);
                 }
             }
@@ -328,9 +328,9 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     io.to(otherId).emit('peer-reconnected', { userId });
                 }
 
-                // BUFFER RE-EMISSION
-                if (activeSess?.lastMediaSignal && activeSess.lastMediaSignal.fromUserId !== userId) {
-                    console.log(`[Signal] [RE-EMIT] Delivering buffered ${activeSess.lastMediaSignal.signal?.type} to rejoining user:${userId}`);
+                // BUFFER RE-EMISSION: Only re-emit 'offer'
+                if (activeSess?.lastMediaSignal?.signal?.type === 'offer' && activeSess.lastMediaSignal.fromUserId !== userId) {
+                    console.log(`[Signal] [RE-EMIT] Delivering buffered offer to rejoining user:${userId}`);
                     socket.emit('signal', activeSess.lastMediaSignal);
                 }
             }
