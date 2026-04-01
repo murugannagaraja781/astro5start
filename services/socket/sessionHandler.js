@@ -133,6 +133,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             socket.join(sessionId);
 
             // Emit to socket room
+            console.log(`[Session] Emitting incoming-session event to Room:${toUserId} for Session:${sessionId}`);
             io.to(toUserId).emit('incoming-session', {
                 sessionId,
                 fromUserId,
@@ -253,7 +254,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         }
 
         // Room-based broadcast
-        console.log(`[Signal] [ROUTING] Emitting ${signal.type} from:${fromUserId} to Peer in Room:${sessionId}`);
+        console.log(`[Signal] [ROUTING] Emitting ${signal.type || 'ice-candidate'} from:${fromUserId} to Peer in Room:${sessionId}`);
         socket.to(sessionId).emit('signal', {
             sessionId,
             fromUserId,

@@ -117,15 +117,14 @@ async function sendFcmV1Push(fcmToken, data, notification) {
 
         // console.log('[FCM v1] Sending to SDK:', JSON.stringify(messagePayload, null, 2));
         const response = await admin.messaging().send(messagePayload);
-        console.log('[FCM v1] Successfully sent message (v3-deep-fix):', response);
+        console.log(`[FCM v1] Successfully sent message to token ${fcmToken.substring(0, 10)}... Result:`, response);
         return { success: true, messageId: response };
-
     } catch (err) {
         console.error(`[FCM v1] Error sending to token: ${fcmToken ? fcmToken.substring(0, 15) : 'NULL'}... error: ${err.message}`);
         // If it still says 'data must only contain string values', we log the keys
         if (err.message.includes('data must only contain string values')) {
-             console.error('[FCM Data Keys]:', Object.keys(data).join(', '));
-             console.error('[FCM Data Values Types]:', Object.values(data).map(v => typeof v).join(', '));
+             console.error('[FCM Data Keys]:', Object.keys(stringifiedData).join(', '));
+             console.error('[FCM Data Values Types]:', Object.values(stringifiedData).map(v => typeof v).join(', '));
         }
         return await sendFcmLegacyPush(fcmToken, data, notification);
     }
