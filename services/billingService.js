@@ -40,23 +40,30 @@ async function tickSessions(io) {
 
                 // RULE 1: Charge Client at the START of each minute (Minute 1, 2, 3...)
                 const currentMinuteIndex = Math.floor((secondsElapsed - 1) / 60) + 1;
+                const MAX_CATCHUP = 5; // Financial Safety: Cap simultaneous catch-up charges
                 
                 if (currentMinuteIndex > (session.lastBilledMinute || 0)) {
                     // Start of a new minute -> Charge Client full price
-                    for (let m = (session.lastBilledMinute || 0) + 1; m <= currentMinuteIndex; m++) {
+                    const startMin = (session.lastBilledMinute || 0) + 1;
+                    const endMin = Math.min(currentMinuteIndex, startMin + MAX_CATCHUP - 1);
+                    
+                    for (let m = startMin; m <= endMin; m++) {
                         processBillingCharge(sessionId, m, 'client_full_charge', io);
                     }
-                    session.lastBilledMinute = currentMinuteIndex;
+                    session.lastBilledMinute = endMin;
                     needsDbSync = true;
                 }
-
+ 
                 // RULE 2: Pay Astrologer AFTER a full minute is completed.
                 const completedMinutes = Math.floor(secondsElapsed / 60);
                 if (completedMinutes >= 2 && completedMinutes > (session.lastMaturedMinute || 1)) {
-                    for (let m = (session.lastMaturedMinute || 1) + 1; m <= completedMinutes; m++) {
+                    const startMin = (session.lastMaturedMinute || 1) + 1;
+                    const endMin = Math.min(completedMinutes, startMin + MAX_CATCHUP - 1);
+
+                    for (let m = startMin; m <= endMin; m++) {
                         processBillingCharge(sessionId, m, 'astro_share_payout', io);
                     }
-                    session.lastMaturedMinute = completedMinutes;
+                    session.lastMaturedMinute = endMin;
                     needsDbSync = true;
                 }
 

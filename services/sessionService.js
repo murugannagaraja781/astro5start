@@ -229,12 +229,19 @@ async function tryStartBilling(sessionId, io) {
     // Billing starts ONLY if:
     // 1. One side has technically connected to the activity
     // 2. Billing hasn't already started (or we are re-broadcasting to a reconnecting user)
-    if (session.clientConnectedAt || session.astrologerConnectedAt) {
+    const clientConn = session.clientConnectedAt || 0;
+    const astroConn = session.astrologerConnectedAt || 0;
+    const fallbackNow = Date.now();
+    const VALID_TIMESTAMP_THRESHOLD = 1704067200000; 
+
+    if (clientConn > VALID_TIMESTAMP_THRESHOLD || astroConn > VALID_TIMESTAMP_THRESHOLD) {
         let billingStart = session.actualBillingStart;
 
         if (!billingStart) {
             console.log(`[Billing] Starting NEW billing for ${sessionId}...`);
-            billingStart = (session.clientConnectedAt || session.astrologerConnectedAt) + 1500;
+            const baseStart = (clientConn > VALID_TIMESTAMP_THRESHOLD) ? clientConn : astroConn;
+            billingStart = (baseStart > VALID_TIMESTAMP_THRESHOLD) ? (baseStart + 1500) : (fallbackNow + 500);
+            
             session.actualBillingStart = billingStart;
             await session.save();
             activeSession.actualBillingStart = billingStart;
