@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -806,7 +806,9 @@
       display: flex;
       gap: 5px;
     }
-    .time-12h-group select, .time-12h-group input {
+
+    .time-12h-group select,
+    .time-12h-group input {
       flex: 1;
       padding: 10px 5px;
       border: 1px solid #D1D5DB;
@@ -1587,7 +1589,8 @@
     style="position: fixed; top: 0; left: 0; right: 0; z-index: 10001; background: white; padding: 10px 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
     <div style="font-weight: bold; color: #059669; font-size: 1.1rem;">✨ Astro 5 Star</div>
     <div style="display: flex; align-items: center; gap: 10px;">
-      <a href="https://play.google.com/store/apps/details?id=com.astro5star.app&pcampaignid=web_share" class="download-header-btn">
+      <a href="https://play.google.com/store/apps/details?id=com.astro5star.app&pcampaignid=web_share"
+        class="download-header-btn">
         <i class="fab fa-google-play"></i> App
       </a>
       <button id="staticLoginBtn" onclick="window.location.reload()"
@@ -1891,8 +1894,8 @@
         </nav>
 
         <div class="header-actions">
-          <a href="https://play.google.com/store/apps/details?id=com.astro5star.app&pcampaignid=web_share" class="download-header-btn"
-            style="text-decoration:none; color: #4b5563; font-size: 0.9rem;">
+          <a href="https://play.google.com/store/apps/details?id=com.astro5star.app&pcampaignid=web_share"
+            class="download-header-btn" style="text-decoration:none; color: #4b5563; font-size: 0.9rem;">
             <i class="fas fa-mobile-alt"></i> Get App
           </a>
 
@@ -2919,7 +2922,8 @@
       </div>
 
       <div style="display: flex; align-items: center; gap: 10px;">
-        <a href="https://play.google.com/store/apps/details?id=com.astro5star.app&pcampaignid=web_share" class="download-header-btn">
+        <a href="https://play.google.com/store/apps/details?id=com.astro5star.app&pcampaignid=web_share"
+          class="download-header-btn">
           <i class="fab fa-google-play"></i> App
         </a>
       </div>
@@ -3068,16 +3072,24 @@
               <div class="time-12h-group">
                 <select id="clientChartTime-h" class="app-input" style="padding: 10px 5px;">
                   <option value="">Hour</option>
-                  <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-                  <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-                  <option value="7">7</option><option value="8">8</option><option value="9">9</option>
-                  <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                  <option value="9">9</option>
+                  <option value="10">10</option>
+                  <option value="11">11</option>
+                  <option value="12">12</option>
                 </select>
                 <select id="clientChartTime-m" class="app-input" style="padding: 10px 5px;">
                   <option value="">Min</option>
                   <script>
-                    for(let i=0; i<60; i++) {
-                      let v = i.toString().padStart(2,'0');
+                    for (let i = 0; i < 60; i++) {
+                      let v = i.toString().padStart(2, '0');
                       document.write(`<option value="${v}">${v}</option>`);
                     }
                   </script>
@@ -3168,16 +3180,24 @@
                 <div class="time-12h-group">
                   <select id="partnerTob-h" class="app-input" style="padding: 10px 5px;">
                     <option value="">HH</option>
-                    <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-                    <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-                    <option value="7">7</option><option value="8">8</option><option value="9">9</option>
-                    <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
                   </select>
                   <select id="partnerTob-m" class="app-input" style="padding: 10px 5px;">
                     <option value="">MM</option>
                     <script>
-                      for(let i=0; i<60; i++) {
-                        let v = i.toString().padStart(2,'0');
+                      for (let i = 0; i < 60; i++) {
+                        let v = i.toString().padStart(2, '0');
                         document.write(`<option value="${v}">${v}</option>`);
                       }
                     </script>
@@ -5661,7 +5681,7 @@
       }
 
       // 3. Emit Request
-      const birthData = (function() {
+      const birthData = (function () {
         if (!state.me) return null;
         const bd = state.me.birthDetails;
         const id = state.me.intakeDetails;
@@ -5669,15 +5689,15 @@
         const [y, m, d] = bd.dob.split('-').map(Number);
         const [h, min] = (bd.tob || "00:00").split(':').map(Number);
         return {
-           name: bd.name || state.me.name,
-           gender: id.gender || 'Male',
-           day: d, month: m, year: y,
-           hour: h, minute: min,
-           city: bd.pob, latitude: bd.lat, longitude: bd.lon,
-           timezone: bd.tz || 5.5,
-           topic: id.topic || 'General',
-           maritalStatus: id.marital || 'Single',
-           occupation: id.occupation || ''
+          name: bd.name || state.me.name,
+          gender: id.gender || 'Male',
+          day: d, month: m, year: y,
+          hour: h, minute: min,
+          city: bd.pob, latitude: bd.lat, longitude: bd.lon,
+          timezone: bd.tz || 5.5,
+          topic: id.topic || 'General',
+          maritalStatus: id.marital || 'Single',
+          occupation: id.occupation || ''
         };
       })();
 
@@ -6027,11 +6047,44 @@
           console.warn('Failed to fetch ICE config, using fallback STUN', e);
         }
 
-        // SDP Transform to limit bitrate for 2G
+        // SDP Transform to optimize audio/video quality and prioritize codecs
         const transformSDP = (sdp) => {
-          // Robust bitrate limiting by inserting b=AS after media headers
-          let newSdp = sdp.replace(/m=audio ([^\r\n]+)/g, 'm=audio $1\r\nb=AS:32');
-          newSdp = newSdp.replace(/m=video ([^\r\n]+)/g, 'm=video $1\r\nb=AS:256');
+          let newSdp = sdp;
+          
+          // 1. Prioritize Opus (111) for Audio
+          if (newSdp.includes('111')) {
+            newSdp = newSdp.replace(/m=audio ([^ ]+) ([^ ]+) ([^\r\n]+)/g, (match, port, proto, payload) => {
+              const payloads = payload.split(' ');
+              const index = payloads.indexOf('111');
+              if (index > 0) {
+                payloads.splice(index, 1);
+                payloads.unshift('111');
+              }
+              return `m=audio ${port} ${proto} ${payloads.join(' ')}`;
+            });
+            // Force 64kbps max bitrate for Opus at codec level
+            newSdp = newSdp.replace(/a=fmtp:111 ([^\r\n]+)/g, 'a=fmtp:111 $1;maxaveragebitrate=64000');
+          }
+
+          // 2. Prioritize VP8 (96) for Video
+          if (newSdp.includes('96')) {
+            newSdp = newSdp.replace(/m=video ([^ ]+) ([^ ]+) ([^\r\n]+)/g, (match, port, proto, payload) => {
+              const payloads = payload.split(' ');
+              const index = payloads.indexOf('96');
+              if (index > 0) {
+                payloads.splice(index, 1);
+                payloads.unshift('96');
+              }
+              return `m=video ${port} ${proto} ${payloads.join(' ')}`;
+            });
+          }
+
+          // 3. Set Audio Bitrate (AS=64k, TIAS=64000)
+          newSdp = newSdp.replace(/m=audio ([^\r\n]+)/g, 'm=audio $1\r\nb=AS:64\r\nb=TIAS:64000');
+          
+          // 4. Set Video Bitrate (AS=600k, TIAS=600000) - Slightly lower for better stability
+          newSdp = newSdp.replace(/m=video ([^\r\n]+)/g, 'm=video $1\r\nb=AS:600\r\nb=TIAS:600000');
+          
           return newSdp;
         };
 
@@ -8936,7 +8989,8 @@
       <div class="download-card-content">
         <h3>Install Astro 5 Star</h3>
         <p>For instant notifications, smooth calls, and the best experience, download our official Android app.</p>
-        <a href="https://play.google.com/store/apps/details?id=com.astro5star.app&pcampaignid=web_share" class="download-action-btn" target="_blank">
+        <a href="https://play.google.com/store/apps/details?id=com.astro5star.app&pcampaignid=web_share"
+          class="download-action-btn" target="_blank">
           <i class="fab fa-google-play"></i> Download from Play Store
         </a>
         <span class="later-text" onclick="closeAppDownloadModal()">Maybe later</span>
@@ -9499,6 +9553,7 @@
       text-align: justify;
       display: -webkit-box;
       -webkit-line-clamp: 5;
+      line-clamp: 5;
       -webkit-box-orient: vertical;
       overflow: hidden;
       transition: all 0.4s ease;
@@ -9506,6 +9561,7 @@
 
     .dh-pred-text.expanded {
       -webkit-line-clamp: unset;
+      line-clamp: unset;
       display: block;
     }
 
