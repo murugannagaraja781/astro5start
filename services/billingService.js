@@ -94,6 +94,12 @@ async function tickSessions(io) {
                     const totalBalance = (client.walletBalance || 0) + (client.superWalletBalance || 0);
                     const remainingSeconds = Math.floor((totalBalance / price) * 60);
 
+                    // FINANCIAL SAFETY: Force-cut call IMMEDIATELY if balance hits zero
+                    if (remainingSeconds < 1) {
+                        console.log(`[Ticker] Force-cutting session ${sessionId}: Balance exhausted.`);
+                        return forceEndSession(sessionId, 'insufficient_funds', io);
+                    }
+
                     const timerPayload = {
                         elapsedSeconds: secondsElapsed,
                         remainingSeconds: Math.max(0, remainingSeconds)
@@ -284,6 +290,8 @@ function forceEndSession(sessionId, reason, io) {
     io.to(session.clientId).emit('session-ended', payload);
     io.to(session.astrologerId).emit('session-ended', payload);
 
+    session.isEnded = true; // Mark locally so ticker skips it immediately
+    
     // Cleanup will happen in disconnect or end-session handlers
 }
 
