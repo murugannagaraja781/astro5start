@@ -135,19 +135,19 @@ const initSocket = (io) => {
                 }
 
                 if (user.role === 'astrologer') {
+                    // RESTORE status from disconnected grace period
                     if (offlineTimeouts.has(userId)) {
                         clearTimeout(offlineTimeouts.get(userId));
                         offlineTimeouts.delete(userId);
+                        console.log(`[Presence] ${user.name} reconnected. Grace period cancelled.`);
                     }
 
-                    // USER REQUEST: Default to 'Offline' ONLY IF not already online.
-                    // This allows them to STAY ONLINE even after socket reconnection/app restart.
-                    if (user.isOnline === undefined || user.isOnline === null) {
-                        user.isOnline = false;
-                        user.isAvailable = false;
+                    // Ensure they are marked 'available' if online
+                    if (user.isOnline) {
+                        user.isAvailable = !user.isBusy;
+                        await user.save();
                     }
                     
-                    await user.save();
                     broadcastAstroUpdate();
                 }
 
@@ -170,10 +170,33 @@ const initSocket = (io) => {
 
                 const user = await User.findOne({ userId });
                 if (user && user.role === 'astrologer') {
-                    // USER REQUEST: Do NOT automatically mark offline when app is killed/disconnected.
-                    // This allows them to receive FCM calls even when the app is in background.
-                    console.log(`[Presence] ${user.name} socket disconnected. STAYS ONLINE in DB. (isChat:${user.isChatOnline}, isAudio:${user.isAudioOnline}, isVideo:${user.isVideoOnline})`);
-                    // We explicitly verify that we are NOT changing any flags here.
+                    // ASTROLOGER GRACE PERIOD: Wait 5 minutes before marking offline
+                    console.log(`[Presence] ${user.name} socket disconnected. Grace period (5m) starting...`);
+                    
+                    const timeoutId = setTimeout(async () => {
+                        try {
+                            const stillOffline = !userSockets.has(userId);
+                            if (stillOffline) {
+                                await User.updateOne({ userId }, { 
+                                    $set: { 
+                                        isOnline: false, 
+                                        isChatOnline: false, 
+                                        isAudioOnline: false, 
+                                        isVideoOnline: false,
+                                        isAvailable: false 
+                                    } 
+                                });
+                                console.log(`[Presence] Grace period expired for ${user.name}. Marked OFFLine.`);
+                                broadcastAstroUpdate();
+                            }
+                        } catch (e) {
+                            console.error('[Presence] Timeout error:', e);
+                        } finally {
+                            offlineTimeouts.delete(userId);
+                        }
+                    }, OFFLINE_GRACE_PERIOD);
+
+                    offlineTimeouts.set(userId, timeoutId);
                 }
             }
 

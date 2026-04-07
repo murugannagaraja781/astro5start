@@ -79,5 +79,7 @@ UserSchema.index({ isChatOnline: -1 }, { background: true });
 UserSchema.index({ isAudioOnline: -1 }, { background: true });
 UserSchema.index({ isVideoOnline: -1 }, { background: true });
 UserSchema.index({ isBusy: 1 }, { background: true });
+// PERFORMANCE: Compound index for faster astrologer list loading (Home Screen)
+UserSchema.index({ role: 1, approvalStatus: 1, isOnline: -1, displayOrder: -1, createdAt: -1 }, { background: true });
 
 module.exports = mongoose.model('User', UserSchema);

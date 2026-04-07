@@ -48,16 +48,19 @@ connectDB().then(async () => {
   loadReferralConfig();
 
   // Cleanup: Reset isBusy for all users on startup to prevent stale states
-  const User = require('./models/User');
-  try {
-    const res = await User.updateMany({ isBusy: true }, { isBusy: false });
-    console.log(`[Startup] Cleaned up isBusy flag for ${res.modifiedCount} users.`);
-    // Sync isAvailable with isOnline on startup
-    const resAvail = await User.updateMany({ isOnline: true }, { isAvailable: true });
-    console.log(`[Startup] Synced isAvailable for ${resAvail.modifiedCount} online users.`);
-  } catch (err) {
-    console.error('[Startup] Failed to cleanup isBusy flags:', err);
-  }
+  // PERFORMANCE FIX: Delayed to avoid blocking initial server boot
+  setTimeout(async () => {
+    const User = require('./models/User');
+    try {
+      const res = await User.updateMany({ isBusy: true }, { isBusy: false });
+      console.log(`[Startup] Delayed Cleanup: Reset isBusy for ${res.modifiedCount} users.`);
+      
+      const resAvail = await User.updateMany({ isOnline: true }, { isAvailable: true });
+      console.log(`[Startup] Delayed Cleanup: Synced isAvailable for ${resAvail.modifiedCount} online users.`);
+    } catch (err) {
+      console.error('[Startup] Failed to cleanup flags:', err);
+    }
+  }, 10000); // 10 second delay after boot
 });
 
 // Initialize FCM
