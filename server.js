@@ -79,7 +79,9 @@ const io = new Server(server, {
 global.io = io;
 
 // Middlewares
-app.use(helmet()); // Basic security headers
+app.use(helmet({
+  contentSecurityPolicy: false,
+}));
 app.use(compression());
 app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: '10mb' }));
