@@ -1,6 +1,7 @@
 // controllers/paymentController.js
 const Payment = require('../models/Payment');
 const User = require('../models/User');
+const BillingLedger = require('../models/BillingLedger');
 const { paymentTokens } = require('../services/sharedState');
 const { callPhonePePayV1, checkPhonePeStatus } = require('../services/paymentService');
 const crypto = require('crypto');
@@ -134,22 +135,16 @@ const handleCallback = async (req, res) => {
         // 1. Handle Server-to-Server Callback (POST)
         if (req.method === 'POST' && req.body && req.body.response) {
             try {
-                const responseBase64 = req.body.response;
-                const responseData = JSON.parse(Buffer.from(responseBase64, 'base64').toString('utf-8'));
-                console.log('[PhonePe Callback] Decoded Data:', responseData);
-                if (responseData.data && responseData.data.merchantTransactionId) {
-                    merchantTransactionId = responseData.data.merchantTransactionId;
-                }
-            } catch (e) {
-                console.error('[PhonePe Callback] Payload Parse Error:', e.message);
-            }
+        console.log('[PhonePe Callback] Received:', req.method, req.query, req.body);
+        
+        // 1. Basic Sanity & Security Check
+        const merchantTransactionId = req.query.txnId || req.body.merchantTransactionId;
+        if (!merchantTransactionId || !merchantTransactionId.startsWith('MT')) {
+            console.error('[Security] Invalid or Suspicious Transaction ID received');
+            return res.status(400).send('Invalid Transaction Data');
         }
 
-        if (!merchantTransactionId) {
-            return res.status(400).send('Missing Transaction ID');
-        }
-
-        // 2. Double Check Status with PhonePe API
+        // 2. Double Check Status with PhonePe API (Server-to-Server)
         const statusResult = await checkPhonePeStatus(merchantTransactionId);
         console.log(`[PhonePe Status] Result for ${merchantTransactionId}:`, statusResult.code);
 
@@ -179,6 +174,35 @@ const handleCallback = async (req, res) => {
                     await user.save();
 
                     console.log(`[Wallet] Credited ${rechargeAmount} (+${bonusAmount} bonus) to ${user.userId}`);
+
+                    // REFERRAL REWARD LOGIC: Credit referrer on referee's FIRST successful recharge
+                    if (user.referredBy && !user.isReferralRewardClaimed) {
+                        const referrer = await User.findOne({ userId: user.referredBy });
+                        if (referrer) {
+                            const { REFERRAL_CONFIG } = require('../services/sharedState');
+                            const rewardAmount = REFERRAL_CONFIG.REFERRER_REWARD || 81;
+                            referrer.walletBalance = (referrer.walletBalance || 0) + rewardAmount;
+                            await referrer.save();
+
+                            // Log the referral bonus in the ledger
+                            await BillingLedger.create({
+                                billingId: crypto.randomUUID(),
+                                sessionId: payment.merchantTransactionId,
+                                minuteIndex: 0,
+                                chargedToClient: 0,
+                                creditedToAstrologer: 0,
+                                adminAmount: -rewardAmount,
+                                reason: 'referral',
+                                appliedRate: 0
+                            });
+
+                            // Mark reward as claimed so it doesn't repeat
+                            user.isReferralRewardClaimed = true;
+                            await user.save();
+
+                            console.log(`[Referral] Credited ₹${rewardAmount} to referrer ${referrer.userId} for first recharge by ${user.userId}`);
+                        }
+                    }
 
                     // Proactive: Update socket if online
                     try {

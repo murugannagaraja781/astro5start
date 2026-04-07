@@ -25,6 +25,13 @@ let SLAB_RATES = {
     4: 0.50
 };
 
+let REFERRAL_CONFIG = {
+    REFEREE_BONUS_STANDARD: parseInt(process.env.REFEREE_BONUS_STANDARD) || 108,
+    REFEREE_BONUS_REFERRAL: parseInt(process.env.REFEREE_BONUS_REFERRAL) || 188,
+    REFERRER_REWARD: parseInt(process.env.REFERRER_REWARD) || 81,
+    APP_BASE_URL: process.env.APP_BASE_URL || "https://play.google.com/store/apps/details?id=com.astro5star.app&pcampaignid=web_share"
+};
+
 async function loadSlabRates() {
     try {
         const GlobalSettings = require('../models/GlobalSettings');
@@ -35,6 +42,19 @@ async function loadSlabRates() {
         }
     } catch (e) {
         console.error('Error loading slab rates:', e);
+    }
+}
+
+async function loadReferralConfig() {
+    try {
+        const GlobalSettings = require('../models/GlobalSettings');
+        const doc = await GlobalSettings.findOne({ key: 'REFERRAL_CONFIG' });
+        if (doc && doc.value) {
+            Object.assign(REFERRAL_CONFIG, doc.value);
+            console.log('✓ Referral config loaded from DB:', REFERRAL_CONFIG);
+        }
+    } catch (e) {
+        console.error('Error loading referral config:', e);
     }
 }
 
@@ -50,6 +70,22 @@ async function updateSlabRates(newRates) {
         return true;
     } catch (e) {
         console.error('Error updating slab rates:', e);
+        return false;
+    }
+}
+
+async function updateReferralConfig(newConfig) {
+    try {
+        const GlobalSettings = require('../models/GlobalSettings');
+        Object.assign(REFERRAL_CONFIG, newConfig);
+        await GlobalSettings.findOneAndUpdate(
+            { key: 'REFERRAL_CONFIG' },
+            { value: REFERRAL_CONFIG },
+            { upsert: true }
+        );
+        return true;
+    } catch (e) {
+        console.error('Error updating referral config:', e);
         return false;
     }
 }
@@ -71,6 +107,9 @@ module.exports = {
     SLAB_RATES,
     loadSlabRates,
     updateSlabRates,
+    REFERRAL_CONFIG,
+    loadReferralConfig,
+    updateReferralConfig,
     paymentTokens,
     lastSeenCache
 };

@@ -214,6 +214,12 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
 
             client.walletBalance -= mainDeduct;
             await client.save();
+
+            // Mark as done so we know they had their first call for analytics
+            if (minuteIndex === 1 && !client.isFirstCallDone) {
+                client.isFirstCallDone = true;
+                await client.save();
+            }
         }
 
         if (astroAmount > 0) {

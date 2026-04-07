@@ -75,8 +75,11 @@
                 <i class="fas fa-chart-line text-lg lg:w-5 text-center"></i>
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Performance</span>
             </div>
-            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
-                data-tab="ledger" onclick="showTab('ledger')">
+            <div class="sidebar-item group" onclick="showTab('referral')" id="menu-referral">
+                <div class="sidebar-icon bg-orange-50 text-orange-500 group-hover:bg-orange-500 group-hover:text-white"><i class="fas fa-gift"></i></div>
+                <span class="sidebar-text">Referral Engine</span>
+            </div>
+            <div class="sidebar-item group" onclick="showTab('ledger')" id="menu-ledger">
                 <i class="fas fa-receipt text-lg lg:w-5 text-center"></i>
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">History</span>
             </div>
@@ -901,6 +904,59 @@
             <div id="banner-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
         </section>
 
+        <!-- Referral Settings Tab -->
+        <section id="tab-referral" class="tab-content hidden animate-fade-in">
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10">
+                <div>
+                    <h2 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight flex items-center gap-4">
+                        Referral Growth Engine
+                        <span class="text-[10px] bg-orange-100 text-orange-600 px-3 py-1 rounded-full uppercase tracking-widest font-black">Live Config</span>
+                    </h2>
+                    <p class="text-slate-500 font-bold mt-2 flex items-center gap-2"><i class="fas fa-info-circle text-orange-400"></i> Configure real-time bonuses for new users and referrers.</p>
+                </div>
+                <button onclick="saveReferralSettings()" class="w-full lg:w-auto bg-brand-green text-white font-black px-10 py-5 rounded-[2.5rem] shadow-premium hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-3">
+                    Deploy Settings <i class="fas fa-rocket"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+                <div class="bg-white p-8 rounded-[2.5rem] border border-emerald-50 shadow-premium relative group">
+                    <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Standard Signup Bonus</div>
+                    <div class="relative">
+                        <input type="number" id="ref-bonus-standard" class="w-full bg-slate-50 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-black text-2xl text-slate-800" value="108">
+                        <span class="absolute right-6 top-5 text-slate-300 font-bold text-xl">₹</span>
+                    </div>
+                    <p class="text-[9px] text-slate-400 mt-4 italic font-bold">Initial wallet balance for direct app installs (no referral).</p>
+                </div>
+
+                <div class="bg-white p-8 rounded-[2.5rem] border border-orange-50 shadow-premium relative group">
+                    <div class="text-[10px] font-black uppercase tracking-widest text-orange-400 mb-4">Referral Signup Bonus</div>
+                    <div class="relative">
+                        <input type="number" id="ref-bonus-referral" class="w-full bg-orange-50/30 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-orange-500 focus:ring-0 font-black text-2xl text-slate-800" value="188">
+                        <span class="absolute right-6 top-5 text-orange-200 font-bold text-xl">₹</span>
+                    </div>
+                    <p class="text-[9px] text-slate-400 mt-4 italic font-bold">Wallet balance for users joining via a friend's link.</p>
+                </div>
+
+                <div class="bg-white p-8 rounded-[2.5rem] border border-indigo-50 shadow-premium relative group">
+                    <div class="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-4">Referrer Reward</div>
+                    <div class="relative">
+                        <input type="number" id="ref-reward" class="w-full bg-indigo-50/30 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-indigo-500 focus:ring-0 font-black text-2xl text-slate-800" value="81">
+                        <span class="absolute right-6 top-5 text-indigo-200 font-bold text-xl">₹</span>
+                    </div>
+                    <p class="text-[9px] text-slate-400 mt-4 italic font-bold">Reward paid to the referrer after friend's FIRST recharge.</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-50 shadow-premium">
+                <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 ml-2">Marketplace Base URL (Share Link)</div>
+                <div class="flex gap-4">
+                    <input type="text" id="ref-app-url" class="flex-1 bg-slate-50 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-bold text-slate-600 text-sm" placeholder="https://play.google.com/store/apps/details?id=...">
+                    <button onclick="copyCurrentUrl()" class="px-6 bg-slate-100 text-slate-500 rounded-2xl hover:bg-slate-200 transition-all"><i class="fas fa-copy"></i></button>
+                </div>
+            </div>
+        </section>
+
         <!-- Notifications Tab -->
         <section id="tab-notifications" class="tab-content hidden animate-up space-y-8">
             <header class="flex items-center gap-4">
@@ -1570,6 +1626,7 @@
             if (activeTab === 'performance') fetchPerformanceSummary();
             if (activeTab === 'notifications') fetchNotifications();
             if (activeTab === 'reviews') fetchActiveReviews();
+            if (activeTab === 'referral') loadReferralSettings();
             // Also refresh badges
             socket.emit('admin-get-pending-photos', (res) => {
                 const badge = document.getElementById('photo-pending-badge');
@@ -1609,6 +1666,7 @@
             if (id === 'slabs') loadSlabRates();
             if (id === 'academy') fetchAcademyVideos();
             if (id === 'offers') fetchFcmUsers();
+            if (id === 'referral') loadReferralSettings();
             if (id === 'banner') fetchBanners();
             if (id === 'server-logs') fetchSystemLogs();
         }
@@ -3143,6 +3201,54 @@
                     }).join('');
                 }
             });
+        }
+
+        // REFERRAL SETTINGS LOGIC
+        async function loadReferralSettings() {
+            try {
+                const res = await fetch('/api/admin/referral-settings', {
+                    headers: { 'x-admin-key': 'astro5star_admin_secure_key_2026' }
+                }).then(r => r.json());
+                if (res.ok && res.config) {
+                    document.getElementById('ref-bonus-standard').value = res.config.REFEREE_BONUS_STANDARD;
+                    document.getElementById('ref-bonus-referral').value = res.config.REFEREE_BONUS_REFERRAL;
+                    document.getElementById('ref-reward').value = res.config.REFERRER_REWARD;
+                    document.getElementById('ref-app-url').value = res.config.APP_BASE_URL;
+                }
+            } catch (err) { console.error('Failed to load referral config', err); }
+        }
+
+        async function saveReferralSettings() {
+            const config = {
+                REFEREE_BONUS_STANDARD: document.getElementById('ref-bonus-standard').value,
+                REFEREE_BONUS_REFERRAL: document.getElementById('ref-bonus-referral').value,
+                REFERRER_REWARD: document.getElementById('ref-reward').value,
+                APP_BASE_URL: document.getElementById('ref-app-url').value
+            };
+
+            try {
+                const res = await fetch('/api/admin/referral-settings', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-admin-key': 'astro5star_admin_secure_key_2026'
+                    },
+                    body: JSON.stringify(config)
+                }).then(r => r.json());
+
+                if (res.ok) {
+                    showToast('Global Referral Policy Updated', 'success');
+                } else {
+                    alert('Update Denied: ' + (res.error || 'Check Admin Key'));
+                }
+            } catch (err) { alert('Connection infrastructure failure'); }
+        }
+
+        function copyCurrentUrl() {
+            const el = document.getElementById('ref-app-url');
+            el.select();
+            document.execCommand('copy');
+            showToast('App URL Copied to Clipboard', 'success');
         }
 
         function clearSystemLogs() {

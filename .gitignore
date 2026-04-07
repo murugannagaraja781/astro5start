@@ -63,7 +63,7 @@ Desktop.ini
 astroapp.zip
 
 # ANDROID BLOAT - DO NOT TRACK THESE
-astroapp/android
+
 astroapp/android/.gradle/
 astroapp/android/gradle-*/
 astroapp/android/build/

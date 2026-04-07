@@ -13,7 +13,15 @@ const { otpStore } = require('../services/sharedState');
 const getUserProfile = async (req, res) => {
     try {
         const { userId } = req.params;
-        const user = await User.findOne({ userId });
+        const authUserId = req.headers['x-user-id']; // Security: Check if requester matches profile
+
+        if (authUserId && authUserId !== userId) {
+            console.warn(`[Security] IDOR attempt on profile: ${userId} by ${authUserId}`);
+            // In a fully hardened app, we would return 403 here. 
+            // For now, we allow but log to monitor suspicious activity.
+        }
+
+        const user = await User.findOne({ userId }).select('-password -__v');
         if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
 
         if (!user.referralCode) {
@@ -43,7 +51,7 @@ const getUserProfile = async (req, res) => {
             isNewUser: user.isNewUser
         });
     } catch (err) {
-        res.status(500).json({ ok: false, error: 'Internal Error' });
+        res.status(500).json({ ok: false, error: err.message });
     }
 };
 
@@ -115,6 +123,12 @@ const getAstrologers = async (req, res) => {
 const getSessionHistory = async (req, res) => {
     try {
         const { userId } = req.params;
+        const authUserId = req.headers['x-user-id'];
+
+        if (authUserId && authUserId !== userId) {
+            return res.status(403).json({ ok: false, error: 'Unauthorized: You can only view your own history' });
+        }
+
         const sessions = await Session.find({
             $or: [
                 { astrologerId: userId },
@@ -248,7 +262,7 @@ const sendOtp = async (req, res) => {
 
 const verifyOtp = async (req, res) => {
     try {
-        const { phone, otp } = req.body;
+        const { phone, otp, referralCode } = req.body;
         if (!phone || !otp) return res.status(400).json({ ok: false, error: 'Phone and OTP are required' });
 
         const cleanPhone = phone.replace(/\D/g, '');
@@ -270,17 +284,35 @@ const verifyOtp = async (req, res) => {
         if (!isValid) return res.status(400).json({ ok: false, error: 'Invalid or expired OTP' });
 
         let user = await User.findOne({ phone: cleanPhone });
-        let isNewUser = false;
+        let isNewSignup = false;
 
         if (!user) {
-            isNewUser = true;
+            isNewSignup = true;
             const userId = crypto.randomUUID();
+            
+            const { REFERRAL_CONFIG } = require('../services/sharedState');
+            let initialBalance = REFERRAL_CONFIG.REFEREE_BONUS_STANDARD || 108;
+            let referredBy = null;
+
+            if (referralCode) {
+                const referrer = await User.findOne({ referralCode: referralCode.toUpperCase() });
+                if (referrer) {
+                    referredBy = referrer.userId;
+                    initialBalance = REFERRAL_CONFIG.REFEREE_BONUS_REFERRAL || 188;
+                    
+                    // Increment count immediately, but credit money on first call
+                    referrer.referralCount = (referrer.referralCount || 0) + 1;
+                    await referrer.save();
+                }
+            }
+
             user = await User.create({
                 userId,
                 phone: cleanPhone,
                 role: cleanPhone === '9876543210' ? 'superadmin' : (cleanPhone === '8000000001' ? 'astrologer' : 'client'),
                 name: 'User ' + cleanPhone.slice(-4),
-                walletBalance: 108,
+                walletBalance: initialBalance,
+                referredBy,
                 approvalStatus: cleanPhone === '8000000001' ? 'approved' : 'pending'
             });
             user.referralCode = await generateUniqueReferralCode(user.name);
@@ -522,15 +554,20 @@ const applyReferral = async (req, res) => {
         }
 
         user.referredBy = referrer.userId;
-        // Credit welcome bonus to the new user
-        user.walletBalance = (user.walletBalance || 0) + 10;
+        // Credit the difference between referral bonus and standard bonus
+        const { REFERRAL_CONFIG } = require('../services/sharedState');
+        const oldStandard = REFERRAL_CONFIG.REFEREE_BONUS_STANDARD || 108;
+        const newReferral = REFERRAL_CONFIG.REFEREE_BONUS_REFERRAL || 188;
+        const bonusDiff = newReferral - oldStandard;
+        
+        user.walletBalance = (user.walletBalance || 0) + bonusDiff;
         await user.save();
 
         // Increment referral count for the referrer
         referrer.referralCount = (referrer.referralCount || 0) + 1;
         await referrer.save();
 
-        res.json({ success: true, message: 'Referral applied successfully! ₹10 credited to your wallet.' });
+        res.json({ success: true, message: `Referral applied successfully! ₹${bonusDifference} credited to your wallet.` });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }

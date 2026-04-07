@@ -19,13 +19,13 @@ router.get('/ice-config', (req, res) => {
             },
             {
                 urls: [
-                    `turn:${process.env.TURN_URL || '139.59.0.107'}:3478?transport=udp`,
-                    `turn:${process.env.TURN_URL || '139.59.0.107'}:3478?transport=tcp`,
-                    `turns:${process.env.TURN_URL || '139.59.0.107'}:5349`
+                    `turn:${process.env.TURN_URL}:3478?transport=udp`,
+                    `turn:${process.env.TURN_URL}:3478?transport=tcp`,
+                    `turns:${process.env.TURN_URL}:5349`
                 ],
-                username: process.env.TURN_USERNAME || "webrtcuser",
-                credential: process.env.TURN_PASSWORD || "strongpassword123",
-                realm: "astro5star.com"
+                username: process.env.TURN_USERNAME,
+                credential: process.env.TURN_PASSWORD,
+                realm: process.env.TURN_REALM || "astro5star.com"
             }
         ]
     });
@@ -33,11 +33,12 @@ router.get('/ice-config', (req, res) => {
 
 router.get('/app-config', (req, res) => {
     res.json({
-        minVersionCode: 5,
-        latestVersionName: "5.0.0",
-        updateUrl: "https://astro5star.com/download/astro5star.apk",
+        minVersionCode: parseInt(process.env.MIN_VERSION_CODE) || 5,
+        latestVersionName: process.env.LATEST_VERSION_NAME || "5.0.0",
+        updateUrl: process.env.APP_UPDATE_URL,
+        referralBaseUrl: `${process.env.APP_BASE_URL}&referrer=`,
         forceUpdate: true,
-        message: "A new version of Astro5Star is available with improved call quality. Please update to continue."
+        message: process.env.UPDATE_MESSAGE || "A new version of Astro5Star is available with improved call quality. Please update to continue."
     });
 });
 

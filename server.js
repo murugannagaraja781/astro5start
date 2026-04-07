@@ -35,14 +35,17 @@ const compression = require('compression');
 const connectDB = require('./config/database');
 const { initSocket } = require('./services/socketManager');
 const { tickSessions } = require('./services/billingService');
+const { isAdmin } = require('./middleware/authMiddleware');
+const helmet = require('helmet');
 const { upload } = require('./config/multer');
 const { initFcmAuth } = require('./services/fcmService');
 
 // Connect to Database
 // Connect to Database
 connectDB().then(async () => {
-  const { loadSlabRates } = require('./services/sharedState');
+  const { loadSlabRates, loadReferralConfig } = require('./services/sharedState');
   loadSlabRates();
+  loadReferralConfig();
 
   // Cleanup: Reset isBusy for all users on startup to prevent stale states
   const User = require('./models/User');
@@ -73,6 +76,7 @@ const io = new Server(server, {
 global.io = io;
 
 // Middlewares
+app.use(helmet()); // Basic security headers
 app.use(compression());
 app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: '10mb' }));
@@ -85,6 +89,10 @@ app.use('/download', express.static(path.join(__dirname, 'public/download')));
 const mainRoutes = require('./routes/index');
 const configRoutes = require('./routes/configRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+
+// Mount Admin Routes with security
+app.use('/api/admin', isAdmin, adminRoutes);
 
 // Load remaining legacy routes if they exist
 try {
@@ -131,6 +139,7 @@ app.get('/api/phonepe/status/:transactionId', (req, res) => {
 app.use('/api', mainRoutes);
 app.use('/api', configRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/admin', adminRoutes);
 
 // File Upload Route
 app.post('/upload', upload.single('file'), (req, res) => {

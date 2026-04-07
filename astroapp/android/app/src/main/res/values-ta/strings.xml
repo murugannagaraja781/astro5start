@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">அஸ்ட்ரோ 5 ஸ்டார்</string>
+    <string name="wallet_title">எனது வாலட்</string>
+    <string name="total_balance">மொத்த இருப்பு</string>
+    <string name="prosperity_account">செழிப்பு கணக்கு</string>
+    <string name="valid_user">சரியான பயனர்</string>
+    <string name="recharge_wallet">தேவையான வாலட் கிரெடிட்</string>
+    <string name="enter_amount">சேர்க்க வேண்டிய தொகை</string>
+    <string name="you_pay">நீங்கள் செலுத்தும் தொகை (தள்ளுபடிக்குப் பின்)</string>
+    <string name="trust_secure_payment">பாதுகாப்பான SSL என்க்ரிப்ட் செய்யப்பட்ட பணம் செலுத்துதல்</string>
+    <string name="trust_rbi_verified">ஆர்பிஐ உரிமம் பெற்ற கட்டண கூட்டாளர்</string>
+    <string name="trust_bank_grade">வங்கி தர பாதுகாப்பு நெறிமுறைகள்</string>
+    <string name="invest_now">கிரெடிட்டைச் சேர்க்கவும்</string>
+    <string name="pay_amount">₹%d செலுத்துங்கள்</string>
+    <string name="recent_transactions">சமீபத்திய பரிவர்த்தனைகள்</string>
+    <string name="wallet_recharge">வாலட் ரீசார்ஜ்</string>
+    <string name="payment_status">கட்டணம் %s</string>
+    <string name="apply">விண்ணப்பிக்க</string>
+    <string name="applied">விண்ணப்பிக்கப்பட்டது</string>
+    <string name="enter_valid_amount">சரியான தொகையை உள்ளிடவும்</string>
+</resources>
