@@ -29,7 +29,8 @@ let REFERRAL_CONFIG = {
     REFEREE_BONUS_STANDARD: parseInt(process.env.REFEREE_BONUS_STANDARD) || 108,
     REFEREE_BONUS_REFERRAL: parseInt(process.env.REFEREE_BONUS_REFERRAL) || 188,
     REFERRER_REWARD: parseInt(process.env.REFERRER_REWARD) || 81,
-    APP_BASE_URL: process.env.APP_BASE_URL || "https://play.google.com/store/apps/details?id=com.astro5star.app&pcampaignid=web_share"
+    APP_BASE_URL: process.env.APP_BASE_URL || "https://play.google.com/store/apps/details?id=com.astro5star.app&pcampaignid=web_share",
+    FREE_CALL_DURATION: 3 // Default 3 minutes free
 };
 
 async function loadSlabRates() {

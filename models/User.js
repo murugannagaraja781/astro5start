@@ -66,7 +66,9 @@ const UserSchema = new mongoose.Schema({
     referralCount: { type: Number, default: 0 },
     isNewUser: { type: Boolean, default: true },
     isFirstCallDone: { type: Boolean, default: false },
-    isReferralRewardClaimed: { type: Boolean, default: false }
+    isReferralRewardClaimed: { type: Boolean, default: false },
+    favorites: { type: [String], default: [] }, // Client's favorite astrologers
+    followers: { type: [String], default: [] }  // Astrologer's followers
 }, { timestamps: true });
 
 // Performance Optimization: Add indexes for frequently queried/sorted fields with background build to avoid blocking

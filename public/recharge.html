@@ -219,7 +219,17 @@
     </header>
 
     <main>
-        <div class="recharge-title">Recharge Your Wallet Now</div>
+        <!-- Requirement 9: Recharge Offer Banner -->
+        <div id="promo-banner" style="display: none; background: linear-gradient(135deg, #FFD700 0%, #FFA000 100%); padding: 20px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(255, 160, 0, 0.3); border: 2px solid white; position: relative; overflow: hidden;">
+            <div style="position: relative; z-index: 2;">
+                <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: rgba(0,0,0,0.5);">Special Limited Offer</div>
+                <div style="font-size: 1.5rem; font-weight: 900; color: #1A1A1A; line-height: 1.1; margin: 5px 0;">100% Cashback <br>On First Recharge!</div>
+                <div style="font-size: 0.8rem; font-weight: 600; color: rgba(0,0,0,0.7); margin-top: 5px;">Double your wallet balance instantly.</div>
+            </div>
+            <i class="fas fa-gift" style="position: absolute; right: -10px; bottom: -10px; font-size: 5rem; color: rgba(255,255,255,0.2); transform: rotate(-15deg);"></i>
+        </div>
+
+        <div class="recharge-title">Select Recharge Amount</div>
 
         <div class="balance-card">
             <div class="balance-label">Available Balance</div>
@@ -228,6 +238,15 @@
 
         <div class="offers-grid" id="offers-container">
             <!-- Offer cards will be injected here -->
+        </div>
+
+        <!-- Requirement 5: Admin Support Button -->
+        <div style="margin-top: 20px; text-align: center; padding-bottom: 40px;">
+            <p style="font-size: 0.85rem; color: #666; margin-bottom: 12px; font-weight: 500;">Facing issues with payment?</p>
+            <a id="support-link" href="https://wa.me/919999999999" style="display: inline-flex; align-items: center; gap: 10px; background: white; border: 1.5px solid #25D366; color: #128C7E; padding: 12px 25px; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.9rem; transition: all 0.2s;">
+                <i class="fab fa-whatsapp" style="font-size: 1.2rem;"></i>
+                Chat with Support
+            </a>
         </div>
     </main>
 

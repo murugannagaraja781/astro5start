@@ -27,18 +27,19 @@ async function sendCancelCallPush(toUserId, sessionId) {
     }
 }
 
-async function handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpdate) {
+async function handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpdate, sessionType) {
     try {
         const astro = await User.findOne({ userId: toUserId });
         if (astro && astro.role === 'astrologer') {
-            // Auto Logout Logic: Clear all status flags and the FCM token
-            astro.isOnline = false;
-            astro.isChatOnline = false;
-            astro.isAudioOnline = false;
-            astro.isVideoOnline = false;
-            astro.isAvailable = false;
-            // REMOVED FORCED LOGOUT: Don't clear fcmToken or emit force-logout
-            // astro.fcmToken = ''; 
+            // Requirement 13: Only turn off the specific missed service
+            if (sessionType === 'chat') astro.isChatOnline = false;
+            else if (sessionType === 'audio') astro.isAudioOnline = false;
+            else if (sessionType === 'video') astro.isVideoOnline = false;
+
+            // Update overall online status and availability
+            astro.isOnline = !!(astro.isChatOnline || astro.isAudioOnline || astro.isVideoOnline);
+            astro.isAvailable = astro.isOnline && !astro.isBusy;
+            
             await astro.save();
 
             if (broadcastAstroUpdate) broadcastAstroUpdate();
@@ -145,7 +146,7 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
             sendCancelCallPush(s.astrologerId, sessionId);
             if (!s.isAnswered && endReason !== 'caller_cancel') {
                 const callerId = s.clientId || s.users.find(u => u !== s.astrologerId);
-                handleMissedCallLogic(s.astrologerId, callerId, io, broadcastAstroUpdate);
+                handleMissedCallLogic(s.astrologerId, callerId, io, broadcastAstroUpdate, s.type);
             }
         }
         if (s.clientId) {

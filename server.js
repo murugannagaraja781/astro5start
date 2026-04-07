@@ -113,6 +113,22 @@ try {
   console.warn("Some legacy routes could not be loaded:", e.message);
 }
 
+// Requirement 11: Favorite/Like Routes
+const favoriteRoutes = require('./routes/favoriteRoutes');
+app.use('/api/user/favorite', favoriteRoutes);
+
+// Requirement 5 & 9: Public Config
+const publicConfigRoutes = require('./routes/publicConfigRoutes');
+app.use('/api/config', publicConfigRoutes);
+
+// Requirement 10: Waitlist Routes
+const waitlistRoutes = require('./routes/waitlistRoutes');
+app.use('/api/user/waitlist', waitlistRoutes);
+
+// Requirement 7: Review Routes for Astrologers
+const reviewRoutes = require('./routes/reviewRoutes');
+app.use('/api/reviews', reviewRoutes);
+
 // Mobile App Compatibility Aliases (ApiService.kt expects these at root)
 app.post('/register', (req, res) => {
   const userController = require('./controllers/userController');

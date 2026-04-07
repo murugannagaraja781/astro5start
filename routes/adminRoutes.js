@@ -12,16 +12,18 @@ router.get('/referral-settings', (req, res) => {
 
 router.post('/referral-settings', async (req, res) => {
     try {
-        const { REFEREE_BONUS_STANDARD, REFEREE_BONUS_REFERRAL, REFERRER_REWARD, APP_BASE_URL } = req.body;
+        const { REFEREE_BONUS_STANDARD, REFEREE_BONUS_REFERRAL, REFERRER_REWARD, APP_BASE_URL, FREE_CALL_DURATION, SUPPORT_CONTACT } = req.body;
         
-        const newConfig = {
-            REFEREE_BONUS_STANDARD: parseInt(REFEREE_BONUS_STANDARD),
-            REFEREE_BONUS_REFERRAL: parseInt(REFEREE_BONUS_REFERRAL),
+        const config = {
+            REFERREE_BONUS_STANDARD: parseInt(REFEREE_BONUS_STANDARD),
+            REFERREE_BONUS_REFERRAL: parseInt(REFEREE_BONUS_REFERRAL),
             REFERRER_REWARD: parseInt(REFERRER_REWARD),
-            APP_BASE_URL: APP_BASE_URL
+            APP_BASE_URL: APP_BASE_URL,
+            FREE_CALL_DURATION: parseInt(FREE_CALL_DURATION),
+            SUPPORT_CONTACT: SUPPORT_CONTACT
         };
 
-        const success = await updateReferralConfig(newConfig);
+        const success = await updateReferralConfig(config);
         if (success) {
             res.json({ ok: true, message: 'Referral settings updated successfully' });
         } else {

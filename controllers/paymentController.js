@@ -127,14 +127,6 @@ const verifyPaymentToken = async (req, res) => {
 
 const handleCallback = async (req, res) => {
     try {
-        console.log('[PhonePe Callback] Method:', req.method, 'Query:', req.query);
-
-        let merchantTransactionId = req.query.txnId;
-        const isApp = req.query.isApp === 'true';
-
-        // 1. Handle Server-to-Server Callback (POST)
-        if (req.method === 'POST' && req.body && req.body.response) {
-            try {
         console.log('[PhonePe Callback] Received:', req.method, req.query, req.body);
         
         // 1. Basic Sanity & Security Check
@@ -181,63 +173,53 @@ const handleCallback = async (req, res) => {
                         if (referrer) {
                             const { REFERRAL_CONFIG } = require('../services/sharedState');
                             const rewardAmount = REFERRAL_CONFIG.REFERRER_REWARD || 81;
+                            
                             referrer.walletBalance = (referrer.walletBalance || 0) + rewardAmount;
+                            referrer.totalEarnings = (referrer.totalEarnings || 0) + rewardAmount;
                             await referrer.save();
 
-                            // Log the referral bonus in the ledger
-                            await BillingLedger.create({
-                                billingId: crypto.randomUUID(),
-                                sessionId: payment.merchantTransactionId,
-                                minuteIndex: 0,
-                                chargedToClient: 0,
-                                creditedToAstrologer: 0,
-                                adminAmount: -rewardAmount,
-                                reason: 'referral',
-                                appliedRate: 0
-                            });
-
-                            // Mark reward as claimed so it doesn't repeat
                             user.isReferralRewardClaimed = true;
                             await user.save();
 
-                            console.log(`[Referral] Credited ₹${rewardAmount} to referrer ${referrer.userId} for first recharge by ${user.userId}`);
+                            const BillingLedger = require('../models/BillingLedger');
+                            await BillingLedger.create({
+                                billingId: require('crypto').randomUUID(),
+                                sessionId: 'referral_bonus',
+                                chargedToClient: 0,
+                                creditedToAstrologer: rewardAmount,
+                                reason: 'referral',
+                                astrologerId: referrer.userId,
+                                adminAmount: -rewardAmount
+                            });
+
+                            console.log(`[Referral] Referral reward of ${rewardAmount} paid to ${referrer.userId} for ${user.userId}`);
                         }
                     }
-
-                    // Proactive: Update socket if online
-                    try {
-                        const { userSockets } = require('../services/sharedState');
-                        const sId = userSockets.get(user.userId);
-                        if (sId) {
-                            // We need io, but we can't easily get it here without global export.
-                            // For now, the app will refresh on redirect.
-                        }
-                    } catch (e) { }
                 }
             }
-        } else if (statusResult.code === "PAYMENT_ERROR" || statusResult.code === "PAYMENT_DECLINED") {
+            
+            // Handle Browser Redirect if GET
+            if (req.method === 'GET') {
+                return res.redirect(`/wallet?status=success&reason=Payment+Success`);
+            }
+            return res.status(200).send('SUCCESS');
+
+        } else {
             if (payment.status === 'pending') {
                 payment.status = 'failed';
                 await payment.save();
             }
+            if (req.method === 'GET') {
+                return res.redirect(`/wallet?status=failed&reason=${encodeURIComponent(statusResult.message || 'Payment Failed')}`);
+            }
+            return res.status(200).send('FAILED');
         }
-
-        // 3. Handle Browser Redirect
-        if (req.method === 'GET') {
-            const finalStatus = payment.status === 'success' ? 'success' : 'failed';
-            const reason = statusResult.message || 'Payment Completed';
-
-            // Show a simple redirecting page (already handling deep links in server.js,
-            // but we can also just redirect to /wallet route in server.js)
-            return res.redirect(`/wallet?status=${finalStatus}&reason=${encodeURIComponent(reason)}`);
-        }
-
-        // 4. Respond to Server Callback
-        res.json({ ok: true });
-
     } catch (err) {
-        console.error('[PhonePe Callback] Error:', err);
-        res.status(500).send('Internal Error');
+        console.error('[PhonePe Callback] Error:', err.message);
+        if (req.method === 'GET') {
+            return res.redirect(`/wallet?status=error&reason=${encodeURIComponent(err.message)}`);
+        }
+        res.status(500).json({ ok: false, error: err.message });
     }
 };
 
@@ -246,11 +228,12 @@ const getPaymentToken = async (req, res) => {
         const { userId, amount, couponCode } = req.body;
         if (!userId || !amount) return res.status(400).json({ ok: false, error: 'Missing fields' });
 
-        const token = crypto.randomBytes(16).toString('hex');
+        const token = require('crypto').randomBytes(16).toString('hex');
         const baseAmount = parseFloat(amount);
         const gstAmount = baseAmount * 0.18;
         const totalAmount = baseAmount + gstAmount;
 
+        const { paymentTokens } = require('../services/sharedState');
         paymentTokens.set(token, {
             token,
             userId,
@@ -296,7 +279,7 @@ const signPhonePe = async (req, res) => {
         const saltIndex = (process.env.PHONEPE_SALT_INDEX || "1").trim();
 
         const stringToSign = base64Payload + endpoint + saltKey;
-        const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
+        const sha256 = require('crypto').createHash('sha256').update(stringToSign).digest('hex');
         const checksum = sha256 + "###" + saltIndex;
 
         res.json({ ok: true, checksum });

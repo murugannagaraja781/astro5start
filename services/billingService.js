@@ -32,39 +32,36 @@ async function tickSessions(io) {
             const isSessionValid = session.isAnswered && !session.isEnded;
 
             if (isSessionValid) {
-                // Sync with mobile app timer using differential time (seconds from start)
+                // SYNC: Differential time (seconds from start)
                 const secondsElapsed = Math.floor((now - session.actualBillingStart) / 1000) + 1;
                 session.elapsedBillableSeconds = secondsElapsed;
 
                 let needsDbSync = false;
 
-                // RULE 1: Charge Client at the START of each minute (Minute 1, 2, 3...)
-                const currentMinuteIndex = Math.floor((secondsElapsed - 1) / 60) + 1;
-                const MAX_CATCHUP = 5; // Financial Safety: Cap simultaneous catch-up charges
-                
-                if (currentMinuteIndex > (session.lastBilledMinute || 0)) {
-                    // Start of a new minute -> Charge Client full price
-                    const startMin = (session.lastBilledMinute || 0) + 1;
-                    const endMin = Math.min(currentMinuteIndex, startMin + MAX_CATCHUP - 1);
-                    
-                    for (let m = startMin; m <= endMin; m++) {
-                        processBillingCharge(sessionId, m, 'client_full_charge', io);
-                    }
-                    session.lastBilledMinute = endMin;
-                    needsDbSync = true;
-                }
- 
-                // RULE 2: Pay Astrologer AFTER a full minute is completed.
-                const completedMinutes = Math.floor(secondsElapsed / 60);
-                if (completedMinutes >= 2 && completedMinutes > (session.lastMaturedMinute || 1)) {
-                    const startMin = (session.lastMaturedMinute || 1) + 1;
-                    const endMin = Math.min(completedMinutes, startMin + MAX_CATCHUP - 1);
+                // RULE: Global Free Call Duration (e.g., first 3 minutes free)
+                const { REFERRAL_CONFIG } = require('./sharedState');
+                const freeSeconds = (REFERRAL_CONFIG.FREE_CALL_DURATION || 0) * 60;
 
-                    for (let m = startMin; m <= endMin; m++) {
-                        processBillingCharge(sessionId, m, 'astro_share_payout', io);
+                if (secondsElapsed > freeSeconds) {
+                    const billableSecondsSinceFree = secondsElapsed - freeSeconds;
+                    
+                    // RULE: Charge Client at the END of each minute (at 60s, 120s...)
+                    // This satisfies the requirement: "No charge if session ends within the first minute"
+                    const currentCompletedMinute = Math.floor(billableSecondsSinceFree / 60);
+                    const MAX_CATCHUP = 5;
+
+                    if (currentCompletedMinute > (session.lastBilledMinute || 0)) {
+                        const startMin = (session.lastBilledMinute || 0) + 1;
+                        const endMin = Math.min(currentCompletedMinute, startMin + MAX_CATCHUP - 1);
+                        
+                        for (let m = startMin; m <= endMin; m++) {
+                            processBillingCharge(sessionId, m, 'client_full_charge', io);
+                        }
+                        session.lastBilledMinute = endMin;
+                        session.lastMaturedMinute = endMin; // Payout astro simultaneously if minute is complete
+                        processBillingCharge(sessionId, endMin, 'astro_share_payout', io);
+                        needsDbSync = true;
                     }
-                    session.lastMaturedMinute = endMin;
-                    needsDbSync = true;
                 }
 
                 // Periodic slab check (every 10s)

@@ -948,11 +948,30 @@
                 </div>
             </div>
 
-            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-50 shadow-premium">
-                <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 ml-2">Marketplace Base URL (Share Link)</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                <div class="bg-white p-8 rounded-[2.5rem] border border-slate-50 shadow-premium">
+                    <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 ml-2">App Share Link (Play Store)</div>
+                    <div class="flex gap-4">
+                        <input type="text" id="ref-app-url" class="flex-1 bg-slate-50 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-bold text-slate-600 text-sm" placeholder="https://play.google.com/">
+                        <button onclick="copyCurrentUrl()" class="px-6 bg-slate-100 text-slate-500 rounded-2xl hover:bg-slate-200 transition-all"><i class="fas fa-copy"></i></button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-8 rounded-[2.5rem] border border-blue-50 shadow-premium">
+                    <div class="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-4 ml-2">Global Free Call Duration (Mins)</div>
+                    <div class="flex gap-4">
+                        <input type="number" id="global-free-mins" class="flex-1 bg-blue-50/30 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-blue-500 focus:ring-0 font-black text-2xl text-slate-800" value="3">
+                        <span class="bg-blue-100/50 px-6 py-5 rounded-2xl text-blue-600 font-black flex items-center">MINS</span>
+                    </div>
+                    <p class="text-[9px] text-slate-400 mt-4 italic font-bold">First N minutes of every call will be free for all users.</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-8 rounded-[2.5rem] border border-emerald-50 shadow-premium">
+                <div class="text-[10px] font-black uppercase tracking-widest text-brand-green mb-4 ml-2">Admin Support Contact (WhatsApp Number)</div>
                 <div class="flex gap-4">
-                    <input type="text" id="ref-app-url" class="flex-1 bg-slate-50 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-bold text-slate-600 text-sm" placeholder="https://play.google.com/store/apps/details?id=...">
-                    <button onclick="copyCurrentUrl()" class="px-6 bg-slate-100 text-slate-500 rounded-2xl hover:bg-slate-200 transition-all"><i class="fas fa-copy"></i></button>
+                    <input type="text" id="admin-support-contact" class="flex-1 bg-emerald-50/30 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-bold text-slate-600 text-sm" placeholder="+919876543210">
+                    <span class="bg-brand-green/10 px-6 py-5 rounded-2xl text-brand-green font-black flex items-center"><i class="fab fa-whatsapp"></i></span>
                 </div>
             </div>
         </section>
@@ -3207,23 +3226,28 @@
         async function loadReferralSettings() {
             try {
                 const res = await fetch('/api/admin/referral-settings', {
-                    headers: { 'x-admin-key': 'astro5star_admin_secure_key_2026' }
-                }).then(r => r.json());
-                if (res.ok && res.config) {
-                    document.getElementById('ref-bonus-standard').value = res.config.REFEREE_BONUS_STANDARD;
-                    document.getElementById('ref-bonus-referral').value = res.config.REFEREE_BONUS_REFERRAL;
-                    document.getElementById('ref-reward').value = res.config.REFERRER_REWARD;
-                    document.getElementById('ref-app-url').value = res.config.APP_BASE_URL;
+                    headers: { 'x-admin-key': ADMIN_SECRET_KEY }
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    document.getElementById('ref-bonus-standard').value = data.data.REFERREE_BONUS_STANDARD;
+                    document.getElementById('ref-bonus-referral').value = data.data.REFERREE_BONUS_REFERRAL;
+                    document.getElementById('ref-reward').value = data.data.REFERRER_REWARD;
+                    document.getElementById('ref-app-url').value = data.data.APP_BASE_URL;
+                    document.getElementById('global-free-mins').value = data.data.FREE_CALL_DURATION || 3;
+                    document.getElementById('admin-support-contact').value = data.data.SUPPORT_CONTACT || '+91';
                 }
-            } catch (err) { console.error('Failed to load referral config', err); }
+            } catch (e) { console.error('Error loading referral settings:', e); }
         }
 
         async function saveReferralSettings() {
             const config = {
-                REFEREE_BONUS_STANDARD: document.getElementById('ref-bonus-standard').value,
-                REFEREE_BONUS_REFERRAL: document.getElementById('ref-bonus-referral').value,
-                REFERRER_REWARD: document.getElementById('ref-reward').value,
-                APP_BASE_URL: document.getElementById('ref-app-url').value
+                REFERREE_BONUS_STANDARD: parseInt(document.getElementById('ref-bonus-standard').value),
+                REFERREE_BONUS_REFERRAL: parseInt(document.getElementById('ref-bonus-referral').value),
+                REFERRER_REWARD: parseInt(document.getElementById('ref-reward').value),
+                APP_BASE_URL: document.getElementById('ref-app-url').value,
+                FREE_CALL_DURATION: parseInt(document.getElementById('global-free-mins').value),
+                SUPPORT_CONTACT: document.getElementById('admin-support-contact').value
             };
 
             try {
@@ -3231,17 +3255,17 @@
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'x-admin-key': 'astro5star_admin_secure_key_2026'
+                        'x-admin-key': ADMIN_SECRET_KEY 
                     },
                     body: JSON.stringify(config)
-                }).then(r => r.json());
-
-                if (res.ok) {
-                    showToast('Global Referral Policy Updated', 'success');
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    showToast('Settings Deployed Successfully!', 'success');
                 } else {
-                    alert('Update Denied: ' + (res.error || 'Check Admin Key'));
+                    showToast('Failed to deploy settings: ' + data.message, 'error');
                 }
-            } catch (err) { alert('Connection infrastructure failure'); }
+            } catch (e) { showToast('Network Error', 'error'); }
         }
 
         function copyCurrentUrl() {

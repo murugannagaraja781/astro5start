@@ -33,11 +33,19 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
             if (!user || user.role !== 'astrologer') return;
             if (user.approvalStatus !== 'approved') return;
 
+            const wasAvailable = !!user.isAvailable;
             Object.assign(user, update);
             user.isOnline = !!(user.isChatOnline || user.isAudioOnline || user.isVideoOnline);
             // Fix: availability depends on both online status AND busy state
             user.isAvailable = user.isOnline && !user.isBusy;
             user.lastSeen = new Date();
+
+            // Trigger notification if newly available
+            if (!wasAvailable && user.isAvailable) {
+                const { notifyFollowersOfOnlineStatus, notifyWaitlistUsers } = require('../notificationService');
+                notifyFollowersOfOnlineStatus(userId).catch(e => {});
+                notifyWaitlistUsers(userId).catch(e => {});
+            }
 
             // Restore FCM token if provided in payload (important for going online)
             if (data.fcmToken) {
