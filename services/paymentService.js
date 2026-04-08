@@ -49,44 +49,10 @@ async function getPhonePeV2Token() {
 /**
  * Initiates a Payment Request (V2 Primary, V1 Fallback)
  */
-async function callPhonePeCheckoutV2(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId) {
-    // 1. TRY V2 CHECKOUT (Modern O-Bearer)
-    const token = await getPhonePeV2Token();
-    if (token) {
-        try {
-            const v2Url = "https://api.phonepe.com/apis/pg/checkout/v2/pay";
-            const payload = {
-                merchantId: PHONEPE_MERCHANT_ID,
-                merchantTransactionId,
-                merchantUserId: String(userId).replace(/[^a-zA-Z0-9]/g, '') || "MUID123",
-                amount: amountInPaisa,
-                redirectUrl,
-                redirectMode: "REDIRECT",
-                callbackUrl: redirectUrl,
-                mobileNumber: userMobile || "9999999999",
-                paymentInstrument: { type: "PAY_PAGE" }
-            };
-
-            console.log(`[PhonePe V2] Attempting -> ${v2Url}`);
-            const res = await fetch(v2Url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `O-Bearer ${token}`,
-                    'accept': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await res.json();
-            if (data.success) return { success: true, data: data.data };
-            
-            console.warn(`[PhonePe V2] Rejected: ${data.message || data.code}`);
-        } catch (e) { console.error("[PhonePe V2] Error:", e.message); }
-    }
-
-    // 2. FALLBACK TO V1 (Hermes / Universal)
-    console.log("[PhonePe V1] Attempting V1 Fallback Probing...");
+/**
+ * Initiates a Payment Request via PhonePe V1 (Hermes)
+ */
+async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId) {
     const base64Payload = Buffer.from(JSON.stringify({
         merchantId: PHONEPE_MERCHANT_ID,
         merchantTransactionId,
@@ -127,7 +93,6 @@ async function callPhonePeCheckoutV2(merchantTransactionId, amountInPaisa, redir
             const data = await res.json();
             if (data.success) return { success: true, data: data.data };
             
-            // If it's a real error (not mapping), return it
             if (data.code !== "404" && data.message !== "Bad Request - Api Mapping Not Found") {
                 return { success: false, message: data.message || data.code, data };
             }
@@ -136,9 +101,53 @@ async function callPhonePeCheckoutV2(merchantTransactionId, amountInPaisa, redir
 
     return { 
         success: false, 
-        message: "Account Mapping Error: Your Merchant ID is not whitelisted for PhonePe Pay APIs. Please verify your Merchant Dashboard or contact PhonePe support.",
+        message: "Account Mapping Error: API mapping not found for all endpoints.",
         details: "API MAPPING NOT FOUND"
     };
+}
+
+/**
+ * Initiates a Payment Request (V2 Primary, V1 Fallback)
+ */
+async function callPhonePeCheckoutV2(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId) {
+    // 1. TRY V2 CHECKOUT (Modern O-Bearer)
+    const token = await getPhonePeV2Token();
+    if (token) {
+        try {
+            const v2Url = "https://api.phonepe.com/apis/pg/checkout/v2/pay";
+            const payload = {
+                merchantId: PHONEPE_MERCHANT_ID,
+                merchantTransactionId,
+                merchantUserId: String(userId).replace(/[^a-zA-Z0-9]/g, '') || "MUID123",
+                amount: amountInPaisa,
+                redirectUrl,
+                redirectMode: "REDIRECT",
+                callbackUrl: redirectUrl,
+                mobileNumber: userMobile || "9999999999",
+                paymentInstrument: { type: "PAY_PAGE" }
+            };
+
+            console.log(`[PhonePe V2] Attempting -> ${v2Url}`);
+            const res = await fetch(v2Url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `O-Bearer ${token}`,
+                    'accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (data.success) return { success: true, data: data.data };
+            
+            console.warn(`[PhonePe V2] Rejected: ${data.message || data.code}`);
+        } catch (e) { console.error("[PhonePe V2] Error:", e.message); }
+    }
+
+    // 2. FALLBACK TO V1
+    console.log("[PhonePe V1] Attempting V1 Fallback...");
+    return await callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId);
 }
 
 /**
