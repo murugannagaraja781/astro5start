@@ -7,8 +7,14 @@ const PHONEPE_MERCHANT_ID = (process.env.PHONEPE_MERCHANT_ID || "").trim();
 const PHONEPE_SALT_KEY = (process.env.PHONEPE_SALT_KEY || "").trim();
 const PHONEPE_SALT_INDEX = (process.env.PHONEPE_SALT_INDEX || "1").trim();
 
-// AUTOMATIC ENVIRONMENT DETECTION
+// AUTOMATIC ENVIRONMENT DETECTION & HOST FIX
 let PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis/hermes").trim();
+
+// Remove trailing slash if user added it in .env
+if (PHONEPE_HOST_URL.endsWith("/")) {
+    PHONEPE_HOST_URL = PHONEPE_HOST_URL.slice(0, -1);
+}
+
 if (PHONEPE_MERCHANT_ID.startsWith("PGTEST")) {
     console.log(`[PhonePe] SANDBOX Merchant ID detected. Switching to pre-prod URL.`);
     PHONEPE_HOST_URL = "https://api-preprod.phonepe.com/apis/pg-sandbox";
