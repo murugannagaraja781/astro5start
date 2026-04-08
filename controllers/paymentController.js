@@ -71,21 +71,8 @@ const createPayment = async (req, res) => {
             ? `https://astro5star.com/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`
             : `https://astro5star.com/api/payment/callback?txnId=${merchantTransactionId}`;
 
-        // PRIORITIZE V2 CHECKOUT IF CREDENTIALS EXIST, OTHERWISE FALLBACK TO V1
-        let phonepeResult;
-        const hasV2Creds = (process.env.PHONEPE_CLIENT_ID && process.env.PHONEPE_CLIENT_SECRET);
-
-        if (hasV2Creds) {
-            console.log("[Payment] Attempting PhonePe V2 Checkout...");
-            const { callPhonePeCheckoutV2 } = require('../services/paymentService');
-            phonepeResult = await callPhonePeCheckoutV2(merchantTransactionId, amountInPaisa, callbackRedirectUrl, userMobile, userId);
-        }
-
-        // FALLBACK TO V1 IF V2 FAILED OR NOT CONFIGURED
-        if (!phonepeResult || !phonepeResult.success) {
-            console.log("[Payment] Falling back to PhonePe V1...");
-            phonepeResult = await callPhonePePayV1(merchantTransactionId, amountInPaisa, callbackRedirectUrl, userMobile, userId);
-        }
+        const { callPhonePeCheckoutV2 } = require('../services/paymentService');
+        let phonepeResult = await callPhonePeCheckoutV2(merchantTransactionId, amountInPaisa, callbackRedirectUrl, userMobile, userId);
 
         if (phonepeResult.success && phonepeResult.data && phonepeResult.data.instrumentResponse) {
             const finalRedirectUrl = phonepeResult.data.instrumentResponse.redirectInfo.url;
@@ -98,7 +85,12 @@ const createPayment = async (req, res) => {
             });
         } else {
             console.error("[PhonePe] Init Failed:", JSON.stringify(phonepeResult));
-            res.json({ ok: false, error: 'Payment initialization failed', details: phonepeResult.message || 'Gateway Error' });
+            res.json({ 
+                ok: false, 
+                error: 'Payment initialization failed', 
+                message: phonepeResult.message || 'Gateway mapping error',
+                details: phonepeResult.details || 'Check Merchant Dashboard whitelisting'
+            });
         }
     } catch (err) {
         console.error("[Payment Init] Error:", err.message);
