@@ -38,35 +38,26 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
         };
 
         const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-        const signEndpoint = "/pg/v1/pay";
         
-        // SAFETY DEBUG - Verify in PM2 logs
-        console.log(`[PhonePe Auth Debug] MerchantId: ${PHONEPE_MERCHANT_ID}`);
-        console.log(`[PhonePe Auth Debug] SaltKey (First 4): ${PHONEPE_SALT_KEY.substring(0, 4)}...`);
-        console.log(`[PhonePe Auth Debug] SaltIndex: ${PHONEPE_SALT_INDEX}`);
-        
-        let currentUrl = `${PHONEPE_HOST_URL}${endpoint}`;
-        
-        // DEEP FIX: TRIPLE FALLBACK LOGIC
-        if (nestedLevel === 1) {
-            currentUrl = "https://api.phonepe.com/apis/pg/v1/pay";
-            console.log(`[PhonePe Fallback 1] Trying Alternative Production: ${currentUrl}`);
-        } else if (nestedLevel === 2) {
-            currentUrl = "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay";
-            console.log(`[PhonePe Fallback 2] Trying SANDBOX/UAT: ${currentUrl}`);
-        }
-
-        // --- SIGNATURE FIX ---
-        // Extract the path after the domain for the signature (e.g., /apis/hermes/pg/v1/pay)
-        const urlObj = new URL(currentUrl);
-        const relativePath = urlObj.pathname;
-        
-        const stringToSign = base64Payload + relativePath + PHONEPE_SALT_KEY;
+        // STANDARD PAY V1 SIGNATURE RULES:
+        // Most accounts require the signature path to be exactly "/pg/v1/pay" 
+        // regardless of whether the URL includes /hermes/ or /pg-sandbox/.
+        const signaturePath = "/pg/v1/pay";
+        const stringToSign = base64Payload + signaturePath + PHONEPE_SALT_KEY;
         const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
         const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
-        console.log(`[PhonePe Sign Debug] Using Path: ${relativePath}`);
-        console.log(`[PhonePe Sign Debug] Using Index: ${PHONEPE_SALT_INDEX}`);
+        let currentUrl = `${PHONEPE_HOST_URL}${endpoint}`;
+        
+        if (nestedLevel === 1) {
+            currentUrl = "https://api.phonepe.com/apis/pg/v1/pay";
+        } else if (nestedLevel === 2) {
+            currentUrl = "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay";
+        }
+
+        console.log(`[PhonePe Sign Debug] Payload: ${base64Payload.substring(0, 15)}...`);
+        console.log(`[PhonePe Sign Debug] Using Path for Sign: ${signaturePath}`);
+        console.log(`[PhonePe Sign Debug] Calling URL: ${currentUrl}`);
 
         const response = await fetch(currentUrl, {
             method: 'POST',
