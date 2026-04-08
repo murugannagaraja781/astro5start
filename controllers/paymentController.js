@@ -3,7 +3,7 @@ const Payment = require('../models/Payment');
 const User = require('../models/User');
 const BillingLedger = require('../models/BillingLedger');
 const { paymentTokens } = require('../services/sharedState');
-const { callPhonePePayV1, callPhonePePayV2, checkPhonePeStatus } = require('../services/paymentService');
+const { callPhonePePayV1, checkPhonePeStatus } = require('../services/paymentService');
 const crypto = require('crypto');
 
 const createPayment = async (req, res) => {
@@ -73,28 +73,8 @@ const createPayment = async (req, res) => {
 
         let phonepeResult = await callPhonePePayV1( merchantTransactionId, amountInPaisa, callbackRedirectUrl, userMobile, userId );
 
-        let finalRedirectUrl = null;
-
-        // Standard V1 Success Check
-        // If V1 worked, it will set finalRedirectUrl
         if (phonepeResult.success && phonepeResult.data && phonepeResult.data.instrumentResponse) {
-            finalRedirectUrl = phonepeResult.data.instrumentResponse.redirectInfo.url;
-        } 
-        
-        // If V1 failed (404), Automatically Fallback to V2 OAuth
-        if (!finalRedirectUrl) {
-            console.log(`[PhonePe] V1 completely failed. Initiating V2 OAuth flow...`);
-            const v2Result = await callPhonePePayV2( merchantTransactionId, amountInPaisa, callbackRedirectUrl, userMobile );
-            
-            if (v2Result.success && v2Result.data && v2Result.data.redirectUrl) {
-                finalRedirectUrl = v2Result.data.redirectUrl;
-                console.log(`[PhonePe] V2 OAuth Success!`);
-            } else {
-                console.error("[PhonePe] V2 Init Failed:", JSON.stringify(v2Result));
-            }
-        }
-
-        if (finalRedirectUrl) {
+            const finalRedirectUrl = phonepeResult.data.instrumentResponse.redirectInfo.url;
             res.json({
                 ok: true,
                 url: finalRedirectUrl,
@@ -103,7 +83,7 @@ const createPayment = async (req, res) => {
                 merchantTransactionId: merchantTransactionId
             });
         } else {
-            console.error("[PhonePe] ALL Payment initializations failed!");
+            console.error("[PhonePe] Init Failed:", JSON.stringify(phonepeResult));
             res.json({ ok: false, error: 'Payment initialization failed' });
         }
     } catch (err) {
