@@ -152,20 +152,23 @@ const handleCallback = async (req, res) => {
                 payment.providerRefId = statusResult.data.providerReferenceId;
                 await payment.save();
 
-                // Update User Wallet
-                const user = await User.findOne({ userId: payment.userId });
-                if (user) {
-                    const rechargeAmount = payment.baseAmount || 0;
-                    const bonusAmount = payment.couponBonus || 0;
-
-                    user.walletBalance = (user.walletBalance || 0) + rechargeAmount;
-                    if (bonusAmount > 0) {
-                        user.superWalletBalance = (user.superWalletBalance || 0) + bonusAmount;
+                // Update User Wallet - ATOMICALLY
+                const result = await User.updateOne(
+                    { userId: payment.userId },
+                    { 
+                        $inc: { 
+                            walletBalance: payment.baseAmount || 0,
+                            superWalletBalance: payment.couponBonus || 0 
+                        },
+                        $set: { isNewUser: false }
                     }
-                    user.isNewUser = false; // Mark user as no longer new after first recharge
-                    await user.save();
+                );
 
-                    console.log(`[Wallet] Credited ${rechargeAmount} (+${bonusAmount} bonus) to ${user.userId}`);
+                if (result.modifiedCount > 0) {
+                    console.log(`[Wallet] Credited ${payment.baseAmount} (+${payment.couponBonus || 0} bonus) to ${payment.userId}`);
+                    
+                    // RE-FETCH for referral logic check
+                    const user = await User.findOne({ userId: payment.userId });
 
                     // REFERRAL REWARD LOGIC: Credit referrer on referee's FIRST successful recharge
                     if (user.referredBy && !user.isReferralRewardClaimed) {
@@ -178,8 +181,10 @@ const handleCallback = async (req, res) => {
                             referrer.totalEarnings = (referrer.totalEarnings || 0) + rewardAmount;
                             await referrer.save();
 
-                            user.isReferralRewardClaimed = true;
-                            await user.save();
+                            await User.updateOne(
+                                { userId: user.userId },
+                                { $set: { isReferralRewardClaimed: true } }
+                            );
 
                             const BillingLedger = require('../models/BillingLedger');
                             await BillingLedger.create({
@@ -198,9 +203,9 @@ const handleCallback = async (req, res) => {
                 }
             }
             
-            // Handle Browser Redirect if GET
+            // Handle Browser Redirect if GET - ALIGN WITH WORKFLOW
             if (req.method === 'GET') {
-                return res.redirect(`/wallet?status=success&reason=Payment+Success`);
+                return res.redirect(`/payment-success?amount=${payment.amount}&txnId=${merchantTransactionId}`);
             }
             return res.status(200).send('SUCCESS');
 
@@ -210,14 +215,14 @@ const handleCallback = async (req, res) => {
                 await payment.save();
             }
             if (req.method === 'GET') {
-                return res.redirect(`/wallet?status=failed&reason=${encodeURIComponent(statusResult.message || 'Payment Failed')}`);
+                return res.redirect(`/payment-failed?reason=${encodeURIComponent(statusResult.message || 'Payment Failed')}`);
             }
             return res.status(200).send('FAILED');
         }
     } catch (err) {
         console.error('[PhonePe Callback] Error:', err.message);
         if (req.method === 'GET') {
-            return res.redirect(`/wallet?status=error&reason=${encodeURIComponent(err.message)}`);
+            return res.redirect(`/payment-failed?reason=${encodeURIComponent(err.message)}`);
         }
         res.status(500).json({ ok: false, error: err.message });
     }

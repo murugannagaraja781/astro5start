@@ -171,25 +171,67 @@ policies.forEach(policy => {
   app.get(`/${policy}`, (req, res) => res.sendFile(path.join(__dirname, 'public', `${policy}.html`)));
 });
 
-// Fallback Wallet Route for App Redirects
-app.get('/wallet', (req, res) => {
-  const status = req.query.status || 'unknown';
-  const reason = req.query.reason || '';
-  const scheme = status === 'success' ? 'astro5://payment-success' : 'astro5://payment-failed';
-  const deepLink = `${scheme}?status=${status}&reason=${reason}`;
-  const intentUrl = `intent://payment-${status === 'success' ? 'success' : 'failed'}?status=${status}#Intent;scheme=astro5;package=com.astro5star.app;end`;
+// Workflow Align: Payment Result Pages
+app.get(['/payment-success', '/wallet'], (req, res) => {
+  const status = req.query.status || (req.path === '/payment-success' ? 'success' : 'unknown');
+  const amount = req.query.amount || '';
+  const txnId = req.query.txnId || '';
+
+  const intentUrl = `intent://payment-success?status=success&amount=${amount}&txnId=${txnId}#Intent;scheme=astro5;package=com.astro5star.app;end`;
+  const deepLink = `astro5://payment-success?status=success&amount=${amount}&txnId=${txnId}`;
 
   res.send(`
     <html>
       <head>
-        <title>Payment Status</title>
+        <title>Payment Successful - Astro 5 Star</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>body { font-family: sans-serif; padding: 20px; text-align: center; } .btn { background: #059669; color: white; padding: 15px 30px; border-radius: 8px; text-decoration: none; display: inline-block; margin-top: 20px; font-weight: bold;}</style>
+        <style>
+          body { font-family: -apple-system, sans-serif; padding: 40px 20px; text-align: center; background: #0B1D2A; color: white; }
+          .icon { font-size: 64px; color: #10B981; margin-bottom: 20px; }
+          h3 { font-size: 24px; margin-bottom: 10px; }
+          p { color: #94A3B8; margin-bottom: 30px; }
+          .btn { background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; padding: 16px 40px; border-radius: 12px; text-decoration: none; display: inline-block; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        </style>
       </head>
       <body>
-        <h3>Payment ${status === 'success' ? 'Successful' : 'Completed'}</h3>
-        <p>Redirecting you back to the app...</p>
-        <a href="${deepLink}" class="btn">Return to Home</a>
+        <div class="icon">✓</div>
+        <h3>Payment Successful!</h3>
+        <p>₹${amount} has been added to your wallet.<br>Transaction ID: ${txnId}</p>
+        <a href="${deepLink}" class="btn">Return to App</a>
+        <script>
+          // Standard Workflow: Android Activity intercepts /payment-success
+          // Backup: Intent & Deep Link fallbacks
+          setTimeout(() => { window.location.href = "${intentUrl}"; }, 500);
+          setTimeout(() => { window.location.href = "${deepLink}"; }, 1500);
+        </script>
+      </body>
+    </html>
+  `);
+});
+
+app.get(['/payment-failed', '/payment-error'], (req, res) => {
+  const reason = req.query.reason || 'Transaction could not be completed';
+  const intentUrl = `intent://payment-failed?status=failed&reason=${encodeURIComponent(reason)}#Intent;scheme=astro5;package=com.astro5star.app;end`;
+  const deepLink = `astro5://payment-failed?status=failed&reason=${encodeURIComponent(reason)}`;
+
+  res.send(`
+    <html>
+      <head>
+        <title>Payment Failed - Astro 5 Star</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body { font-family: -apple-system, sans-serif; padding: 40px 20px; text-align: center; background: #0B1D2A; color: white; }
+          .icon { font-size: 64px; color: #EF4444; margin-bottom: 20px; }
+          h3 { font-size: 24px; color: #EF4444; margin-bottom: 10px; }
+          p { color: #94A3B8; margin-bottom: 30px; }
+          .btn { background: #334155; color: white; padding: 16px 40px; border-radius: 12px; text-decoration: none; display: inline-block; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="icon">✕</div>
+        <h3>Payment Failed</h3>
+        <p>${reason}</p>
+        <a href="${deepLink}" class="btn">Go Back</a>
         <script>
           setTimeout(() => { window.location.href = "${intentUrl}"; }, 500);
           setTimeout(() => { window.location.href = "${deepLink}"; }, 1500);
