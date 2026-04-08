@@ -43,13 +43,17 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
         };
 
         const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-        const stringToSign = base64Payload + endpoint + PHONEPE_SALT_KEY;
+        
+        // 1. SIGNING LOGIC (Exactly as provided)
+        const signPath = "/pg/v1/pay";
+        const stringToSign = base64Payload + signPath + PHONEPE_SALT_KEY;
         const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
         const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
         const url = `${PHONEPE_HOST_URL}${endpoint}`;
-        console.log(`[PhonePe V1] Initiating: ${url} for merchant ${PHONEPE_MERCHANT_ID}`);
+        console.log(`[PhonePe V1] POST -> ${url}`);
 
+        // 2. HEADER REQUIREMENTS (Exactly as provided)
         const response = await fetch(url, {
             method: 'POST',
             headers: {
