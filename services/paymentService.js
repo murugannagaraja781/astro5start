@@ -40,6 +40,7 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
             headers: {
                 'Content-Type': 'application/json',
                 'X-VERIFY': checksum,
+                'X-CLIENT-ID': process.env.PHONEPE_CLIENT_ID || PHONEPE_MERCHANT_ID,
                 'accept': 'application/json'
             },
             body: JSON.stringify({ request: base64Payload })
@@ -69,6 +70,7 @@ async function checkPhonePeStatus(merchantTransactionId) {
                 'Content-Type': 'application/json',
                 'X-VERIFY': checksum,
                 'X-MERCHANT-ID': PHONEPE_MERCHANT_ID,
+                'X-CLIENT-ID': process.env.PHONEPE_CLIENT_ID || PHONEPE_MERCHANT_ID,
                 'accept': 'application/json'
             }
         });
