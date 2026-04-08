@@ -20,7 +20,7 @@ if (PHONEPE_MERCHANT_ID.startsWith("PGTEST")) {
     PHONEPE_HOST_URL = "https://api-preprod.phonepe.com/apis/pg-sandbox";
 }
 
-async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId) {
+async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId, nestedLevel = 0) {
     try {
         const endpoint = "/pg/v1/pay";
         const payload = {
@@ -42,17 +42,16 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
         const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
         const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
-        // DEBUG LOGS - Check these in PM2 logs
-        console.log(`[PhonePe Debug] Host: ${PHONEPE_HOST_URL}`);
-        console.log(`[PhonePe Debug] Endpoint: ${endpoint}`);
-        console.log(`[PhonePe Debug] MerchantId: "${PHONEPE_MERCHANT_ID}"`);
-        console.log(`[PhonePe Debug] SaltIndex: ${PHONEPE_SALT_INDEX}`);
+        let currentUrl = `${PHONEPE_HOST_URL}${endpoint}`;
         
-        if (!PHONEPE_MERCHANT_ID || !PHONEPE_SALT_KEY) {
-            console.error("[PhonePe V1] FATAL: PHONEPE_MERCHANT_ID or PHONEPE_SALT_KEY is empty in .env!");
+        // DEEP FIX: If we are in a retry/fallback state, adjust the host
+        if (nestedLevel === 1) {
+            // Attempt the most common alternative production URL
+            currentUrl = "https://api.phonepe.com/apis/pg/v1/pay";
+            console.log(`[PhonePe Fallback] Attempting direct alternative URL: ${currentUrl}`);
         }
 
-        const response = await fetch(`${PHONEPE_HOST_URL}${endpoint}`, {
+        const response = await fetch(currentUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -63,6 +62,12 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
         });
 
         const data = await response.json();
+
+        // DEEP CHECK: If 404, retry once with fallback URL
+        if (data.code === '404' && nestedLevel === 0) {
+            console.warn(`[PhonePe V1] 404 received for ${currentUrl}. Triggering deep fallback...`);
+            return await callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId, 1);
+        }
 
         if (data.success && data.data && data.data.instrumentResponse) {
             const redirectUrl = data.data.instrumentResponse.redirectInfo.url;
