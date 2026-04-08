@@ -6,7 +6,13 @@ const fs = require('fs');
 const PHONEPE_MERCHANT_ID = (process.env.PHONEPE_MERCHANT_ID || "").trim();
 const PHONEPE_SALT_KEY = (process.env.PHONEPE_SALT_KEY || "").trim();
 const PHONEPE_SALT_INDEX = (process.env.PHONEPE_SALT_INDEX || "1").trim();
-const PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis/hermes").trim();
+
+// AUTOMATIC ENVIRONMENT DETECTION
+let PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis/hermes").trim();
+if (PHONEPE_MERCHANT_ID.startsWith("PGTEST")) {
+    console.log(`[PhonePe] SANDBOX Merchant ID detected. Switching to pre-prod URL.`);
+    PHONEPE_HOST_URL = "https://api-preprod.phonepe.com/apis/pg-sandbox";
+}
 
 async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId) {
     try {
