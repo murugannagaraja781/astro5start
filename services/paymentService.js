@@ -34,20 +34,24 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
         };
 
         const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-        const signaturePath = "/pg/v1/pay";
+        const signaturePath = "/pg/v1/pay"; // Always use this to sign
         const stringToSign = base64Payload + signaturePath + PHONEPE_SALT_KEY;
         const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
         const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
-        // Try standard /pg first, fallback to /hermes if isFallback is true
-        let hostPrefix = isFallback ? "https://api.phonepe.com/apis/hermes" : "https://api.phonepe.com/apis/pg";
-        
-        // Always use Pre-Prod URL for Sandbox
+        let url = "";
+
         if (PHONEPE_MERCHANT_ID.startsWith("PGTEST")) {
-            hostPrefix = "https://api-preprod.phonepe.com/apis/pg-sandbox";
+            url = `https://api-preprod.phonepe.com/apis/pg-sandbox${signaturePath}`;
+        } else {
+            // isFallback attempts the alternate path.
+            // Primary modern path: /apis/pg/v1/pay
+            // Legacy path: /apis/hermes/pg/v1/pay
+            const requestPath = isFallback ? `/apis/hermes${signaturePath}` : `/apis${signaturePath}`;
+            url = `https://api.phonepe.com${requestPath}`;
         }
-        
-        const url = `${hostPrefix}${signaturePath}`;
+
+        console.log(`[PhonePe V1] POST -> ${url}`);
 
         const response = await fetch(url, {
             method: 'POST',
@@ -84,7 +88,15 @@ async function checkPhonePeStatus(merchantTransactionId) {
         const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
         const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
-        const url = `${PHONEPE_HOST_URL}${endpoint}`;
+        let url = "";
+        if (PHONEPE_MERCHANT_ID.startsWith("PGTEST")) {
+            url = `https://api-preprod.phonepe.com/apis/pg-sandbox${endpoint}`;
+        } else {
+            // Remove /pg or /hermes from PHONEPE_HOST_URL to avoid double-pathing
+            let cleanHost = PHONEPE_HOST_URL.replace(/\/pg$/, "").replace(/\/hermes$/, "");
+            url = `${cleanHost}${endpoint}`;
+        }
+        
         const response = await fetch(url, {
             method: 'GET',
             headers: {
