@@ -8,7 +8,11 @@ const PHONEPE_SALT_KEY = (process.env.PHONEPE_SALT_KEY || "").trim();
 const PHONEPE_SALT_INDEX = (process.env.PHONEPE_SALT_INDEX || "1").trim();
 let PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis/hermes").trim();
 
-
+// EXACT FIX: For M23... IDs, the host MUST NOT have /hermes.
+// But we must NOT append /pg to the host either, because signaturePath already contains it!
+if (PHONEPE_MERCHANT_ID.startsWith('M23')) {
+    PHONEPE_HOST_URL = PHONEPE_HOST_URL.replace(/\/hermes\/?$/, "").replace(/\/pg\/?$/, "");
+}
 
 /**
  * Initiates a Payment Request
