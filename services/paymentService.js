@@ -8,16 +8,10 @@ const PHONEPE_SALT_KEY = (process.env.PHONEPE_SALT_KEY || "").trim();
 const PHONEPE_SALT_INDEX = (process.env.PHONEPE_SALT_INDEX || "1").trim();
 
 // AUTOMATIC ENVIRONMENT DETECTION & HOST FIX
-// Use the base /apis path to avoid doubling "/pg" in the URL
-let PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis").trim();
+let PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis/hermes").trim();
 
 if (PHONEPE_HOST_URL.endsWith("/")) {
     PHONEPE_HOST_URL = PHONEPE_HOST_URL.slice(0, -1);
-}
-
-// Ensure "hermes" is NOT used if it was incorrectly provided in .env
-if (PHONEPE_HOST_URL.includes("/hermes")) {
-    PHONEPE_HOST_URL = PHONEPE_HOST_URL.replace("/hermes", "");
 }
 
 if (PHONEPE_MERCHANT_ID.startsWith("PGTEST")) {
