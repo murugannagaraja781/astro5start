@@ -38,18 +38,23 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
         };
 
         const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-        const stringToSign = base64Payload + endpoint + PHONEPE_SALT_KEY;
-        const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
-        const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
-
+        const signEndpoint = nestedLevel === 2 ? "/pg/v1/pay" : "/pg/v1/pay"; // For sandbox prefix check
+        
         let currentUrl = `${PHONEPE_HOST_URL}${endpoint}`;
         
-        // DEEP FIX: If we are in a retry/fallback state, adjust the host
+        // DEEP FIX: TRIPLE FALLBACK LOGIC
         if (nestedLevel === 1) {
-            // Attempt the most common alternative production URL
             currentUrl = "https://api.phonepe.com/apis/pg/v1/pay";
-            console.log(`[PhonePe Fallback] Attempting direct alternative URL: ${currentUrl}`);
+            console.log(`[PhonePe Fallback 1] Trying Alternative Production: ${currentUrl}`);
+        } else if (nestedLevel === 2) {
+            // TRY SANDBOX - many "M..." IDs are actually for test first
+            currentUrl = "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay";
+            console.log(`[PhonePe Fallback 2] Trying SANDBOX/UAT: ${currentUrl}`);
         }
+
+        const stringToSign = base64Payload + (currentUrl.includes("sandbox") ? "/pg/v1/pay" : "/pg/v1/pay") + PHONEPE_SALT_KEY;
+        const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
+        const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
         const response = await fetch(currentUrl, {
             method: 'POST',
@@ -63,10 +68,9 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
 
         const data = await response.json();
 
-        // DEEP CHECK: If 404, retry once with fallback URL
-        if (data.code === '404' && nestedLevel === 0) {
-            console.warn(`[PhonePe V1] 404 received for ${currentUrl}. Triggering deep fallback...`);
-            return await callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId, 1);
+        // DEEP CHECK: If 404 or Mapping error, try next level
+        if ((data.code === '404' || data.message?.includes("Mapping Not Found")) && nestedLevel < 2) {
+            return await callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId, nestedLevel + 1);
         }
 
         if (data.success && data.data && data.data.instrumentResponse) {
@@ -79,7 +83,7 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
                 }
             };
         } else {
-            console.error("[PhonePe V1] Error Response:", JSON.stringify(data));
+            console.error("[PhonePe V1] Final Error Response:", JSON.stringify(data));
             return { success: false, data: data };
         }
     } catch (err) {
