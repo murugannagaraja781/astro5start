@@ -38,7 +38,12 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
         };
 
         const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-        const signEndpoint = nestedLevel === 2 ? "/pg/v1/pay" : "/pg/v1/pay"; // For sandbox prefix check
+        const signEndpoint = "/pg/v1/pay";
+        
+        // SAFETY DEBUG - Verify in PM2 logs
+        console.log(`[PhonePe Auth Debug] MerchantId: ${PHONEPE_MERCHANT_ID}`);
+        console.log(`[PhonePe Auth Debug] SaltKey (First 4): ${PHONEPE_SALT_KEY.substring(0, 4)}...`);
+        console.log(`[PhonePe Auth Debug] SaltIndex: ${PHONEPE_SALT_INDEX}`);
         
         let currentUrl = `${PHONEPE_HOST_URL}${endpoint}`;
         
