@@ -8,12 +8,7 @@ const PHONEPE_SALT_KEY = (process.env.PHONEPE_SALT_KEY || "").trim();
 const PHONEPE_SALT_INDEX = (process.env.PHONEPE_SALT_INDEX || "1").trim();
 let PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis/hermes").trim();
 
-// SMART HOST DETECTOR: Newer M23... IDs do not use /hermes. 
-// If we detect an M23 ID and a hermes URL, we fix it automatically.
-if (PHONEPE_MERCHANT_ID.startsWith('M23') && PHONEPE_HOST_URL.includes('/hermes')) {
-    console.log('[PhonePe] Smart Fix: Stripping /hermes for M23 merchant ID to prevent 404');
-    PHONEPE_HOST_URL = PHONEPE_HOST_URL.replace('/hermes', '/pg');
-}
+
 
 /**
  * Initiates a Payment Request
@@ -73,14 +68,7 @@ async function checkPhonePeStatus(merchantTransactionId) {
         const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
         const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
-        let url = "";
-        if (PHONEPE_MERCHANT_ID.startsWith("PGTEST")) {
-            url = `https://api-preprod.phonepe.com/apis/pg-sandbox${endpoint}`;
-        } else {
-            // Remove /pg or /hermes from PHONEPE_HOST_URL to avoid double-pathing
-            let cleanHost = PHONEPE_HOST_URL.replace(/\/pg$/, "").replace(/\/hermes$/, "");
-            url = `${cleanHost}${endpoint}`;
-        }
+        const url = `${PHONEPE_HOST_URL}${endpoint}`;
         
         const response = await fetch(url, {
             method: 'GET',
