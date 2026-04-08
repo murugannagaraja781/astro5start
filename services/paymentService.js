@@ -116,8 +116,88 @@ async function checkPhonePeStatus(merchantTransactionId) {
     }
 }
 
-async function callPhonePePayV2(merchantOrderId, amount, redirectUrl, userMobile) {
-    return { success: false, data: { message: "v2 not supported" }, status: 501 };
+let phonepeAuthTokenCache = null;
+let phonepeAuthTokenExpiry = null;
+
+async function getPhonePeOAuthToken() {
+    if (phonepeAuthTokenCache && Date.now() < phonepeAuthTokenExpiry) {
+        return phonepeAuthTokenCache;
+    }
+
+    const tokenUrl = PHONEPE_MERCHANT_ID.startsWith("PGTEST") 
+        ? "https://api-preprod.phonepe.com/apis/pg-sandbox/v1/oauth/token"
+        : "https://api.phonepe.com/apis/identity-manager/v1/oauth/token";
+
+    const params = new URLSearchParams();
+    params.append('client_id', process.env.PHONEPE_CLIENT_ID);
+    params.append('client_secret', process.env.PHONEPE_CLIENT_SECRET);
+    params.append('client_version', process.env.PHONEPE_CLIENT_VERSION || '1');
+    params.append('grant_type', 'client_credentials');
+
+    const response = await fetch(tokenUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params
+    });
+
+    const data = await response.json();
+    if (data.access_token) {
+        phonepeAuthTokenCache = data.access_token;
+        phonepeAuthTokenExpiry = Date.now() + ((data.expires_in - 60) * 1000);
+        console.log(`[PhonePe OAuth] New Token Generated.`);
+        return phonepeAuthTokenCache;
+    } else {
+        throw new Error("PhonePe OAuth Failed: " + JSON.stringify(data));
+    }
 }
 
-module.exports = { callPhonePePayV1, callPhonePePayV2, checkPhonePeStatus };
+/**
+ * Initiates an OAuth-based V2 Pay Request (For modern M23+ accounts)
+ */
+async function callPhonePePayV2(merchantOrderId, amountInPaisa, redirectUrl, userMobile) {
+    try {
+        const token = await getPhonePeOAuthToken();
+        const endpoint = "/pg/checkout/v2/pay";
+        const url = PHONEPE_MERCHANT_ID.startsWith("PGTEST")
+            ? `https://api-preprod.phonepe.com/apis/pg-sandbox${endpoint}`
+            : `https://api.phonepe.com/apis${endpoint}`;
+
+        const payload = {
+            merchantOrderId: merchantOrderId,
+            amount: amountInPaisa,
+            paymentFlow: {
+                type: "PG_CHECKOUT",
+                merchantUrls: { redirectUrl: redirectUrl }
+            }
+        };
+
+        console.log(`[PhonePe V2] POST -> ${url}`);
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `O-Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        
+        if (data.redirectUrl) {
+           return { success: true, data: { redirectUrl: data.redirectUrl } };
+        } else if (data.success && data.data && data.data.paymentFlow && data.data.paymentFlow.redirectUrl) {
+            return { success: true, data: { redirectUrl: data.data.paymentFlow.redirectUrl } };
+        } else if (data.success && data.redirectInfo) {
+             return { success: true, data: { redirectUrl: data.redirectInfo.url } };
+        } else {
+            console.error("[PhonePe V2] Failed Response:", data);
+            return { success: false, message: JSON.stringify(data) };
+        }
+    } catch (err) {
+        console.error("[PhonePe V2] Critical Error:", err.message);
+        return { success: false, message: err.message };
+    }
+}
+
+module.exports = { callPhonePePayV1, callPhonePePayV2, checkPhonePeStatus, getPhonePeOAuthToken };
