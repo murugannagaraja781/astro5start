@@ -16,10 +16,9 @@ if (PHONEPE_MERCHANT_ID.startsWith('M23') && PHONEPE_HOST_URL.includes('/hermes'
 }
 
 /**
- * 100% Working Auto-Detecting Payment Request
- * Tries the modern endpoint first, falls back to legacy if rejected.
+ * Initiates a Payment Request
  */
-async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId, isFallback = false) {
+async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId) {
     try {
         const payload = {
             merchantId: PHONEPE_MERCHANT_ID,
@@ -34,23 +33,12 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
         };
 
         const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-        const signaturePath = "/pg/v1/pay"; // Always use this to sign
+        const signaturePath = "/pg/v1/pay";
         const stringToSign = base64Payload + signaturePath + PHONEPE_SALT_KEY;
         const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
         const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
-        let url = "";
-
-        if (PHONEPE_MERCHANT_ID.startsWith("PGTEST")) {
-            url = `https://api-preprod.phonepe.com/apis/pg-sandbox${signaturePath}`;
-        } else {
-            // isFallback attempts the alternate path.
-            // Primary modern path: /apis/pg/v1/pay
-            // Legacy path: /apis/hermes/pg/v1/pay
-            const requestPath = isFallback ? `/apis/hermes${signaturePath}` : `/apis${signaturePath}`;
-            url = `https://api.phonepe.com${requestPath}`;
-        }
-
+        const url = `${PHONEPE_HOST_URL}${signaturePath}`;
         console.log(`[PhonePe V1] POST -> ${url}`);
 
         const response = await fetch(url, {
@@ -64,13 +52,11 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
         });
 
         const data = await response.json();
-
-        // 100% Working Logic: Automatic 404 Recovery
-        if (!isFallback && (!data.success && (data.code === '404' || (data.message && data.message.includes("Mapping Not Found"))))) {
-            console.log(`[PhonePe] Path rejected. Executing Auto-Fallback...`);
-            return await callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId, true);
+        
+        if (!data.success && data.code === '404') {
+             console.error(`[PhonePe V1] Critical Error 404: Merchant ID not mapped to ${url}. Please contact PhonePe support.`);
         }
-
+        
         return { success: data.success, data: data.data || data };
     } catch (err) {
         return { success: false, message: err.message };
