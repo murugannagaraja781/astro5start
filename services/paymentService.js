@@ -8,16 +8,16 @@ const PHONEPE_SALT_KEY = (process.env.PHONEPE_SALT_KEY || "").trim();
 const PHONEPE_SALT_INDEX = (process.env.PHONEPE_SALT_INDEX || "1").trim();
 
 // AUTOMATIC ENVIRONMENT DETECTION & HOST FIX
-let PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis/pg").trim();
+// Use the base /apis path to avoid doubling "/pg" in the URL
+let PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis").trim();
 
 if (PHONEPE_HOST_URL.endsWith("/")) {
     PHONEPE_HOST_URL = PHONEPE_HOST_URL.slice(0, -1);
 }
 
-// Ensure "hermes" is removed if it causes 404 for newer IDs
-if (PHONEPE_HOST_URL.includes("/hermes") && PHONEPE_MERCHANT_ID.startsWith("M23")) {
-    console.log(`[PhonePe] M23 Merchant detected. Removing /hermes from URL for compatibility.`);
-    PHONEPE_HOST_URL = PHONEPE_HOST_URL.replace("/hermes", "/pg");
+// Ensure "hermes" is NOT used if it was incorrectly provided in .env
+if (PHONEPE_HOST_URL.includes("/hermes")) {
+    PHONEPE_HOST_URL = PHONEPE_HOST_URL.replace("/hermes", "");
 }
 
 if (PHONEPE_MERCHANT_ID.startsWith("PGTEST")) {
