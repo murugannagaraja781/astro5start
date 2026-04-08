@@ -455,46 +455,45 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
                 clearTimeout(session.timeoutId);
                 session.timeoutId = null;
             }
+
+            // --- IMMEDIATE SIGNALING (SPEED FIX) ---
+            // Notify both sides immediately so they can start WebRTC handshake and show "Connecting..." UI
+            if (io) {
+                console.log('[SpeedFix] Emitting session-answered immediately');
+                io.to(fromUserId).emit('session-answered', { 
+                    sessionId, 
+                    fromUserId: astrologerId, 
+                    type: type || session.type, 
+                    accept: true,
+                    status: 'connecting' // New status for UI feedback
+                });
+                
+                io.to(astrologerId).emit('session-answered', { 
+                    sessionId, 
+                    fromUserId: fromUserId, 
+                    accept: true,
+                    status: 'connecting'
+                });
+            }
+
             session.isAnswered = true;
             session.status = 'active';
-
-            // CRITICAL: Clear any previous billing start; let handleUserConnection handle it 
-            // once both parties are technically connected in their activities.
             session.actualBillingStart = null;
             
             userActiveSession.set(astrologerId, sessionId);
             userActiveSession.set(fromUserId, sessionId);
 
-            // Mark astrologer as busy to prevent other calls
-            await User.updateOne({ userId: astrologerId }, { isBusy: true });
-
-            await Session.updateOne({ sessionId }, { 
+            // Run DB updates in background/after signaling to avoid blocking the handshake
+            User.updateOne({ userId: astrologerId }, { isBusy: true }).catch(e => {});
+            Session.updateOne({ sessionId }, { 
                 status: 'active', 
                 startTime: session.startedAt || Date.now(),
                 actualBillingStart: null 
-            });
+            }).catch(e => {});
 
-            if (io) {
-                console.log('STEP 3: emitting session-answered');
-                io.to(fromUserId).emit('session-answered', { 
-                    sessionId, 
-                    fromUserId: astrologerId, 
-                    type: type || session.type, 
-                    accept: true 
-                });
-                
-                // Notify the astrologer that they have accepted successfully (enriched with fromUserId/counterpart)
-                io.to(astrologerId).emit('session-answered', { 
-                    sessionId, 
-                    fromUserId: fromUserId, // The client's ID
-                    accept: true,
-                    status: 'active'
-                });
-            }
-            
             if (broadcastAstroUpdate) broadcastAstroUpdate();
             
-            // Attempt to start billing (resilient check: user might already be connected)
+            // Attempt to start billing
             await tryStartBilling(sessionId, io);
 
             console.log(`[SessionService] acceptSession END (Accept: true)`);

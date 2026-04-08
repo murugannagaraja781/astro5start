@@ -240,16 +240,11 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         // Trace signaling for debugging
         console.log(`[Signal] From:${fromUserId} To:${targetId || 'Room'} Session:${sessionId} Type:${signal.type || 'ICE'}`);
 
-        // SIGNAL BUFFERING & GLARE SUPPRESSION
+        // SIGNAL BUFFERING & HANDSHAKE SPEED-UP
         const activeSess = activeSessions.get(sessionId);
         if (activeSess) {
-            // GLARE FILTER: Only the original initiator (clientId) is allowed to send an 'offer'.
-            if (signal.type === 'offer' && fromUserId !== activeSess.clientId) {
-                console.log(`[Signal] [GLARE] Suppressing unauthorized offer from Recipient:${fromUserId} on session:${sessionId}`);
-                return;
-            }
-
             // Buffer the last legitimate media signal (offer/answer)
+            // This allows re-sending the signal if one side reconnects or misses the first one.
             if (signal.type === 'offer' || signal.type === 'answer') {
                 activeSess.lastMediaSignal = { sessionId, fromUserId, signal };
                 console.log(`[Signal] [BUFFERED] Stored ${signal.type} from ${fromUserId} for session:${sessionId}`);
