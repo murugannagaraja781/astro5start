@@ -49,9 +49,12 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 if (!existingSessionInMem && !activeSessionInDb) {
                     console.log(`[Session] Stale busy state detected for ${toUserId}. Clearing...`);
                     userActiveSession.delete(toUserId);
-                    toUser.isBusy = false;
-                    toUser.isAvailable = toUser.isOnline; // Restore availability
-                    await toUser.save();
+                    await User.updateOne({ userId: toUserId }, { 
+                        $set: { 
+                            isBusy: false, 
+                            isAvailable: toUser.isOnline 
+                        } 
+                    });
                 } else if (existingSessionInMem && existingSessionInMem.users.includes(fromUserId)) {
                     await endSessionRecord(existingSessionId, 'stale_clean', io, broadcastAstroUpdate);
                 } else {

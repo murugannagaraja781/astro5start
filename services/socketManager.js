@@ -113,8 +113,10 @@ const initSocket = (io) => {
                     return;
                 }
 
+                const updateFields = {};
                 if (fcmToken) {
                     user.fcmToken = fcmToken;
+                    updateFields.fcmToken = fcmToken;
                 }
 
                 userSockets.set(userId, socket.id);
@@ -145,10 +147,15 @@ const initSocket = (io) => {
                     // Ensure they are marked 'available' if online
                     if (user.isOnline) {
                         user.isAvailable = !user.isBusy;
-                        await user.save();
+                        updateFields.isAvailable = user.isAvailable;
                     }
                     
                     broadcastAstroUpdate();
+                }
+
+                // PERFORMANCE/CONCURRENCY FIX: Use updateOne instead of save() to avoid VersionError
+                if (Object.keys(updateFields).length > 0) {
+                    await User.updateOne({ userId }, { $set: updateFields });
                 }
 
                 if (typeof cb === 'function') cb({ ok: true, user });
@@ -284,18 +291,20 @@ const initSocket = (io) => {
                 };
 
                 if (user) {
+                    await User.updateOne({ phone }, { $set: updates });
+                    // Update local object for callback if needed
                     Object.assign(user, updates);
-                    await user.save();
                 } else {
                     const userId = crypto.randomUUID();
+                    const { generateUniqueReferralCode } = require('../utils/generateReferral');
+                    const referralCode = await generateUniqueReferralCode(updates.name || 'Astro');
+                    
                     user = await User.create({
                         userId,
                         phone,
-                        ...updates
+                        ...updates,
+                        referralCode
                     });
-                    const { generateUniqueReferralCode } = require('../utils/generateReferral');
-                    user.referralCode = await generateUniqueReferralCode(user.name);
-                    await user.save();
                 }
 
                 if (typeof cb === 'function') cb({ ok: true });

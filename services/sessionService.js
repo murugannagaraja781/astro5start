@@ -40,7 +40,15 @@ async function handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpd
             astro.isOnline = !!(astro.isChatOnline || astro.isAudioOnline || astro.isVideoOnline);
             astro.isAvailable = astro.isOnline && !astro.isBusy;
             
-            await astro.save();
+            await User.updateOne({ userId: toUserId }, {
+                $set: {
+                    isChatOnline: astro.isChatOnline,
+                    isAudioOnline: astro.isAudioOnline,
+                    isVideoOnline: astro.isVideoOnline,
+                    isOnline: astro.isOnline,
+                    isAvailable: astro.isAvailable
+                }
+            });
 
             if (broadcastAstroUpdate) broadcastAstroUpdate();
 
@@ -243,8 +251,7 @@ async function tryStartBilling(sessionId, io) {
             const baseStart = (clientConn > VALID_TIMESTAMP_THRESHOLD) ? clientConn : astroConn;
             billingStart = (baseStart > VALID_TIMESTAMP_THRESHOLD) ? (baseStart + 1500) : (fallbackNow + 500);
             
-            session.actualBillingStart = billingStart;
-            await session.save();
+            await Session.updateOne({ sessionId }, { $set: { actualBillingStart: billingStart } });
             activeSession.actualBillingStart = billingStart;
         } else {
             console.log(`[Billing] Re-broadcasting existing billing for ${sessionId} to reconnecting user.`);
@@ -355,7 +362,14 @@ async function handleUserConnection(sessionId, userId, io) {
     }
 
     console.log('STEP 2: updating connection timestamp');
-    if (updated) await session.save();
+    if (updated) {
+        await Session.updateOne({ sessionId }, { 
+            $set: { 
+                clientConnectedAt: session.clientConnectedAt,
+                astrologerConnectedAt: session.astrologerConnectedAt
+            } 
+        });
+    }
 
     console.log('STEP 3: restoration/memory check');
     // RESTORE to memory if missing (CRITICAL for server restart recovery)

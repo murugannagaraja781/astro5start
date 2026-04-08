@@ -86,9 +86,12 @@ class OtpVerificationActivity : AppCompatActivity() {
             return
         }
 
+        val referralCode = tokenManager.getPendingReferralCode()
+
         lifecycleScope.launch {
-            val result = repository.verifyOtp(phone, otp)
+            val result = repository.verifyOtp(phone, otp, referralCode)
             if (result.isSuccess) {
+                tokenManager.clearPendingReferralCode()
                 val user = result.getOrThrow()
                 tokenManager.saveUserSession(user)
 

@@ -210,19 +210,29 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
             }
 
             client.walletBalance -= mainDeduct;
-            await client.save();
+            await User.updateOne({ userId: client.userId }, { 
+                $set: { 
+                    walletBalance: client.walletBalance,
+                    superWalletBalance: client.superWalletBalance 
+                } 
+            });
 
             // Mark as done so we know they had their first call for analytics
             if (minuteIndex === 1 && !client.isFirstCallDone) {
+                await User.updateOne({ userId: client.userId }, { $set: { isFirstCallDone: true } });
                 client.isFirstCallDone = true;
-                await client.save();
             }
         }
 
         if (astroAmount > 0) {
             astro.walletBalance += astroAmount;
             astro.totalEarnings = (astro.totalEarnings || 0) + astroAmount;
-            await astro.save();
+            await User.updateOne({ userId: astro.userId }, {
+                $set: {
+                    walletBalance: astro.walletBalance,
+                    totalEarnings: astro.totalEarnings
+                }
+            });
         }
 
         // Create Ledger Record

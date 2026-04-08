@@ -100,6 +100,13 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Deep Link for Referral: astro5://referral/CODE -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="astro5" android:host="referral" />
+            </intent-filter>
         </activity>
 
         <activity android:name=".ui.guest.GuestDashboardActivity" />
@@ -229,6 +236,11 @@
 
         <activity
             android:name=".ui.profile.UserProfileActivity"
+            android:exported="false"
+            android:theme="@style/Theme.FCMCallApp"/>
+
+        <activity
+            android:name=".ui.history.ChatHistoryActivity"
             android:exported="false"
             android:theme="@style/Theme.FCMCallApp"/>
 

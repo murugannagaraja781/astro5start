@@ -47,12 +47,15 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 notifyWaitlistUsers(userId).catch(e => {});
             }
 
-            // Restore FCM token if provided in payload (important for going online)
-            if (data.fcmToken) {
-                user.fcmToken = data.fcmToken;
-            }
+            const updateParams = {
+                ...update,
+                isOnline: user.isOnline,
+                isAvailable: user.isAvailable,
+                lastSeen: user.lastSeen
+            };
+            if (data.fcmToken) updateParams.fcmToken = data.fcmToken;
 
-            await user.save();
+            await User.updateOne({ userId }, { $set: updateParams });
             broadcastAstroUpdate();
 
             const sId = userSockets.get(userId);
@@ -94,11 +97,17 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 user.isAvailable = user.isOnline && !user.isBusy;
                 user.lastSeen = new Date();
 
-                if (data.fcmToken) {
-                    user.fcmToken = data.fcmToken;
-                }
+                const updateParams = {
+                    isChatOnline: user.isChatOnline,
+                    isAudioOnline: user.isAudioOnline,
+                    isVideoOnline: user.isVideoOnline,
+                    isOnline: user.isOnline,
+                    isAvailable: user.isAvailable,
+                    lastSeen: user.lastSeen
+                };
+                if (data.fcmToken) updateParams.fcmToken = data.fcmToken;
 
-                await user.save();
+                await User.updateOne({ userId }, { $set: updateParams });
                 broadcastAstroUpdate();
 
                 const sId = userSockets.get(userId);
@@ -136,11 +145,17 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 user.isAvailable = isOnline && !user.isBusy;
                 user.lastSeen = new Date();
 
-                if (data.fcmToken) {
-                    user.fcmToken = data.fcmToken;
-                }
+                const updateParams = {
+                    isChatOnline: user.isChatOnline,
+                    isAudioOnline: user.isAudioOnline,
+                    isVideoOnline: user.isVideoOnline,
+                    isOnline: user.isOnline,
+                    isAvailable: user.isAvailable,
+                    lastSeen: user.lastSeen
+                };
+                if (data.fcmToken) updateParams.fcmToken = data.fcmToken;
 
-                await user.save();
+                await User.updateOne({ userId }, { $set: updateParams });
                 broadcastAstroUpdate();
 
                 const sId = userSockets.get(userId);
@@ -172,7 +187,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                     timestamp: Date.now()
                 });
                 
-                await user.save();
+                await User.updateOne({ userId }, { $set: { lastSeen: user.lastSeen } });
                 console.log(`[Presence] ${user.name} went to background. Status SAVED for restoration.`);
             }
         } catch (e) { console.error('[Presence] app-background error:', e); }
@@ -214,7 +229,16 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 } else {
                     console.log(`[Presence] ${user.name} returned to foreground`);
                 }
-                await user.save();
+                await User.updateOne({ userId }, {
+                    $set: {
+                        isChatOnline: user.isChatOnline,
+                        isAudioOnline: user.isAudioOnline,
+                        isVideoOnline: user.isVideoOnline,
+                        isOnline: user.isOnline,
+                        isAvailable: user.isAvailable,
+                        lastSeen: user.lastSeen
+                    }
+                });
                 broadcastAstroUpdate();
             }
         } catch (e) { console.error('[Presence] app-foreground error:', e); }
@@ -234,7 +258,17 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 user.isAvailable = false;
                 user.isBusy = false;
                 user.fcmToken = ''; // Use empty string to clear the token and prevent further notifications
-                await user.save();
+                await User.updateOne({ userId }, {
+                    $set: {
+                        isOnline: false,
+                        isChatOnline: false,
+                        isAudioOnline: false,
+                        isVideoOnline: false,
+                        isAvailable: false,
+                        isBusy: false,
+                        fcmToken: ''
+                    }
+                });
 
                 if (user.role === 'astrologer') {
                     broadcastAstroUpdate();
@@ -297,14 +331,18 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 if (data.experience) updates.experience = parseInt(data.experience);
             }
 
-            Object.assign(user, updates);
-            await user.save();
+            // PERFORMANCE: Use findOneAndUpdate to get updated doc in one atomic op, avoiding VersionError
+            const updatedUser = await User.findOneAndUpdate(
+                { userId },
+                { $set: updates },
+                { new: true, runValidators: true }
+            );
 
-            if (user.role === 'astrologer') {
+            if (updatedUser.role === 'astrologer') {
                 broadcastAstroUpdate();
             }
 
-            const formattedUser = user.toObject ? user.toObject() : user;
+            const formattedUser = updatedUser.toObject ? updatedUser.toObject() : updatedUser;
             formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
             socket.emit('my-profile-updated', formattedUser);
 

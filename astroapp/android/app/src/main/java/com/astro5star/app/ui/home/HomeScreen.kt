@@ -1868,18 +1868,38 @@ fun ConsultationHistoryCard(item: SessionHistoryItem) {
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 val totalSec = item.duration / 1000
                 val mins = totalSec / 60
                 val secs = totalSec % 60
                 val duraText = if (mins > 0) "${mins}m ${secs}s" else "${secs}s"
-                Text("Duration: $duraText", fontSize = 12.sp, color = Color.Gray)
-                Text(
-                    text = if (item.isEarned) "Earned" else "Paid",
-                    fontSize = 11.sp,
-                    color = Color.Gray,
-                    fontWeight = FontWeight.Bold
-                )
+                Column {
+                    Text("Duration: $duraText", fontSize = 12.sp, color = Color.Gray)
+                    Text(
+                        text = if (item.isEarned) "Earned" else "Paid",
+                        fontSize = 11.sp,
+                        color = Color.Gray,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                if (item.type == "chat") {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    Button(
+                        onClick = {
+                            val intent = android.content.Intent(context, com.astro5star.app.ui.history.ChatHistoryActivity::class.java)
+                            intent.putExtra("sessionId", item.id)
+                            intent.putExtra("partnerName", item.partnerName)
+                            context.startActivity(intent)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PeacockGreen),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        Text("View Chat Story", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }

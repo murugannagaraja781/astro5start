@@ -98,6 +98,30 @@ class MainActivity : AppCompatActivity() {
 
         // Start version check
         checkAppVersion()
+
+        // Handle Referrer and Deep Links
+        handleReferral(intent)
+    }
+
+    private fun handleReferral(intent: Intent?) {
+        // 1. Google Play Install Referrer
+        com.astro5star.app.utils.ReferrerManager.start(this)
+
+        // 2. Deep Linking (astro5://referral/CODE)
+        intent?.data?.let { uri ->
+            if (uri.scheme == "astro5" && uri.host == "referral") {
+                val code = uri.lastPathSegment
+                if (code != null) {
+                    Log.i(TAG, "Deep Link Referral Captured: $code")
+                    tokenManager.savePendingReferralCode(code)
+                }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleReferral(intent)
     }
 
     private fun checkAppVersion() {

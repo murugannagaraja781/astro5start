@@ -103,30 +103,24 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
     socket.on('admin-update-user-details', async (data, cb) => {
         if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
         try {
-            const { userId, updates } = data;
-            const user = await User.findOne({ userId });
-            if (!user) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
+            // PERFORMANCE: Use findOneAndUpdate to get updated doc in one atomic op, avoiding VersionError
+            const updatedUser = await User.findOneAndUpdate(
+                { userId },
+                { $set: updates },
+                { new: true, runValidators: true }
+            );
 
-            // Allow updates to nested birthDetails if provided
-            if (updates.birthDetails) {
-                user.birthDetails = { ...user.birthDetails, ...updates.birthDetails };
-                delete updates.birthDetails;
-            }
-
-            Object.assign(user, updates);
-            await user.save();
-
-            if (user.role === 'astrologer') await broadcastAstroUpdate();
+            if (updatedUser.role === 'astrologer') await broadcastAstroUpdate();
             broadcastAdminUpdate();
 
-            const sId = userSockets.get(user.userId);
+            const sId = userSockets.get(updatedUser.userId);
             if (sId) {
-                const formattedUser = user.toObject ? user.toObject() : user;
+                const formattedUser = updatedUser.toObject ? updatedUser.toObject() : updatedUser;
                 formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
                 io.to(sId).emit('my-profile-updated', formattedUser);
             }
 
-            if (typeof cb === "function") cb({ ok: true, user });
+            if (typeof cb === "function") cb({ ok: true, user: updatedUser });
         } catch (e) {
             console.error(e);
             if (typeof cb === "function") cb({ ok: false, error: 'Update Failed' });
@@ -141,9 +135,12 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             const user = await User.findOne({ userId });
             if (!user) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
 
-            user.documentStatus = status;
-            user.isDocumentVerified = status === 'verified';
-            await user.save();
+            await User.updateOne({ userId }, { 
+                $set: { 
+                    documentStatus: status,
+                    isDocumentVerified: status === 'verified'
+                } 
+            });
 
             console.log(`[Admin] Document status updated for ${user.name}: ${status}`);
 
@@ -177,8 +174,8 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             const user = await User.findOne({ userId });
             if (!user) return cb?.({ ok: false, error: 'User not found' });
 
-            user.walletBalance = (user.walletBalance || 0) + parseFloat(amount);
-            await user.save();
+            await User.updateOne({ userId }, { $inc: { walletBalance: parseFloat(amount) } });
+            const updatedUser = await User.findOne({ userId });
 
             // Notify user
             const targetSid = userSockets.get(user.userId);
@@ -410,31 +407,20 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             const user = await User.findOne({ userId });
             if (!user) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
 
+            const updateParams = {};
             if (finalAction === 'approve' || finalAction === 'approved') {
-                // Check for duplicate phone number
-                const duplicate = await User.findOne({ 
-                    phone: user.phone, 
-                    role: 'astrologer', 
-                    approvalStatus: 'approved',
-                    userId: { $ne: user.userId }
-                });
-
-                if (duplicate) {
-                    if (typeof cb === "function") return cb({ 
-                        ok: false, 
-                        error: `Duplicate Astrologer! A user with phone ${user.phone} is already approved as ${duplicate.name}. Please reject this request.` 
-                    });
-                }
-
-                user.approvalStatus = 'approved';
-                user.isVerified = true;
-                user.documentStatus = 'verified';
+                updateParams.approvalStatus = 'approved';
+                updateParams.isVerified = true;
+                updateParams.documentStatus = 'verified';
                 console.log(`[Admin] Approved astrologer: ${user.name}`);
             } else if (finalAction === 'reject' || finalAction === 'rejected') {
-                user.approvalStatus = 'rejected';
+                updateParams.approvalStatus = 'rejected';
                 console.log(`[Admin] Rejected astrologer: ${user.name}`);
             }
-            await user.save();
+
+            if (Object.keys(updateParams).length > 0) {
+                await User.updateOne({ userId }, { $set: updateParams });
+            }
             await broadcastAstroUpdate();
             broadcastAdminUpdate();
 
@@ -620,14 +606,16 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             const user = await User.findOne({ userId: data.userId });
             if (!user) return cb?.({ ok: false, error: 'User not found' });
 
-            user.isChatOnline = false;
-            user.isAudioOnline = false;
-            user.isVideoOnline = false;
-            user.isOnline = false;
-            user.isAvailable = false;
-            user.isBusy = false;
-
-            await user.save();
+            await User.updateOne({ userId: data.userId }, {
+                $set: {
+                    isChatOnline: false,
+                    isAudioOnline: false,
+                    isVideoOnline: false,
+                    isOnline: false,
+                    isAvailable: false,
+                    isBusy: false
+                }
+            });
             await broadcastAstroUpdate();
             broadcastAdminUpdate();
 
@@ -653,14 +641,16 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             if (!user) return cb?.({ ok: false, error: 'User not found' });
             if (user.role !== 'astrologer') return cb?.({ ok: false, error: 'Only astrologers can be forced online' });
 
-            user.isChatOnline = true;
-            user.isAudioOnline = true;
-            user.isVideoOnline = true;
-            user.isOnline = true;
-            user.isAvailable = !user.isBusy; // Online but check if already in a call
-            user.lastSeen = new Date();
-
-            await user.save();
+            await User.updateOne({ userId: data.userId }, {
+                $set: {
+                    isChatOnline: true,
+                    isAudioOnline: true,
+                    isVideoOnline: true,
+                    isOnline: true,
+                    isAvailable: !user.isBusy,
+                    lastSeen: new Date()
+                }
+            });
             await broadcastAstroUpdate();
             broadcastAdminUpdate();
 

@@ -11,7 +11,8 @@ data class SendOtpRequest(
 @Keep
 data class VerifyOtpRequest(
     val phone: String,
-    val otp: String
+    val otp: String,
+    val referralCode: String? = null
 )
 
 @Keep
