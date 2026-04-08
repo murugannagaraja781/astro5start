@@ -290,6 +290,9 @@ fun HomeScreen(
     var referralInput by remember { mutableStateOf("") }
     var isApplyingReferral by remember { mutableStateOf(false) }
 
+    // Config State
+    var appConfig by remember { mutableStateOf<JSONObject?>(null) }
+
     // History State
     var historySessions by remember { mutableStateOf<List<SessionHistoryItem>>(emptyList()) }
     var isHistoryLoading by remember { mutableStateOf(false) }
@@ -297,6 +300,16 @@ fun HomeScreen(
     // Reviews State
     var reviews by remember { mutableStateOf<List<ReviewItem>>(emptyList()) }
     var isReviewsLoading by remember { mutableStateOf(true) }
+
+    // Fetch Config on load
+    LaunchedEffect(Unit) {
+        try {
+            val res = ApiClient.api.getAppConfig()
+            if (res.isSuccessful && res.body() != null) {
+                appConfig = JSONObject(res.body().toString())
+            }
+        } catch (e: Exception) { e.printStackTrace() }
+    }
 
     val tokenManager = remember { TokenManager(context) }
     val userSession by remember { mutableStateOf(tokenManager.getUserSession()) }
@@ -452,6 +465,13 @@ fun HomeScreen(
 
 
     if (showReferralDialog) {
+        val uiTitle = appConfig?.optString("REFERRAL_TITLE_TA") ?: "🎁 பரிசு வெல்லுங்கள்!"
+        val uiSubtitle = appConfig?.optString("REFERRAL_SUBTITLE_TA") ?: "நண்பர்களை அழைத்து வாலட் பணத்தை அள்ளுங்கள்"
+        val uiStep1 = appConfig?.optString("REFERRAL_STEP1_TA") ?: "உங்கள் Referral Code-ஐ நண்பர்களுக்கு பகிருங்கள்."
+        val uiStep2 = appConfig?.optString("REFERRAL_STEP2_TA") ?: "உங்கள் நண்பர் இணைந்தவுடன் உங்களுக்கு ₹81 போனஸ் கிடைக்கும்!"
+        val uiWaMsg = appConfig?.optString("REFERRAL_WHATSAPP_MSG_TA") ?: "Astro 5 Star செயலியில் இணையுங்கள்! என் Referral Code: ${referralCode ?: ""}. இணைந்து ₹188 போனஸ் பெறுங்கள்: "
+        val appUrl = appConfig?.optString("APP_BASE_URL") ?: "https://play.google.com/store/apps/details?id=com.astro5star.app"
+
         AlertDialog(
             onDismissRequest = { showReferralDialog = false },
             confirmButton = {},
@@ -462,8 +482,8 @@ fun HomeScreen(
             },
             title = {
                  Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                     Text("🎁 பரிசு வெல்லுங்கள்!", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = PeacockGreen)
-                     Text("நண்பர்களை அழைத்து வாலட் பணத்தை அள்ளுங்கள்", fontSize = 12.sp, color = Color.Gray, textAlign = TextAlign.Center)
+                     Text(uiTitle, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = PeacockGreen)
+                     Text(uiSubtitle, fontSize = 12.sp, color = Color.Gray, textAlign = TextAlign.Center)
                  }
             },
             text = {
@@ -474,14 +494,14 @@ fun HomeScreen(
                             Box(contentAlignment = Alignment.Center) { Text("1", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text("உங்கள் Referral Code-ஐ நண்பர்களுக்கு பகிருங்கள்.", fontSize = 14.sp)
+                        Text(uiStep1, fontSize = 14.sp)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
                         Surface(shape = CircleShape, color = PeacockGreen, modifier = Modifier.size(24.dp)) {
                             Box(contentAlignment = Alignment.Center) { Text("2", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text("உங்கள் நண்பர் இணைந்தவுடன் உங்களுக்கு ₹20 போனஸ் கிடைக்கும்!", fontSize = 14.sp)
+                        Text(uiStep2, fontSize = 14.sp)
                     }
 
                     Spacer(modifier = Modifier.height(20.dp))
@@ -509,7 +529,7 @@ fun HomeScreen(
                     Button(
                         onClick = {
                             // Share via WhatsApp
-                            val msg = "Astro 5 Star செயலியில் இணையுங்கள்! என் Referral Code: ${referralCode ?: ""}. இணைந்து ₹10 போனஸ் பெறுங்கள்: https://play.google.com/store/apps/details?id=com.astro5star.app"
+                            val msg = "$uiWaMsg $appUrl"
                             val intent = Intent(Intent.ACTION_VIEW).apply {
                                 data = Uri.parse("https://api.whatsapp.com/send?text=${Uri.encode(msg)}")
                             }

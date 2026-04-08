@@ -30,7 +30,18 @@ let REFERRAL_CONFIG = {
     REFEREE_BONUS_REFERRAL: parseInt(process.env.REFEREE_BONUS_REFERRAL) || 188,
     REFERRER_REWARD: parseInt(process.env.REFERRER_REWARD) || 81,
     APP_BASE_URL: process.env.APP_BASE_URL || "https://play.google.com/store/apps/details?id=com.astro5star.app&pcampaignid=web_share",
-    FREE_CALL_DURATION: 3 // Default 3 minutes free
+    FREE_CALL_DURATION: 3, // Default 3 minutes free
+    // UI Text Config (Dynamic via Super Admin)
+    REFERRAL_TITLE_TA: "🎁 பரிசு வெல்லுங்கள்!",
+    REFERRAL_TITLE_EN: "🎁 Win Rewards!",
+    REFERRAL_SUBTITLE_TA: "நண்பர்களை அழைத்து வாலட் பணத்தை அள்ளுங்கள்",
+    REFERRAL_SUBTITLE_EN: "Invite friends and fill your wallet",
+    REFERRAL_STEP1_TA: "உங்கள் Referral Code-ஐ நண்பர்களுக்கு பகிருங்கள்.",
+    REFERRAL_STEP1_EN: "Share your Referral Code with friends.",
+    REFERRAL_STEP2_TA: "உங்கள் நண்பர் இணைந்தவுடன் உங்களுக்கு ₹81 போனஸ் கிடைக்கும்!",
+    REFERRAL_STEP2_EN: "Get ₹81 bonus when your friend joins!",
+    REFERRAL_WHATSAPP_MSG_TA: "Astro 5 Star செயலியில் இணையுங்கள்! இணைந்து ₹188 போனஸ் பெறுங்கள்: ",
+    REFERRAL_WHATSAPP_MSG_EN: "Join Astro 5 Star! Get ₹188 bonus: "
 };
 
 async function loadSlabRates() {
@@ -92,6 +103,7 @@ async function updateReferralConfig(newConfig) {
 }
 
 const paymentTokens = new Map();
+const phonepeV2Cache = { token: null, expiresAt: 0 };
 
 module.exports = {
     userSockets,
@@ -112,5 +124,6 @@ module.exports = {
     loadReferralConfig,
     updateReferralConfig,
     paymentTokens,
+    phonepeV2Cache,
     lastSeenCache
 };

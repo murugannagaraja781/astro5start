@@ -7,12 +7,18 @@ const { REFERRAL_CONFIG, updateReferralConfig } = require('../services/sharedSta
 // For now, we'll implement the logic safely.
 
 router.get('/referral-settings', (req, res) => {
-    res.json({ ok: true, config: REFERRAL_CONFIG });
+    res.json({ ok: true, data: REFERRAL_CONFIG });
 });
 
 router.post('/referral-settings', async (req, res) => {
     try {
-        const { REFEREE_BONUS_STANDARD, REFEREE_BONUS_REFERRAL, REFERRER_REWARD, APP_BASE_URL, FREE_CALL_DURATION, SUPPORT_CONTACT } = req.body;
+        const { 
+            REFEREE_BONUS_STANDARD, REFEREE_BONUS_REFERRAL, REFERRER_REWARD, 
+            APP_BASE_URL, FREE_CALL_DURATION, SUPPORT_CONTACT,
+            REFERRAL_TITLE_TA, REFERRAL_TITLE_EN, REFERRAL_SUBTITLE_TA, REFERRAL_SUBTITLE_EN,
+            REFERRAL_STEP1_TA, REFERRAL_STEP1_EN, REFERRAL_STEP2_TA, REFERRAL_STEP2_EN,
+            REFERRAL_WHATSAPP_MSG_TA, REFERRAL_WHATSAPP_MSG_EN
+        } = req.body;
         
         const config = {
             REFERREE_BONUS_STANDARD: parseInt(REFEREE_BONUS_STANDARD),
@@ -20,7 +26,10 @@ router.post('/referral-settings', async (req, res) => {
             REFERRER_REWARD: parseInt(REFERRER_REWARD),
             APP_BASE_URL: APP_BASE_URL,
             FREE_CALL_DURATION: parseInt(FREE_CALL_DURATION),
-            SUPPORT_CONTACT: SUPPORT_CONTACT
+            SUPPORT_CONTACT: SUPPORT_CONTACT,
+            REFERRAL_TITLE_TA, REFERRAL_TITLE_EN, REFERRAL_SUBTITLE_TA, REFERRAL_SUBTITLE_EN,
+            REFERRAL_STEP1_TA, REFERRAL_STEP1_EN, REFERRAL_STEP2_TA, REFERRAL_STEP2_EN,
+            REFERRAL_WHATSAPP_MSG_TA, REFERRAL_WHATSAPP_MSG_EN
         };
 
         const success = await updateReferralConfig(config);

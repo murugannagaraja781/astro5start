@@ -15,10 +15,16 @@ if (PHONEPE_MERCHANT_ID.startsWith('M23')) {
 }
 
 /**
- * 100% Working Auto-Fallback Payment Request
- * Tests all possible PhonePe Host Mappings sequentially until one succeeds.
+ * Initiates a Payment Request (Pure V1 Reference Implementation)
  */
 async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId) {
+    const endpoints = [
+        PHONEPE_HOST_URL,
+        "https://api.phonepe.com/apis/hermes",
+        "https://api.phonepe.com/apis/universal",
+        "https://api.phonepe.com"
+    ];
+
     const payload = {
         merchantId: PHONEPE_MERCHANT_ID,
         merchantTransactionId: merchantTransactionId,
@@ -34,61 +40,48 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
     const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
     const signaturePath = "/pg/v1/pay";
     const stringToSign = base64Payload + signaturePath + PHONEPE_SALT_KEY;
-    const checksum = crypto.createHash('sha256').update(stringToSign).digest('hex') + "###" + PHONEPE_SALT_INDEX;
+    const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
+    const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
-    // We will try every known PhonePe endpoint configuration
-    const endpointsToTry = [
-        "https://api.phonepe.com/apis/hermes",
-        "https://api.phonepe.com/apis/pg",
-        "https://api.phonepe.com/apis",
-        PHONEPE_HOST_URL 
-    ];
-
-    let lastError = null;
-    let fallbackData = null;
-
-    for (const baseHost of endpointsToTry) {
+    // TRY EACH ENDPOINT UNTIL SUCCESS OR EXHAUSTED
+    for (const baseHost of endpoints) {
         try {
-            // Clean host to prevent double /pg
-            const cleanHost = baseHost.replace(/\/pg\/?$/, "").replace(/\/hermes\/?$/, "").replace(/\/$/, "");
+            const cleanHost = baseHost.replace(/\/$/, "");
+            const url = `${cleanHost}${signaturePath}`;
+            console.log(`[PhonePe Probe] Trying -> ${url}`);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                timeout: 5000,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-VERIFY': checksum,
+                    'accept': 'application/json'
+                },
+                body: JSON.stringify({ request: base64Payload })
+            });
+
+            const data = await response.json();
             
-            // Generate exact test URLs for both standard and legacy systems
-            const urlsToTest = [
-                `${cleanHost}/hermes${signaturePath}`,
-                `${cleanHost}${signaturePath}`
-            ];
-
-            for (const testUrl of urlsToTest) {
-                console.log(`[PhonePe Probe] Testing -> ${testUrl}`);
-                const response = await fetch(testUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-VERIFY': checksum,
-                        'X-MERCHANT-ID': PHONEPE_MERCHANT_ID,
-                        'X-CLIENT-ID': PHONEPE_MERCHANT_ID, // Newer B2B accounts silently require this
-                        'accept': 'application/json'
-                    },
-                    body: JSON.stringify({ request: base64Payload })
-                });
-
-                const data = await response.json();
-                
-                 if (data.success && data.data && data.data.instrumentResponse) {
-                     console.log(`[PhonePe Probe] SUCCESS! Found active mapping at: ${testUrl}`);
-                     return { success: true, data: data.data };
-                 } else {
-                     fallbackData = data; // Store latest failure to return if all exhaust
-                     console.log(`[PhonePe Probe] Failed (${data.code}): ${JSON.stringify(data.message || data)}`);
-                 }
+            // If success, return immediately
+            if (data.success) {
+                console.log(`[PhonePe Success] Endpoint found: ${url}`);
+                return { success: true, data: data.data };
             }
+            
+            // If error is NOT a 404 mapping issue, but something else (like bad signature), stop and return that error
+            if (data.code !== "404" && data.message !== "Bad Request - Api Mapping Not Found") {
+                 console.warn(`[PhonePe Error] Stopped at ${url}: ${JSON.stringify(data)}`);
+                 return { success: false, data: data };
+            }
+
+            console.warn(`[PhonePe 404] Mapping rejected at ${url}, trying next...`);
         } catch (err) {
-            lastError = err.message;
+            console.error(`[PhonePe Probe] Error at ${baseHost}: ${err.message}`);
         }
     }
 
-    console.error(`[PhonePe Probe] ALL ENDPOINTS EXHAUSTED AND FAILED.`);
-    return { success: false, data: fallbackData, message: lastError || "All Endpoint mappings rejected." };
+    return { success: false, message: "All PhonePe production endpoints rejected for this Merchant ID." };
 }
 
 /**

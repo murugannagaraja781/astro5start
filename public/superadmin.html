@@ -967,11 +967,74 @@
                 </div>
             </div>
 
-            <div class="bg-white p-8 rounded-[2.5rem] border border-emerald-50 shadow-premium">
+            <div class="bg-white p-8 rounded-[2.5rem] border border-emerald-50 shadow-premium mb-10">
                 <div class="text-[10px] font-black uppercase tracking-widest text-brand-green mb-4 ml-2">Admin Support Contact (WhatsApp Number)</div>
                 <div class="flex gap-4">
                     <input type="text" id="admin-support-contact" class="flex-1 bg-emerald-50/30 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-bold text-slate-600 text-sm" placeholder="+919876543210">
                     <span class="bg-brand-green/10 px-6 py-5 rounded-2xl text-brand-green font-black flex items-center"><i class="fab fa-whatsapp"></i></span>
+                </div>
+            </div>
+
+            <!-- Referral UI Text Section -->
+            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-premium">
+                <h3 class="text-xl font-bold text-slate-800 mb-8 border-b pb-4">Referral Dialog UI Text</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <!-- Tamil Config -->
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-2 mb-2">
+                             <span class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-black text-xs">TA</span>
+                             <span class="font-black text-xs uppercase tracking-widest text-slate-400">Tamil Labels</span>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Main Title</label>
+                            <input type="text" id="ref-ui-title-ta" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-orange-400 focus:ring-0 font-bold text-slate-700" placeholder="🎁 பரிசு வெல்லுங்கள்!">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Subtitle</label>
+                            <input type="text" id="ref-ui-subtitle-ta" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-orange-400 focus:ring-0 font-bold text-slate-700" placeholder="நண்பர்களை அழைத்து வாலட் பணத்தை அள்ளுங்கள்">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Step 1 (Instruction)</label>
+                            <input type="text" id="ref-ui-step1-ta" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-orange-400 focus:ring-0 font-bold text-slate-700" placeholder="உங்கள் Referral Code-ஐ நண்பர்களுக்கு பகிருங்கள்.">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Step 2 (Reward Message)</label>
+                            <input type="text" id="ref-ui-step2-ta" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-orange-400 focus:ring-0 font-bold text-slate-700" placeholder="உங்கள் நண்பர் இணைந்தவுடன் உங்களுக்கு ₹81 போனஸ் கிடைக்கும்!">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">WhatsApp Share Message</label>
+                            <textarea id="ref-ui-wa-ta" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-orange-400 focus:ring-0 font-bold text-slate-700 h-24" placeholder="Join Astro 5 Star..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- English Config -->
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-2 mb-2">
+                             <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-black text-xs">EN</span>
+                             <span class="font-black text-xs uppercase tracking-widest text-slate-400">English Labels</span>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Main Title</label>
+                            <input type="text" id="ref-ui-title-en" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-blue-400 focus:ring-0 font-bold text-slate-700" placeholder="🎁 Win Rewards!">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Subtitle</label>
+                            <input type="text" id="ref-ui-subtitle-en" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-blue-400 focus:ring-0 font-bold text-slate-700" placeholder="Invite friends and fill your wallet">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Step 1 (Instruction)</label>
+                            <input type="text" id="ref-ui-step1-en" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-blue-400 focus:ring-0 font-bold text-slate-700" placeholder="Share your Referral Code with friends.">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Step 2 (Reward Message)</label>
+                            <input type="text" id="ref-ui-step2-en" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-blue-400 focus:ring-0 font-bold text-slate-700" placeholder="Get ₹81 bonus when your friend joins!">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">WhatsApp Share Message</label>
+                            <textarea id="ref-ui-wa-en" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-blue-400 focus:ring-0 font-bold text-slate-700 h-24" placeholder="Join Astro 5 Star..."></textarea>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -3236,6 +3299,18 @@
                     document.getElementById('ref-app-url').value = data.data.APP_BASE_URL;
                     document.getElementById('global-free-mins').value = data.data.FREE_CALL_DURATION || 3;
                     document.getElementById('admin-support-contact').value = data.data.SUPPORT_CONTACT || '+91';
+
+                    // UI Text fields
+                    document.getElementById('ref-ui-title-ta').value = data.data.REFERRAL_TITLE_TA || '';
+                    document.getElementById('ref-ui-title-en').value = data.data.REFERRAL_TITLE_EN || '';
+                    document.getElementById('ref-ui-subtitle-ta').value = data.data.REFERRAL_SUBTITLE_TA || '';
+                    document.getElementById('ref-ui-subtitle-en').value = data.data.REFERRAL_SUBTITLE_EN || '';
+                    document.getElementById('ref-ui-step1-ta').value = data.data.REFERRAL_STEP1_TA || '';
+                    document.getElementById('ref-ui-step1-en').value = data.data.REFERRAL_STEP1_EN || '';
+                    document.getElementById('ref-ui-step2-ta').value = data.data.REFERRAL_STEP2_TA || '';
+                    document.getElementById('ref-ui-step2-en').value = data.data.REFERRAL_STEP2_EN || '';
+                    document.getElementById('ref-ui-wa-ta').value = data.data.REFERRAL_WHATSAPP_MSG_TA || '';
+                    document.getElementById('ref-ui-wa-en').value = data.data.REFERRAL_WHATSAPP_MSG_EN || '';
                 }
             } catch (e) { console.error('Error loading referral settings:', e); }
         }
@@ -3247,7 +3322,18 @@
                 REFERRER_REWARD: parseInt(document.getElementById('ref-reward').value),
                 APP_BASE_URL: document.getElementById('ref-app-url').value,
                 FREE_CALL_DURATION: parseInt(document.getElementById('global-free-mins').value),
-                SUPPORT_CONTACT: document.getElementById('admin-support-contact').value
+                SUPPORT_CONTACT: document.getElementById('admin-support-contact').value,
+                
+                REFERRAL_TITLE_TA: document.getElementById('ref-ui-title-ta').value,
+                REFERRAL_TITLE_EN: document.getElementById('ref-ui-title-en').value,
+                REFERRAL_SUBTITLE_TA: document.getElementById('ref-ui-subtitle-ta').value,
+                REFERRAL_SUBTITLE_EN: document.getElementById('ref-ui-subtitle-en').value,
+                REFERRAL_STEP1_TA: document.getElementById('ref-ui-step1-ta').value,
+                REFERRAL_STEP1_EN: document.getElementById('ref-ui-step1-en').value,
+                REFERRAL_STEP2_TA: document.getElementById('ref-ui-step2-ta').value,
+                REFERRAL_STEP2_EN: document.getElementById('ref-ui-step2-en').value,
+                REFERRAL_WHATSAPP_MSG_TA: document.getElementById('ref-ui-wa-ta').value,
+                REFERRAL_WHATSAPP_MSG_EN: document.getElementById('ref-ui-wa-en').value
             };
 
             try {
