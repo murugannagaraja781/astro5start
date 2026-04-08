@@ -6,7 +6,18 @@ const fetch = require('node-fetch');
 const PHONEPE_MERCHANT_ID = (process.env.PHONEPE_MERCHANT_ID || "").trim();
 const PHONEPE_SALT_KEY = (process.env.PHONEPE_SALT_KEY || "").trim();
 const PHONEPE_SALT_INDEX = (process.env.PHONEPE_SALT_INDEX || "1").trim();
-const PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis/hermes").trim();
+let PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis/hermes").trim();
+
+// SMART HOST DETECTOR: Newer M23... IDs do not use /hermes. 
+// If we detect an M23 ID and a hermes URL, we fix it automatically.
+if (PHONEPE_MERCHANT_ID.startsWith('M23') && PHONEPE_HOST_URL.includes('/hermes')) {
+    console.log('[PhonePe] Smart Fix: Stripping /hermes for M23 merchant ID to prevent 404');
+    PHONEPE_HOST_URL = PHONEPE_HOST_URL.replace('/hermes', '/pg');
+}
+
+if (PHONEPE_HOST_URL.endsWith('/')) {
+    PHONEPE_HOST_URL = PHONEPE_HOST_URL.slice(0, -1);
+}
 
 /**
  * Initiates a V1 Pay Page Transaction
