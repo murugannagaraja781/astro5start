@@ -36,8 +36,15 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
         const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
         const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
-        console.log(`[PhonePe V1] Requesting: ${PHONEPE_HOST_URL}${endpoint}`);
-        console.log(`[PhonePe V1] OrderId: ${merchantTransactionId}, Amount: ${amountInPaisa} paisa`);
+        // DEBUG LOGS - Check these in PM2 logs
+        console.log(`[PhonePe Debug] Host: ${PHONEPE_HOST_URL}`);
+        console.log(`[PhonePe Debug] Endpoint: ${endpoint}`);
+        console.log(`[PhonePe Debug] MerchantId: "${PHONEPE_MERCHANT_ID}"`);
+        console.log(`[PhonePe Debug] SaltIndex: ${PHONEPE_SALT_INDEX}`);
+        
+        if (!PHONEPE_MERCHANT_ID || !PHONEPE_SALT_KEY) {
+            console.error("[PhonePe V1] FATAL: PHONEPE_MERCHANT_ID or PHONEPE_SALT_KEY is empty in .env!");
+        }
 
         const response = await fetch(`${PHONEPE_HOST_URL}${endpoint}`, {
             method: 'POST',
@@ -61,7 +68,7 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
                 }
             };
         } else {
-            console.error("[PhonePe V1] Error:", data);
+            console.error("[PhonePe V1] Error Response:", JSON.stringify(data));
             return { success: false, data: data };
         }
     } catch (err) {
