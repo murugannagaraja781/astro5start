@@ -79,21 +79,24 @@ const createPayment = async (req, res) => {
             userId
         );
 
-        if (phonepeResult.success) {
+        if (phonepeResult.success && phonepeResult.data && phonepeResult.data.instrumentResponse) {
+            const finalRedirectUrl = phonepeResult.data.instrumentResponse.redirectInfo.url;
             res.json({
                 ok: true,
-                paymentUrl: phonepeResult.data.redirectUrl,
-                payUrl: phonepeResult.data.redirectUrl,
-                merchantTransactionId: merchantTransactionId,
-                orderId: phonepeResult.data.orderId
+                url: finalRedirectUrl,
+                paymentUrl: finalRedirectUrl,
+                payUrl: finalRedirectUrl,
+                merchantTransactionId: merchantTransactionId
             });
         } else {
+            console.error("[PhonePe] Init Failed:", JSON.stringify(phonepeResult));
             res.json({ ok: false, error: 'Payment initialization failed' });
         }
     } catch (err) {
+        console.error("[Payment Init] Error:", err.message);
         res.status(500).json({ ok: false, error: err.message });
     }
-};
+}
 
 const verifyPaymentToken = async (req, res) => {
     try {

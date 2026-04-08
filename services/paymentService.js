@@ -6,26 +6,18 @@ const fetch = require('node-fetch');
 const PHONEPE_MERCHANT_ID = (process.env.PHONEPE_MERCHANT_ID || "").trim();
 const PHONEPE_SALT_KEY = (process.env.PHONEPE_SALT_KEY || "").trim();
 const PHONEPE_SALT_INDEX = (process.env.PHONEPE_SALT_INDEX || "1").trim();
-let PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis").trim();
-
-// SMART HOST DETECTOR: Handle hermes vs pg clusters
-if (PHONEPE_MERCHANT_ID.startsWith('M23')) {
-    // M23 IDs use the 'pg' cluster. We ensure the host is just the base domain.
-    PHONEPE_HOST_URL = "https://api.phonepe.com/apis";
-}
+let PHONEPE_HOST_URL = (process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis/hermes").trim();
 
 if (PHONEPE_HOST_URL.endsWith('/')) {
     PHONEPE_HOST_URL = PHONEPE_HOST_URL.slice(0, -1);
 }
 
 /**
- * Initiates a V1 Pay Page Transaction
+ * Initiates a Payment Request
  */
 async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId) {
     try {
         const endpoint = "/pg/v1/pay";
-        
-        // 1. CONSTRUCT PAYLOAD
         const payload = {
             merchantId: PHONEPE_MERCHANT_ID,
             merchantTransactionId: merchantTransactionId,
@@ -35,22 +27,15 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
             redirectMode: "REDIRECT",
             callbackUrl: `https://astro5star.com/api/payment/callback`,
             mobileNumber: userMobile,
-            paymentInstrument: {
-                type: "PAY_PAGE"
-            }
+            paymentInstrument: { type: "PAY_PAGE" }
         };
 
-        // 2. GENERATE BASE64 & CHECKSUM
         const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
         const stringToSign = base64Payload + endpoint + PHONEPE_SALT_KEY;
         const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
         const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
-        const url = `${PHONEPE_HOST_URL}${endpoint}`;
-        console.log(`[PhonePe V1] Initiating POST to: ${url}`);
-
-        // 3. API REQUEST
-        const response = await fetch(url, {
+        const response = await fetch(`${PHONEPE_HOST_URL}${endpoint}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -61,23 +46,9 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
         });
 
         const data = await response.json();
-
-        if (data.success && data.data && data.data.instrumentResponse) {
-            const redirectUrl = data.data.instrumentResponse.redirectInfo.url;
-            return {
-                success: true,
-                data: {
-                    redirectUrl: redirectUrl,
-                    orderId: merchantTransactionId
-                }
-            };
-        } else {
-            console.error("[PhonePe V1] API Error Response:", JSON.stringify(data));
-            return { success: false, data: data };
-        }
+        return { success: data.success, data: data.data || data };
     } catch (err) {
-        console.error("[PhonePe V1] Fatal Error:", err.message);
-        return { success: false, data: { message: err.message } };
+        return { success: false, message: err.message };
     }
 }
 
