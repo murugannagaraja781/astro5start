@@ -20,7 +20,7 @@ if (PHONEPE_MERCHANT_ID.startsWith("PGTEST")) {
     PHONEPE_HOST_URL = "https://api-preprod.phonepe.com/apis/pg-sandbox";
 }
 
-async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId, nestedLevel = 0) {
+async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId) {
     try {
         const endpoint = "/pg/v1/pay";
         const payload = {
@@ -38,28 +38,14 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
         };
 
         const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-        
-        // STANDARD PAY V1 SIGNATURE RULES:
-        // Most accounts require the signature path to be exactly "/pg/v1/pay" 
-        // regardless of whether the URL includes /hermes/ or /pg-sandbox/.
-        const signaturePath = "/pg/v1/pay";
-        const stringToSign = base64Payload + signaturePath + PHONEPE_SALT_KEY;
+        const stringToSign = base64Payload + endpoint + PHONEPE_SALT_KEY;
         const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
         const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
 
-        let currentUrl = `${PHONEPE_HOST_URL}${endpoint}`;
-        
-        if (nestedLevel === 1) {
-            currentUrl = "https://api.phonepe.com/apis/pg/v1/pay";
-        } else if (nestedLevel === 2) {
-            currentUrl = "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay";
-        }
+        const url = `${PHONEPE_HOST_URL}${endpoint}`;
+        console.log(`[PhonePe V1] Initiating: ${url} for merchant ${PHONEPE_MERCHANT_ID}`);
 
-        console.log(`[PhonePe Sign Debug] Payload: ${base64Payload.substring(0, 15)}...`);
-        console.log(`[PhonePe Sign Debug] Using Path for Sign: ${signaturePath}`);
-        console.log(`[PhonePe Sign Debug] Calling URL: ${currentUrl}`);
-
-        const response = await fetch(currentUrl, {
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -71,11 +57,6 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
 
         const data = await response.json();
 
-        // DEEP CHECK: If 404 or Mapping error, try next level
-        if ((data.code === '404' || data.message?.includes("Mapping Not Found")) && nestedLevel < 2) {
-            return await callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId, nestedLevel + 1);
-        }
-
         if (data.success && data.data && data.data.instrumentResponse) {
             const redirectUrl = data.data.instrumentResponse.redirectInfo.url;
             return {
@@ -86,7 +67,7 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
                 }
             };
         } else {
-            console.error("[PhonePe V1] Final Error Response:", JSON.stringify(data));
+            console.error("[PhonePe V1] Error Response:", JSON.stringify(data));
             return { success: false, data: data };
         }
     } catch (err) {
