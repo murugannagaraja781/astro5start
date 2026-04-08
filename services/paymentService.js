@@ -52,14 +52,21 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
             currentUrl = "https://api.phonepe.com/apis/pg/v1/pay";
             console.log(`[PhonePe Fallback 1] Trying Alternative Production: ${currentUrl}`);
         } else if (nestedLevel === 2) {
-            // TRY SANDBOX - many "M..." IDs are actually for test first
             currentUrl = "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay";
             console.log(`[PhonePe Fallback 2] Trying SANDBOX/UAT: ${currentUrl}`);
         }
 
-        const stringToSign = base64Payload + (currentUrl.includes("sandbox") ? "/pg/v1/pay" : "/pg/v1/pay") + PHONEPE_SALT_KEY;
+        // --- SIGNATURE FIX ---
+        // Extract the path after the domain for the signature (e.g., /apis/hermes/pg/v1/pay)
+        const urlObj = new URL(currentUrl);
+        const relativePath = urlObj.pathname;
+        
+        const stringToSign = base64Payload + relativePath + PHONEPE_SALT_KEY;
         const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
         const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
+
+        console.log(`[PhonePe Sign Debug] Using Path: ${relativePath}`);
+        console.log(`[PhonePe Sign Debug] Using Index: ${PHONEPE_SALT_INDEX}`);
 
         const response = await fetch(currentUrl, {
             method: 'POST',
