@@ -11,7 +11,7 @@ const getAstrologerReviews = async (req, res) => {
         const reviews = await Review.find({ 
             astrologerId: astro._id,
             isDeleted: false 
-        }).sort({ createdAt: -1 });
+        }).sort({ createdAt: -1 }).limit(3);
 
         res.json({ ok: true, data: reviews });
     } catch (err) {
@@ -25,7 +25,7 @@ const getActiveReviews = async (req, res) => {
         const reviews = await Review.find({ isDeleted: false })
             .populate('astrologerId', 'name image userId')
             .sort({ createdAt: -1 })
-            .limit(20);
+            .limit(3);
             
         res.json({ ok: true, reviews });
     } catch (err) {
