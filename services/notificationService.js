@@ -1,5 +1,6 @@
 // services/notificationService.js
 const { sendFcmV1Push } = require('./fcmService');
+const { sendSmsNotification } = require('./otpService');
 const User = require('../models/User');
 
 const notifyFollowersOfOnlineStatus = async (astrologerId) => {
@@ -9,28 +10,25 @@ const notifyFollowersOfOnlineStatus = async (astrologerId) => {
 
         console.log(`[Notification] Notifying ${astrologer.followers.length} followers of ${astrologer.name}'s online status.`);
 
-        const followers = await User.find({ userId: { $in: astrologer.followers } }).select('userId fcmToken').lean();
-        const tokens = followers.map(f => f.fcmToken).filter(t => !!t);
+        const followers = await User.find({ userId: { $in: astrologer.followers } }).select('userId fcmToken phone').lean();
+        
+        const smsMessage = `🌟 Astro 5 Star: ${astrologer.name} is now ONLINE. Tap to connect!`;
 
-        if (tokens.length === 0) return;
+        for (const follower of followers) {
+            // 1. Send Push
+            if (follower.fcmToken) {
+                const notification = {
+                    title: "🌟 Astrologer Online!",
+                    body: `${astrologer.name} is now online and available for consultation. Tap to connect!`
+                };
+                const data = { type: 'ASTRO_ONLINE', astrologerId: astrologer.userId, astrologerName: astrologer.name };
+                sendFcmV1Push(follower.fcmToken, data, notification).catch(() => {});
+            }
 
-        const notification = {
-            title: "🌟 Astrologer Online!",
-            body: `${astrologer.name} is now online and available for consultation. Tap to connect!`
-        };
-
-        const data = {
-            type: 'ASTRO_ONLINE',
-            astrologerId: astrologer.userId,
-            astrologerName: astrologer.name
-        };
-
-        // Send notifications one by one (or use multicast if supported by your SDK version, 
-        // but for safety in this environment, individual sends are more reliable)
-        for (const token of tokens) {
-            sendFcmV1Push(token, data, notification).catch(e => {
-                console.error(`[Notification] Failed to send to follower: ${e.message}`);
-            });
+            // 2. Send SMS
+            if (follower.phone) {
+                sendSmsNotification(follower.phone, smsMessage);
+            }
         }
 
     } catch (err) {
@@ -50,9 +48,12 @@ const notifyWaitlistUsers = async (astrologerId) => {
         console.log(`[Waitlist] Notifying ${pending.length} waitlisted users for ${astrologer.name}`);
 
         const clientIds = pending.map(p => p.clientId);
-        const clients = await User.find({ userId: { $in: clientIds } }).select('userId fcmToken').lean();
+        const clients = await User.find({ userId: { $in: clientIds } }).select('userId fcmToken phone').lean();
         
+        const smsMessage = `🔔 Astro 5 Star: ${astrologer.name} is now ONLINE. Your wait is over, connect now!`;
+
         for (const client of clients) {
+            // 1. Send Push
             if (client.fcmToken) {
                 const notification = {
                     title: "🔔 Astrologer Available!",
@@ -60,6 +61,11 @@ const notifyWaitlistUsers = async (astrologerId) => {
                 };
                 const data = { type: 'ASTRO_AVAILABLE', astrologerId: astrologer.userId };
                 sendFcmV1Push(client.fcmToken, data, notification).catch(e => {});
+            }
+
+            // 2. Send SMS
+            if (client.phone) {
+                sendSmsNotification(client.phone, smsMessage);
             }
         }
 
