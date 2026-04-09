@@ -180,7 +180,8 @@ const handleCallback = async (req, res) => {
                             superWalletBalance: bonusAmount 
                         },
                         $set: { isNewUser: false }
-                    }
+                    },
+                    { returnDocument: 'after' }
                 );
 
                 console.log(`[Wallet] Atomic Credit: ${rechargeAmount} (+${bonusAmount} bonus) to ${payment.userId}`);

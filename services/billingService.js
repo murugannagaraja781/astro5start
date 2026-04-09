@@ -204,7 +204,7 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
             const updatedClient = await User.findOneAndUpdate(
                 { userId: client.userId, walletBalance: { $gte: mainDeduct } },
                 { $inc: { walletBalance: -mainDeduct, superWalletBalance: -superDeduct } },
-                { new: true }
+                { returnDocument: 'after' }
             );
 
             if (!updatedClient) {
@@ -226,7 +226,7 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
             const updatedAstro = await User.findOneAndUpdate(
                 { userId: astro.userId },
                 { $inc: { walletBalance: astroAmount, totalEarnings: astroAmount } },
-                { new: true }
+                { returnDocument: 'after' }
             );
             if (updatedAstro) {
                 astro.walletBalance = updatedAstro.walletBalance;

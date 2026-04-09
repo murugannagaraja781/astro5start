@@ -19,7 +19,7 @@ const joinWaitlist = async (req, res) => {
         const waitlistEntry = await Waitlist.findOneAndUpdate(
             { clientId, astrologerId, status: 'pending' },
             { clientId, astrologerId, status: 'pending', createdAt: new Date() },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' }
         );
 
         res.json({ ok: true, message: 'You are on the waitlist! We will notify you when they are available.' });

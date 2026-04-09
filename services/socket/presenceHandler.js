@@ -335,7 +335,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
             const updatedUser = await User.findOneAndUpdate(
                 { userId },
                 { $set: updates },
-                { new: true, runValidators: true }
+                { returnDocument: 'after', runValidators: true }
             );
 
             if (updatedUser.role === 'astrologer') {
