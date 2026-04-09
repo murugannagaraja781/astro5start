@@ -75,50 +75,61 @@ function generateDummyData(date) {
 }
 
 async function fetchDailyHoroscope(date) {
-    const fileName = `horoscope_${date}.json`;
-    const url = `${BASE_URL}/${fileName}`;
-
     if (cache.has(date)) return cache.get(date);
 
-    try {
-        let response = await fetch(url);
-
-        if (!response.ok) {
-            console.log(`[Horoscope] Data for ${date} not found (${response.status}). Trying fallback...`);
-
-            const yesterday = DateTime.fromISO(date).minus({ days: 1 }).toFormat('yyyy-MM-dd');
-            const fallbackUrl = `${BASE_URL}/horoscope_${yesterday}.json`;
-            const fallbackRes = await fetch(fallbackUrl);
-
-            if (!fallbackRes.ok) {
-                console.warn(`[Horoscope] Fallback also failed for ${yesterday}. Generating dummy data...`);
-                const dummy = generateDummyData(date);
-                cache.set(date, dummy);
-                return dummy;
-            }
-
-            let data = await fallbackRes.json();
+    async function tryFetch(targetDate) {
+        const url = `${BASE_URL}/horoscope_${targetDate}.json`;
+        try {
+            const res = await fetch(url);
+            if (!res.ok) return null;
+            let data = await res.json();
             data = processHoroscopeData(data);
-            if (data) cache.set(date, data);
-            return data;
-        }
+            if (!data || !Array.isArray(data)) return null;
 
-        let data = await response.json();
-        data = processHoroscopeData(data);
-
-        if (data) {
-            cache.set(date, data);
-            // Cleanup old cache
-            if (cache.size > 5) {
-                const keys = Array.from(cache.keys()).sort();
-                while (cache.size > 5) cache.delete(keys.shift());
-            }
+            // NORMALIZE KEYS: Ensure forecast_ta exists even if prediction_ta is provided
+            return data.map(item => ({
+                ...item,
+                forecast_ta: item.forecast_ta || item.prediction_ta || item.prediction || '',
+                forecast_en: item.forecast_en || item.prediction_en || '',
+                career_ta: item.career_ta || '',
+                finance_ta: item.finance_ta || '',
+                health_ta: item.health_ta || '',
+                lucky_number: item.lucky_number || '1',
+                lucky_color_ta: item.lucky_color_ta || 'White',
+                lucky_color_en: item.lucky_color_en || 'White'
+            }));
+        } catch (e) {
+            return null;
         }
-        return data || generateDummyData(date);
-    } catch (error) {
-        console.error('[Horoscope] Critical error:', error.message);
-        return generateDummyData(date);
     }
+
+    // Attempt 1: Current Date
+    let finalData = await tryFetch(date);
+
+    // Attempt 2-4: Fallbacks (up to 3 days back)
+    if (!finalData) {
+        for (let i = 1; i <= 3; i++) {
+            const fallbackDate = DateTime.fromISO(date).minus({ days: i }).toFormat('yyyy-MM-dd');
+            console.log(`[Horoscope] Data for ${date} missing. Trying fallback: ${fallbackDate}`);
+            finalData = await tryFetch(fallbackDate);
+            if (finalData) break;
+        }
+    }
+
+    if (finalData) {
+        cache.set(date, finalData);
+        // Manage cache size
+        if (cache.size > 10) {
+            const keys = Array.from(cache.keys()).sort();
+            cache.delete(keys[0]);
+        }
+        return finalData;
+    }
+
+    console.warn(`[Horoscope] All fallbacks failed for ${date}. Generating dummy data...`);
+    const dummy = generateDummyData(date);
+    cache.set(date, dummy);
+    return dummy;
 }
 
 /**
