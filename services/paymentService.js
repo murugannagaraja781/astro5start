@@ -31,6 +31,7 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
             .digest('hex') + "###" + INDEX;
 
         const hosts = [
+            "https://api.phonepe.com/apis/u-pg",
             "https://api.phonepe.com/apis/hermes",
             "https://api.phonepe.com/apis/universal",
             "https://merchants.phonepe.com/apis/hermes",
