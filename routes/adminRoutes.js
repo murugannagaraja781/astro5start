@@ -43,4 +43,27 @@ router.post('/referral-settings', async (req, res) => {
     }
 });
 
+router.get('/recharge-settings', (req, res) => {
+    const { RECHARGE_PACKS } = require('../services/sharedState');
+    res.json({ ok: true, data: RECHARGE_PACKS });
+});
+
+router.post('/recharge-settings', async (req, res) => {
+    try {
+        const { packs } = req.body;
+        if (!Array.isArray(packs)) return res.status(400).json({ ok: false, message: 'Invalid packs data' });
+        
+        const { updateRechargePacks } = require('../services/sharedState');
+        const success = await updateRechargePacks(packs);
+        
+        if (success) {
+            res.json({ ok: true, message: 'Recharge packs updated successfully' });
+        } else {
+            res.status(500).json({ ok: false, message: 'Failed to update packs' });
+        }
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
 module.exports = router;

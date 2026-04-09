@@ -329,6 +329,9 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 if (data.profession) updates.profession = data.profession;
                 if (data.bio) updates.profession = data.bio; // Bio maps to profession in this schema
                 if (data.experience) updates.experience = parseInt(data.experience);
+                if (data.chatPrice) updates.chatPrice = parseInt(data.chatPrice);
+                if (data.audioPrice) updates.audioPrice = parseInt(data.audioPrice);
+                if (data.videoPrice) updates.videoPrice = parseInt(data.videoPrice);
             }
 
             // PERFORMANCE: Use findOneAndUpdate to get updated doc in one atomic op, avoiding VersionError

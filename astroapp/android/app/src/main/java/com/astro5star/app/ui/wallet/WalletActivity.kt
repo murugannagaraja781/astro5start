@@ -54,6 +54,7 @@ class WalletActivity : ComponentActivity() {
     private var bannerTitle by mutableStateOf<String?>(null)
     private var bannerSubtitle by mutableStateOf<String?>(null)
     private var ctaText by mutableStateOf<String?>(null)
+    private val rechargePacksState = mutableStateListOf<RechargePack>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,17 +68,18 @@ class WalletActivity : ComponentActivity() {
 
         setContent {
             CosmicAppTheme {
-                WalletScreen(
-                    balance = balanceState,
-                    superBalance = superBalanceState,
-                    transactions = transactionsState,
-                    bannerTitle = bannerTitle,
-                    bannerSubtitle = bannerSubtitle,
-                    ctaText = ctaText,
-                    onAddMoney = { amount, promo, percentage ->
-                        if (amount < 1) {
-                            Toast.makeText(this, getString(R.string.enter_valid_amount), Toast.LENGTH_SHORT).show()
-                        } else {
+                        WalletScreen(
+                            balance = balanceState,
+                            superBalance = superBalanceState,
+                            transactions = transactionsState,
+                            rechargePacks = rechargePacksState,
+                            bannerTitle = bannerTitle,
+                            bannerSubtitle = bannerSubtitle,
+                            ctaText = ctaText,
+                            onAddMoney = { amount, promo, percentage ->
+                                if (amount < 1) {
+                                    Toast.makeText(this, getString(R.string.enter_valid_amount), Toast.LENGTH_SHORT).show()
+                                } else {
                             val intent = Intent(this, com.astro5star.app.ui.payment.PaymentActivity::class.java)
                             intent.putExtra("amount", amount.toDouble())
                             intent.putExtra("offerPercentage", percentage)
@@ -93,6 +95,63 @@ class WalletActivity : ComponentActivity() {
         }
 
         loadPaymentHistory()
+        loadRechargePacks()
+    }
+
+    private fun loadRechargePacks() {
+        Thread {
+            try {
+                val request = Request.Builder()
+                    .url("https://astro5star.com/api/payment/recharge-packs")
+                    .get()
+                    .build()
+
+                val client = OkHttpClient()
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body?.string()
+                        val json = JSONObject(body ?: "{}")
+                        val packsArray = json.optJSONArray("packs")
+
+                        if (packsArray != null) {
+                            val newPacks = ArrayList<RechargePack>()
+                            for (i in 0 until packsArray.length()) {
+                                val obj = packsArray.getJSONObject(i)
+                                newPacks.add(
+                                    RechargePack(
+                                        obj.optInt("amount"),
+                                        obj.optString("bonusText"),
+                                        obj.optDouble("percentage")
+                                    )
+                                )
+                            }
+                            runOnUiThread {
+                                rechargePacksState.clear()
+                                rechargePacksState.addAll(newPacks)
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // Default fallback if server fails
+                runOnUiThread {
+                    if (rechargePacksState.isEmpty()) {
+                        rechargePacksState.addAll(listOf(
+                            RechargePack(50, "Get 5% Extra", 5.0),
+                            RechargePack(100, "Get 5% Extra", 5.0),
+                            RechargePack(500, "Get 10% Extra", 10.0),
+                            RechargePack(1000, "Get 10% Extra", 10.0),
+                            RechargePack(200, "Get 10% Extra", 10.0),
+                            RechargePack(5000, "Get 20% Extra", 20.0),
+                            RechargePack(2000, "Get 15% Extra", 15.0),
+                            RechargePack(20, "Get 5% Extra", 5.0),
+                            RechargePack(1, "Get 1% Extra", 1.0)
+                        ))
+                    }
+                }
+            }
+        }.start()
     }
 
     override fun onResume() {
@@ -187,6 +246,7 @@ fun WalletScreen(
     balance: Double,
     superBalance: Double = 0.0,
     transactions: List<JSONObject>,
+    rechargePacks: List<RechargePack>,
     bannerTitle: String? = null,
     bannerSubtitle: String? = null,
     ctaText: String? = null,
@@ -197,17 +257,8 @@ fun WalletScreen(
     val astroYellow = Color(0xFFFFEB3B) // Bright Yellow from screenshot
     val astroBlack = Color(0xFF1A1A1A)
 
-    val rechargePacks = listOf(
-        RechargePack(50, "Get 5% Extra", 5.0),
-        RechargePack(100, "Get 5% Extra", 5.0),
-        RechargePack(500, "Get 10% Extra", 10.0),
-        RechargePack(1000, "Get 10% Extra", 10.0),
-        RechargePack(200, "Get 10% Extra", 10.0),
-        RechargePack(5000, "Get 20% Extra", 20.0),
-        RechargePack(2000, "Get 15% Extra", 15.0),
-        RechargePack(20, "Get 5% Extra", 5.0),
-        RechargePack(1, "Get 1% Extra", 1.0)
-    )
+    // Using the rechargePacks passed from the activity
+    // val rechargePacks = listOf(...) // removed hardcoded list
 
     Scaffold(
         topBar = {

@@ -25,6 +25,18 @@ let SLAB_RATES = {
     4: 0.50
 };
 
+let RECHARGE_PACKS = [
+    { amount: 50, bonusText: "Get 5% Extra", percentage: 5.0 },
+    { amount: 100, bonusText: "Get 5% Extra", percentage: 5.0 },
+    { amount: 500, bonusText: "Get 10% Extra", percentage: 10.0 },
+    { amount: 1000, bonusText: "Get 10% Extra", percentage: 10.0 },
+    { amount: 200, bonusText: "Get 10% Extra", percentage: 10.0 },
+    { amount: 5000, bonusText: "Get 20% Extra", percentage: 20.0 },
+    { amount: 2000, bonusText: "Get 15% Extra", percentage: 15.0 },
+    { amount: 20, bonusText: "Get 5% Extra", percentage: 5.0 },
+    { amount: 1, bonusText: "Get 1% Extra", percentage: 1.0 }
+];
+
 let REFERRAL_CONFIG = {
     REFEREE_BONUS_STANDARD: parseInt(process.env.REFEREE_BONUS_STANDARD) || 108,
     REFEREE_BONUS_REFERRAL: parseInt(process.env.REFEREE_BONUS_REFERRAL) || 188,
@@ -104,6 +116,42 @@ async function updateReferralConfig(newConfig) {
     }
 }
 
+async function loadRechargePacks() {
+    try {
+        const GlobalSettings = require('../models/GlobalSettings');
+        const doc = await GlobalSettings.findOne({ key: 'RECHARGE_PACKS' });
+        if (doc && doc.value) {
+            RECHARGE_PACKS = doc.value;
+            console.log('✓ Recharge packs loaded from DB');
+        } else {
+            // Save defaults if not exist
+            await GlobalSettings.findOneAndUpdate(
+                { key: 'RECHARGE_PACKS' },
+                { value: RECHARGE_PACKS },
+                { upsert: true }
+            );
+        }
+    } catch (e) {
+        console.error('Error loading recharge packs:', e);
+    }
+}
+
+async function updateRechargePacks(newPacks) {
+    try {
+        const GlobalSettings = require('../models/GlobalSettings');
+        RECHARGE_PACKS = newPacks;
+        await GlobalSettings.findOneAndUpdate(
+            { key: 'RECHARGE_PACKS' },
+            { value: RECHARGE_PACKS },
+            { upsert: true, returnDocument: 'after' }
+        );
+        return true;
+    } catch (e) {
+        console.error('Error updating recharge packs:', e);
+        return false;
+    }
+}
+
 const paymentTokens = new Map();
 const phonepeV2Cache = { token: null, expiresAt: 0 };
 
@@ -125,6 +173,9 @@ module.exports = {
     REFERRAL_CONFIG,
     loadReferralConfig,
     updateReferralConfig,
+    RECHARGE_PACKS,
+    loadRechargePacks,
+    updateRechargePacks,
     paymentTokens,
     phonepeV2Cache,
     lastSeenCache

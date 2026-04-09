@@ -393,15 +393,20 @@ class FCMService : FirebaseMessagingService() {
             }
             notificationManager.createNotificationChannel(callChannel)
 
-            // 2. Chat Channel (Default Importance - less intrusive)
+            // 2. Chat Channel (High Importance - ensure sound plays)
             val chatChannel = NotificationChannel(
                 CHAT_CHANNEL_ID,
                 CHAT_CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Notifications for chat messages"
                 enableVibration(true)
                 setShowBadge(true)
+                val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                setSound(soundUri, AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build())
             }
             notificationManager.createNotificationChannel(chatChannel)
 
@@ -459,6 +464,8 @@ class FCMService : FirebaseMessagingService() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setContentIntent(pendingIntent)
+            .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+            .setVibrate(longArrayOf(0, 250, 250, 250))
             .setAutoCancel(true)
             .build()
 

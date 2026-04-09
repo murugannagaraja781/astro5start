@@ -13,5 +13,6 @@ router.all('/callback', paymentController.handleCallback);
 router.post('/phonepe/sign', paymentController.signPhonePe);
 router.get('/phonepe/status/:transactionId', paymentController.checkPaymentStatus);
 router.get('/history/:userId', paymentController.getPaymentHistory);
+router.get('/recharge-packs', paymentController.getRechargePacks);
 
 module.exports = router;

@@ -43,9 +43,10 @@ const { initFcmAuth } = require('./services/fcmService');
 // Connect to Database
 // Connect to Database
 connectDB().then(async () => {
-  const { loadSlabRates, loadReferralConfig } = require('./services/sharedState');
+  const { loadSlabRates, loadReferralConfig, loadRechargePacks } = require('./services/sharedState');
   loadSlabRates();
   loadReferralConfig();
+  loadRechargePacks();
 
   // Cleanup: Reset isBusy for all users on startup to prevent stale states
   // PERFORMANCE FIX: Delayed to avoid blocking initial server boot

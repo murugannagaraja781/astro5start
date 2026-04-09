@@ -148,12 +148,10 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
         if (!client) return;
 
         let pricePerMin = 10;
-        if (astro.price && astro.price > 0) {
-            pricePerMin = parseInt(astro.price);
-        } else {
-            if (session.type === 'audio') pricePerMin = 15;
-            if (session.type === 'video') pricePerMin = 20;
-        }
+        if (session.type === 'chat') pricePerMin = astro.chatPrice || 10;
+        else if (session.type === 'audio') pricePerMin = astro.audioPrice || 20;
+        else if (session.type === 'video') pricePerMin = astro.videoPrice || 30;
+        else if (astro.price && astro.price > 0) pricePerMin = parseInt(astro.price);
 
         let totalToClientDeduct = 0;
         let adminAmount = 0;

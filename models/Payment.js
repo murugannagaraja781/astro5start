@@ -5,7 +5,8 @@ const PaymentSchema = new mongoose.Schema({
     merchantTransactionId: String, // For PhonePe callback matching
     userId: String,
     amount: Number, // Total amount paid (including GST)
-    baseAmount: Number, // Original recharge amount
+    baseAmount: Number, // Original recharge amount (net of discounts)
+    creditedAmount: Number, // The actual balance to add to wallet (e.g. 50 even if user paid 45)
     gstAmount: Number, // GST @ 18%
     withGst: { type: Boolean, default: false },
     status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },

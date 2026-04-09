@@ -10,6 +10,7 @@ const createPayment = async (req, res) => {
     try {
         let { amount, userId, isApp, isSuperWallet, offerPercentage, couponCode, token } = req.body;
         let baseAmount = 0;
+        let creditedAmount = 0;
         let gstAmount = 0;
         let couponBonus = 0;
 
@@ -29,9 +30,11 @@ const createPayment = async (req, res) => {
             userId = tokenData.userId;
             amount = tokenData.amount;
             baseAmount = tokenData.baseAmount || amount;
+            creditedAmount = tokenData.creditedAmount || baseAmount;
             gstAmount = tokenData.gstAmount || 0;
         } else {
             baseAmount = parseFloat(amount || 0);
+            creditedAmount = baseAmount; // Default is 1:1
             gstAmount = baseAmount * 0.18;
             amount = baseAmount + gstAmount;
         }
@@ -50,8 +53,15 @@ const createPayment = async (req, res) => {
             const code = couponCode.toUpperCase().trim();
             if (code === 'WELCOME50') couponBonus = baseAmount * 0.50;
         } else if (offerPercentage > 0) {
-            couponBonus = baseAmount * (offerPercentage / 100);
+            // Treat offerPercentage as a DIRECT DISCOUNT on the base amount (as requested: Pay 45 instead of 50)
+            const discountAmount = baseAmount * (offerPercentage / 100);
+            baseAmount = baseAmount - discountAmount;
+            couponBonus = 0; // No extra bonus added if discount was applied at checkout
         }
+
+        // Recalculate everything based on discounted baseAmount
+        gstAmount = baseAmount * 0.18;
+        amount = baseAmount + gstAmount;
 
         await Payment.create({
             transactionId: merchantTransactionId,
@@ -59,6 +69,7 @@ const createPayment = async (req, res) => {
             userId,
             amount,
             baseAmount,
+            creditedAmount,
             gstAmount,
             status: 'pending',
             withGst: true,
@@ -168,7 +179,7 @@ const handleCallback = async (req, res) => {
                 payment.providerRefId = statusResult.data.providerReferenceId;
                 await payment.save();
 
-                const rechargeAmount = payment.baseAmount || 0;
+                const rechargeAmount = payment.creditedAmount || payment.baseAmount || 0;
                 const bonusAmount = payment.couponBonus || 0;
 
                 // ATOMIC UPDATE: Ensure recharges are never lost due to race conditions
@@ -184,7 +195,7 @@ const handleCallback = async (req, res) => {
                     { returnDocument: 'after' }
                 );
 
-                console.log(`[Wallet] Atomic Credit: ${rechargeAmount} (+${bonusAmount} bonus) to ${payment.userId}`);
+                console.log(`[Wallet] Atomic Credit: ${rechargeAmount} (Intended: ${payment.creditedAmount}, PaidBase: ${payment.baseAmount}) (+${bonusAmount} bonus) to ${payment.userId}`);
             }
         } else if (statusResult.code === "PAYMENT_ERROR" || statusResult.code === "PAYMENT_DECLINED") {
             if (payment.status === 'pending') {
@@ -222,6 +233,7 @@ const getPaymentToken = async (req, res) => {
             userId,
             amount: totalAmount,
             baseAmount,
+            creditedAmount: baseAmount,
             gstAmount,
             couponCode,
             createdAt: Date.now(),
@@ -291,6 +303,15 @@ const getPaymentHistory = async (req, res) => {
     }
 };
 
+const getRechargePacks = async (req, res) => {
+    try {
+        const { RECHARGE_PACKS } = require('../services/sharedState');
+        res.json({ ok: true, packs: RECHARGE_PACKS });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
 module.exports = { 
     createPayment, 
     handleCallback, 
@@ -299,5 +320,6 @@ module.exports = {
     validateCoupon,
     signPhonePe,
     checkPaymentStatus,
-    getPaymentHistory
+    getPaymentHistory,
+    getRechargePacks
 };
