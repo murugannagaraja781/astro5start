@@ -43,37 +43,47 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
             "/v1/pay"
         ];
 
+        const instruments = [
+            { type: "PAY_PAGE" },
+            { type: "UPI_INTENT", targetApp: "com.phonepe.app" }
+        ];
+
         for (const host of hosts) {
             for (const signaturePath of paths) {
-                try {
-                    const checksum = crypto.createHash('sha256')
-                        .update(base64Payload + signaturePath + KEY)
-                        .digest('hex') + "###" + INDEX;
+                for (const instrument of instruments) {
+                    try {
+                        const currentPayload = { ...payload, paymentInstrument: instrument };
+                        const currentBase64Payload = Buffer.from(JSON.stringify(currentPayload)).toString('base64');
                         
-                    const url = `${host}${signaturePath}`;
-                    console.log(`[PhonePe V1] Trying -> ${url}`);
-                    
-                    const res = await fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-VERIFY': checksum,
-                            'X-MERCHANT-ID': MID,
-                            'accept': 'application/json',
-                            'X-CALLBACK-URL': redirectUrl
-                        },
-                        body: JSON.stringify({ request: base64Payload })
-                    });
+                        const checksum = crypto.createHash('sha256')
+                            .update(currentBase64Payload + signaturePath + KEY)
+                            .digest('hex') + "###" + INDEX;
+                            
+                        const url = `${host}${signaturePath}`;
+                        console.log(`[PhonePe V1] Trying -> ${url} with ${instrument.type}`);
+                        
+                        const res = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-VERIFY': checksum,
+                                'X-MERCHANT-ID': MID,
+                                'accept': 'application/json',
+                                'X-CALLBACK-URL': redirectUrl
+                            },
+                            body: JSON.stringify({ request: currentBase64Payload })
+                        });
 
-                    const data = await res.json();
-                    
-                    if (data.success) {
-                        console.log(`✓ [PhonePe V1] Success using -> ${url}`);
-                        return { success: true, data: data.data };
-                    }
-                    
-                    console.warn(`[PhonePe V1] ${url} Error: ${data.message || data.code}`);
-                } catch (err) { }
+                        const data = await res.json();
+                        
+                        if (data.success) {
+                            console.log(`✓ [PhonePe V1] Success using -> ${url} (${instrument.type})`);
+                            return { success: true, data: data.data };
+                        }
+                        
+                        console.warn(`[PhonePe V1] ${url} (${instrument.type}) Error: ${data.message || data.code}`);
+                    } catch (err) { }
+                }
             }
         }
 
