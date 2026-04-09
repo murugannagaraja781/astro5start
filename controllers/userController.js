@@ -35,7 +35,11 @@ const getUserProfile = async (req, res) => {
             totalEarnings: user.totalEarnings || 0,
             image: formatImageUrl((user.role === 'astrologer' && !user.image) ? user.pendingImage : user.image, user.name),
             referralCode: user.referralCode,
-            isNewUser: user.isNewUser
+            isNewUser: user.isNewUser,
+            supportContact: {
+                whatsapp: require('../services/sharedState').REFERRAL_CONFIG.SUPPORT_WHATSAPP,
+                email: require('../services/sharedState').REFERRAL_CONFIG.SUPPORT_EMAIL
+            }
         });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });

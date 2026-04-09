@@ -285,32 +285,23 @@ class AstrologerDashboardActivity : ComponentActivity() {
 }
 
 // Helper function to update individual service status
-suspend fun updateServiceStatus(userId: String, service: String, enabled: Boolean) {
+suspend fun updateServiceStatus(context: android.content.Context, userId: String, service: String, enabled: Boolean) {
     try {
         if (enabled) {
+            // Start Foreground Service to keep app alive
+            com.astro5star.app.AstrologerStatusService.startService(context, userId)
+
             // Fetch token first, then update status with token
             com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
                 val token = if (task.isSuccessful) task.result else null
-
-                // Use SocketManager for real-time updates with token
                 com.astro5star.app.data.remote.SocketManager.updateServiceStatus(userId, service, enabled, token)
-
-                if (token != null) {
-                    // Also ensure secondary registration for reliability
-                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-                        try {
-                            com.astro5star.app.data.api.ApiService.register(com.astro5star.app.utils.Constants.SERVER_URL, userId, token)
-                        } catch (e: Exception) { e.printStackTrace() }
-                    }
-                }
             }
-
-            // Ensure socket is initialized and registered
             com.astro5star.app.data.remote.SocketManager.init()
             com.astro5star.app.data.remote.SocketManager.registerUser(userId)
         } else {
-            // Just update status as offline
             com.astro5star.app.data.remote.SocketManager.updateServiceStatus(userId, service, enabled)
+            // Note: We don't stop service here immediately because other services might still be online.
+            // A more robust check could be added in the UI layer.
         }
     } catch (e: Exception) {
         e.printStackTrace()
@@ -889,13 +880,13 @@ fun AstrologerDashboardScreen(
 
                             isChatOnline = true
                             scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                                updateServiceStatus(sessionId, "chat", true)
+                                updateServiceStatus(context, sessionId, "chat", true)
                             }
                         }
                     } else {
                         isChatOnline = false
                         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                            updateServiceStatus(sessionId, "chat", false)
+                            updateServiceStatus(context, sessionId, "chat", false)
                         }
                     }
                 },
@@ -917,13 +908,13 @@ fun AstrologerDashboardScreen(
                         } else {
                             isAudioOnline = true
                             scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                                updateServiceStatus(sessionId, "audio", true)
+                                updateServiceStatus(context, sessionId, "audio", true)
                             }
                         }
                     } else {
                         isAudioOnline = false
                         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                            updateServiceStatus(sessionId, "audio", false)
+                            updateServiceStatus(context, sessionId, "audio", false)
                         }
                     }
                 },
@@ -948,14 +939,14 @@ fun AstrologerDashboardScreen(
                             } else {
                                 isVideoOnline = true
                                 scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                                    updateServiceStatus(sessionId, "video", true)
+                                    updateServiceStatus(context, sessionId, "video", true)
                                 }
                             }
                         }
                     } else {
                         isVideoOnline = false
                         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                            updateServiceStatus(sessionId, "video", false)
+                            updateServiceStatus(context, sessionId, "video", false)
                         }
                     }
                 }

@@ -166,20 +166,22 @@ const handleCallback = async (req, res) => {
                 payment.providerRefId = statusResult.data.providerReferenceId;
                 await payment.save();
 
-                const user = await User.findOne({ userId: payment.userId });
-                if (user) {
-                    const rechargeAmount = payment.baseAmount || 0;
-                    const bonusAmount = payment.couponBonus || 0;
+                const rechargeAmount = payment.baseAmount || 0;
+                const bonusAmount = payment.couponBonus || 0;
 
-                    user.walletBalance = (user.walletBalance || 0) + rechargeAmount;
-                    if (bonusAmount > 0) {
-                        user.superWalletBalance = (user.superWalletBalance || 0) + bonusAmount;
+                // ATOMIC UPDATE: Ensure recharges are never lost due to race conditions
+                await User.findOneAndUpdate(
+                    { userId: payment.userId },
+                    { 
+                        $inc: { 
+                            walletBalance: rechargeAmount, 
+                            superWalletBalance: bonusAmount 
+                        },
+                        $set: { isNewUser: false }
                     }
-                    user.isNewUser = false;
-                    await user.save();
+                );
 
-                    console.log(`[Wallet] Credited ${rechargeAmount} (+${bonusAmount} bonus) to ${user.userId}`);
-                }
+                console.log(`[Wallet] Atomic Credit: ${rechargeAmount} (+${bonusAmount} bonus) to ${payment.userId}`);
             }
         } else if (statusResult.code === "PAYMENT_ERROR" || statusResult.code === "PAYMENT_DECLINED") {
             if (payment.status === 'pending') {

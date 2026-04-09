@@ -606,6 +606,28 @@ fun HomeScreen(
     ) {
         Scaffold(
             containerColor = RoyalMidnightBlue,
+            floatingActionButton = {
+                // WHATSAPP SUPPORT FAB
+                FloatingActionButton(
+                    onClick = {
+                        val whatsappNum = appConfig?.optString("SUPPORT_WHATSAPP") ?: "919999999999"
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            data = Uri.parse("https://wa.me/$whatsappNum?text=Hi, I need support with Astro 5 Star app.")
+                        }
+                        context.startActivity(intent)
+                    },
+                    containerColor = Color(0xFF25D366),
+                    contentColor = Color.White,
+                    shape = CircleShape,
+                    modifier = Modifier.padding(bottom = 60.dp) // Lift above bottom bar if needed
+                ) {
+                    Icon(
+                        painter = painterResource(id = android.R.drawable.stat_notify_chat), // Placeholder or use WhatsApp icon if available
+                        contentDescription = "Support",
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            },
             topBar = {
                 HomeTopBar(
                     balance = walletBalance,
@@ -794,6 +816,56 @@ fun SupportAndPoliciesSection() {
             PolicyLink("Return Policy", "$baseUrl/return-policy.html", context)
             PolicyLink("Shipping Policy", "$baseUrl/shipping-policy.html", context)
         }
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+             SupportIcon(icon = android.R.drawable.stat_notify_chat, label = "WhatsApp") {
+                 val intent = Intent(Intent.ACTION_VIEW).apply {
+                     data = Uri.parse("https://wa.me/919999999999?text=Support")
+                 }
+                 context.startActivity(intent)
+             }
+             SupportIcon(icon = android.R.drawable.ic_menu_call, label = "Call") {
+                 val intent = Intent(Intent.ACTION_DIAL).apply {
+                     data = Uri.parse("tel:+919999999999")
+                 }
+                 context.startActivity(intent)
+             }
+             SupportIcon(icon = android.R.drawable.ic_dialog_email, label = "Email") {
+                 val intent = Intent(Intent.ACTION_SENDTO).apply {
+                     data = Uri.parse("mailto:support@astro5star.com")
+                 }
+                 context.startActivity(intent)
+             }
+        }
+    }
+}
+
+@Composable
+fun SupportIcon(icon: Int, label: String, onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable(onClick = onClick)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .background(Color.White.copy(alpha = 0.1f), CircleShape)
+                .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(id = icon),
+                contentDescription = label,
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Text(label, color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+    }
+}
         Spacer(modifier = Modifier.height(12.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),

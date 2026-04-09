@@ -224,6 +224,12 @@
             android:exported="false"
             android:foregroundServiceType="phoneCall|microphone" />
 
+        <service
+            android:name=".AstrologerStatusService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            tools:ignore="ForegroundServiceType" />
+
         <!-- Required meta-data for FCM default notification channel -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"

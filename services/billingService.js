@@ -190,49 +190,48 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
         }
 
         if (totalToClientDeduct > 0) {
-            if (client.walletBalance < totalToClientDeduct) {
-                return forceEndSession(sessionId, 'insufficient_funds', io);
-            }
-
             let mainDeduct = totalToClientDeduct;
             let superDeduct = 0;
 
-            // Super Wallet Logic (30% discount/pay)
-            let potentialSuperDeduct = totalToClientDeduct * 0.3;
+            // Logic remains for calculation, but update must be atomic
             if (client.superWalletBalance > 0) {
-                if (client.superWalletBalance >= potentialSuperDeduct) {
-                    superDeduct = potentialSuperDeduct;
-                } else {
-                    superDeduct = client.superWalletBalance;
-                }
-                client.superWalletBalance -= superDeduct;
+                const potentialSuperDeduct = totalToClientDeduct * 0.3;
+                superDeduct = Math.min(client.superWalletBalance, potentialSuperDeduct);
                 mainDeduct = totalToClientDeduct - superDeduct;
             }
 
-            client.walletBalance -= mainDeduct;
-            await User.updateOne({ userId: client.userId }, { 
-                $set: { 
-                    walletBalance: client.walletBalance,
-                    superWalletBalance: client.superWalletBalance 
-                } 
-            });
+            // ATOMIC UPDATE: No more race conditions
+            const updatedClient = await User.findOneAndUpdate(
+                { userId: client.userId, walletBalance: { $gte: mainDeduct } },
+                { $inc: { walletBalance: -mainDeduct, superWalletBalance: -superDeduct } },
+                { new: true }
+            );
 
-            // Mark as done so we know they had their first call for analytics
+            if (!updatedClient) {
+                console.warn(`[Billing] Potential double-charge or insufficient funds during atomic update sid=${sessionId}`);
+                return forceEndSession(sessionId, 'insufficient_funds', io);
+            }
+            
+            // Use updated balance for next steps
+            client.walletBalance = updatedClient.walletBalance;
+            client.superWalletBalance = updatedClient.superWalletBalance;
+
             if (minuteIndex === 1 && !client.isFirstCallDone) {
                 await User.updateOne({ userId: client.userId }, { $set: { isFirstCallDone: true } });
-                client.isFirstCallDone = true;
             }
         }
 
         if (astroAmount > 0) {
-            astro.walletBalance += astroAmount;
-            astro.totalEarnings = (astro.totalEarnings || 0) + astroAmount;
-            await User.updateOne({ userId: astro.userId }, {
-                $set: {
-                    walletBalance: astro.walletBalance,
-                    totalEarnings: astro.totalEarnings
-                }
-            });
+            // ATOMIC UPDATE: No more race conditions
+            const updatedAstro = await User.findOneAndUpdate(
+                { userId: astro.userId },
+                { $inc: { walletBalance: astroAmount, totalEarnings: astroAmount } },
+                { new: true }
+            );
+            if (updatedAstro) {
+                astro.walletBalance = updatedAstro.walletBalance;
+                astro.totalEarnings = updatedAstro.totalEarnings;
+            }
         }
 
         // Create Ledger Record
