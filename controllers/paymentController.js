@@ -4,7 +4,7 @@ const User = require('../models/User');
 const BillingLedger = require('../models/BillingLedger');
 const { paymentTokens } = require('../services/sharedState');
 const { callPhonePePayV1, checkPhonePeStatus } = require('../services/paymentService');
-const crypto = require('crypto');
+const { v4: uuidv4 } = require('uuid');
 
 const createPayment = async (req, res) => {
     try {
@@ -42,7 +42,7 @@ const createPayment = async (req, res) => {
         const rawPhone = (userObj && userObj.phone) ? userObj.phone : "9999999999";
         const userMobile = rawPhone.replace(/[^0-9]/g, '').slice(-10);
 
-        const merchantTransactionId = "MT" + Date.now() + Math.floor(Math.random() * 1000);
+        const merchantTransactionId = "MT" + uuidv4().replace(/-/g, '').substring(0, 18);
         const redirectUrl = `https://astro5star.com/api/payment/callback`;
 
         if (couponCode) {
