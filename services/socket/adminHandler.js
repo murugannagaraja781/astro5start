@@ -140,11 +140,11 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             const user = await User.findOne({ userId });
             if (!user) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
 
-            await User.updateOne({ userId }, { 
-                $set: { 
+            await User.updateOne({ userId }, {
+                $set: {
                     documentStatus: status,
                     isDocumentVerified: status === 'verified'
-                } 
+                }
             });
 
             console.log(`[Admin] Document status updated for ${user.name}: ${status}`);
@@ -257,7 +257,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 updateFields.pendingImage = '';
                 updateFields.photoStatus = 'rejected';
             }
-            
+
             await User.updateOne({ userId }, { $set: updateFields });
             const updatedUser = await User.findOne({ userId });
 
@@ -276,9 +276,9 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 });
             }
             cb?.({ ok: true });
-        } catch (e) { 
+        } catch (e) {
             console.error('[Admin] Photo Approval Error:', e);
-            cb?.({ ok: false }); 
+            cb?.({ ok: false });
         }
     });
 
@@ -366,13 +366,13 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             const populatedSessions = await Promise.all(sessions.map(async (s) => {
                 const client = await User.findOne({ userId: s.clientId }).select('name phone image');
                 const sessObj = s.toObject();
-                
+
                 const cName = client?.name || 'Unknown';
                 const totalCharged = sessObj.totalCharged || 0;
                 const totalEarned = sessObj.totalEarned || 0;
                 const adminProfit = totalCharged - totalEarned;
                 const durationSec = sessObj.duration || 0;
-                
+
                 const mins = Math.floor(durationSec / 60);
                 const secs = durationSec % 60;
                 const durationFormatted = `${mins}m ${secs}s`;
@@ -582,15 +582,15 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 const totalCharged = l.sessionInfo?.totalCharged || l.chargedToClient || 0;
                 const totalEarned = l.sessionInfo?.totalEarned || l.creditedToAstrologer || 0;
                 const adminProfit = totalCharged - totalEarned;
-                
+
                 // Session duration is in ms, convert to seconds
                 // Fallback to (max minuteIndex * 60) if session record is missing
                 const durationSec = l.sessionInfo?.duration ? Math.floor(l.sessionInfo.duration / 1000) : ((l.minuteIndex || 0) * 60);
-                
+
                 const mins = Math.floor(durationSec / 60);
                 const secs = durationSec % 60;
                 const durationFormatted = `${mins}m ${secs}s`;
-                
+
                 return {
                     ...l,
                     durationFormatted
@@ -808,11 +808,11 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             const { limit = 100, level } = data || {};
             let query = {};
             if (level && level !== 'all') query.level = level;
-            
+
             const logs = await SystemLog.find(query)
                 .sort({ timestamp: -1 })
                 .limit(parseInt(limit));
-                
+
             cb?.({ ok: true, logs });
         } catch (e) {
             console.error('[Admin] admin-get-system-logs error:', e);
