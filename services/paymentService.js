@@ -37,7 +37,8 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
         ];
         
         const paths = [
-            "/pg/v1/pay"
+            "/pg/v1/pay",
+            "/v1/pay"
         ];
 
         for (const host of hosts) {
