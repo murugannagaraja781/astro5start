@@ -31,19 +31,14 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
             .digest('hex') + "###" + INDEX;
 
         const hosts = [
-            "https://api.phonepe.com/apis/universal",
             "https://api.phonepe.com/apis/hermes",
-            "https://api.phonepe.com/apis",
-            "https://api.phonepe.com",
+            "https://api.phonepe.com/apis/universal",
             "https://merchants.phonepe.com/apis/hermes",
-            "https://merchants.phonepe.com/apis",
-            "https://merchants.phonepe.com",
-            "https://api.phonepe.com/apis/pg-sandbox"
+            "https://api.phonepe.com/apis"
         ];
         
         const paths = [
-            "/pg/v1/pay",
-            "/v1/pay"
+            "/pg/v1/pay"
         ];
 
         for (const host of hosts) {
@@ -67,11 +62,13 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
                     });
 
                     const data = await res.json();
-                    if (data.success) return { success: true, data: data.data };
                     
-                    if (res.status !== 404 && data.code !== "404") {
-                        console.warn(`[PhonePe V1] ${url} rejected: ${data.message || data.code}`);
+                    if (data.success) {
+                        console.log(`✓ [PhonePe V1] Success using -> ${url}`);
+                        return { success: true, data: data.data };
                     }
+                    
+                    console.warn(`[PhonePe V1] ${url} Error: ${data.message || data.code}`);
                 } catch (err) { }
             }
         }
