@@ -66,13 +66,13 @@ const createPayment = async (req, res) => {
             couponBonus: couponBonus
         });
 
-        const amountInPaisa = Math.round(amount * 100);
         const callbackRedirectUrl = isApp
             ? `https://astro5star.com/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`
             : `https://astro5star.com/api/payment/callback?txnId=${merchantTransactionId}`;
 
         const { callPhonePeCheckoutV2 } = require('../services/paymentService');
-        let phonepeResult = await callPhonePeCheckoutV2(merchantTransactionId, amountInPaisa, callbackRedirectUrl, userMobile, userId);
+        const amountInPaisa = Math.round(amount * 100);
+        let phonepeResult = await callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId);
 
         if (phonepeResult.success && phonepeResult.data && phonepeResult.data.instrumentResponse) {
             const finalRedirectUrl = phonepeResult.data.instrumentResponse.redirectInfo.url;
