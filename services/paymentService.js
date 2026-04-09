@@ -8,7 +8,7 @@ const KEY = (process.env.PHONEPE_SALT_KEY || "").trim();
 const INDEX = (process.env.PHONEPE_SALT_INDEX || "1").trim();
 
 /**
- * Initiates a Payment Request via PhonePe V1 (Hermes)
+ * Initiates a Payment Request via PhonePe V1 (Multi-Host Fallback)
  */
 async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId) {
     try {
@@ -30,36 +30,46 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
             .update(base64Payload + signaturePath + KEY)
             .digest('hex') + "###" + INDEX;
 
-        // The exact URL that usually works for V1 Hermes Production
-        const url = "https://api.phonepe.com/apis/hermes/pg/v1/pay";
-        
-        console.log(`[PhonePe V1] Initiating -> ${url}`);
-        
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-VERIFY': checksum,
-                'accept': 'application/json'
-            },
-            body: JSON.stringify({ request: base64Payload })
-        });
+        const hosts = [
+            "https://api.phonepe.com/apis/universal",
+            "https://api.phonepe.com/apis/hermes",
+            "https://api.phonepe.com/apis"
+        ];
 
-        const data = await res.json();
-        
-        if (data.success) {
-            return { success: true, data: data.data };
-        } else {
-            console.warn("[PhonePe V1] Error Response:", JSON.stringify(data));
-            return { 
-                success: false, 
-                message: data.message || data.code,
-                code: data.code,
-                details: "API_REJECTED"
-            };
+        for (const host of hosts) {
+            try {
+                const url = `${host}${signaturePath}`;
+                console.log(`[PhonePe V1] Trying -> ${url}`);
+                
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-VERIFY': checksum,
+                        'accept': 'application/json'
+                    },
+                    body: JSON.stringify({ request: base64Payload })
+                });
+
+                const data = await res.json();
+                
+                if (data.success) return { success: true, data: data.data };
+                
+                // If not success and not 404, might be a real error (like checksum)
+                if (res.status !== 404 && data.code !== "404") {
+                    console.warn(`[PhonePe V1] ${host} rejected: ${data.message || data.code}`);
+                }
+            } catch (err) {
+                console.error(`[PhonePe V1] ${host} failed:`, err.message);
+            }
         }
+
+        return { 
+            success: false, 
+            message: "All PhonePe endpoints failed (404/Mapping Error).",
+            details: "ALL_HOSTS_FAILED"
+        };
     } catch (e) {
-        console.error("[PhonePe V1] Exception:", e.message);
         return { success: false, message: e.message };
     }
 }
@@ -72,7 +82,7 @@ async function callPhonePeCheckoutV2(merchantTransactionId, amountInPaisa, redir
 }
 
 /**
- * Checks Transaction Status (V1)
+ * Checks Transaction Status (V1 Multi-Host)
  */
 async function checkPhonePeStatus(merchantTransactionId) {
     try {
@@ -81,20 +91,30 @@ async function checkPhonePeStatus(merchantTransactionId) {
             .update(endpoint + KEY)
             .digest('hex') + "###" + INDEX;
 
-        const url = `https://api.phonepe.com/apis/hermes${endpoint}`;
+        const hosts = [
+            "https://api.phonepe.com/apis/universal",
+            "https://api.phonepe.com/apis/hermes",
+            "https://api.phonepe.com/apis"
+        ];
         
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-VERIFY': checksum,
-                'X-MERCHANT-ID': MID,
-                'accept': 'application/json'
-            }
-        });
-        
-        const data = await response.json();
-        return data;
+        for (const host of hosts) {
+            try {
+                const url = `${host}${endpoint}`;
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-VERIFY': checksum,
+                        'X-MERCHANT-ID': MID,
+                        'accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                if (data.success) return data;
+            } catch (e) { }
+        }
+        return { success: false, message: "Status check failed on all hosts" };
     } catch (err) {
         return { success: false, message: err.message };
     }
