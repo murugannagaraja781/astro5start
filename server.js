@@ -158,7 +158,6 @@ app.get('/api/phonepe/status/:transactionId', (req, res) => {
 app.use('/api', mainRoutes);
 app.use('/api', configRoutes);
 app.use('/api/payment', paymentRoutes);
-app.use('/api/admin', adminRoutes);
 app.use('/api/logs', require('./routes/logRoutes'));
 
 // File Upload Route

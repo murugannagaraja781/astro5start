@@ -101,19 +101,31 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
     });
 
     socket.on('admin-update-user-details', async (data, cb) => {
-        if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
-        const { userId, updates } = data || {};
-        if (!userId || !updates) if (typeof cb === "function") return cb({ ok: false, error: 'Missing required fields' });
+        if (!await checkAdmin(socket.id)) {
+            if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
+            return;
+        }
+
+        const targetUserId = data?.userId;
+        const updates = data?.updates;
+
+        if (!targetUserId || !updates) {
+            if (typeof cb === "function") return cb({ ok: false, error: 'Missing required fields' });
+            return;
+        }
 
         try {
             // PERFORMANCE: Use findOneAndUpdate to get updated doc in one atomic op, avoiding VersionError
             const updatedUser = await User.findOneAndUpdate(
-                { userId },
+                { userId: targetUserId },
                 { $set: updates },
                 { returnDocument: 'after', runValidators: true }
             );
 
-            if (!updatedUser) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
+            if (!updatedUser) {
+                if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
+                return;
+            }
 
             if (updatedUser.role === 'astrologer') await broadcastAstroUpdate();
             broadcastAdminUpdate();
@@ -127,7 +139,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
 
             if (typeof cb === "function") cb({ ok: true, user: updatedUser });
         } catch (e) {
-            console.error(e);
+            console.error('[Admin] Update Error:', e);
             if (typeof cb === "function") cb({ ok: false, error: 'Update Failed' });
         }
     });

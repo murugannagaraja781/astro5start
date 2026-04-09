@@ -104,6 +104,11 @@
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Broadcast</span>
             </div>
             <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="recharge-settings" onclick="showTab('recharge-settings')">
+                <i class="fas fa-wallet text-lg lg:w-5 text-center"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Recharge Info</span>
+            </div>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
                 data-tab="server-logs" onclick="showTab('server-logs')">
                 <i class="fas fa-terminal text-lg lg:w-5 text-center"></i>
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Server Logs</span>
@@ -747,6 +752,50 @@
             </div>
         </section>
 
+        <!-- Recharge Settings Tab -->
+        <section id="tab-recharge-settings" class="tab-content hidden animate-up space-y-6">
+            <header class="flex items-center gap-4">
+                <button onclick="showTab('dashboard')"
+                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-slate-400 hover:text-brand-green transition-all shadow-sm"><i
+                        class="fas fa-arrow-left"></i></button>
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Recharge Pack Manager</h1>
+                    <p class="text-slate-500 font-medium">Manage app recharge amounts, bonus offers, and box labels</p>
+                </div>
+            </header>
+
+            <div class="bg-white p-6 lg:p-8 rounded-[2.5rem] shadow-premium border border-emerald-50">
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="text-xl font-extrabold text-slate-800">Dynamic Recharge Packs</h3>
+                    <button onclick="addRechargePackRow()" class="px-5 py-2.5 bg-emerald-50 text-brand-green rounded-2xl font-black text-xs uppercase hover:bg-brand-green hover:text-white transition-all flex items-center gap-2 border border-emerald-100 shadow-sm">
+                        <i class="fas fa-plus"></i> Add New Box
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                <th class="pb-4 px-4">Amount (₹)</th>
+                                <th class="pb-4 px-4">Bonus % (Discount)</th>
+                                <th class="pb-4 px-4">Box Label (English)</th>
+                                <th class="pb-4 px-4 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recharge-packs-body" class="divide-y divide-slate-50">
+                            <!-- JS will populate rows -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-10 pt-8 border-t border-slate-50 flex justify-end">
+                    <button class="px-10 py-4 bg-brand-green text-white font-black rounded-2xl shadow-xl shadow-emerald-100 hover:bg-deep-green transition-all uppercase tracking-widest text-sm" onclick="saveRechargeSettings()">
+                       <i class="fas fa-cloud-upload mr-2"></i> Deploy Changes to App
+                    </button>
+                </div>
+            </div>
+        </section>
+
         <!-- Banner Tab -->
         <!-- Photo Approvals Tab -->
         <section id="tab-photo-approvals" class="tab-content hidden animate-up space-y-6">
@@ -1231,9 +1280,27 @@
 
                         <div id="edit-astro-fields" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="space-y-1.5">
-                                <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Price
+                                <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Legacy Price
                                     / Min (₹)</label>
                                 <input type="number" id="edit-user-price"
+                                    class="w-full bg-slate-50 p-3 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-xs">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Chat Price
+                                    / Min (₹)</label>
+                                <input type="number" id="edit-user-chat-price"
+                                    class="w-full bg-slate-50 p-3 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-xs">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Call Price
+                                    / Min (₹)</label>
+                                <input type="number" id="edit-user-audio-price"
+                                    class="w-full bg-slate-50 p-3 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-xs">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Video Price
+                                    / Min (₹)</label>
+                                <input type="number" id="edit-user-video-price"
                                     class="w-full bg-slate-50 p-3 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-xs">
                             </div>
                             <div class="space-y-1.5">
@@ -1595,6 +1662,7 @@
     </div>
 
     <script>
+        const ADMIN_SECRET_KEY = 'astro5star_admin_secure_key_2026';
         const socket = io();
         let usersCache = [];
         let fcmUsersCache = [];
@@ -1709,6 +1777,7 @@
             if (activeTab === 'notifications') fetchNotifications();
             if (activeTab === 'reviews') fetchActiveReviews();
             if (activeTab === 'referral') loadReferralSettings();
+            if (activeTab === 'recharge-settings') fetchRechargeSettings();
             // Also refresh badges
             socket.emit('admin-get-pending-photos', (res) => {
                 const badge = document.getElementById('photo-pending-badge');
@@ -1751,6 +1820,7 @@
             if (id === 'referral') loadReferralSettings();
             if (id === 'banner') fetchBanners();
             if (id === 'server-logs') fetchSystemLogs();
+            if (id === 'recharge-settings') fetchRechargeSettings();
         }
 
         function fetchNotifications() {
@@ -2720,6 +2790,9 @@
             document.getElementById('edit-astro-fields').classList.toggle('hidden', u.role !== 'astrologer');
             if (u.role === 'astrologer') {
                 document.getElementById('edit-user-price').value = u.price || 0;
+                document.getElementById('edit-user-chat-price').value = u.chatPrice || 0;
+                document.getElementById('edit-user-audio-price').value = u.audioPrice || 0;
+                document.getElementById('edit-user-video-price').value = u.videoPrice || 0;
                 document.getElementById('edit-user-exp').value = u.experience || 0;
                 document.getElementById('edit-user-skills').value = (u.skills || []).join(', ');
                 document.getElementById('edit-user-languages').value = (u.languages || []).join(', ');
@@ -2741,6 +2814,9 @@
 
             if (!document.getElementById('edit-astro-fields').classList.contains('hidden')) {
                 updates.price = parseFloat(document.getElementById('edit-user-price').value);
+                updates.chatPrice = parseFloat(document.getElementById('edit-user-chat-price').value);
+                updates.audioPrice = parseFloat(document.getElementById('edit-user-audio-price').value);
+                updates.videoPrice = parseFloat(document.getElementById('edit-user-video-price').value);
                 updates.experience = parseInt(document.getElementById('edit-user-exp').value);
                 updates.skills = document.getElementById('edit-user-skills').value.split(',').map(s => s.trim()).filter(s => s);
                 updates.languages = document.getElementById('edit-user-languages').value.split(',').map(s => s.trim()).filter(s => s);
@@ -3370,6 +3446,54 @@
                     }
                 });
             }
+        }
+
+        // RECHARGE SETTINGS LOGIC
+        async function fetchRechargeSettings() {
+            try {
+                const res = await fetch('/api/payment/recharge-packs').then(r => r.json());
+                const tbody = document.getElementById('recharge-packs-body');
+                tbody.innerHTML = '';
+                if (res.ok && res.packs) {
+                    res.packs.forEach(p => addRechargePackRow(p));
+                }
+            } catch (e) { showToast('Recharge Node Error', 'error'); }
+        }
+
+        function addRechargePackRow(data = { amount: 0, offerPercentage: 0, bonusText: '' }) {
+            const tbody = document.getElementById('recharge-packs-body');
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-slate-50 transition-colors';
+            row.innerHTML = `
+                <td class="py-4 px-4"><input type="number" class="rp-amount w-24 bg-slate-50 p-2 rounded-lg font-bold border-0" value="${data.amount}"></td>
+                <td class="py-4 px-4"><input type="number" class="rp-offer w-24 bg-slate-50 p-2 rounded-lg font-bold border-0" value="${data.offerPercentage}"></td>
+                <td class="py-4 px-4"><input type="text" class="rp-text w-full bg-slate-50 p-2 rounded-lg font-bold border-0" value="${data.bonusText}" placeholder="e.g. Recommended"></td>
+                <td class="py-4 px-4 text-right">
+                    <button onclick="this.closest('tr').remove()" class="text-red-400 hover:text-red-600 p-2"><i class="fas fa-trash-alt"></i></button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        }
+
+        async function saveRechargeSettings() {
+            const rows = document.querySelectorAll('#recharge-packs-body tr');
+            const packs = Array.from(rows).map(r => ({
+                amount: parseInt(r.querySelector('.rp-amount').value),
+                offerPercentage: parseInt(r.querySelector('.rp-offer').value),
+                bonusText: r.querySelector('.rp-text').value
+            })).filter(p => !isNaN(p.amount));
+
+            try {
+                const res = await fetch('/api/admin/recharge-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ packs })
+                }).then(r => r.json());
+                if (res.ok) {
+                    showToast('Recharge Packs Synced to App', 'success');
+                    socket.emit('admin-broadcast-refresh', { type: 'recharge' });
+                } else alert('Update Link Failure');
+            } catch (e) { alert('Network Fault'); }
         }
     </script>
 </body>
