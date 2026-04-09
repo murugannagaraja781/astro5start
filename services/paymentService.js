@@ -33,6 +33,8 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
 
         // Try multiple host variations to ensure connectivity
         const hosts = [
+            "https://merchants.phonepe.com/apis/hermes",
+            "https://merchants.phonepe.com/apis/universal",
             "https://api.phonepe.com/apis/hermes",
             "https://api.phonepe.com/apis/universal",
             "https://api.phonepe.com/apis"
@@ -95,6 +97,8 @@ async function checkPhonePeStatus(merchantTransactionId) {
             .digest('hex') + "###" + PHONEPE_SALT_INDEX;
 
         const hosts = [
+            "https://merchants.phonepe.com/apis/hermes",
+            "https://merchants.phonepe.com/apis/universal",
             "https://api.phonepe.com/apis/hermes",
             "https://api.phonepe.com/apis/universal",
             "https://api.phonepe.com/apis"
