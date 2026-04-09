@@ -158,6 +158,7 @@ app.use('/api', mainRoutes);
 app.use('/api', configRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/logs', require('./routes/logRoutes'));
 
 // File Upload Route
 app.post('/upload', upload.single('file'), (req, res) => {

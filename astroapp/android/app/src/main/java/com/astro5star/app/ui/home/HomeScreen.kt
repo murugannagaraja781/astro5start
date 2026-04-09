@@ -33,6 +33,11 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -609,28 +614,7 @@ fun HomeScreen(
     ) {
         Scaffold(
             containerColor = RoyalMidnightBlue,
-            floatingActionButton = {
-                // WHATSAPP SUPPORT FAB
-                FloatingActionButton(
-                    onClick = {
-                        val whatsappNum = appConfig?.optString("SUPPORT_WHATSAPP") ?: "919999999999"
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://wa.me/$whatsappNum?text=Hi, I need support with Astro 5 Star app.")
-                        }
-                        context.startActivity(intent)
-                    },
-                    containerColor = Color(0xFF25D366),
-                    contentColor = Color.White,
-                    shape = CircleShape,
-                    modifier = Modifier.padding(bottom = 60.dp) // Lift above bottom bar if needed
-                ) {
-                    Icon(
-                        painter = painterResource(id = android.R.drawable.stat_notify_chat), // Placeholder or use WhatsApp icon if available
-                        contentDescription = "Support",
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            },
+            floatingActionButton = {},
             topBar = {
                 HomeTopBar(
                     balance = walletBalance,
@@ -965,7 +949,7 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthR
         Spacer(modifier = Modifier.height(8.dp))
 
         // Drawer Items
-        val items = listOf("home", "profile", "wallet", "join_as_astrologer", "Terms & Conditions", "Privacy Policy", "settings", "logout")
+        val items = listOf("home", "profile", "wallet", "join_as_astrologer", "Terms & Conditions", "Privacy Policy", "settings", "help", "logout")
         items.forEach { itemKey ->
             NavigationDrawerItem(
                 label = {
@@ -973,6 +957,23 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthR
                         text = if (itemKey.contains(" ")) itemKey else Localization.get(itemKey, isTamil),
                         color = if(itemKey == "logout") Color.Red else Color.DarkGray,
                         fontWeight = FontWeight.Bold
+                    )
+                },
+                icon = {
+                    val iconVector = when(itemKey) {
+                        "home" -> androidx.compose.material.icons.Icons.Default.Home
+                        "profile" -> androidx.compose.material.icons.Icons.Default.Person
+                        "wallet" -> androidx.compose.material.icons.Icons.Default.AccountBalanceWallet
+                        "join_as_astrologer" -> androidx.compose.material.icons.Icons.Default.Star
+                        "settings" -> androidx.compose.material.icons.Icons.Default.Settings
+                        "logout" -> androidx.compose.material.icons.Icons.Default.ExitToApp
+                        "help" -> androidx.compose.material.icons.Icons.Default.Chat
+                        else -> androidx.compose.material.icons.Icons.Default.Info
+                    }
+                    Icon(
+                        imageVector = iconVector,
+                        contentDescription = null,
+                        tint = if (itemKey == "help") Color(0xFF25D366) else if (itemKey == "logout") Color.Red else Color.Gray
                     )
                 },
                 selected = false,
@@ -985,6 +986,14 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthR
                         "Privacy Policy" -> {
                             onClose()
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://astro5star.com/privacy-policy.html")))
+                        }
+                        "help" -> {
+                            onClose()
+                            val whatsappNum = "919080061700"
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                data = Uri.parse("https://wa.me/$whatsappNum?text=Hi, I need help with Astro 5 Star app.")
+                            }
+                            context.startActivity(intent)
                         }
                         else -> onItemClick(itemKey)
                     }

@@ -18,14 +18,16 @@
     "express": "^5.2.1",
     "firebase-admin": "^13.6.0",
     "google-auth-library": "^10.5.0",
+    "helmet": "^7.1.0",
     "luxon": "^3.7.2",
     "mongoose": "^9.3.0",
     "multer": "^2.0.2",
     "node-fetch": "^2.7.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
-    "helmet": "^7.1.0",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "description": "",
   "devDependencies": {

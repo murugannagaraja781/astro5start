@@ -114,4 +114,7 @@ interface ApiInterface {
 
     @POST("api/user/favorite/toggle")
     suspend fun toggleFavorite(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/logs/ingest")
+    suspend fun ingestLogs(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
 }

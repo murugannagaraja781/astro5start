@@ -548,6 +548,26 @@ fun AstrologerDashboardScreen(
 
     Scaffold(
         containerColor = Color.Transparent, // Transparent to show gradient if needed, or use BgStart
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    val whatsappNum = "919080061700"
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        data = Uri.parse("https://wa.me/$whatsappNum?text=Hi, I am an astrologer and I need help with Astro 5 Star app.")
+                    }
+                    context.startActivity(intent)
+                },
+                containerColor = Color(0xFF25D366),
+                contentColor = Color.White,
+                shape = CircleShape
+            ) {
+                Icon(
+                    painter = painterResource(id = android.R.drawable.stat_notify_chat),
+                    contentDescription = "Help",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        },
         topBar = {
             Row(
                 modifier = Modifier
