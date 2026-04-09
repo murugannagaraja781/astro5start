@@ -309,7 +309,7 @@ fun WalletScreen(
     }
 }
 
-data class RechargePack(val amount: Int, val bonusText: String)
+// RechargeCard component below
 
 @Composable
 fun RechargeCard(pack: RechargePack, modifier: Modifier = Modifier, onClick: () -> Unit) {

@@ -39,7 +39,7 @@ object RemoteLogger {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val api = ApiClient.getInterface()
+                val api = ApiClient.api
                 val logObj = JsonObject().apply {
                     addProperty("level", level)
                     addProperty("message", message)
