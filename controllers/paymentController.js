@@ -1,9 +1,9 @@
 // controllers/paymentController.js
 const Payment = require('../models/Payment');
 const User = require('../models/User');
-const BillingLedger = require('../models/BillingLedger');
 const { paymentTokens } = require('../services/sharedState');
 const { callPhonePePayV1, checkPhonePeStatus } = require('../services/paymentService');
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 
 const createPayment = async (req, res) => {
@@ -42,6 +42,7 @@ const createPayment = async (req, res) => {
         const rawPhone = (userObj && userObj.phone) ? userObj.phone : "9999999999";
         const userMobile = rawPhone.replace(/[^0-9]/g, '').slice(-10);
 
+        // Generate Unique ID using UUID for better reliability
         const merchantTransactionId = "MT" + uuidv4().replace(/-/g, '').substring(0, 18);
         const redirectUrl = `https://astro5star.com/api/payment/callback`;
 
@@ -66,37 +67,34 @@ const createPayment = async (req, res) => {
             couponBonus: couponBonus
         });
 
+        const amountInPaisa = Math.round(amount * 100);
         const callbackRedirectUrl = isApp
             ? `https://astro5star.com/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`
             : `https://astro5star.com/api/payment/callback?txnId=${merchantTransactionId}`;
 
-        const { callPhonePeCheckoutV2 } = require('../services/paymentService');
-        const amountInPaisa = Math.round(amount * 100);
-        let phonepeResult = await callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId);
+        const phonepeResult = await callPhonePePayV1(
+            merchantTransactionId,
+            amountInPaisa,
+            callbackRedirectUrl,
+            userMobile,
+            userId
+        );
 
-        if (phonepeResult.success && phonepeResult.data && phonepeResult.data.instrumentResponse) {
-            const finalRedirectUrl = phonepeResult.data.instrumentResponse.redirectInfo.url;
+        if (phonepeResult.success) {
             res.json({
                 ok: true,
-                url: finalRedirectUrl,
-                paymentUrl: finalRedirectUrl,
-                payUrl: finalRedirectUrl,
-                merchantTransactionId: merchantTransactionId
+                paymentUrl: phonepeResult.data.redirectUrl,
+                payUrl: phonepeResult.data.redirectUrl,
+                merchantTransactionId: merchantTransactionId,
+                orderId: phonepeResult.data.orderId
             });
         } else {
-            console.error("[PhonePe] Init Failed:", JSON.stringify(phonepeResult));
-            res.json({ 
-                ok: false, 
-                error: 'Payment initialization failed', 
-                message: phonepeResult.message || 'Gateway mapping error',
-                details: phonepeResult.details || 'Check Merchant Dashboard whitelisting'
-            });
+            res.json({ ok: false, error: 'Payment initialization failed', details: phonepeResult.data });
         }
     } catch (err) {
-        console.error("[Payment Init] Error:", err.message);
         res.status(500).json({ ok: false, error: err.message });
     }
-}
+};
 
 const verifyPaymentToken = async (req, res) => {
     try {
@@ -119,7 +117,7 @@ const verifyPaymentToken = async (req, res) => {
         res.json({
             ok: true,
             valid: true,
-            amount: tokenData.amount, // Display total amount (with GST) to user
+            amount: tokenData.amount,
             userName: user ? user.name : 'Cosmic User',
             expiresIn: Math.floor((expiryTime - (Date.now() - tokenData.createdAt)) / 1000)
         });
@@ -130,16 +128,30 @@ const verifyPaymentToken = async (req, res) => {
 
 const handleCallback = async (req, res) => {
     try {
-        console.log('[PhonePe Callback] Received:', req.method, req.query, req.body);
-        
-        // 1. Basic Sanity & Security Check
-        const merchantTransactionId = req.query.txnId || req.body.merchantTransactionId;
-        if (!merchantTransactionId || !merchantTransactionId.startsWith('MT')) {
-            console.error('[Security] Invalid or Suspicious Transaction ID received');
-            return res.status(400).send('Invalid Transaction Data');
+        console.log('[PhonePe Callback] Method:', req.method, 'Query:', req.query);
+
+        let merchantTransactionId = req.query.txnId;
+        const isApp = req.query.isApp === 'true';
+
+        // 1. Handle Server-to-Server Callback (POST)
+        if (req.method === 'POST' && req.body && req.body.response) {
+            try {
+                const responseBase64 = req.body.response;
+                const responseData = JSON.parse(Buffer.from(responseBase64, 'base64').toString('utf-8'));
+                console.log('[PhonePe Callback] Decoded Data:', responseData);
+                if (responseData.data && responseData.data.merchantTransactionId) {
+                    merchantTransactionId = responseData.data.merchantTransactionId;
+                }
+            } catch (e) {
+                console.error('[PhonePe Callback] Payload Parse Error:', e.message);
+            }
         }
 
-        // 2. Double Check Status with PhonePe API (Server-to-Server)
+        if (!merchantTransactionId) {
+            return res.status(400).send('Missing Transaction ID');
+        }
+
+        // 2. Double Check Status with PhonePe API
         const statusResult = await checkPhonePeStatus(merchantTransactionId);
         console.log(`[PhonePe Status] Result for ${merchantTransactionId}:`, statusResult.code);
 
@@ -150,84 +162,43 @@ const handleCallback = async (req, res) => {
 
         if (statusResult.success && statusResult.code === "PAYMENT_SUCCESS") {
             if (payment.status === 'pending') {
-                // Update Payment Record
                 payment.status = 'success';
                 payment.providerRefId = statusResult.data.providerReferenceId;
                 await payment.save();
 
-                // Update User Wallet - ATOMICALLY
-                const result = await User.updateOne(
-                    { userId: payment.userId },
-                    { 
-                        $inc: { 
-                            walletBalance: payment.baseAmount || 0,
-                            superWalletBalance: payment.couponBonus || 0 
-                        },
-                        $set: { isNewUser: false }
+                const user = await User.findOne({ userId: payment.userId });
+                if (user) {
+                    const rechargeAmount = payment.baseAmount || 0;
+                    const bonusAmount = payment.couponBonus || 0;
+
+                    user.walletBalance = (user.walletBalance || 0) + rechargeAmount;
+                    if (bonusAmount > 0) {
+                        user.superWalletBalance = (user.superWalletBalance || 0) + bonusAmount;
                     }
-                );
+                    user.isNewUser = false;
+                    await user.save();
 
-                if (result.modifiedCount > 0) {
-                    console.log(`[Wallet] Credited ${payment.baseAmount} (+${payment.couponBonus || 0} bonus) to ${payment.userId}`);
-                    
-                    // RE-FETCH for referral logic check
-                    const user = await User.findOne({ userId: payment.userId });
-
-                    // REFERRAL REWARD LOGIC: Credit referrer on referee's FIRST successful recharge
-                    if (user.referredBy && !user.isReferralRewardClaimed) {
-                        const referrer = await User.findOne({ userId: user.referredBy });
-                        if (referrer) {
-                            const { REFERRAL_CONFIG } = require('../services/sharedState');
-                            const rewardAmount = REFERRAL_CONFIG.REFERRER_REWARD || 81;
-                            
-                            referrer.walletBalance = (referrer.walletBalance || 0) + rewardAmount;
-                            referrer.totalEarnings = (referrer.totalEarnings || 0) + rewardAmount;
-                            await referrer.save();
-
-                            await User.updateOne(
-                                { userId: user.userId },
-                                { $set: { isReferralRewardClaimed: true } }
-                            );
-
-                            const BillingLedger = require('../models/BillingLedger');
-                            await BillingLedger.create({
-                                billingId: require('crypto').randomUUID(),
-                                sessionId: 'referral_bonus',
-                                chargedToClient: 0,
-                                creditedToAstrologer: rewardAmount,
-                                reason: 'referral',
-                                astrologerId: referrer.userId,
-                                adminAmount: -rewardAmount
-                            });
-
-                            console.log(`[Referral] Referral reward of ${rewardAmount} paid to ${referrer.userId} for ${user.userId}`);
-                        }
-                    }
+                    console.log(`[Wallet] Credited ${rechargeAmount} (+${bonusAmount} bonus) to ${user.userId}`);
                 }
             }
-            
-            // Handle Browser Redirect if GET - ALIGN WITH WORKFLOW
-            if (req.method === 'GET') {
-                return res.redirect(`/payment-success?amount=${payment.amount}&txnId=${merchantTransactionId}`);
-            }
-            return res.status(200).send('SUCCESS');
-
-        } else {
+        } else if (statusResult.code === "PAYMENT_ERROR" || statusResult.code === "PAYMENT_DECLINED") {
             if (payment.status === 'pending') {
                 payment.status = 'failed';
                 await payment.save();
             }
-            if (req.method === 'GET') {
-                return res.redirect(`/payment-failed?reason=${encodeURIComponent(statusResult.message || 'Payment Failed')}`);
-            }
-            return res.status(200).send('FAILED');
         }
-    } catch (err) {
-        console.error('[PhonePe Callback] Error:', err.message);
+
         if (req.method === 'GET') {
-            return res.redirect(`/payment-failed?reason=${encodeURIComponent(err.message)}`);
+            const finalStatus = payment.status === 'success' ? 'success' : 'failed';
+            const reason = statusResult.message || 'Payment Completed';
+            return res.redirect(`/wallet?status=${finalStatus}&reason=${encodeURIComponent(reason)}`);
         }
-        res.status(500).json({ ok: false, error: err.message });
+
+        res.json({ ok: true });
+
+    } catch (err) {
+        console.error('[PhonePe Callback] Error:', err);
+        res.status(500).send('Internal Error');
     }
 };
 
@@ -236,12 +207,11 @@ const getPaymentToken = async (req, res) => {
         const { userId, amount, couponCode } = req.body;
         if (!userId || !amount) return res.status(400).json({ ok: false, error: 'Missing fields' });
 
-        const token = require('crypto').randomBytes(16).toString('hex');
+        const token = crypto.randomBytes(16).toString('hex');
         const baseAmount = parseFloat(amount);
         const gstAmount = baseAmount * 0.18;
         const totalAmount = baseAmount + gstAmount;
 
-        const { paymentTokens } = require('../services/sharedState');
         paymentTokens.set(token, {
             token,
             userId,
@@ -287,7 +257,7 @@ const signPhonePe = async (req, res) => {
         const saltIndex = (process.env.PHONEPE_SALT_INDEX || "1").trim();
 
         const stringToSign = base64Payload + endpoint + saltKey;
-        const sha256 = require('crypto').createHash('sha256').update(stringToSign).digest('hex');
+        const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
         const checksum = sha256 + "###" + saltIndex;
 
         res.json({ ok: true, checksum });
