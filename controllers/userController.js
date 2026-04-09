@@ -33,7 +33,9 @@ const getUserProfile = async (req, res) => {
             isAudioOnline: user.isAudioOnline || false,
             isVideoOnline: user.isVideoOnline || false,
             totalEarnings: user.totalEarnings || 0,
-            image: formatImageUrl((user.role === 'astrologer' && !user.image) ? user.pendingImage : user.image, user.name),
+            image: formatImageUrl((user.role === 'astrologer' && !user.image) ? (user.pendingImage || '') : (user.image || ''), user.name),
+            pendingImage: user.pendingImage ? formatImageUrl(user.pendingImage, user.name) : '',
+            photoStatus: user.photoStatus || (user.role === 'astrologer' ? 'approved' : 'approved'),
             referralCode: user.referralCode,
             isNewUser: user.isNewUser,
             supportContact: {
@@ -454,23 +456,46 @@ const getChatHistory = async (req, res) => {
 
 const uploadProfilePic = async (req, res) => {
     try {
-        const { userId } = req.body;
-        if (!req.file || !userId) return res.status(400).json({ ok: false, error: 'Missing file or userId' });
+        let { userId } = req.body;
+        // Robustness: Sometimes userId might have whitespace or different field names
+        if (!userId) userId = req.body.user_id;
+        if (userId) userId = userId.trim();
+
+        console.log(`[Upload] Attempt logic start for userId: ${userId || 'MISSING'}`);
+
+        if (!req.file || !userId) {
+            const msg = `Missing content: hasFile=${!!req.file}, userId=${userId || 'missing'}`;
+            console.error('[Upload] Failed:', msg);
+            return res.status(400).json({ ok: false, error: 'Missing file or userId' });
+        }
 
         const imageUrl = `/uploads/${req.file.filename}`;
         const user = await User.findOne({ userId });
-        if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+        
+        if (!user) {
+            const msg = `User not found: ${userId}`;
+            console.error('[Upload] Failed:', msg);
+            return res.status(404).json({ ok: false, error: 'User not found' });
+        }
 
         if (user.role === 'astrologer') {
-            user.pendingImage = imageUrl;
-            user.photoStatus = 'pending';
-            await user.save();
+            // PERFORMANCE/CONCURRENCY FIX: Use updateOne instead of save() to avoid VersionError
+            await User.updateOne({ userId }, { 
+                $set: { 
+                    pendingImage: imageUrl,
+                    photoStatus: 'pending' 
+                } 
+            });
             
             // Notify Admin
-            const { broadcastAdminUpdate } = require('../services/socketManager');
-            broadcastAdminUpdate();
+            try {
+                const { broadcastAdminUpdate } = require('../services/socketManager');
+                broadcastAdminUpdate();
+            } catch (e) {
+                console.warn('[Upload] Admin broadcast skipped:', e.message);
+            }
 
-            // Emit toast notification to admin-room
+            // Emit toast notification to admin-room if io exists
             if (global.io) {
                 global.io.to('admin-room').emit('admin-notification', {
                     type: 'photo_request',
@@ -480,11 +505,14 @@ const uploadProfilePic = async (req, res) => {
 
             res.json({ ok: true, imageUrl, message: 'Photo uploaded and pending approval' });
         } else {
-            user.image = imageUrl;
-            await user.save();
+            // Regular user: Direct update
+            await User.updateOne({ userId }, { $set: { image: imageUrl } });
             res.json({ ok: true, imageUrl });
         }
     } catch (err) {
+        console.error('[Upload] CRITICAL ERROR:', err);
+        const logger = require('../utils/logger');
+        logger.error(`Upload Profile Pic Failed: ${err.message}`, err.stack, 'userController.uploadProfilePic', { userId: req.body?.userId });
         res.status(500).json({ ok: false, error: err.message });
     }
 };

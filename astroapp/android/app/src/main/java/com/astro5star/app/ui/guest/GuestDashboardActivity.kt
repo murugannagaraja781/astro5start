@@ -101,9 +101,11 @@ class GuestDashboardActivity : AppCompatActivity() {
         }
 
         socket?.on("astrologer-update") { args ->
-            // Server broadcasts full list on update
-            val data = args[0] as org.json.JSONArray
-            updateAstrologerList(data)
+            val data = args[0] as JSONObject
+            val arr = data.optJSONArray("list")
+            if (arr != null) {
+                updateAstrologerList(arr)
+            }
         }
 
         socket?.emit("get-astrologers")

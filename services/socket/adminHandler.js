@@ -243,27 +243,38 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             const user = await User.findOne({ userId });
             if (!user) return cb?.({ ok: false, error: 'User not found' });
 
+            const updateFields = {};
             if (status === 'approved' && user.pendingImage) {
-                user.image = user.pendingImage;
-                user.pendingImage = '';
-                user.photoStatus = 'approved';
+                updateFields.image = user.pendingImage;
+                updateFields.pendingImage = '';
+                updateFields.photoStatus = 'approved';
             } else {
-                user.pendingImage = '';
-                user.photoStatus = 'rejected';
+                updateFields.pendingImage = '';
+                updateFields.photoStatus = 'rejected';
             }
-            await user.save();
+            
+            await User.updateOne({ userId }, { $set: updateFields });
+            const updatedUser = await User.findOne({ userId });
 
             if (user.role === 'astrologer') await broadcastAstroUpdate();
             broadcastAdminUpdate();
 
             const sId = userSockets.get(user.userId);
             if (sId) {
-                const formattedUser = user.toObject ? user.toObject() : user;
+                const formattedUser = updatedUser.toObject ? updatedUser.toObject() : updatedUser;
                 formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
+                formattedUser.photoStatus = updatedUser.photoStatus;
                 io.to(sId).emit('my-profile-updated', formattedUser);
+                io.to(sId).emit('notification', {
+                    title: 'Profile Photo Update',
+                    body: status === 'approved' ? 'Your profile photo has been approved!' : 'Your profile photo was rejected. Please upload another clear photo.'
+                });
             }
             cb?.({ ok: true });
-        } catch (e) { cb?.({ ok: false }); }
+        } catch (e) { 
+            console.error('[Admin] Photo Approval Error:', e);
+            cb?.({ ok: false }); 
+        }
     });
 
     socket.on('admin-get-performance-summary', async (cb) => {

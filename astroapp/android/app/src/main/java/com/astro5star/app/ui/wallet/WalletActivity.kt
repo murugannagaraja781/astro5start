@@ -74,12 +74,13 @@ class WalletActivity : ComponentActivity() {
                     bannerTitle = bannerTitle,
                     bannerSubtitle = bannerSubtitle,
                     ctaText = ctaText,
-                    onAddMoney = { amount, promo ->
+                    onAddMoney = { amount, promo, percentage ->
                         if (amount < 1) {
                             Toast.makeText(this, getString(R.string.enter_valid_amount), Toast.LENGTH_SHORT).show()
                         } else {
                             val intent = Intent(this, com.astro5star.app.ui.payment.PaymentActivity::class.java)
                             intent.putExtra("amount", amount.toDouble())
+                            intent.putExtra("offerPercentage", percentage)
                             if (promo != null) {
                                 intent.putExtra("promoCode", promo)
                             }
@@ -178,6 +179,8 @@ class WalletActivity : ComponentActivity() {
     }
 }
 
+data class RechargePack(val amount: Int, val bonusText: String, val percentage: Double)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WalletScreen(
@@ -187,7 +190,7 @@ fun WalletScreen(
     bannerTitle: String? = null,
     bannerSubtitle: String? = null,
     ctaText: String? = null,
-    onAddMoney: (Int, String?) -> Unit,
+    onAddMoney: (Int, String?, Double) -> Unit,
     onRefreshHistory: () -> Unit
 ) {
     val context = LocalContext.current
@@ -195,15 +198,15 @@ fun WalletScreen(
     val astroBlack = Color(0xFF1A1A1A)
 
     val rechargePacks = listOf(
-        RechargePack(50, "Get 5% Extra"),
-        RechargePack(100, "Get 5% Extra"),
-        RechargePack(500, "Get 10% Extra"),
-        RechargePack(1000, "Get 10% Extra"),
-        RechargePack(200, "Get 10% Extra"),
-        RechargePack(5000, "Get 20% Extra"),
-        RechargePack(2000, "Get 15% Extra"),
-        RechargePack(20, "Get 5% Extra"),
-        RechargePack(1, "Get 1% Extra")
+        RechargePack(50, "Get 5% Extra", 5.0),
+        RechargePack(100, "Get 5% Extra", 5.0),
+        RechargePack(500, "Get 10% Extra", 10.0),
+        RechargePack(1000, "Get 10% Extra", 10.0),
+        RechargePack(200, "Get 10% Extra", 10.0),
+        RechargePack(5000, "Get 20% Extra", 20.0),
+        RechargePack(2000, "Get 15% Extra", 15.0),
+        RechargePack(20, "Get 5% Extra", 5.0),
+        RechargePack(1, "Get 1% Extra", 1.0)
     )
 
     Scaffold(
@@ -275,7 +278,7 @@ fun WalletScreen(
                         RechargeCard(
                             pack = pack,
                             modifier = Modifier.weight(1f),
-                            onClick = { onAddMoney(pack.amount, null) }
+                            onClick = { onAddMoney(pack.amount, null, pack.percentage) }
                         )
                     }
                     if (rowPacks.size == 1) {

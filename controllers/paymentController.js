@@ -49,6 +49,8 @@ const createPayment = async (req, res) => {
         if (couponCode) {
             const code = couponCode.toUpperCase().trim();
             if (code === 'WELCOME50') couponBonus = baseAmount * 0.50;
+        } else if (offerPercentage > 0) {
+            couponBonus = baseAmount * (offerPercentage / 100);
         }
 
         await Payment.create({
