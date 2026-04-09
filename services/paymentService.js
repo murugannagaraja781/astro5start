@@ -33,34 +33,43 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
         const hosts = [
             "https://api.phonepe.com/apis/universal",
             "https://api.phonepe.com/apis/hermes",
-            "https://api.phonepe.com/apis"
+            "https://api.phonepe.com/apis",
+            "https://merchants.phonepe.com/apis/hermes",
+            "https://merchants.phonepe.com/apis"
+        ];
+        
+        const paths = [
+            "/pg/v1/pay",
+            "/v1/pay"
         ];
 
         for (const host of hosts) {
-            try {
-                const url = `${host}${signaturePath}`;
-                console.log(`[PhonePe V1] Trying -> ${url}`);
-                
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-VERIFY': checksum,
-                        'accept': 'application/json'
-                    },
-                    body: JSON.stringify({ request: base64Payload })
-                });
+            for (const signaturePath of paths) {
+                try {
+                    const checksum = crypto.createHash('sha256')
+                        .update(base64Payload + signaturePath + KEY)
+                        .digest('hex') + "###" + INDEX;
+                        
+                    const url = `${host}${signaturePath}`;
+                    console.log(`[PhonePe V1] Trying -> ${url}`);
+                    
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-VERIFY': checksum,
+                            'accept': 'application/json'
+                        },
+                        body: JSON.stringify({ request: base64Payload })
+                    });
 
-                const data = await res.json();
-                
-                if (data.success) return { success: true, data: data.data };
-                
-                // If not success and not 404, might be a real error (like checksum)
-                if (res.status !== 404 && data.code !== "404") {
-                    console.warn(`[PhonePe V1] ${host} rejected: ${data.message || data.code}`);
-                }
-            } catch (err) {
-                console.error(`[PhonePe V1] ${host} failed:`, err.message);
+                    const data = await res.json();
+                    if (data.success) return { success: true, data: data.data };
+                    
+                    if (res.status !== 404 && data.code !== "404") {
+                        console.warn(`[PhonePe V1] ${url} rejected: ${data.message || data.code}`);
+                    }
+                } catch (err) { }
             }
         }
 
