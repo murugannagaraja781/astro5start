@@ -72,6 +72,10 @@ import java.util.LinkedList
 import kotlinx.coroutines.withContext
 import com.astro5star.app.data.api.ApiClient
 import com.astro5star.app.data.api.ApiInterface
+import com.google.gson.JsonObject
+import com.google.gson.JsonArray
+import com.google.gson.JsonElement
+import com.google.gson.JsonPrimitive
 
 class CallActivity : ComponentActivity() {
 
@@ -193,13 +197,7 @@ class CallActivity : ComponentActivity() {
     private val pendingIceCandidates = LinkedList<IceCandidate>()
 
     private var iceServers = listOf(
-        PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
-        PeerConnection.IceServer.builder("turn:139.59.0.107:3478?transport=udp")
-            .setUsername("webrtcuser").setPassword("strongpassword123").createIceServer(),
-        PeerConnection.IceServer.builder("turn:139.59.0.107:3478?transport=tcp")
-            .setUsername("webrtcuser").setPassword("strongpassword123").createIceServer(),
-        PeerConnection.IceServer.builder("turns:139.59.0.107:5349")
-            .setUsername("webrtcuser").setPassword("strongpassword123").createIceServer()
+        PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
     )
 
     // Logic internal state

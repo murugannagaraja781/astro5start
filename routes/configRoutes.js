@@ -4,28 +4,20 @@ const router = express.Router();
 
 router.get('/ice-config', (req, res) => {
     console.log(`[ICE Config] Request received from ${req.ip}`);
+    const turnUrl = process.env.TURN_URL || "turn.abinaasananthaguruji.com";
     res.json({
         iceServers: [
             { 
                 urls: [
                     "stun:stun.l.google.com:19302",
                     "stun:stun1.l.google.com:19302",
-                    "stun:stun2.l.google.com:19302",
-                    "stun:stun3.l.google.com:19302",
-                    "stun:stun4.l.google.com:19302",
-                    "stun:stun.voiparound.com",
-                    "stun:stun.voipgateway.org"
-                ] 
-            },
-            {
-                urls: [
-                    `turn:${process.env.TURN_URL}:3478?transport=udp`,
-                    `turn:${process.env.TURN_URL}:3478?transport=tcp`,
-                    `turns:${process.env.TURN_URL}:5349`
+                    `stun:${turnUrl}:3478`,
+                    `turn:${turnUrl}:3478?transport=udp`,
+                    `turn:${turnUrl}:3478?transport=tcp`,
+                    `turns:${turnUrl}:5349?transport=tcp`
                 ],
-                username: process.env.TURN_USERNAME,
-                credential: process.env.TURN_PASSWORD,
-                realm: process.env.TURN_REALM || "astro5star.com"
+                username: process.env.TURN_USERNAME || "webrtcuser",
+                credential: process.env.TURN_PASSWORD || "strongpassword123"
             }
         ]
     });
