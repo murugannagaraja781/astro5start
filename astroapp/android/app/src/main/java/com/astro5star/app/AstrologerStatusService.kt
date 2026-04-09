@@ -63,7 +63,7 @@ class AstrologerStatusService : Service() {
     }
 
     private fun createNotification(title: String, content: String): Notification {
-        val notificationIntent = Intent(this, com.astro5star.app.ui.astro.AstrologerDashboardActivity::class.java)
+        val notificationIntent = Intent(this, MainActivity::class.java) // Launch main activity as fallback
         val pendingIntent = PendingIntent.getActivity(
             this, 0, notificationIntent,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
@@ -72,7 +72,7 @@ class AstrologerStatusService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(content)
-            .setSmallIcon(R.drawable.ic_menu_call) // Default call icon
+            .setSmallIcon(android.R.drawable.ic_menu_call)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)

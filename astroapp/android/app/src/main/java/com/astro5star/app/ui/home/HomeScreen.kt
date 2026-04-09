@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.VideoCall
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.AddCircle
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Translate
@@ -77,9 +78,11 @@ import com.astro5star.app.data.api.ApiClient
 import androidx.compose.foundation.ExperimentalFoundationApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.astro5star.app.data.local.TokenManager
+import com.google.gson.JsonObject
+import com.google.gson.JsonArray
 import org.json.JSONObject
 import org.json.JSONArray
-import com.astro5star.app.data.local.TokenManager
 
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -840,6 +843,26 @@ fun SupportAndPoliciesSection() {
                  context.startActivity(intent)
              }
         }
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            PolicyLink("Refund Policy", "$baseUrl/refund-cancellation-policy.html", context)
+            PolicyLink("Terms & Conditions", "$baseUrl/terms-condition.html", context)
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            text = "Need Help? info@astro5star.com",
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.Gray
+        )
+        Text(
+            text = "© 2024 Astro5Star. All Rights Reserved.",
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.Gray.copy(alpha=0.6f)
+        )
     }
 }
 
@@ -864,28 +887,6 @@ fun SupportIcon(icon: Int, label: String, onClick: () -> Unit) {
             )
         }
         Text(label, color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
-    }
-}
-        Spacer(modifier = Modifier.height(12.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            PolicyLink("Refund Policy", "$baseUrl/refund-cancellation-policy.html", context)
-            PolicyLink("Terms & Conditions", "$baseUrl/terms-condition.html", context)
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-        Text(
-            text = "Need Help? info@astro5star.com",
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.Gray
-        )
-        Text(
-            text = "© 2024 Astro5Star. All Rights Reserved.",
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.Gray.copy(alpha=0.6f)
-        )
     }
 }
 
@@ -1180,7 +1181,7 @@ fun AstrologerCard(
         val userId = tokenManager.getUserSession()?.userId ?: return
         coroutineScope.launch {
             try {
-                val req = com.google.gson.JsonObject().apply {
+                val req = JsonObject().apply {
                     addProperty("clientId", userId)
                     addProperty("astrologerId", astro.userId)
                     addProperty("type", type)
@@ -1294,7 +1295,7 @@ fun AstrologerCard(
                              val userId = tokenManager.getUserSession()?.userId ?: return@IconButton
                              coroutineScope.launch {
                                  try {
-                                     val req = com.google.gson.JsonObject().apply {
+                                     val req = JsonObject().apply {
                                          addProperty("clientId", userId)
                                          addProperty("astrologerId", astro.userId)
                                      }
@@ -1312,7 +1313,7 @@ fun AstrologerCard(
                          modifier = Modifier.size(32.dp).padding(0.dp)
                      ) {
                          Icon(
-                             imageVector = androidx.compose.material.icons.Icons.Rounded.FavoriteBorder, // Simple border by default
+                             imageVector = Icons.Rounded.FavoriteBorder,
                              contentDescription = "Like",
                              tint = Color.Red,
                              modifier = Modifier.size(24.dp)
@@ -1887,18 +1888,19 @@ fun CustomerStoryCard(item: ReviewItem, currentUserId: String, currentRole: Stri
                                     scope.launch {
                                         isDeleting = true
                                         try {
-                                            val req = JSONObject().apply {
-                                                put("reviewId", item.id)
-                                                put("astrologerId", currentUserId)
+                                            val req = com.google.gson.JsonObject().apply {
+                                                addProperty("reviewId", item.id)
+                                                addProperty("astrologerId", currentUserId)
                                             }
-                                            val res = ApiClient.api.deleteReviewByAstrologer(com.google.gson.JsonParser.parseString(req.toString()).asJsonObject)
+                                            val res = ApiClient.api.deleteReviewByAstrologer(req)
                                             if (res.isSuccessful) {
-                                                val body = JSONObject(res.body().toString())
-                                                if (body.optBoolean("ok")) {
+                                                val body = res.body()
+                                                if (body?.get("ok")?.asBoolean == true) {
                                                     Toast.makeText(context, "Review deleted", Toast.LENGTH_SHORT).show()
                                                     onReviewDeleted(item.id)
                                                 } else {
-                                                    Toast.makeText(context, body.optString("error", "Failed to delete"), Toast.LENGTH_LONG).show()
+                                                    val error = body?.get("error")?.asString ?: "Failed to delete"
+                                                    Toast.makeText(context, error, Toast.LENGTH_LONG).show()
                                                 }
                                             }
                                         } catch (e: Exception) { e.printStackTrace() } finally {

@@ -541,7 +541,7 @@ const applyReferral = async (req, res) => {
         referrer.referralCount = (referrer.referralCount || 0) + 1;
         await referrer.save();
 
-        res.json({ success: true, message: `Referral applied successfully! ₹${bonusDifference} credited to your wallet.` });
+        res.json({ success: true, message: `Referral applied successfully! ₹${bonusDiff} credited to your wallet.` });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
