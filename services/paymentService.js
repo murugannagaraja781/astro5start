@@ -33,6 +33,8 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
         const hosts = [
             "https://api.phonepe.com/apis/hermes",
             "https://api.phonepe.com/apis/universal",
+            "https://api.phonepe.com/apis/pg-sandbox",
+            "https://merchants.phonepe.com/apis/hermes",
             "https://api.phonepe.com/apis"
         ];
         
