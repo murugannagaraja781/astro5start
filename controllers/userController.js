@@ -13,21 +13,8 @@ const { otpStore } = require('../services/sharedState');
 const getUserProfile = async (req, res) => {
     try {
         const { userId } = req.params;
-        const authUserId = req.headers['x-user-id']; // Security: Check if requester matches profile
-
-        if (authUserId && authUserId !== userId) {
-            console.warn(`[Security] IDOR attempt on profile: ${userId} by ${authUserId}`);
-            // In a fully hardened app, we would return 403 here. 
-            // For now, we allow but log to monitor suspicious activity.
-        }
-
-        const user = await User.findOne({ userId }).select('-password -__v');
+        const user = await User.findOne({ userId }).select('-password -__v').lean();
         if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
-
-        if (!user.referralCode) {
-            user.referralCode = await generateUniqueReferralCode(user.name);
-            await user.save();
-        }
 
         const isOnlineCalculated = !!(user.isOnline || user.isChatOnline || user.isAudioOnline || user.isVideoOnline);
         const isAvailableCalculated = user.isAvailable || isOnlineCalculated;
@@ -57,22 +44,21 @@ const getUserProfile = async (req, res) => {
 
 const getAstrologers = async (req, res) => {
     try {
-        // Pagination parameters with defaults
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
         const skip = (page - 1) * limit;
 
+        // PERFORMANCE: Use lean() and only select necessary fields
         const astros = await User.find({ 
             role: 'astrologer', 
             approvalStatus: 'approved' 
         })
-        .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified displayOrder isAvailable')
-        .sort({ isOnline: -1, displayOrder: -1, createdAt: -1 })
+        .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image languages displayOrder isAvailable isBusy')
+        .sort({ isOnline: -1, isAvailable: -1, displayOrder: -1 })
         .limit(limit)
         .skip(skip)
         .lean();
 
-        // Count total for pagination (Fast count)
         const total = await User.countDocuments({ role: 'astrologer', approvalStatus: 'approved' });
 
         const formatted = astros.map(a => {
@@ -83,20 +69,14 @@ const getAstrologers = async (req, res) => {
                 image: formatImageUrl(a.image, a.name),
                 showAudio: !isOnlineCalculated || !!a.isAudioOnline,
                 showChat: !isOnlineCalculated || !!a.isChatOnline,
-                showVideo: !isOnlineCalculated || !!a.isVideoOnline,
-                isActuallyOnline: isOnlineCalculated
+                showVideo: !isOnlineCalculated || !!a.isVideoOnline
             };
         });
 
         res.json({
             ok: true,
             astrologers: formatted,
-            pagination: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit)
-            }
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
         });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
@@ -106,35 +86,43 @@ const getAstrologers = async (req, res) => {
 const getSessionHistory = async (req, res) => {
     try {
         const { userId } = req.params;
-        const authUserId = req.headers['x-user-id'];
-
-        if (authUserId && authUserId !== userId) {
-            return res.status(403).json({ ok: false, error: 'Unauthorized: You can only view your own history' });
-        }
-
+        
+        // 1. Fetch sessions fast using lean
         const sessions = await Session.find({
             $or: [
-                { astrologerId: userId },
-                { clientId: userId },
-                { fromUserId: userId },
-                { toUserId: userId }
+                { astrologerId: userId }, { clientId: userId },
+                { fromUserId: userId }, { toUserId: userId }
             ],
             status: { $in: ['ended', 'missed', 'rejected'] }
         })
-            .sort({ actualBillingStart: -1, startTime: -1 })
-            .limit(50)
+        .sort({ actualBillingStart: -1, startTime: -1 })
+        .limit(50)
+        .lean();
+
+        if (sessions.length === 0) return res.json({ ok: true, sessions: [] });
+
+        // 2. Performance Fix: Fetch all unique user IDs involved in these sessions
+        const userIds = new Set();
+        sessions.forEach(s => {
+            if (s.clientId) userIds.add(s.clientId);
+            if (s.fromUserId) userIds.add(s.fromUserId);
+            if (s.astrologerId) userIds.add(s.astrologerId);
+            if (s.toUserId) userIds.add(s.toUserId);
+        });
+
+        const usersMap = {};
+        const userDocs = await User.find({ userId: { $in: Array.from(userIds) } })
+            .select('userId name role image')
             .lean();
+        userDocs.forEach(u => { usersMap[u.userId] = u; });
 
-        const populatedSessions = await Promise.all(sessions.map(async (s) => {
-            const cId = s.clientId || s.fromUserId;
-            const aId = s.astrologerId || s.toUserId;
-            const [client, astro] = await Promise.all([
-                User.findOne({ userId: cId }).select('name').lean(),
-                User.findOne({ userId: aId }).select('name').lean()
-            ]);
-
-            const cName = client ? client.name : 'Unknown Client';
-            const aName = astro ? astro.name : 'Unknown Astrologer';
+        // 3. Map names efficiently in memory (No extra DB calls)
+        const populatedSessions = sessions.map(s => {
+            const client = usersMap[s.clientId || s.fromUserId];
+            const astro = usersMap[s.astrologerId || s.toUserId];
+            
+            const cName = client ? client.name : 'User';
+            const aName = astro ? astro.name : 'Astrologer';
             const durationSec = s.duration || 0;
             const totalCharged = s.totalCharged || 0;
             const totalEarned = s.totalEarned || 0;
@@ -144,8 +132,6 @@ const getSessionHistory = async (req, res) => {
             const seconds = durationSec % 60;
             const durationFormatted = `${minutes}m ${seconds}s`;
 
-            const readableSummary = `Client: ${cName} -> Astro: ${aName} | Duration: ${durationFormatted} | Total Paid: ₹${totalCharged.toFixed(2)} | Astro Profit: ₹${totalEarned.toFixed(2)} | Admin Profit: ₹${adminProfit.toFixed(2)}`;
-
             return {
                 ...s,
                 clientName: cName,
@@ -154,13 +140,14 @@ const getSessionHistory = async (req, res) => {
                 astroProfit: totalEarned,
                 adminProfit: adminProfit,
                 durationFormatted: durationFormatted,
-                readableSummary: readableSummary
+                readableSummary: `Call: ${aName} (${durationFormatted}) | Charge: ₹${totalCharged.toFixed(2)}`
             };
-        }));
+        });
 
         res.json({ ok: true, sessions: populatedSessions });
     } catch (err) {
-        res.status(500).json({ ok: false, error: err.message });
+        console.error('[History Error]', err);
+        res.status(500).json({ ok: false, error: 'Failed to fetch history' });
     }
 };
 

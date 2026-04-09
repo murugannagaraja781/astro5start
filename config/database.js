@@ -5,10 +5,12 @@ const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/astrofiv
 const connectDB = async (retries = 5) => {
     try {
         await mongoose.connect(MONGO_URI, {
-            serverSelectionTimeoutMS: 10000,
+            serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 45000,
-            maxPoolSize: 10,
-            minPoolSize: 2
+            connectTimeoutMS: 10000,
+            maxPoolSize: 20,
+            minPoolSize: 5,
+            heartbeatFrequencyMS: 10000
         });
         console.log('✅ MongoDB Connected to:', MONGO_URI.split('@').pop().split('?')[0]);
     } catch (err) {
