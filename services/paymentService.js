@@ -56,6 +56,7 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
                         headers: {
                             'Content-Type': 'application/json',
                             'X-VERIFY': checksum,
+                            'X-MERCHANT-ID': MID,
                             'accept': 'application/json',
                             'X-CALLBACK-URL': redirectUrl
                         },
