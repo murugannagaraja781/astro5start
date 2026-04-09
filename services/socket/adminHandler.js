@@ -102,6 +102,9 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
 
     socket.on('admin-update-user-details', async (data, cb) => {
         if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });
+        const { userId, updates } = data || {};
+        if (!userId || !updates) if (typeof cb === "function") return cb({ ok: false, error: 'Missing required fields' });
+
         try {
             // PERFORMANCE: Use findOneAndUpdate to get updated doc in one atomic op, avoiding VersionError
             const updatedUser = await User.findOneAndUpdate(
@@ -109,6 +112,8 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 { $set: updates },
                 { new: true, runValidators: true }
             );
+
+            if (!updatedUser) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
 
             if (updatedUser.role === 'astrologer') await broadcastAstroUpdate();
             broadcastAdminUpdate();
