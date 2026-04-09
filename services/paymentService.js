@@ -4,7 +4,7 @@ const fetch = require('node-fetch');
 
 // CONFIG
 const MID = (process.env.PHONEPE_MERCHANT_ID || "").trim();
-const KEY = (process.env.PHONEPE_SALT_KEY || "").trim();
+const KEY = (process.env.PHONEPE_SALT_KEY || "07bad376-5933-41d1-9a54-4b926e23e672").trim();
 const INDEX = (process.env.PHONEPE_SALT_INDEX || "1").trim();
 
 /**
@@ -31,10 +31,8 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
             .digest('hex') + "###" + INDEX;
 
         const hosts = [
-            "https://api.phonepe.com/apis/u-pg",
             "https://api.phonepe.com/apis/hermes",
             "https://api.phonepe.com/apis/universal",
-            "https://merchants.phonepe.com/apis/hermes",
             "https://api.phonepe.com/apis"
         ];
         
@@ -57,7 +55,8 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
                         headers: {
                             'Content-Type': 'application/json',
                             'X-VERIFY': checksum,
-                            'accept': 'application/json'
+                            'accept': 'application/json',
+                            'X-CALLBACK-URL': redirectUrl
                         },
                         body: JSON.stringify({ request: base64Payload })
                     });
