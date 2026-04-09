@@ -37,7 +37,8 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
             "https://api.phonepe.com",
             "https://merchants.phonepe.com/apis/hermes",
             "https://merchants.phonepe.com/apis",
-            "https://merchants.phonepe.com"
+            "https://merchants.phonepe.com",
+            "https://api.phonepe.com/apis/pg-sandbox"
         ];
         
         const paths = [
