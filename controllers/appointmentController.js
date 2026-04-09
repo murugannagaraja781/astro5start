@@ -33,19 +33,23 @@ const joinQueue = async (req, res) => {
 const getMyQueueStatus = async (req, res) => {
     try {
         const { userId } = req.params;
-        const activeQueue = await Appointment.find({ clientId: userId, status: 'waiting' })
+        const activeQueue = await Appointment.find({ clientId: userId, status: { $in: ['waiting', 'notified'] } })
             .populate({ path: 'astrologerId', select: 'name image', model: 'User', localField: 'astrologerId', foreignField: 'userId' });
         
         // Recalculate true positions
         const results = await Promise.all(activeQueue.map(async (apt) => {
-            const countAhead = await Appointment.countDocuments({ 
-                astrologerId: apt.astrologerId.userId, 
-                status: 'waiting', 
-                requestedAt: { $lt: apt.requestedAt } 
-            });
+            let countAhead = 0;
+            if (apt.status === 'waiting') {
+                countAhead = await Appointment.countDocuments({ 
+                    astrologerId: apt.astrologerId.userId, 
+                    status: 'waiting', 
+                    requestedAt: { $lt: apt.requestedAt } 
+                });
+            }
             return {
                 ...apt._doc,
-                positionAhead: countAhead
+                positionAhead: countAhead,
+                isMyTurn: apt.status === 'notified'
             };
         }));
 

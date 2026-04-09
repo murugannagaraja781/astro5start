@@ -110,7 +110,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             const updatedUser = await User.findOneAndUpdate(
                 { userId },
                 { $set: updates },
-                { new: true, runValidators: true }
+                { returnDocument: 'after', runValidators: true }
             );
 
             if (!updatedUser) if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });

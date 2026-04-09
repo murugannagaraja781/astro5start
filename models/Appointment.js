@@ -7,7 +7,7 @@ const AppointmentSchema = new mongoose.Schema({
     type: { type: String, enum: ['chat', 'audio', 'video'], default: 'chat' },
     status: { 
         type: String, 
-        enum: ['waiting', 'booked', 'in-progress', 'completed', 'cancelled', 'expired'], 
+        enum: ['waiting', 'notified', 'booked', 'in-progress', 'completed', 'cancelled', 'expired'], 
         default: 'waiting' 
     },
     requestedAt: { type: Date, default: Date.now },
