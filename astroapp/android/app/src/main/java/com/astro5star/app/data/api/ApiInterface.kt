@@ -105,4 +105,13 @@ interface ApiInterface {
 
     @POST("api/reviews/delete/astrologer")
     suspend fun deleteReviewByAstrologer(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/appointment/join-queue")
+    suspend fun joinQueue(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("api/appointment/status/{userId}")
+    suspend fun getMyQueueStatus(@retrofit2.http.Path("userId") userId: String): Response<com.google.gson.JsonObject>
+
+    @POST("api/user/favorite/toggle")
+    suspend fun toggleFavorite(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
 }

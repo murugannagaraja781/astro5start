@@ -141,6 +141,12 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
                 await User.updateMany({ userId: { $in: s.users }, role: 'astrologer', isOnline: true }, { isAvailable: true });
                 await User.updateMany({ userId: { $in: s.users }, role: 'astrologer', isOnline: false }, { isAvailable: false });
 
+                // NEW: Trigger next in queue if someone is waiting
+                if (s.astrologerId) {
+                    const appointmentController = require('../controllers/appointmentController');
+                    appointmentController.processNextInQueue(s.astrologerId, io);
+                }
+
                 if (broadcastAstroUpdate) broadcastAstroUpdate();
             } catch (e) {
                 console.error('[EndSession] Busy release error:', e);

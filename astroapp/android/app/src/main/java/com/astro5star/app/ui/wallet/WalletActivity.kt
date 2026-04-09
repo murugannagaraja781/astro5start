@@ -240,33 +240,58 @@ fun WalletScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // 1. Promotional Banner
+                // 1. Premium Promotional Banner (WOW Design)
                 if (!bannerTitle.isNullOrEmpty()) {
                     item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f)),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                                .shadow(8.dp, RoundedCornerShape(20.dp), spotColor = goldPrimary)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(Color(0xFF1E293B), Color(0xFF334155), Color(0xFF0F172A))
+                                    )
+                                )
+                                .border(BorderStroke(1.dp, goldPrimary.copy(0.3f)), RoundedCornerShape(20.dp))
                         ) {
                             Row(
-                                modifier = Modifier.padding(16.dp),
+                                modifier = Modifier.padding(20.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Surface(
-                                    modifier = Modifier.size(40.dp),
-                                    shape = CircleShape,
-                                    color = goldPrimary.copy(alpha = 0.2f)
+                                // Animated Icon Container
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(goldPrimary.copy(alpha = 0.1f), CircleShape)
+                                        .border(1.dp, goldPrimary.copy(alpha = 0.2f), CircleShape),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Rounded.AddCircle, null, tint = goldPrimary, modifier = Modifier.padding(8.dp))
+                                    Icon(Icons.Rounded.AddCircle, null, tint = goldPrimary, modifier = Modifier.size(24.dp))
                                 }
+                                
                                 Spacer(modifier = Modifier.width(16.dp))
+                                
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(bannerTitle!!, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 16.sp)
+                                    Text(
+                                        text = bannerTitle!!, 
+                                        fontWeight = FontWeight.Black, 
+                                        color = Color.White, 
+                                        fontSize = 17.sp,
+                                        letterSpacing = (-0.5).sp
+                                    )
                                     if (!bannerSubtitle.isNullOrEmpty()) {
-                                        Text(bannerSubtitle!!, color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                                        Text(
+                                            text = bannerSubtitle!!, 
+                                            color = goldPrimary, 
+                                            fontSize = 11.sp, 
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
                                     }
                                 }
+                                
                                 Button(
                                     onClick = {
                                         if (appliedCoupon == "WELCOME50") {
@@ -284,15 +309,17 @@ fun WalletScreen(
                                         }
                                     },
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (appliedCoupon == "WELCOME50") successGreen else Color.Transparent
+                                        containerColor = if (appliedCoupon == "WELCOME50") successGreen else goldPrimary
                                     ),
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.height(36.dp),
-                                    border = BorderStroke(1.dp, if (appliedCoupon == "WELCOME50") successGreen else goldPrimary)
+                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier.height(40.dp).shadow( if(appliedCoupon=="WELCOME50") 0.dp else 4.dp, RoundedCornerShape(14.dp)),
+                                    contentPadding = PaddingValues(horizontal = 16.dp)
                                 ) {
                                     Text(
-                                        if (appliedCoupon == "WELCOME50") stringResource(R.string.applied) else stringResource(R.string.apply),
-                                        fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White
+                                        text = if (appliedCoupon == "WELCOME50") "✓ APPLIED" else "GET OFFER",
+                                        fontSize = 11.sp, 
+                                        fontWeight = FontWeight.ExtraBold, 
+                                        color = if (appliedCoupon == "WELCOME50") Color.White else indigoDeep
                                     )
                                 }
                             }
@@ -305,30 +332,30 @@ fun WalletScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
-                            .shadow(20.dp, RoundedCornerShape(24.dp), spotColor = goldPrimary.copy(0.4f))
-                            .clip(RoundedCornerShape(24.dp))
+                            .height(210.dp)
+                            .shadow(25.dp, RoundedCornerShape(28.dp), spotColor = goldPrimary.copy(0.4f))
+                            .clip(RoundedCornerShape(28.dp))
                             .background(goldGradient)
                     ) {
-                        Column(modifier = Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                        Column(modifier = Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.SpaceBetween) {
                             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
                                 Column {
-                                    Text(stringResource(R.string.total_balance), color = Color.Black.copy(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                    Text("₹ ${balance.toInt()}", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Black, fontSize = 40.sp), color = Color.Black)
+                                    Text(stringResource(R.string.total_balance), color = Color.Black.copy(0.7f), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    Text("₹ ${balance.toInt()}", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Black, fontSize = 44.sp), color = Color.Black)
                                     if (superBalance > 0.0) {
-                                        Surface(color = indigoDeep, shape = RoundedCornerShape(8.dp), modifier = Modifier.padding(top = 4.dp)) {
-                                            Text("SUPER: ₹ ${superBalance.toInt()}", color = goldPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                                        Surface(color = indigoDeep, shape = RoundedCornerShape(10.dp), modifier = Modifier.padding(top = 6.dp)) {
+                                            Text("SUPER BONUS: ₹ ${superBalance.toInt()}", color = goldPrimary, fontSize = 11.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp))
                                         }
                                     }
                                 }
-                                Icon(Icons.Rounded.AccountBalanceWallet, null, tint = Color.Black.copy(0.15f), modifier = Modifier.size(56.dp))
+                                Icon(Icons.Rounded.AccountBalanceWallet, null, tint = Color.Black.copy(0.12f), modifier = Modifier.size(64.dp))
                             }
                             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.Bottom) {
                                 Column {
-                                    Text(stringResource(R.string.prosperity_account), color = Color.Black.copy(0.8f), fontWeight = FontWeight.Black, fontSize = 15.sp)
-                                    Text("Rule: 70% Main, 30% Super Wallet", color = Color.Black.copy(0.5f), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.prosperity_account), color = Color.Black.copy(0.9f), fontWeight = FontWeight.Black, fontSize = 16.sp)
+                                    Text("70% Normal Usage • 30% Bonus Covered", color = Color.Black.copy(0.6f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 }
-                                Text(stringResource(R.string.valid_user), color = Color.Black.copy(0.4f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text("VALIDATED", color = Color.Black.copy(0.5f), fontSize = 10.sp, fontWeight = FontWeight.Black)
                             }
                         }
                     }
@@ -338,24 +365,48 @@ fun WalletScreen(
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
+                        shape = RoundedCornerShape(26.dp),
                         colors = CardDefaults.cardColors(containerColor = indigoMedium),
-                        border = BorderStroke(1.dp, Color.White.copy(0.05f))
+                        border = BorderStroke(1.dp, Color.White.copy(0.08f))
                     ) {
                         Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            Text(stringResource(R.string.recharge_wallet), color = goldPrimary, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                            Text("SELECT RECHARGE PACK", color = goldPrimary, fontWeight = FontWeight.Black, fontSize = 18.sp, letterSpacing = 1.sp)
 
-                            Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
+                            Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(10.dp)) {
                                 listOf(100, 500, 1000, 2000).forEach { amount ->
                                     val isSelected = amountInput == amount.toString()
-                                    Surface(
-                                        onClick = { amountInput = amount.toString() },
-                                        modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = if (isSelected) goldPrimary else Color.White.copy(0.05f),
-                                        border = BorderStroke(1.dp, if (isSelected) goldPrimary else Color.White.copy(0.1f))
-                                    ) {
-                                        Text("₹$amount", modifier = Modifier.padding(vertical = 10.dp), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.Black else Color.White, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        Surface(
+                                            onClick = { amountInput = amount.toString() },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(14.dp),
+                                            color = if (isSelected) goldPrimary else Color.White.copy(0.05f),
+                                            border = BorderStroke(1.5.dp, if (isSelected) goldPrimary else Color.White.copy(0.15f))
+                                        ) {
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = 12.dp)) {
+                                                Text("₹$amount", fontSize = 15.sp, fontWeight = FontWeight.Black, color = if (isSelected) Color.Black else Color.White)
+                                            }
+                                        }
+                                        
+                                        // SPECIAL BADGES
+                                        if (amount == 500) {
+                                            Surface(
+                                                color = Color(0xFFEF4444),
+                                                shape = RoundedCornerShape(4.dp),
+                                                modifier = Modifier.align(Alignment.TopCenter).offset(y=(-8).dp)
+                                            ) {
+                                                Text("POPULAR", color = Color.White, fontSize = 7.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                            }
+                                        }
+                                        if (amount == 2000) {
+                                            Surface(
+                                                color = successGreen,
+                                                shape = RoundedCornerShape(4.dp),
+                                                modifier = Modifier.align(Alignment.TopCenter).offset(y=(-8).dp)
+                                            ) {
+                                                Text("BEST VALUE", color = Color.White, fontSize = 7.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -371,8 +422,6 @@ fun WalletScreen(
                                 prefix = { Text("₹ ", color = goldPrimary, fontWeight = FontWeight.Bold) },
                                 singleLine = true
                             )
-
-                            // Trust markers moved below button for better flow
 
                             // Coupon
                             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp), Alignment.CenterVertically) {

@@ -1169,9 +1169,31 @@ fun AstrologerCard(
     selectedTab: Int
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val tokenManager = remember { TokenManager(context) }
+    
     val showChat = (selectedTab == 0 || selectedTab == 1)
     val showVideo = (selectedTab == 0 || selectedTab == 2)
     val showCall = (selectedTab == 0 || selectedTab == 3)
+    
+    fun joinAstroQueue(type: String) {
+        val userId = tokenManager.getUserSession()?.userId ?: return
+        coroutineScope.launch {
+            try {
+                val req = com.google.gson.JsonObject().apply {
+                    addProperty("clientId", userId)
+                    addProperty("astrologerId", astro.userId)
+                    addProperty("type", type)
+                }
+                val res = ApiClient.api.joinQueue(req)
+                if (res.isSuccessful) {
+                    Toast.makeText(context, "Joined Queue! You'll be notified.", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Failed to join queue", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     // ONLINE ANIMATION (Pulse Border)
     val infiniteTransition = rememberInfiniteTransition(label = "OnlinePulse")
@@ -1264,7 +1286,39 @@ fun AstrologerCard(
              // Right Column
              Column(modifier = Modifier.weight(1f)) {
                  Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                     Text(astro.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Color.Black, maxLines = 1)
+                     Text(astro.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Color.Black, maxLines = 1, modifier = Modifier.weight(1f))
+                     
+                     // LIKE BUTTON (Heart)
+                     IconButton(
+                         onClick = {
+                             val userId = tokenManager.getUserSession()?.userId ?: return@IconButton
+                             coroutineScope.launch {
+                                 try {
+                                     val req = com.google.gson.JsonObject().apply {
+                                         addProperty("clientId", userId)
+                                         addProperty("astrologerId", astro.userId)
+                                     }
+                                     val res = ApiClient.api.toggleFavorite(req)
+                                     if (res.isSuccessful) {
+                                         val msg = res.body()?.get("message")?.asString ?: "Updated favorites"
+                                         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                         // Note: In a real app, we'd update the local list state here.
+                                     }
+                                 } catch (e: Exception) {
+                                     Toast.makeText(context, "Error updating favorite", Toast.LENGTH_SHORT).show()
+                                 }
+                             }
+                         },
+                         modifier = Modifier.size(32.dp).padding(0.dp)
+                     ) {
+                         Icon(
+                             imageVector = androidx.compose.material.icons.Icons.Rounded.FavoriteBorder, // Simple border by default
+                             contentDescription = "Like",
+                             tint = Color.Red,
+                             modifier = Modifier.size(24.dp)
+                         )
+                     }
+
                      Column(horizontalAlignment = Alignment.End) {
                          Row(verticalAlignment = Alignment.CenterVertically) {
                              Text("₹ ${astro.price}", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = PriceRed)
@@ -1289,13 +1343,25 @@ fun AstrologerCard(
                   ) {
                       // Show buttons for all services but disable if offline/busy
                       if (showChat) {
-                          AstrologerActionButton("Chat", Icons.Rounded.Chat, astro.isChatOnline && !astro.isBusy, AquaBlue, { onChatClick(astro) })
+                          if (astro.isBusy && astro.isOnline) {
+                              AstrologerActionButton("Waitlist", Icons.Filled.Schedule, true, Color.Gray, { joinAstroQueue("chat") })
+                          } else {
+                              AstrologerActionButton("Chat", Icons.Rounded.Chat, astro.isChatOnline && !astro.isBusy, AquaBlue, { onChatClick(astro) })
+                          }
                       }
                       if (showVideo) {
-                          AstrologerActionButton("Video", Icons.Rounded.VideoCall, astro.isVideoOnline && !astro.isBusy, PriceRed, { onCallClick(astro, "Video") }, Modifier.padding(start=6.dp))
+                          if (astro.isBusy && astro.isOnline) {
+                              // Optional: single waitlist button is enough, but can show for all
+                          } else {
+                              AstrologerActionButton("Video", Icons.Rounded.VideoCall, astro.isVideoOnline && !astro.isBusy, PriceRed, { onCallClick(astro, "Video") }, Modifier.padding(start=6.dp))
+                          }
                       }
                       if (showCall) {
-                          AstrologerActionButton("Call", Icons.Rounded.Call, astro.isAudioOnline && !astro.isBusy, PeacockGreen, { onCallClick(astro, "Audio") }, Modifier.padding(start=6.dp))
+                          if (astro.isBusy && astro.isOnline && !showChat) {
+                              AstrologerActionButton("Waitlist", Icons.Filled.Schedule, true, Color.Gray, { joinAstroQueue("audio") })
+                          } else {
+                              AstrologerActionButton("Call", Icons.Rounded.Call, astro.isAudioOnline && !astro.isBusy, PeacockGreen, { onCallClick(astro, "Audio") }, Modifier.padding(start=6.dp))
+                          }
                       }
                   }
              }
