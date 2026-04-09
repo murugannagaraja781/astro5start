@@ -22,7 +22,6 @@
     "mongoose": "^9.3.0",
     "multer": "^2.0.2",
     "node-fetch": "^2.7.0",
-    "@phonepe-pg/pg-sdk-node": "^1.1.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "helmet": "^7.1.0"

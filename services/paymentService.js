@@ -1,27 +1,19 @@
 // services/paymentService.js
-const { PhonePePaymentClient, Env } = require('@phonepe-pg/pg-sdk-node');
+const crypto = require('crypto');
+const fetch = require('node-fetch');
 
-// LOAD & TRIM CONFIG
-const MERCHANT_ID = (process.env.PHONEPE_MERCHANT_ID || "").trim();
-const SALT_KEY = (process.env.PHONEPE_SALT_KEY || "").trim();
-const SALT_INDEX = (process.env.PHONEPE_SALT_INDEX || "1").trim();
-
-// Initialize SDK Client (Production)
-const phonepeClient = new PhonePePaymentClient(
-    MERCHANT_ID,
-    SALT_KEY,
-    SALT_INDEX,
-    Env.PROD
-);
+// CONFIG
+const MID = (process.env.PHONEPE_MERCHANT_ID || "").trim();
+const KEY = (process.env.PHONEPE_SALT_KEY || "").trim();
+const INDEX = (process.env.PHONEPE_SALT_INDEX || "1").trim();
 
 /**
- * Initiates a Payment Request via PhonePe SDK (V1/Standard)
+ * Initiates a Payment Request via PhonePe V1 (Hermes)
  */
 async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId) {
     try {
-        console.log(`[PhonePe SDK] Initiating payment: ${merchantTransactionId}`);
-        
-        const response = await phonepeClient.pay({
+        const payload = {
+            merchantId: MID,
             merchantTransactionId,
             merchantUserId: String(userId).replace(/[^a-zA-Z0-9]/g, '') || "MUID123",
             amount: amountInPaisa,
@@ -30,59 +22,81 @@ async function callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUr
             callbackUrl: redirectUrl,
             mobileNumber: userMobile || "9999999999",
             paymentInstrument: { type: "PAY_PAGE" }
+        };
+
+        const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
+        const signaturePath = "/pg/v1/pay";
+        const checksum = crypto.createHash('sha256')
+            .update(base64Payload + signaturePath + KEY)
+            .digest('hex') + "###" + INDEX;
+
+        // The exact URL that usually works for V1 Hermes Production
+        const url = "https://api.phonepe.com/apis/hermes/pg/v1/pay";
+        
+        console.log(`[PhonePe V1] Initiating -> ${url}`);
+        
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-VERIFY': checksum,
+                'accept': 'application/json'
+            },
+            body: JSON.stringify({ request: base64Payload })
         });
 
-        if (response.status === 200 && response.data.success) {
+        const data = await res.json();
+        
+        if (data.success) {
+            return { success: true, data: data.data };
+        } else {
+            console.warn("[PhonePe V1] Error Response:", JSON.stringify(data));
             return { 
-                success: true, 
-                data: response.data.data 
+                success: false, 
+                message: data.message || data.code,
+                code: data.code,
+                details: "API_REJECTED"
             };
         }
-
-        return { 
-            success: false, 
-            message: response.data.message || "Payment initialization failed",
-            data: response.data 
-        };
-    } catch (err) {
-        console.error("[PhonePe SDK] Pay Error:", err.message);
-        return { 
-            success: false, 
-            message: err.message,
-            details: "SDK_ERROR"
-        };
+    } catch (e) {
+        console.error("[PhonePe V1] Exception:", e.message);
+        return { success: false, message: e.message };
     }
 }
 
 /**
- * COMPATIBILITY LAYER: Maps CheckoutV2 calls to PayV1
+ * Compatibility support for existing code
  */
 async function callPhonePeCheckoutV2(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId) {
     return await callPhonePePayV1(merchantTransactionId, amountInPaisa, redirectUrl, userMobile, userId);
 }
 
 /**
- * Checks Transaction Status via PhonePe SDK
+ * Checks Transaction Status (V1)
  */
 async function checkPhonePeStatus(merchantTransactionId) {
     try {
-        const response = await phonepeClient.getStatus(merchantTransactionId);
+        const endpoint = `/pg/v1/status/${MID}/${merchantTransactionId}`;
+        const checksum = crypto.createHash('sha256')
+            .update(endpoint + KEY)
+            .digest('hex') + "###" + INDEX;
+
+        const url = `https://api.phonepe.com/apis/hermes${endpoint}`;
         
-        if (response.status === 200) {
-            return response.data;
-        }
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-VERIFY': checksum,
+                'X-MERCHANT-ID': MID,
+                'accept': 'application/json'
+            }
+        });
         
-        return { 
-            success: false, 
-            message: "Status check failed", 
-            code: response.data.code 
-        };
+        const data = await response.json();
+        return data;
     } catch (err) {
-        console.error("[PhonePe SDK] Status Error:", err.message);
-        return { 
-            success: false, 
-            message: err.message 
-        };
+        return { success: false, message: err.message };
     }
 }
 
