@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import androidx.compose.runtime.collectAsState
+import io.socket.client.Socket
 
 class GuestDashboardActivity : AppCompatActivity() {
 
@@ -90,25 +91,50 @@ class GuestDashboardActivity : AppCompatActivity() {
     private fun setupSocket() {
         com.astro5star.app.data.remote.SocketManager.init()
         val socket = com.astro5star.app.data.remote.SocketManager.getSocket()
-        socket?.connect()
+        
+        if (socket == null) {
+            Log.e("GuestDashboard", "Socket initialization failed")
+            return
+        }
 
-        socket?.on("astro-list") { args ->
-            val data = args[0] as JSONObject
-            val arr = data.optJSONArray("list")
-            if (arr != null) {
-                updateAstrologerList(arr)
+        socket.connect()
+
+        socket.on("astro-list") { args ->
+            try {
+                if (args != null && args.isNotEmpty()) {
+                    val data = args[0] as? JSONObject
+                    val arr = data?.optJSONArray("list")
+                    if (arr != null) {
+                        updateAstrologerList(arr)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("GuestDashboard", "Error in astro-list listener", e)
             }
         }
 
-        socket?.on("astrologer-update") { args ->
-            val data = args[0] as JSONObject
-            val arr = data.optJSONArray("list")
-            if (arr != null) {
-                updateAstrologerList(arr)
+        socket.on("astrologer-update") { args ->
+            try {
+                if (args != null && args.isNotEmpty()) {
+                    val data = args[0] as? JSONObject
+                    val arr = data?.optJSONArray("list")
+                    if (arr != null) {
+                        updateAstrologerList(arr)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("GuestDashboard", "Error in astrologer-update listener", e)
             }
         }
 
-        socket?.emit("get-astrologers")
+        // Emit only when connected
+        if (socket.connected()) {
+            socket.emit("get-astrologers")
+        } else {
+            socket.once(Socket.EVENT_CONNECT) {
+                socket.emit("get-astrologers")
+            }
+        }
     }
 
     private fun updateAstrologerList(jsonArray: org.json.JSONArray) {

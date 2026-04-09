@@ -52,7 +52,20 @@ class AstrologerStatusService : Service() {
 
         val notification = createNotification("You are Currently Online", "Awaiting incoming calls/chats...")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            try {
+                // Using multiple types for better compatibility: Special Use + Data Sync
+                val type = android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
+                          android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                
+                startForeground(NOTIFICATION_ID, notification, type)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error starting specialUse FGS, falling back to basic: ${e.message}")
+                try {
+                    startForeground(NOTIFICATION_ID, notification)
+                } catch (e2: Exception) {
+                    Log.e(TAG, "Critical failure to start FGS: ${e2.message}")
+                }
+            }
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
