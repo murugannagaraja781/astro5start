@@ -857,8 +857,16 @@ class CallActivity : ComponentActivity() {
                     when (newState) {
                         PeerConnection.IceConnectionState.CONNECTED -> {
                             sendAppLog("ICE CONNECTED - Call established!")
-                            statusText = "" // Hide status
-                            // FIX: Add 2-second delay before starting MediaRecorder to prevent hardware resource conflict with WebRTC initialization
+                            // USER REQUEST: Show "Communication Starting..." until billing event arrives
+                            statusText = "📡 Communication Starting..."
+                            
+                            // Start local timer immediately if not already running to give immediate feedback
+                            if (callDurationSeconds == 0) {
+                                timerHandler.removeCallbacks(timerRunnable)
+                                timerHandler.postDelayed(timerRunnable, 1000)
+                            }
+
+                            // FIX: Add 2-second delay before starting MediaRecorder
                             val myRole = TokenManager(this@CallActivity).getUserSession()?.role
                             if (myRole == "astrologer" && !isRecordingState) {
                                 android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
@@ -1696,12 +1704,21 @@ fun CallScreen(
                     )
                 }
                 if (statusText.isNotEmpty()) {
-                      Text(
-                        text = statusText,
-                        color = Color(0xFF4CAF50),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                      Row(verticalAlignment = Alignment.CenterVertically) {
+                          if (statusText.contains("Connecting") || statusText.contains("Starting")) {
+                              CircularProgressIndicator(
+                                  modifier = Modifier.size(12.dp).padding(end = 4.dp),
+                                  strokeWidth = 2.dp,
+                                  color = Color(0xFF4CAF50)
+                              )
+                          }
+                          Text(
+                            text = statusText,
+                            color = Color(0xFF4CAF50),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                      }
                 }
             }
         }

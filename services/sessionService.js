@@ -249,7 +249,7 @@ async function tryStartBilling(sessionId, io) {
     const fallbackNow = Date.now();
     const VALID_TIMESTAMP_THRESHOLD = 1704067200000; 
 
-    if (clientConn > VALID_TIMESTAMP_THRESHOLD || astroConn > VALID_TIMESTAMP_THRESHOLD) {
+    if (clientConn > VALID_TIMESTAMP_THRESHOLD && astroConn > VALID_TIMESTAMP_THRESHOLD) {
         let billingStart = session.actualBillingStart;
 
         if (!billingStart) {
