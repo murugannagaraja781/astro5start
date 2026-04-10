@@ -11,10 +11,15 @@ router.get('/ice-config', (req, res) => {
                 urls: [
                     "stun:stun.l.google.com:19302",
                     "stun:stun1.l.google.com:19302",
+                    "stun:stun2.l.google.com:19302",
+                    "stun:stun3.l.google.com:19302",
                     `stun:${turnUrl}:3478`,
                     `turn:${turnUrl}:3478?transport=udp`,
                     `turn:${turnUrl}:3478?transport=tcp`,
-                    `turns:${turnUrl}:5349?transport=tcp`
+                    `turn:${turnUrl}:443?transport=tcp`,
+                    `turn:${turnUrl}:80?transport=tcp`,
+                    `turns:${turnUrl}:5349?transport=tcp`,
+                    `turns:${turnUrl}:443?transport=tcp`
                 ],
                 username: process.env.TURN_USERNAME || "webrtcuser",
                 credential: process.env.TURN_PASSWORD || "strongpassword123"
