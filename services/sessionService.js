@@ -213,6 +213,22 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
             }).catch(() => {});
         }
 
+        // Client wallet deduction summary push (USER REQUEST: Show after call cut)
+        if (s.clientId && (s.totalDeducted > 0)) {
+            User.findOne({ userId: s.clientId }).then(client => {
+                if (client && client.fcmToken) {
+                    const { sendFcmV1Push } = require('./fcmService');
+                    sendFcmV1Push(client.fcmToken, {
+                        type: 'WALLET_DEBIT',
+                        amount: String(s.totalDeducted)
+                    }, {
+                        title: "🔴 Wallet Updated",
+                        body: `₹${s.totalDeducted.toFixed(2)} deducted for the session.`
+                    }).catch(() => {});
+                }
+            }).catch(() => {});
+        }
+
     } catch (err) {
         console.error('[EndSession] CRITICAL ERROR:', err);
     }

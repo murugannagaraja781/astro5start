@@ -857,8 +857,10 @@ class CallActivity : ComponentActivity() {
                     when (newState) {
                         PeerConnection.IceConnectionState.CONNECTED -> {
                             sendAppLog("ICE CONNECTED - Call established!")
-                            // USER REQUEST: Show "Communication Starting..." until billing event arrives
-                            statusText = "📡 Communication Starting..."
+                            // USER REQUEST: Show "Communication Starting..." only if billing event hasn't already cleared the connecting state
+                            if (!isBillingActive) {
+                                statusText = "📡 Communication Starting..."
+                            }
                             
                             // Start local timer immediately if not already running to give immediate feedback
                             if (callDurationSeconds == 0) {
@@ -1073,6 +1075,8 @@ class CallActivity : ComponentActivity() {
             }
         }
 
+        /* USER REQUEST: Do not play sounds or show notifications during the call for wallet updates.
+           The summary will be shown at the end of the call.
         SocketManager.onWalletUpdate { data ->
             runOnUiThread {
                 val myRole = TokenManager(this@CallActivity).getUserSession()?.role
@@ -1083,6 +1087,7 @@ class CallActivity : ComponentActivity() {
                 }
             }
         }
+        */
 
         SocketManager.onSessionEndedWithSummary { reason, deducted, earned, duration ->
             runOnUiThread {

@@ -102,7 +102,7 @@ class WalletActivity : ComponentActivity() {
         Thread {
             try {
                 val request = Request.Builder()
-                    .url("https://astro5star.com/api/payment/recharge-packs")
+                    .url("${com.astro5star.app.utils.Constants.SERVER_URL}/api/payment/recharge-packs")
                     .get()
                     .build()
 
@@ -110,18 +110,23 @@ class WalletActivity : ComponentActivity() {
                 client.newCall(request).execute().use { response ->
                     if (response.isSuccessful) {
                         val body = response.body?.string()
-                        val json = JSONObject(body ?: "{}")
+                        if (body.isNullOrBlank()) return@use
+                        
+                        val json = JSONObject(body)
                         val packsArray = json.optJSONArray("packs")
 
                         if (packsArray != null) {
                             val newPacks = ArrayList<RechargePack>()
                             for (i in 0 until packsArray.length()) {
                                 val obj = packsArray.getJSONObject(i)
+                                // Handle both 'percentage' and 'offerPercentage' labels
+                                val percentValue = if (obj.has("percentage")) obj.optDouble("percentage") else obj.optDouble("offerPercentage", 0.0)
+                                
                                 newPacks.add(
                                     RechargePack(
                                         obj.optInt("amount"),
                                         obj.optString("bonusText"),
-                                        obj.optDouble("percentage")
+                                        percentValue
                                     )
                                 )
                             }
@@ -207,7 +212,7 @@ class WalletActivity : ComponentActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val request = Request.Builder()
-                    .url("https://astro5star.com/api/payment/history/$userId")
+                    .url("${com.astro5star.app.utils.Constants.SERVER_URL}/api/payment/history/$userId")
                     .get()
                     .build()
 
@@ -215,7 +220,9 @@ class WalletActivity : ComponentActivity() {
                 client.newCall(request).execute().use { response ->
                     if (response.isSuccessful) {
                         val body = response.body?.string()
-                        val json = JSONObject(body ?: "{}")
+                        if (body.isNullOrBlank()) return@use
+                        
+                        val json = JSONObject(body)
                         val data = json.optJSONArray("data")
 
                         val newTransactions = ArrayList<JSONObject>()

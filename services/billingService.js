@@ -270,13 +270,16 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
             });
         }
 
-        // Send FCM Notifications
+        // USER REQUEST: Do not send FCM notifications for every minute during the call.
+        // These will be sent as a total summary once the call is ended.
+        /*
         if (totalToClientDeduct > 0 && client.fcmToken) {
             sendFcmV1Push(client.fcmToken, { type: 'WALLET_DEBIT', amount: totalToClientDeduct }, { title: 'Wallet Updated', body: `₹${totalToClientDeduct.toFixed(2)} deducted for session.` }).catch(() => {});
         }
         if (astroAmount > 0 && astro.fcmToken) {
             sendFcmV1Push(astro.fcmToken, { type: 'WALLET_CREDIT', amount: astroAmount }, { title: 'Earnings Updated', body: `₹${astroAmount.toFixed(2)} credited to your wallet.` }).catch(() => {});
         }
+        */
 
     } catch (err) {
         console.error('processBillingCharge error', err);

@@ -376,7 +376,7 @@ fun AstrologerDashboardScreen(
             try {
                 val client = okhttp3.OkHttpClient()
                 val request = okhttp3.Request.Builder()
-                    .url("https://astro5star.com/api/user/${sessionId}")
+                    .url("${com.astro5star.app.utils.Constants.SERVER_URL}/api/user/${sessionId}")
                     .build()
                 val response = client.newCall(request).execute()
                 if (response.isSuccessful) {
