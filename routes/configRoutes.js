@@ -15,7 +15,11 @@ router.get('/ice-config', (req, res) => {
                     "stun:stun3.l.google.com:19302",
                     "stun:stun4.l.google.com:19302",
                     `stun:${turnUrl}:3478`,
-                    `stun:68.183.86.124:3478`,
+                    "stun:68.183.86.124:3478"
+                ]
+            },
+            {
+                urls: [
                     `turn:${turnUrl}:3478?transport=udp`,
                     `turn:68.183.86.124:3478?transport=udp`,
                     `turn:${turnUrl}:3478?transport=tcp`,
@@ -28,7 +32,8 @@ router.get('/ice-config', (req, res) => {
                     `turns:${turnUrl}:443?transport=tcp`
                 ],
                 username: process.env.TURN_USERNAME || "webrtcuser",
-                credential: process.env.TURN_PASSWORD || "strongpassword123"
+                credential: process.env.TURN_PASSWORD || "strongpassword123",
+                realm: process.env.TURN_REALM || "turn.abinaasananthaguruji.com"
             }
         ]
     });
