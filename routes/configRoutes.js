@@ -12,28 +12,31 @@ router.get('/ice-config', (req, res) => {
                     "stun:stun.l.google.com:19302",
                     "stun:stun1.l.google.com:19302",
                     "stun:stun2.l.google.com:19302",
-                    "stun:stun3.l.google.com:19302",
-                    "stun:stun4.l.google.com:19302",
                     `stun:${turnUrl}:3478`,
                     "stun:68.183.86.124:3478"
                 ]
             },
             {
+                // Primary TURN Server (User's Server)
                 urls: [
                     `turn:${turnUrl}:3478?transport=udp`,
                     `turn:68.183.86.124:3478?transport=udp`,
                     `turn:${turnUrl}:3478?transport=tcp`,
-                    `turn:68.183.86.124:3478?transport=tcp`,
-                    `turn:${turnUrl}:443?transport=tcp`,
-                    `turn:68.183.86.124:443?transport=tcp`,
-                    `turn:${turnUrl}:80?transport=tcp`,
-                    `turns:${turnUrl}:5349?transport=tcp`,
-                    `turns:68.183.86.124:5349?transport=tcp`,
-                    `turns:${turnUrl}:443?transport=tcp`
+                    `turn:68.183.86.124:3478?transport=tcp`
                 ],
-                username: process.env.TURN_USERNAME || "webrtcuser",
-                credential: process.env.TURN_PASSWORD || "strongpassword123",
-                realm: process.env.TURN_REALM || "turn.abinaasananthaguruji.com"
+                username: "webrtcuser",
+                credential: "strongpassword123",
+                realm: "turn.abinaasananthaguruji.com"
+            },
+            {
+                // Fallback Relay (In case main server firewall is blocked)
+                urls: [
+                    "turn:openrelay.metered.ca:80",
+                    "turn:openrelay.metered.ca:443",
+                    "turn:openrelay.metered.ca:3478"
+                ],
+                username: "openrelay",
+                credential: "openrelay"
             }
         ]
     });
