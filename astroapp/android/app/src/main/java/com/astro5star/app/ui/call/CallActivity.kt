@@ -736,15 +736,10 @@ class CallActivity : ComponentActivity() {
                                         createOffer()
                                         sendAppLog("Proactive Offer Sent")
 
-                                        // Set a timeout to re-offer if no connection established within 8 seconds
-                                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                              if (::peerConnection.isInitialized && peerConnection.iceConnectionState() != PeerConnection.IceConnectionState.CONNECTED && peerConnection.iceConnectionState() != PeerConnection.IceConnectionState.COMPLETED) {
-                                                  sendAppLog("Signaling Timeline Timeout - Re-sending Offer")
-                                                  createOffer()
-                                              }
-                                        }, 8000)
+                                        // Set a recurring integrity check to re-offer if no connection established
+                                        startConnectionIntegrityCheck()
                                     }
-                                }, 1500)
+                                }, 2500) // Increased to 2.5s for better mobile network readiness
                             }
 
                             statusText = if (isInitiator) "Calling..." else "Connecting..."
@@ -1414,6 +1409,28 @@ class CallActivity : ComponentActivity() {
                 finish()
             }
         }, 4000)
+    }
+
+    private fun startConnectionIntegrityCheck() {
+        val checkRunnable = object : Runnable {
+            override fun run() {
+                if (isInitiator && !isFinishing && ::peerConnection.isInitialized) {
+                    val state = peerConnection.iceConnectionState()
+                    if (state != PeerConnection.IceConnectionState.CONNECTED && 
+                        state != PeerConnection.IceConnectionState.COMPLETED &&
+                        state != PeerConnection.IceConnectionState.CLOSED) {
+                        
+                        sendAppLog("Integrity Check: Connection state is $state. Re-sending Offer...")
+                        createOffer()
+                        // Reschedule if not connected
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(this, 5000)
+                    } else {
+                        sendAppLog("Integrity Check: Connection established ($state). Stopping retries.")
+                    }
+                }
+            }
+        }
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(checkRunnable, 5000)
     }
 
     private fun submitReview(rating: Int, comment: String) {
