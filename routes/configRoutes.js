@@ -4,10 +4,10 @@ const router = express.Router();
 
 router.get('/ice-config', (req, res) => {
     console.log(`[ICE Config] Request received from ${req.ip}`);
-    const turnUrl = process.env.TURN_URL || "turn.abinaasananthaguruji.com";
+    const turnUrl = process.env.TURN_URL || "68.183.86.124";
     res.json({
         iceServers: [
-            { 
+            {
                 urls: [
                     "stun:stun.l.google.com:19302",
                     "stun:stun1.l.google.com:19302",
@@ -33,7 +33,7 @@ router.get('/app-config', (req, res) => {
         referralBaseUrl: `${REFERRAL_CONFIG.APP_BASE_URL}&referrer=`,
         forceUpdate: true,
         message: process.env.UPDATE_MESSAGE || "A new version of Astro5Star is available with improved call quality. Please update to continue.",
-        
+
         // Dynamic Referral UI Text
         REFERRAL_TITLE_TA: REFERRAL_CONFIG.REFERRAL_TITLE_TA,
         REFERRAL_TITLE_EN: REFERRAL_CONFIG.REFERRAL_TITLE_EN,
