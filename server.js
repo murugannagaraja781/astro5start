@@ -34,13 +34,9 @@ const cors = require('cors');
 const compression = require('compression');
 const connectDB = require('./config/database');
 const { initSocket } = require('./services/socketManager');
-const { tickSessions } = require('./services/billingService');
 const { isAdmin } = require('./middleware/authMiddleware');
-const helmet = require('helmet');
-const { upload } = require('./config/multer');
 const { initFcmAuth } = require('./services/fcmService');
 
-// Connect to Database
 // Connect to Database
 connectDB().then(async () => {
   const { loadSlabRates, loadReferralConfig, loadRechargePacks } = require('./services/sharedState');
@@ -49,7 +45,6 @@ connectDB().then(async () => {
   loadRechargePacks();
 
   // Cleanup: Reset isBusy for all users on startup to prevent stale states
-  // PERFORMANCE FIX: Delayed to avoid blocking initial server boot
   setTimeout(async () => {
     const User = require('./models/User');
     try {
@@ -75,7 +70,8 @@ const io = new Server(server, {
   cors: { origin: '*' },
   pingTimeout: 60000,
   pingInterval: 25000,
-  maxHttpBufferSize: 1e8
+  maxHttpBufferSize: 1e8,
+  allowEIO3: true // Compatibility for Socket.IO 2.x
 });
 global.io = io;
 
@@ -129,14 +125,13 @@ app.use('/api/user/waitlist', waitlistRoutes);
 const reviewRoutes = require('./routes/reviewRoutes');
 app.use('/api/reviews', reviewRoutes);
 
-// Mobile App Compatibility Aliases (ApiService.kt expects these at root)
+// Mobile App Compatibility Aliases
 app.post('/register', (req, res) => {
   const userController = require('./controllers/userController');
   userController.registerDevice(req, res);
 });
 
 app.post('/call', (req, res) => {
-  // Mobile app uses this to initiate a call record before starting socket
   const userController = require('./controllers/userController');
   if (typeof userController.initiateCall === 'function') {
     userController.initiateCall(req, res);
@@ -145,7 +140,7 @@ app.post('/call', (req, res) => {
   }
 });
 
-// App Compatibility Aliases (ApiInterface.kt expects these paths)
+// App Compatibility Aliases
 app.post('/api/charts/birth-chart', (req, res) => res.redirect(307, '/api/horoscope/generate-chart'));
 app.post('/api/match/porutham', (req, res) => res.redirect(307, '/api/horoscope/match'));
 app.get('/api/daily-horoscope', (req, res) => res.redirect(301, '/api/horoscope/daily-horoscope'));
@@ -174,7 +169,6 @@ policies.forEach(policy => {
 
 // Workflow Align: Payment Result Pages
 app.get(['/payment-success', '/wallet'], (req, res) => {
-  const status = req.query.status || (req.path === '/payment-success' ? 'success' : 'unknown');
   const amount = req.query.amount || '';
   const txnId = req.query.txnId || '';
 
@@ -200,8 +194,6 @@ app.get(['/payment-success', '/wallet'], (req, res) => {
         <p>₹${amount} has been added to your wallet.<br>Transaction ID: ${txnId}</p>
         <a href="${deepLink}" class="btn">Return to App</a>
         <script>
-          // Standard Workflow: Android Activity intercepts /payment-success
-          // Backup: Intent & Deep Link fallbacks
           setTimeout(() => { window.location.href = "${intentUrl}"; }, 500);
           setTimeout(() => { window.location.href = "${deepLink}"; }, 1500);
         </script>
@@ -257,7 +249,7 @@ async function runBillingTick() {
 }
 runBillingTick();
 
-// Start presence heartbeat ticker (Throttled to avoid CPU-intensive overlaps)
+// Start presence heartbeat ticker
 async function runPresenceHeartbeat() {
   try {
     const thirtySecondsAgo = new Date(Date.now() - 30000);
@@ -276,7 +268,6 @@ async function runPresenceHeartbeat() {
   } catch (err) {
     console.error('[Presence] Heartbeat cleanup error:', err);
   } finally {
-    // Schedule next run in 10 seconds
     setTimeout(runPresenceHeartbeat, 10000);
   }
 }
@@ -287,17 +278,13 @@ server.listen(PORT, () => {
   console.log(`✓ Astro5star server started on port ${PORT}`);
 });
 
-// Error handling for worker threads and unhandled rejections
 process.on('unhandledRejection', (reason, promise) => {
   console.log('[FATAL_CRASH] Unhandled Rejection at:', promise, 'reason:', reason);
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 process.on('uncaughtException', (err) => {
   console.log('[FATAL_CRASH] Uncaught Exception:', err.message);
   console.log(err.stack);
-  console.error('Uncaught Exception:', err);
-  // Optional: process.exit(1); 
 });
 
 module.exports = { app, server };

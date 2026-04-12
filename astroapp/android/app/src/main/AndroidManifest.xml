@@ -87,7 +87,8 @@
         android:name=".AstrologerApp"
         android:resizeableActivity="true"
         android:networkSecurityConfig="@xml/network_security_config"
-        tools:targetApi="34">
+        android:extractNativeLibs="false"
+        tools:targetApi="35">
 
         <!--
             MainActivity: Entry point for user registration
