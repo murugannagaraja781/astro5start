@@ -8,6 +8,7 @@ const activeSessions = new Map(); // sessionId -> { type, users... }
 const pendingMessages = new Map();
 const otpStore = new Map();
 const lastSeenCache = new Map(); // userId -> lastUpdateTime
+const sessionTimeouts = new Map(); // sessionId -> timeoutId
 
 // Astrologer Status Persistence (5-min grace period)
 const offlineTimeouts = new Map(); // userId -> timeoutId
@@ -178,5 +179,6 @@ module.exports = {
     updateRechargePacks,
     paymentTokens,
     phonepeV2Cache,
-    lastSeenCache
+    lastSeenCache,
+    sessionTimeouts
 };

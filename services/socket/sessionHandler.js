@@ -3,7 +3,8 @@ const {
     userSockets,
     socketToUser,
     userActiveSession,
-    activeSessions
+    activeSessions,
+    sessionTimeouts
 } = require('../sharedState');
 const User = require('../../models/User');
 const Session = require('../../models/Session');
@@ -107,6 +108,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     userActiveSession.delete(fromUserId);
                     userActiveSession.delete(toUserId);
                     activeSessions.delete(sessionId);
+                    sessionTimeouts.delete(sessionId);
                     await Session.updateOne({ sessionId }, { status: 'missed', endTime: Date.now() }).catch(() => { });
                 }
             }, 30000); // 30 Seconds Timeout
@@ -129,6 +131,10 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 birthData: birthData || null,
                 timeoutId
             });
+
+            // FALLBACK SYNC: Store in global map for resilient clearing
+            sessionTimeouts.set(sessionId, timeoutId);
+
             userActiveSession.set(fromUserId, sessionId);
             userActiveSession.set(toUserId, sessionId);
 

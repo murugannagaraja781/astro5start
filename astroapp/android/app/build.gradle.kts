@@ -11,13 +11,15 @@ plugins {
 
 android {
     namespace = "com.astro5star.app"
-    compileSdk = 35
+    compileSdk = 34
     defaultConfig {
         applicationId = "com.astro5star.app"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 30
-        versionName = "5.0.30"
+        targetSdk = 34
+        versionCode = 31
+        versionName = "5.0.31"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
             abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))

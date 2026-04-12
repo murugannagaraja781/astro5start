@@ -721,45 +721,34 @@ class CallActivity : ComponentActivity() {
                 SocketManager.registerUser(myUserId) { success ->
                     if (success) {
                         runOnUiThread {
+                            // Sync status UI
+                            if (isBillingActive) {
+                                statusText = "" 
+                            } else {
+                                statusText = if (isInitiator) "Calling..." else "Connecting..."
+                            }
+
+                            // AGGRESSIVE SIGNALING: Join the session room immediately on backend
                             val connectPayload = JSONObject().apply {
                                 put("sessionId", sessionId)
-                                put("type", callType) // Include type for backend consistency
+                                put("type", callType)
                             }
                             SocketManager.getSocket()?.emit("session-connect", connectPayload)
+                            sendAppLog("Sent session-connect for $sessionId")
 
-                            // --- STABILITY FIX: Start connection with delay to ensure peer's socket is registered ---
-                            if (isInitiator && ::peerConnection.isInitialized && !hasSentOffer) {
-                                sendAppLog("Proactive: Safety delay for peer readiness before offer")
-                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                    if (::peerConnection.isInitialized && peerConnection.localDescription == null && !isEditingIntake && !hasSentOffer) {
-                                        hasSentOffer = true
-                                        createOffer()
-                                        sendAppLog("Proactive Offer Sent")
-
-                                        // Set a recurring integrity check to re-offer if no connection established
-                                        startConnectionIntegrityCheck()
-                                    }
-                                }, 2500) // Increased to 2.5s for better mobile network readiness
-                            }
-
-                            statusText = if (isInitiator) "Calling..." else "Connecting..."
+                            // Fallback: Trigger offer after safety delay if session-answered hasn't already
+                            timerHandler.postDelayed({
+                                if (isInitiator && !hasSentOffer && ::peerConnection.isInitialized) {
+                                    sendAppLog("Safety timeout triggered: Creating fallback offer")
+                                    hasSentOffer = true
+                                    createOffer()
+                                    startConnectionIntegrityCheck()
+                                }
+                            }, 3500)
                         }
                     } else {
+                        sendAppLog("Socket registration failed in startCallLimit")
                         Log.e(TAG, "Failed to register user to socket")
-                        // Retry registration once
-                        runOnUiThread {
-                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                SocketManager.registerUser(myUserId) { retrySuccess ->
-                                    if (retrySuccess) {
-                                        runOnUiThread {
-                                            val p = JSONObject().apply { put("sessionId", sessionId) }
-                                            SocketManager.getSocket()?.emit("session-connect", p)
-                                            sendAppLog("Retry registration succeeded")
-                                        }
-                                    }
-                                }
-                            }, 2000)
-                        }
                     }
                 }
             }
@@ -1120,6 +1109,56 @@ class CallActivity : ComponentActivity() {
                         .setCancelable(false)
                         .show()
                 }
+            }
+        }
+
+        SocketManager.onSessionAnswered { data ->
+            val accept = data.optBoolean("accept", false)
+            val counterpartId = data.optString("fromUserId")
+            
+            runOnUiThread {
+                if (accept) {
+                    sendAppLog("Session Answered by $counterpartId - Transitioning to active")
+                    statusText = "📡 Connected"
+                    
+                    // SYNC: Ensure we have the correct partnerId for signaling
+                    if (!counterpartId.isNullOrEmpty() && counterpartId != "Unknown") {
+                         partnerId = counterpartId
+                    }
+                    
+                    // Trigger offer if we are initiator and haven't sent one yet
+                    if (isInitiator && !hasSentOffer && ::peerConnection.isInitialized) {
+                        sendAppLog("Handshake Start: Creating Offer (Immediate)")
+                        hasSentOffer = true
+                        createOffer()
+                    }
+                } else {
+                    sendAppLog("Call Rejected or Cancelled")
+                    statusText = "Call Rejected"
+                    timerHandler.postDelayed({ finish() }, 2000)
+                }
+            }
+        }
+
+        // New Listener: Handle peer reconnection
+        SocketManager.getSocket()?.on("peer-reconnected") { args ->
+            val data = args?.getOrNull(0) as? JSONObject
+            val reconnectedId = data?.optString("userId")
+            sendAppLog("Peer reconnected: $reconnectedId. Refreshing handshake...")
+            
+            if (isInitiator && ::peerConnection.isInitialized) {
+                // Initiator should re-send the offer to a re-connected recipient
+                runOnUiThread { createOffer() }
+            }
+        }
+
+        // New Listener: Sync participant info
+        SocketManager.getSocket()?.on("session-info") { args ->
+            val data = args?.getOrNull(0) as? JSONObject
+            val cid = data?.optString("counterpartId")
+            if (!cid.isNullOrEmpty() && (partnerId == null || partnerId == "Unknown")) {
+                sendAppLog("Resolved partnerId via session-info: $cid")
+                partnerId = cid
             }
         }
 

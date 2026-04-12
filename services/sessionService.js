@@ -473,9 +473,18 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
         }
 
         if (accept) {
+            // Stability: If session was restored from DB, the memory 'timeoutId' might be missing 
+            // from this specific object, but we still need to clear it from the global map if possible.
             if (session.timeoutId) {
                 clearTimeout(session.timeoutId);
                 session.timeoutId = null;
+            }
+
+            // Fallback: Clear by Session ID if your handler stores them in a map instead of on the object
+            const { sessionTimeouts } = require('./sharedState');
+            if (sessionTimeouts && sessionTimeouts.has(sessionId)) {
+                clearTimeout(sessionTimeouts.get(sessionId));
+                sessionTimeouts.delete(sessionId);
             }
 
             // --- IMMEDIATE SIGNALING (SPEED FIX) ---
