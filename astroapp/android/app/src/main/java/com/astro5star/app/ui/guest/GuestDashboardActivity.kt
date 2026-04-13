@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.lifecycleScope
 import com.astro5star.app.data.model.Astrologer
+import com.astro5star.app.data.model.Banner
 import com.astro5star.app.ui.auth.LoginActivity
 import com.astro5star.app.ui.home.ComposeRasiItem
 import com.astro5star.app.ui.home.HomeScreen
@@ -60,7 +61,7 @@ class GuestDashboardActivity : AppCompatActivity() {
                     horoscope = horoscope,
                     astrologers = astrologers,
                     isLoading = isLoading,
-                    banners = emptyList(),
+                    banners = emptyList<Banner>(),
                     onBannerClick = { _ -> redirectToLogin() },
                     onChatClick = { redirectToLogin() },
                     onCallClick = { _, _ -> redirectToLogin() },

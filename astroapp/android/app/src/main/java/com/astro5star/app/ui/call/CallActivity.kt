@@ -12,6 +12,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material.icons.filled.VolumeUp
@@ -100,7 +103,7 @@ class CallActivity : ComponentActivity() {
     private var isNewRequest = false
     private var partnerId: String? = null
     private var sessionId: String? = null
-    private var clientBirthData: JSONObject? = null
+    private var clientBirthData by mutableStateOf<JSONObject?>(null)
 
     private lateinit var tokenManager: TokenManager
     private var session: AuthResponse? = null
@@ -161,6 +164,11 @@ class CallActivity : ComponentActivity() {
             }
         }
 
+    private var isFetchingMatchSummary by mutableStateOf(false)
+    private var showMatchSummary by mutableStateOf(false)
+    private var matchSummaryData by mutableStateOf<JSONObject?>(null)
+    private var isEditingPorutham = false
+
     private val editIntakeLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
         // Delay resetting isEditingIntake to give socket time to stabilize after foreground switch
         timerHandler.postDelayed({
@@ -182,9 +190,14 @@ class CallActivity : ComponentActivity() {
                          put("toUserId", partnerId)
                          put("birthData", newData)
                      })
-                     // Auto-show chart after update ONLY for astrologer
+                     // Auto-show chart or summary after update ONLY for astrologer
                      if (session?.role == "astrologer") {
-                         showRasiChart()
+                         if (isEditingPorutham) {
+                             isEditingPorutham = false
+                             fetchMatchSummary()
+                         } else {
+                             showRasiChart()
+                         }
                      }
                  } catch (e: Exception) { e.printStackTrace() }
              }
@@ -305,6 +318,8 @@ class CallActivity : ComponentActivity() {
                     onEndCall = { endCall() },
                     onEditIntake = { openEditIntake() },
                     onShowRasi = { showRasiChart() },
+                    onShowPorutham = { openPorutham() },
+                    hasPartner = clientBirthData?.has("partner") == true,
                     isRecording = isRecordingState,
                     onToggleRecording = { toggleRecording() },
                     isReady = isWebRTCInitialized && ::peerConnection.isInitialized,
@@ -312,7 +327,16 @@ class CallActivity : ComponentActivity() {
                     callSummary = callSummaryMessage,
                     isReviewSubmitting = isReviewSubmitting,
                     onSubmitReview = { rating, comment -> submitReview(rating, comment) },
-                    onSkipReview = { finish() }
+                    onSkipReview = { finish() },
+                    showMatchSummary = showMatchSummary,
+                    matchSummaryData = matchSummaryData,
+                    onCloseMatchSummary = { showMatchSummary = false },
+                    onViewFullMatch = {
+                        val intent = android.content.Intent(this@CallActivity, com.astro5star.app.ui.chart.MatchDisplayActivity::class.java)
+                        intent.putExtra("birthData", clientBirthData.toString())
+                        startActivity(intent)
+                        showMatchSummary = false
+                    }
                 )
             }
         }
@@ -466,6 +490,90 @@ class CallActivity : ComponentActivity() {
         val audioManager = getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
         audioManager.mode = android.media.AudioManager.MODE_IN_COMMUNICATION
         audioManager.isSpeakerphoneOn = on
+    }
+
+    private fun openPorutham() {
+        if (clientBirthData == null) {
+            Toast.makeText(this, "Client data not received yet", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val hasPartner = clientBirthData!!.has("partner") && clientBirthData!!.optJSONObject("partner") != null
+        if (hasPartner) {
+            // Data exists, show direct summary
+            fetchMatchSummary()
+        } else {
+            // No data, show edit form
+            isEditingPorutham = true
+            val intent = android.content.Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java)
+            intent.putExtra("partnerId", partnerId)
+            intent.putExtra("partnerName", partnerName)
+            intent.putExtra("callType", "match")
+            intent.putExtra("targetUserId", partnerId) 
+            intent.putExtra("existingData", clientBirthData?.toString())
+            editIntakeLauncher.launch(intent)
+        }
+    }
+
+    private fun fetchMatchSummary() {
+        val bData = clientBirthData ?: return
+        val pData = bData.optJSONObject("partner") ?: return
+
+        isFetchingMatchSummary = true
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                fun extract(json: JSONObject): com.google.gson.JsonObject {
+                    return com.google.gson.JsonObject().apply {
+                         val y = json.optInt("year", 2000)
+                         val m = json.optInt("month", 1)
+                         val d = json.optInt("day", 1)
+                         addProperty("dob", String.format("%04d-%02d-%02d", y, m, d))
+                         val h = json.optInt("hour", 12)
+                         val min = json.optInt("minute", 0)
+                         addProperty("tob", String.format("%02d:%02d", h, min))
+                         addProperty("lat", json.optDouble("latitude", 13.0827))
+                         addProperty("lng", json.optDouble("longitude", 80.2707))
+                         addProperty("timezone", json.optDouble("timezone", 5.5))
+                    }
+                }
+
+                val cGender = bData.optString("gender")
+                val boyData: com.google.gson.JsonObject
+                val girlData: com.google.gson.JsonObject
+
+                if (cGender.equals("Male", ignoreCase = true)) {
+                    boyData = extract(bData)
+                    girlData = extract(pData)
+                } else {
+                    girlData = extract(bData)
+                    boyData = extract(pData)
+                }
+
+                val payload = com.google.gson.JsonObject().apply {
+                    add("boyData", boyData)
+                    add("girlData", girlData)
+                }
+
+                val response = ApiClient.api.getRasiEngMatching(payload)
+                withContext(Dispatchers.Main) {
+                    isFetchingMatchSummary = false
+                    if (response.isSuccessful && response.body() != null) {
+                        val body = response.body()!!
+                        // Convert Gson to org.json
+                        matchSummaryData = JSONObject(body.toString())
+                        showMatchSummary = true
+                    } else {
+                        Toast.makeText(this@CallActivity, "Failed to calculate match", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    isFetchingMatchSummary = false
+                    e.printStackTrace()
+                    Toast.makeText(this@CallActivity, "Error calculating match", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     private fun openEditIntake() {
@@ -1668,6 +1776,12 @@ fun CallScreen(
     onEndCall: () -> Unit,
     onEditIntake: () -> Unit,
     onShowRasi: () -> Unit,
+    onShowPorutham: () -> Unit = {},
+    hasPartner: Boolean = false,
+    showMatchSummary: Boolean = false,
+    matchSummaryData: JSONObject? = null,
+    onCloseMatchSummary: () -> Unit = {},
+    onViewFullMatch: () -> Unit = {},
     isRecording: Boolean = false,
     onToggleRecording: () -> Unit = {},
     isReady: Boolean = false,
@@ -1686,10 +1800,18 @@ fun CallScreen(
         )
     }
 
+    if (showMatchSummary && matchSummaryData != null) {
+        MatchSummaryDialog(
+            data = matchSummaryData,
+            onClose = onCloseMatchSummary,
+            onViewFull = onViewFullMatch
+        )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF0F2F5)) // Light Gray/White base
+            .background(Color.Black)
     ) {
         // Remote View Layer (Full Screen)
         if (callType == "video" && isReady) {
@@ -1856,9 +1978,14 @@ fun CallScreen(
                     }
 
                     // Right Group
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         if (role == "astrologer") {
-                            ControlBtnItem(onClick = onShowRasi, icon = Icons.Default.Assessment, label = "Chart", active = true)
+                            if (hasPartner) {
+                                ControlBtnItem(onClick = onShowPorutham, icon = Icons.Default.AutoFixHigh, label = "Match", active = true)
+                            }
+                            ControlBtnItem(onClick = onShowRasi, icon = Icons.Default.Assessment, label = "Chart", active = false)
+                        } else if (hasPartner) {
+                            ControlBtnItem(onClick = onShowPorutham, icon = Icons.Default.AutoFixHigh, label = "Match", active = false)
                         }
                         ControlBtnItem(onClick = onEditIntake, icon = Icons.Default.Edit, label = "Edit", active = false)
                     }
@@ -1955,4 +2082,110 @@ fun ReviewDialog(
         shape = RoundedCornerShape(24.dp),
         containerColor = Color.White
     )
+}
+
+@Composable
+fun MatchSummaryDialog(data: JSONObject, onClose: () -> Unit, onViewFull: () -> Unit) {
+    val score = data.optInt("totalScore", 0)
+    val max = data.optInt("maxScore", 36)
+    val verdict = data.optString("verdict", "")
+    
+    Dialog(onDismissRequest = onClose) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = Color.White,
+            tonalElevation = 8.dp,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header Icon
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .background(
+                            Brush.linearGradient(listOf(Color(0xFF66BB6A), Color(0xFF2E7D32))),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.AutoFixHigh, null, tint = Color.White, modifier = Modifier.size(32.dp))
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("பொருத்த முடிவு", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1B5E20))
+                Text("(Match Summary)", fontSize = 14.sp, color = Color.Gray)
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Score Circle
+                Box(
+                    modifier = Modifier
+                        .size(110.dp)
+                        .padding(4.dp)
+                        .border(4.dp, Color(0xFFE8F5E9), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("$score", fontSize = 36.sp, fontWeight = FontWeight.Black, color = Color(0xFF2E7D32))
+                        androidx.compose.material3.HorizontalDivider(modifier = Modifier.width(40.dp), thickness = 1.dp, color = Color.LightGray)
+                        Text("$max", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Verdict Tag
+                val isAdvisable = verdict.contains("Advisable") || verdict.contains("Special")
+                val vColor = if (isAdvisable) Color(0xFFE8F5E9) else Color(0xFFFEEBEE)
+                val tColor = if (isAdvisable) Color(0xFF2E7D32) else Color(0xFFC62828)
+                val vLabel = if (isAdvisable) "பொருத்தமுள்ளது" else "பொருத்தமில்லை"
+
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = vColor,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = vLabel,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black,
+                            color = tColor
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = verdict,
+                            fontSize = 13.sp,
+                            color = tColor.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                // Buttons
+                Button(
+                    onClick = onViewFull,
+                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                    shape = RoundedCornerShape(27.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1B5E20))
+                ) {
+                    Text("முழு விவரம் காண்க (Details)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
+                    Text("மூடுக (Close)", color = Color.Gray, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
 }

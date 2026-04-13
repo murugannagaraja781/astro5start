@@ -278,6 +278,7 @@ class ChatActivity : ComponentActivity() {
             remainingTime = String.format("%02d:%02d", remMins, remSecs)
         }
 
+        /* USER REQUEST: Wallet sounds silenced during session. Summary shown at end.
         SocketManager.onWalletUpdate { data ->
             runOnUiThread {
                 val myRole = TokenManager(this@ChatActivity).getUserSession()?.role
@@ -288,6 +289,7 @@ class ChatActivity : ComponentActivity() {
                 }
             }
         }
+        */
     }
 
     private fun finishSessionAndNavigate() {

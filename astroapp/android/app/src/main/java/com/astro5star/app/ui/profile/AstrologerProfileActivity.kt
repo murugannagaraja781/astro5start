@@ -23,6 +23,8 @@ import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.rounded.VideoCall
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -111,6 +113,27 @@ fun AstrologerProfileScreen(
     val scope = rememberCoroutineScope()
 
     var pendingActionType by remember { mutableStateOf<String?>(null) }
+    var isFavorite by remember { mutableStateOf(false) }
+
+    // Check initial favorite status
+    LaunchedEffect(id) {
+        if (id.isEmpty() || currentUser?.userId == null) return@LaunchedEffect
+        try {
+            val res = ApiClient.api.getFavorites(currentUser.userId)
+            if (res.isSuccessful && res.body() != null) {
+                val data = res.body()!!.getAsJsonArray("data")
+                if (data != null) {
+                    for (i in 0 until data.size()) {
+                        val obj = data.get(i).asJsonObject
+                        if (obj.get("userId")?.asString == id) {
+                            isFavorite = true
+                            break
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) { e.printStackTrace() }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -193,6 +216,35 @@ fun AstrologerProfileScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = {
+                        if (currentUser == null) {
+                            Toast.makeText(context, "Please login to follow astrologers", Toast.LENGTH_SHORT).show()
+                            return@IconButton
+                        }
+                        isFavorite = !isFavorite
+                        scope.launch {
+                            try {
+                                val req = com.google.gson.JsonObject().apply {
+                                    addProperty("clientId", currentUser.userId)
+                                    addProperty("astrologerId", id)
+                                    addProperty("isFavorite", isFavorite)
+                                }
+                                ApiClient.api.toggleFavorite(req)
+                                if (isFavorite) {
+                                    Toast.makeText(context, "Added to favorites! You will be notified when $name is online.", Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    }) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Favorite",
+                            tint = if (isFavorite) Color.Red else Color.White
+                        )
+                    }
+
                     IconButton(onClick = {}) {
                         Icon(Icons.Default.Share, "Share", tint = Color.White)
                     }
@@ -371,6 +423,43 @@ fun AstrologerProfileScreen(
                         isEnabled = isVideoOnline,
                         onClick = { checkAndProceed("video") }
                     )
+                }
+
+                // Waitlist Option (If Offline)
+                if (!isChatOnline && !isAudioOnline && !isVideoOnline) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            if (currentUser == null) {
+                                Toast.makeText(context, "Please login to join waitlist", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+                            scope.launch {
+                                try {
+                                    val req = com.google.gson.JsonObject().apply {
+                                        addProperty("clientId", currentUser.userId)
+                                        addProperty("astrologerId", id)
+                                    }
+                                    val res = ApiClient.api.joinWaitlist(req)
+                                    if (res.isSuccessful) {
+                                        Toast.makeText(context, "You have joined the waitlist for $name. We will notify you when they are available.", Toast.LENGTH_LONG).show()
+                                    } else {
+                                        Toast.makeText(context, "Could not join waitlist: ${res.code()}", Toast.LENGTH_SHORT).show()
+                                    }
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                    Toast.makeText(context, "Connection error", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Star, null, tint = Color.White)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Join Waitlist / Notify Me", fontWeight = FontWeight.Bold)
+                    }
                 }
 
                 // Reviews Section

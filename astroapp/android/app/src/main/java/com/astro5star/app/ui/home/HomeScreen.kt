@@ -141,15 +141,19 @@ fun BannerSection(banners: List<Banner>, onBannerClick: (Banner) -> Unit) {
             ) {
                 Box(modifier = Modifier.fillMaxSize().padding(horizontal = 0.dp)) {
                     // 1. Dynamic Background Image
-                    val imageUrl = if (banner.imageUrl.startsWith("http")) banner.imageUrl
-                                  else if (banner.imageUrl.isNotEmpty()) {
-                                      val path = if (banner.imageUrl.startsWith("/")) banner.imageUrl else "/${banner.imageUrl}"
+                    val img = banner.imageUrl ?: ""
+                    val imageUrl = if (img.startsWith("http")) img
+                                  else if (img.isNotEmpty()) {
+                                      val path = if (img.startsWith("/")) img else "/${img}"
                                       "${com.astro5star.app.utils.Constants.SERVER_URL}$path"
                                   }
-                                  else ""
+                                  else "https://images.unsplash.com/photo-1532983330958-4b32bb9bb078?q=80&w=1200"
+
                     AsyncImage(
                         model = imageUrl,
                         contentDescription = banner.title,
+                        placeholder = painterResource(R.drawable.app_logo),
+                        error = painterResource(R.drawable.app_logo),
                         contentScale = ContentScale.FillBounds,
                         modifier = Modifier.fillMaxSize()
                     )

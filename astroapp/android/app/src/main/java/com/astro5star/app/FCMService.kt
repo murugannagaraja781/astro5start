@@ -199,11 +199,11 @@ class FCMService : FirebaseMessagingService() {
                     }
                 }
                 "WALLET_DEBIT" -> {
-                    com.astro5star.app.utils.SoundManager.playDebitSound()
+                    // Removed SoundManager call as per user request to silence wallet notifications
                     showGenericNotification(data["title"] ?: "Wallet Updated", data["body"] ?: "Amount deducted")
                 }
                 "WALLET_CREDIT" -> {
-                    com.astro5star.app.utils.SoundManager.playCreditSound()
+                    // Removed SoundManager call as per user request to silence wallet notifications
                     showGenericNotification(data["title"] ?: "Earnings Updated", data["body"] ?: "Amount credited")
                 }
                 else -> {

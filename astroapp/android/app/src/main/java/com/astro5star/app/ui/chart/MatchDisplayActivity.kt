@@ -152,99 +152,115 @@ class MatchDisplayActivity : ComponentActivity() {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <style>
                     body {
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                        padding: 20px;
-                        background-color: #F0F2F5;
-                        color: #2E7D32;
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                        padding: 16px;
+                        background-color: #F8FAFC;
+                        color: #1E293B;
                     }
                     .card {
                         background: #FFFFFF;
-                        padding: 24px;
-                        border-radius: 24px;
-                        box-shadow: 10px 10px 20px #d1d9e6, -10px -10px 20px #ffffff;
-                        margin-bottom: 24px;
+                        padding: 20px;
+                        border-radius: 20px;
+                        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+                        margin-bottom: 20px;
                     }
-                    h2 { color: #2E7D32; text-align: center; font-weight: 800; margin-top: 0; }
+                    h2 { color: #15803D; text-align: center; font-weight: 800; margin-top: 0; font-size: 20px; }
                     .score-box {
                         text-align: center;
-                        font-size: 32px;
+                        font-size: 36px;
                         font-weight: 900;
-                        color: #4CAF50;
-                        margin: 24px 0;
-                        padding: 16px;
-                        background: #F0F2F5;
+                        color: #16A34A;
+                        margin: 16px 0;
+                        padding: 12px;
+                        background: #F0FDF4;
                         border-radius: 16px;
-                        box-shadow: inset 4px 4px 8px #d1d9e6, inset -4px -4px 8px #ffffff;
                     }
                     .info-row {
                         display: flex;
                         justify-content: space-between;
-                        padding: 12px 0;
-                        border-bottom: 1px solid #eee;
+                        padding: 10px 0;
+                        border-bottom: 1px solid #F1F5F9;
                     }
-                    .info-label { font-weight: bold; color: #666; }
-                    .info-value { font-weight: bold; color: #2E7D32; }
+                    .info-label { color: #64748B; font-size: 14.sp; }
+                    .info-value { font-weight: 600; color: #1E293B; }
 
-                    table { width: 100%; border-collapse: separate; border-spacing: 0 8px; margin-top: 10px; }
-                    th { text-align: left; padding: 12px; color: #666; font-size: 13px; text-transform: uppercase; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
                     td {
-                        background: #F8F9FA;
-                        padding: 16px;
-                        border-radius: 12px;
+                        padding: 14px 0;
+                        border-bottom: 1px solid #F1F5F9;
                         font-weight: 600;
                     }
-                    .good { color: #4CAF50; }
-                    .bad { color: #F44336; }
+                    .good { color: #16A34A; }
+                    .bad { color: #DC2626; }
                     .verdict {
                         text-align: center;
                         font-size: 18px;
-                        font-weight: bold;
-                        padding: 16px;
+                        font-weight: 800;
+                        padding: 12px;
                         border-radius: 12px;
-                        margin-top: 16px;
+                        margin-top: 12px;
                     }
-                    .verdict-advisable { background: #E8F5E9; color: #2E7D32; }
-                    .verdict-not { background: #FFEBEE; color: #C62828; }
+                    .verdict-advisable { background: #DCFCE7; color: #166534; }
+                    .verdict-not { background: #FEE2E2; color: #991B1B; }
                 </style>
             </head>
             <body>
                 <div class="card">
-                    <h2>Marriage Compatibility</h2>
-                    <div id="content">Analyzing stars...</div>
+                    <h2>திருமணப் பொருத்தம் (Match Result)</h2>
+                    <div id="content">கணிக்கப்படுகிறது...</div>
                 </div>
 
                 <div class="card" id="dosha-card" style="display:none;">
-                    <h2>Dosha Analysis</h2>
+                    <h2>தோஷ ஆய்வு (Dosha Analysis)</h2>
                     <div id="dosha-content"></div>
                 </div>
 
                 <script>
+                    const translations = {
+                        'Dina': 'தினம் (Dinam)',
+                        'Gana': 'கணம் (Ganam)',
+                        'Mahendra': 'மகேந்திரம் (Mahendram)',
+                        'Stree Deergha': 'ஸ்திரீ தீர்க்கம் (Stree Deergha)',
+                        'Yoni': 'யோனி (Yoni)',
+                        'Rasi': 'ராசி (Rasi)',
+                        'Rasiyathipathi': 'ராசியதிபதி (Rasiyathipathi)',
+                        'Vasya': 'வசியம் (Vasyam)',
+                        'Rajju': 'ரஜ்ஜு (Rajju)',
+                        'Vedha': 'வேதை (Vedha)',
+                        'Nadi': 'நாடி (Nadi)',
+                        'Advisable': 'பொருத்தமுள்ளது (Advisable)',
+                        'Not Advisable': 'பொருத்தமில்லை (Not Advisable)',
+                        'Special Star Match': 'சிறப்பு நட்சத்திரப் பொருத்தம்'
+                    };
+
                     try {
                         const root = $jsonResponse;
-                        const data = root.data; // Access the nested data object
+                        const data = root.data || root.match || root; 
                         let html = '';
 
                         if (data) {
-                            html += '<div class="info-row"><span class="info-label">Boy Star</span><span class="info-value">' + data.boy.nakshatra + ' (' + data.boy.rasi + ')</span></div>';
-                            html += '<div class="info-row"><span class="info-label">Girl Star</span><span class="info-value">' + data.girl.nakshatra + ' (' + data.girl.rasi + ')</span></div>';
+                            html += '<div class="info-row"><span class="info-label">ஆண் (Male)</span><span class="info-value">' + (data.groom?.nakshatra || data.boy?.nakshatra || '-') + '</span></div>';
+                            html += '<div class="info-row"><span class="info-label">பெண் (Female)</span><span class="info-value">' + (data.bride?.nakshatra || data.girl?.nakshatra || '-') + '</span></div>';
 
                             html += '<div class="score-box">' + (data.totalScore || 0) + ' / ' + (data.maxScore || 36) + '</div>';
 
-                            const verdictClass = data.verdict === 'Advisable' ? 'verdict-advisable' : 'verdict-not';
-                            html += '<div class="verdict ' + verdictClass + '">' + data.verdict + '</div>';
+                            const rawVerdict = data.verdict || '';
+                            const vTxt = translations[rawVerdict] || rawVerdict;
+                            const verdictClass = (rawVerdict.includes('Advisable') || rawVerdict.includes('Special')) ? 'verdict-advisable' : 'verdict-not';
+                            html += '<div class="verdict ' + verdictClass + '">' + vTxt + '</div>';
 
                             const list = data.poruthams;
                             if (Array.isArray(list)) {
                                 html += '<table>';
                                 list.forEach(item => {
-                                    const name = item.name;
+                                    const name = translations[item.name] || item.name;
                                     const score = item.score;
                                     const max = item.max;
                                     const isMatch = score > 0;
                                     const cls = isMatch ? 'good' : 'bad';
                                     const icon = isMatch ? '✓' : '✗';
 
-                                    html += '<tr><td>' + name + '</td><td class="' + cls + '" style="text-align:right">' + icon + ' (' + score + '/' + max + ')</td></tr>';
+                                    html += '<tr><td>' + name + '</td><td class="' + cls + '" style="text-align:right">' + icon + '</td></tr>';
                                 });
                                 html += '</table>';
                             }
@@ -252,20 +268,23 @@ class MatchDisplayActivity : ComponentActivity() {
 
                             // Dosha
                             let dHtml = '';
+                            const boyDosha = data.boyDosha || data.kujaDosha?.groom;
+                            const girlDosha = data.girlDosha || data.kujaDosha?.bride;
+                            
                             const formatDosha = (label, d) => {
+                                if (!d) return '';
                                 const cls = d.hasDosha ? 'bad' : 'good';
-                                return '<div class="info-row"><span class="info-label">' + label + '</span><span class="' + cls + '">' + (d.hasDosha ? 'Dosha Found' : 'No Dosha') + '</span></div>' +
-                                       '<div style="font-size:12px; color:#888; margin-bottom:10px;">' + (d.desc || d.details || '') + '</div>';
+                                const txt = d.hasDosha ? 'தோஷம் உள்ளது (Found)' : 'தோஷம் இல்லை (No Dosha)';
+                                return '<div class="info-row"><span class="info-label">' + label + '</span><span class="' + cls + '">' + txt + '</span></div>';
                             };
-                            dHtml += formatDosha('Male', data.boyDosha);
-                            dHtml += formatDosha('Female', data.girlDosha);
+                            
+                            if (boyDosha) dHtml += formatDosha('ஆண் (Male)', boyDosha);
+                            if (girlDosha) dHtml += formatDosha('பெண் (Female)', girlDosha);
 
-                            if (data.sandhi) {
-                                dHtml += '<div class="info-row"><span class="info-label">Dasha Sandhi</span><span class="info-value">' + (data.sandhi.hasSandhi ? 'Overlap Detected' : 'Safe') + '</span></div>';
+                            if (dHtml) {
+                                document.getElementById('dosha-content').innerHTML = dHtml;
+                                document.getElementById('dosha-card').style.display = 'block';
                             }
-
-                            document.getElementById('dosha-content').innerHTML = dHtml;
-                            document.getElementById('dosha-card').style.display = 'block';
                         }
                     } catch(e) {
                          document.getElementById('content').innerText = 'Error: ' + e.message;

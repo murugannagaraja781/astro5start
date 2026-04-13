@@ -126,36 +126,47 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkAppVersion() {
         lifecycleScope.launch(Dispatchers.IO) {
+            val startTime = System.currentTimeMillis()
+            var isUpdateRequired = false
+            
             try {
-                val response = com.astro5star.app.data.api.ApiClient.api.getAppConfig()
-                if (response.isSuccessful && response.body() != null) {
-                    val config = response.body()!!
-                    val minVersion = config.get("minVersionCode")?.asInt ?: 0
-                    val updateUrl = config.get("updateUrl")?.asString ?: "https://astro5star.com"
-                    val message = config.get("message")?.asString ?: "Please update your app to the latest version."
+                // Add a strict timeout of 3 seconds for the version check to avoid hanging on splash
+                kotlinx.coroutines.withTimeout(3000) {
+                    val response = com.astro5star.app.data.api.ApiClient.api.getAppConfig()
+                    if (response.isSuccessful && response.body() != null) {
+                        val config = response.body()!!
+                        val minVersion = config.get("minVersionCode")?.asInt ?: 0
+                        val updateUrl = config.get("updateUrl")?.asString ?: "https://astro5star.com"
+                        val message = config.get("message")?.asString ?: "Please update your app to the latest version."
 
-                    val pInfo = packageManager.getPackageInfo(packageName, 0)
-                    val currentVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        pInfo.longVersionCode.toInt()
-                    } else {
-                        pInfo.versionCode
-                    }
-
-                    if (currentVersion < minVersion) {
-                        withContext(Dispatchers.Main) {
-                            showUpdateDialog(message, updateUrl)
+                        val pInfo = packageManager.getPackageInfo(packageName, 0)
+                        val currentVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            pInfo.longVersionCode.toInt()
+                        } else {
+                            pInfo.versionCode
                         }
-                        return@launch
+
+                        if (currentVersion < minVersion) {
+                            isUpdateRequired = true
+                            withContext(Dispatchers.Main) {
+                                showUpdateDialog(message, updateUrl)
+                            }
+                        }
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Version check failed", e)
+                Log.e(TAG, "Version check failed or timed out", e)
             }
 
-            // If no update needed or check failed, proceed
-            withContext(Dispatchers.Main) {
-                delay(1000)
-                checkPermissionsAndProceed()
+            if (!isUpdateRequired) {
+                // Ensure splash shows for at least 800ms for branding, but no more than necessary
+                val elapsed = System.currentTimeMillis() - startTime
+                if (elapsed < 800) {
+                    delay(800 - elapsed)
+                }
+                withContext(Dispatchers.Main) {
+                    checkPermissionsAndProceed()
+                }
             }
         }
     }

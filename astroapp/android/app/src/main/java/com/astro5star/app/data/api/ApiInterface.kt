@@ -112,8 +112,17 @@ interface ApiInterface {
     @retrofit2.http.GET("api/appointment/status/{userId}")
     suspend fun getMyQueueStatus(@retrofit2.http.Path("userId") userId: String): Response<com.google.gson.JsonObject>
 
+    @POST("api/user/waitlist/join")
+    suspend fun joinWaitlist(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
     @POST("api/user/favorite/toggle")
     suspend fun toggleFavorite(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("api/user/favorite/list/{userId}")
+    suspend fun getFavorites(@retrofit2.http.Path("userId") userId: String): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("api/payment/recharge-packs")
+    suspend fun getRechargePacks(): Response<com.google.gson.JsonObject>
 
     @POST("api/logs/ingest")
     suspend fun ingestLogs(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>

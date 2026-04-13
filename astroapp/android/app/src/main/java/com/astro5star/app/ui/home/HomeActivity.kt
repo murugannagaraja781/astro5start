@@ -249,6 +249,7 @@ class HomeActivity : AppCompatActivity() {
         loadWalletBalance()
         loadDailyHoroscope()
         loadAstrologers()
+        fetchBanners()
 
         // Setup Socket for real-time updates
         setupSocket()

@@ -9,7 +9,7 @@ data class BannerResponse(
 
 data class Banner(
     @SerializedName("_id") val id: String,
-    @SerializedName("imageUrl") val imageUrl: String,
+    @SerializedName("imageUrl") val imageUrl: String? = null,
     @SerializedName("title") val title: String? = null,
     @SerializedName("subtitle") val subtitle: String? = null,
     @SerializedName("ctaText") val ctaText: String? = null,

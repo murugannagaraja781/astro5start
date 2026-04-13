@@ -4863,15 +4863,18 @@
       }
 
       // Render Slides
-      wrapper.innerHTML = banners.map(b => `
-          <div class="home-slide" style="background-image: url('${b.imageUrl}'); cursor:pointer;" onclick="handleBannerClick('${b._id || b.id}')">
+      wrapper.innerHTML = banners.map(b => {
+        const img = b.imageUrl || "https://images.unsplash.com/photo-1532983330958-4b32bb9bb078?q=80&w=1200";
+        return `
+          <div class="home-slide" style="background-image: url('${img}'); cursor:pointer;" onclick="handleBannerClick('${b._id || b.id}')">
             <div class="slide-content">
               <div class="slide-title" style="${!b.title ? 'display:none' : ''}">${b.title}</div>
               <div class="slide-subtitle" style="${!b.subtitle ? 'display:none' : ''}">${b.subtitle}</div>
               ${b.ctaText ? `<div class="slide-cta">${b.ctaText} <i class="fas fa-arrow-right" style="font-size:0.7rem; margin-left:4px;"></i></div>` : ''}
             </div>
           </div>
-          `).join('');
+          `;
+      }).join('');
 
       // Render Dots
       if (dotsCont) {

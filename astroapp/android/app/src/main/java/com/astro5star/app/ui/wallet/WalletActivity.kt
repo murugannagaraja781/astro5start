@@ -42,6 +42,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import android.util.Log
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.util.ArrayList
 
@@ -99,48 +101,28 @@ class WalletActivity : ComponentActivity() {
     }
 
     private fun loadRechargePacks() {
-        Thread {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val request = Request.Builder()
-                    .url("${com.astro5star.app.utils.Constants.SERVER_URL}/api/payment/recharge-packs")
-                    .get()
-                    .build()
-
-                val client = OkHttpClient()
-                client.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) {
-                        val body = response.body?.string()
-                        if (body.isNullOrBlank()) return@use
-                        
-                        val json = JSONObject(body)
-                        val packsArray = json.optJSONArray("packs")
-
-                        if (packsArray != null) {
-                            val newPacks = ArrayList<RechargePack>()
-                            for (i in 0 until packsArray.length()) {
-                                val obj = packsArray.getJSONObject(i)
-                                // Handle both 'percentage' and 'offerPercentage' labels
-                                val percentValue = if (obj.has("percentage")) obj.optDouble("percentage") else obj.optDouble("offerPercentage", 0.0)
-                                
-                                newPacks.add(
-                                    RechargePack(
-                                        obj.optInt("amount"),
-                                        obj.optString("bonusText"),
-                                        percentValue
-                                    )
-                                )
-                            }
-                            runOnUiThread {
-                                rechargePacksState.clear()
-                                rechargePacksState.addAll(newPacks)
-                            }
+                val response = ApiClient.api.getRechargePacks()
+                if (response.isSuccessful && response.body() != null) {
+                    val bodyJson = JSONObject(response.body()!!.toString())
+                    val packs = bodyJson.optJSONArray("packs")
+                    if (packs != null) {
+                        val newPacks = ArrayList<RechargePack>()
+                        for (i in 0 until packs.length()) {
+                            val obj = packs.getJSONObject(i)
+                            val percentValue = if (obj.has("percentage")) obj.optDouble("percentage") else obj.optDouble("offerPercentage", 0.0)
+                            newPacks.add(RechargePack(obj.optInt("amount"), obj.optString("bonusText"), percentValue))
+                        }
+                        withContext(Dispatchers.Main) {
+                            rechargePacksState.clear()
+                            rechargePacksState.addAll(newPacks)
                         }
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
-                // Default fallback if server fails
-                runOnUiThread {
+                Log.e("WalletActivity", "Failed to load packs", e)
+                withContext(Dispatchers.Main) {
                     if (rechargePacksState.isEmpty()) {
                         rechargePacksState.addAll(listOf(
                             RechargePack(50, "Get 5% Extra", 5.0),
@@ -156,7 +138,7 @@ class WalletActivity : ComponentActivity() {
                     }
                 }
             }
-        }.start()
+        }
     }
 
     override fun onResume() {
@@ -306,6 +288,45 @@ fun WalletScreen(
                 fontSize = 18.sp,
                 color = astroBlack
             )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // USER REQUEST: Highlight referral/cashback offer
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(8.dp, RoundedCornerShape(12.dp)),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)) // Light blue
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(Color(0xFF2196F3), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("🎁", fontSize = 24.sp)
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            "Refer & Earn ₹50 FREE!",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color(0xFF1976D2)
+                        )
+                        Text(
+                            "Introduce a friend and get ₹50 free wallet balance.",
+                            fontSize = 12.sp,
+                            color = Color.Black.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
             

@@ -33,7 +33,7 @@ async function tickSessions(io) {
 
             if (isSessionValid) {
                 // SYNC: Differential time (seconds from start)
-                const secondsElapsed = Math.floor((now - session.actualBillingStart) / 1000) + 1;
+                const secondsElapsed = Math.floor((now - session.actualBillingStart) / 1000);
                 session.elapsedBillableSeconds = secondsElapsed;
 
                 let needsDbSync = false;
@@ -270,16 +270,15 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
             });
         }
 
-        // USER REQUEST: Do not send FCM notifications for every minute during the call.
-        // These will be sent as a total summary once the call is ended.
-        /*
+        // USER REQUEST: Silent notifications for wallet updates. 
+        // Using types that don't trigger SoundManager's custom pips in Android.
         if (totalToClientDeduct > 0 && client.fcmToken) {
-            sendFcmV1Push(client.fcmToken, { type: 'WALLET_DEBIT', amount: totalToClientDeduct }, { title: 'Wallet Updated', body: `₹${totalToClientDeduct.toFixed(2)} deducted for session.` }).catch(() => {});
+            sendFcmV1Push(client.fcmToken, { type: 'WALLET_DEBIT_SILENT', amount: totalToClientDeduct }, { title: 'Wallet Updated', body: `₹${totalToClientDeduct.toFixed(2)} deducted for session.` }).catch(() => {});
         }
         if (astroAmount > 0 && astro.fcmToken) {
-            sendFcmV1Push(astro.fcmToken, { type: 'WALLET_CREDIT', amount: astroAmount }, { title: 'Earnings Updated', body: `₹${astroAmount.toFixed(2)} credited to your wallet.` }).catch(() => {});
+            sendFcmV1Push(astro.fcmToken, { type: 'WALLET_CREDIT_SILENT', amount: astroAmount }, { title: 'Earnings Updated', body: `₹${astroAmount.toFixed(2)} credited to your wallet.` }).catch(() => {});
         }
-        */
+
 
     } catch (err) {
         console.error('processBillingCharge error', err);
