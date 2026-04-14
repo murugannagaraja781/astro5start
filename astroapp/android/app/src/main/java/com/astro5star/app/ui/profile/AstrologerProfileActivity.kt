@@ -590,7 +590,7 @@ fun AstrologerProfileScreen(
                                     if (res.isSuccessful) {
                                         Toast.makeText(context, "You have joined the waitlist for $name. We will notify you when they are available.", Toast.LENGTH_LONG).show()
                                     } else {
-                                        Toast.makeText(context, "Could not join waitlist: ${res.code()}", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Could not join waitlist: ${res.code}", Toast.LENGTH_SHORT).show()
                                     }
                                 } catch (e: Exception) {
                                     e.printStackTrace()

@@ -69,6 +69,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.asRequestBody
 import com.astro5star.app.utils.CallState
 import org.json.JSONObject
 import org.webrtc.*
@@ -272,7 +274,7 @@ class CallActivity : ComponentActivity() {
             val rawType = intent.getStringExtra("type") ?: intent.getStringExtra("callType") ?: "video"
             // Record billing type (unlimited vs standard)
             billingType = rawType.lowercase()
-            
+
             // Map to core media type for UI/WebRTC
             callType = if (billingType == "audio" || billingType == "voice" || billingType == "unlimited") "audio" else "video"
 
@@ -519,7 +521,7 @@ class CallActivity : ComponentActivity() {
             intent.putExtra("partnerId", partnerId)
             intent.putExtra("partnerName", partnerName)
             intent.putExtra("callType", "match")
-            intent.putExtra("targetUserId", partnerId) 
+            intent.putExtra("targetUserId", partnerId)
             intent.putExtra("existingData", clientBirthData?.toString())
             editIntakeLauncher.launch(intent)
         }
@@ -648,11 +650,54 @@ class CallActivity : ComponentActivity() {
             }
             mediaRecorder = null
             isRecordingState = false
-            Toast.makeText(this, "Saved to ${audioFile?.name}", Toast.LENGTH_LONG).show()
+
+            val file = audioFile
+            if (file != null && file.exists()) {
+                Toast.makeText(this, "Uploading recording...", Toast.LENGTH_SHORT).show()
+                uploadRecording(file)
+            } else {
+                Toast.makeText(this, "Recording saved locally", Toast.LENGTH_SHORT).show()
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Stop recording failed", e)
             isRecordingState = false
             mediaRecorder = null
+        }
+    }
+
+    private fun uploadRecording(file: java.io.File) {
+        val currentSessionId = sessionId ?: return
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val mediaType = "audio/mpeg".toMediaTypeOrNull()
+                val requestBody = okhttp3.MultipartBody.Builder()
+                    .setType(okhttp3.MultipartBody.FORM)
+                    .addFormDataPart("sessionId", currentSessionId)
+                    .addFormDataPart("recording", file.name,
+                        file.asRequestBody(mediaType))
+                    .build()
+
+                val client = okhttp3.OkHttpClient()
+                val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL ?: "https://astro5star.com"
+                val request = okhttp3.Request.Builder()
+                    .url("$baseUrl/api/call/upload-recording")
+                    .post(requestBody)
+                    .build()
+
+                val response = client.newCall(request).execute()
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        Toast.makeText(this@CallActivity, "Recording synced to cloud", Toast.LENGTH_SHORT).show()
+                        sendAppLog("Recording uploaded successfully for session $currentSessionId")
+                    } else {
+                        Log.e(TAG, "Upload failed: ${response.code}")
+                        // Fallback: keep local file
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Recording upload error", e)
+            }
         }
     }
 
@@ -847,7 +892,7 @@ class CallActivity : ComponentActivity() {
                         runOnUiThread {
                             // Sync status UI
                             if (isBillingActive) {
-                                statusText = "" 
+                                statusText = ""
                             } else {
                                 statusText = if (isInitiator) "Calling..." else "Connecting..."
                             }
@@ -967,7 +1012,7 @@ class CallActivity : ComponentActivity() {
                     when (newState) {
                         PeerConnection.IceConnectionState.CONNECTED -> {
                             sendAppLog("ICE CONNECTED - Call established!")
-                            
+
                             // NEW: Show localized "Astrologer Connected" premium overlay
                             runOnUiThread {
                                 if (!isBillingActive && !showConnectedOverlay) {
@@ -983,7 +1028,7 @@ class CallActivity : ComponentActivity() {
                             if (callDurationSeconds == 0) {
                                 timerHandler.removeCallbacks(timerRunnable)
                                 timerHandler.postDelayed(timerRunnable, 1000)
-                                
+
                                 // SIGNAL Backend: Communication officially started to trigger billing
                                 val commPayload = JSONObject().apply {
                                     put("sessionId", sessionId)
@@ -1191,21 +1236,21 @@ class CallActivity : ComponentActivity() {
         SocketManager.onTimerUpdate { data ->
             val elapsed = data.optInt("elapsedSeconds", -1)
             val remaining = data.optInt("remainingSeconds", -1)
-            
+
             runOnUiThread {
                 if (elapsed >= 0) {
                     if (Math.abs(elapsed - callDurationSeconds) > 2) {
                         callDurationSeconds = elapsed
                     }
                 }
-                
+
                 if (remaining >= 0) {
                     val h = remaining / 3600
                     val m = (remaining % 3600) / 60
                     val s = remaining % 60
                     remainingTime = if (h > 0) String.format("%02d:%02d:%02d", h, m, s)
                                    else String.format("%02d:%02d", m, s)
-                    
+
                     // Requirement 7: 2-minute warning for client
                     if (remaining == 120 && session?.role == "client") {
                         val msg = if (billingType == "unlimited") {
@@ -1282,17 +1327,17 @@ class CallActivity : ComponentActivity() {
         SocketManager.onSessionAnswered { data ->
             val accept = data.optBoolean("accept", false)
             val counterpartId = data.optString("fromUserId")
-            
+
             runOnUiThread {
                 if (accept) {
                     sendAppLog("Session Answered by $counterpartId - Transitioning to active")
                     statusText = "📡 Connected"
-                    
+
                     // SYNC: Ensure we have the correct partnerId for signaling
                     if (!counterpartId.isNullOrEmpty() && counterpartId != "Unknown") {
                          partnerId = counterpartId
                     }
-                    
+
                     // Trigger offer if we are initiator and haven't sent one yet
                     if (isInitiator && !hasSentOffer && ::peerConnection.isInitialized) {
                         sendAppLog("Handshake Start: Creating Offer (Immediate)")
@@ -1312,7 +1357,7 @@ class CallActivity : ComponentActivity() {
             val data = args?.getOrNull(0) as? JSONObject
             val reconnectedId = data?.optString("userId")
             sendAppLog("Peer reconnected: $reconnectedId. Refreshing handshake...")
-            
+
             if (isInitiator && ::peerConnection.isInitialized) {
                 // Initiator should re-send the offer to a re-connected recipient
                 runOnUiThread { createOffer() }
@@ -1623,10 +1668,10 @@ class CallActivity : ComponentActivity() {
             override fun run() {
                 if (isInitiator && !isFinishing && ::peerConnection.isInitialized) {
                     val state = peerConnection.iceConnectionState()
-                    if (state != PeerConnection.IceConnectionState.CONNECTED && 
+                    if (state != PeerConnection.IceConnectionState.CONNECTED &&
                         state != PeerConnection.IceConnectionState.COMPLETED &&
                         state != PeerConnection.IceConnectionState.CLOSED) {
-                        
+
                         sendAppLog("Integrity Check: Connection state is $state. Re-sending Offer...")
                         createOffer()
                         // Reschedule if not connected
@@ -1664,7 +1709,7 @@ class CallActivity : ComponentActivity() {
                         Toast.makeText(this@CallActivity, "Failed: $err", Toast.LENGTH_LONG).show()
                     }
                 } else {
-                    Toast.makeText(this@CallActivity, "Error: ${res.code()}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@CallActivity, "Error: ${res.code}", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -2220,7 +2265,7 @@ fun MatchSummaryDialog(data: JSONObject, onClose: () -> Unit, onViewFull: () -> 
     val score = data.optInt("totalScore", 0)
     val max = data.optInt("maxScore", 36)
     val verdict = data.optString("verdict", "")
-    
+
     Dialog(onDismissRequest = onClose) {
         Surface(
             shape = RoundedCornerShape(28.dp),
@@ -2244,13 +2289,13 @@ fun MatchSummaryDialog(data: JSONObject, onClose: () -> Unit, onViewFull: () -> 
                 ) {
                     Icon(Icons.Default.AutoFixHigh, null, tint = Color.White, modifier = Modifier.size(32.dp))
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("பொருத்த முடிவு", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1B5E20))
                 Text("(Match Summary)", fontSize = 14.sp, color = Color.Gray)
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // Score Circle
                 Box(
                     modifier = Modifier
@@ -2265,9 +2310,9 @@ fun MatchSummaryDialog(data: JSONObject, onClose: () -> Unit, onViewFull: () -> 
                         Text("$max", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // Verdict Tag
                 val isAdvisable = verdict.contains("Advisable") || verdict.contains("Special")
                 val vColor = if (isAdvisable) Color(0xFFE8F5E9) else Color(0xFFFEEBEE)
@@ -2298,9 +2343,9 @@ fun MatchSummaryDialog(data: JSONObject, onClose: () -> Unit, onViewFull: () -> 
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(32.dp))
-                
+
                 // Buttons
                 Button(
                     onClick = onViewFull,
@@ -2310,9 +2355,9 @@ fun MatchSummaryDialog(data: JSONObject, onClose: () -> Unit, onViewFull: () -> 
                 ) {
                     Text("முழு விவரம் காண்க (Details)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
-                
+
                 Spacer(modifier = Modifier.height(12.dp))
-                
+
                 TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
                     Text("மூடுக (Close)", color = Color.Gray, fontWeight = FontWeight.SemiBold)
                 }

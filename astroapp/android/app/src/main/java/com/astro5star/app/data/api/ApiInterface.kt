@@ -126,4 +126,7 @@ interface ApiInterface {
 
     @POST("api/logs/ingest")
     suspend fun ingestLogs(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/user/update-profile")
+    suspend fun updateAstrologerProfile(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
 }

@@ -136,8 +136,8 @@ class MatchDisplayActivity : ComponentActivity() {
                 generateMatchHtml(jsonResponse)
             } else {
                 val errorMsg = response.errorBody()?.string() ?: "Unknown API Error"
-                android.util.Log.e("MatchDisplay", "API Error: ${response.code()} - $errorMsg")
-                "ERROR: API returned ${response.code()}: $errorMsg"
+                android.util.Log.e("MatchDisplay", "API Error: ${response.code} - $errorMsg")
+                "ERROR: API returned ${response.code}: $errorMsg"
             }
         } catch (e: Exception) {
             android.util.Log.e("MatchDisplay", "Exception during fetch: ${e.message}", e)

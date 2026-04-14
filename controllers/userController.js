@@ -390,6 +390,38 @@ const registerAstrologer = async (req, res) => {
     }
 };
 
+const updateUserProfile = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) return res.status(400).json({ ok: false, error: 'UserId is required' });
+
+        const user = await User.findOne({ userId });
+        if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+
+        const data = req.body;
+        // Don't allow updating sensitive fields like balance or role via this basic endpoint
+        const allowedUpdates = [
+            'name', 'realName', 'email', 'gender', 'dob', 'tob', 'pob', 
+            'cellNumber2', 'whatsAppNumber', 'address', 'aadharNumber', 'panNumber',
+            'astrologyExperience', 'profession', 'bankDetails', 'upiId', 'upiNumber',
+            'chatPrice', 'audioPrice', 'videoPrice', 'unlimitedPrice', 'languages', 'skills'
+        ];
+
+        allowedUpdates.forEach(field => {
+            if (data[field] !== undefined) {
+                user[field] = data[field];
+            }
+        });
+
+        if (data.name) user.name = data.name; // Display name sync
+
+        await user.save();
+        res.json({ ok: true, message: 'Profile updated successfully' });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
 const getNotifications = async (req, res) => {
     try {
         const Notification = require('../models/Notification');
@@ -617,6 +649,7 @@ module.exports = {
     sendOtp,
     verifyOtp,
     registerAstrologer,
+    updateUserProfile,
     getNotifications,
     acceptCall,
     searchCity,

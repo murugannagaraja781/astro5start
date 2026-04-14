@@ -6,10 +6,27 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
-    --brand-milk: #f0fdf4;
-    --brand-green: #059669;
-    --deep-green: #064e3b;
+    --brand-milk: #f0f7f4;
+    --brand-green: #1B5E20; /* Professional Dark Green */
+    --deep-green: #002115; /* Deeper Green for Sidebar */
+    --accent-green: #00E676; /* Vibrant Green for highlights */
 }
+
+/* Custom Tailwind Helper Mappings */
+.bg-deep-green { background-color: var(--deep-green) !important; }
+.bg-brand-green { background-color: var(--brand-green) !important; }
+.text-brand-green { color: var(--brand-green) !important; }
+.text-accent-green { color: var(--accent-green) !important; }
+.border-accent-green { border-color: var(--accent-green) !important; }
+.bg-accent-green { background-color: var(--accent-green) !important; }
+
+/* Emerald Color Overrides for Professionalism */
+.bg-emerald-50 { background-color: #f7fdfa !important; }
+.bg-emerald-100 { background-color: #ecfdf5 !important; }
+.text-emerald-600 { color: var(--brand-green) !important; }
+.text-emerald-500 { color: var(--brand-green) !important; }
+.border-emerald-50 { border-color: rgba(27, 94, 32, 0.1) !important; }
+.border-emerald-100 { border-color: rgba(27, 94, 32, 0.2) !important; }
 
 /* Base resets and smooth behavior */
 html {
@@ -93,14 +110,14 @@ body {
 
 /* Premium Sidebar Active State */
 .nav-item.active {
-    background: rgba(255, 255, 255, 0.15) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
     color: white !important;
-    box-shadow: inset 4px 0 0 #10b981 !important;
+    box-shadow: inset 4px 0 0 var(--accent-green) !important;
 }
 
 .nav-item.active i {
-    color: #10b981;
-    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.5));
+    color: var(--accent-green);
+    filter: drop-shadow(0 0 8px var(--accent-green));
 }
 
 /* Floating Animation for Badges */
@@ -132,8 +149,8 @@ body {
 
 .glass-input:focus {
     background: white !important;
-    border-color: #059669 !important;
-    box-shadow: 0 0 20px rgba(5, 150, 105, 0.1) !important;
+    border-color: var(--brand-green) !important;
+    box-shadow: 0 0 20px rgba(27, 94, 32, 0.1) !important;
 }
 
 /* Premium Button Pulse */

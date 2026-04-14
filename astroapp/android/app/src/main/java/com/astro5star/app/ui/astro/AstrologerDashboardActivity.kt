@@ -1073,7 +1073,7 @@ fun AstrologerDashboardScreen(
                                      .clickable {
                                          when (label) {
                                              "Call" -> showRecordingsDialog(context)
-                                             "Profile" -> context.startActivity(Intent(context, com.astro5star.app.ui.profile.UserProfileActivity::class.java))
+                                             "Profile" -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.EditAstrologerProfileActivity::class.java))
                                              "History" -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.AstrologerHistoryActivity::class.java))
                                              "Earnings" -> Toast.makeText(context, "Balance: ₹${String.format("%.2f", walletBalance)}", Toast.LENGTH_SHORT).show()
                                              "Reviews" -> {

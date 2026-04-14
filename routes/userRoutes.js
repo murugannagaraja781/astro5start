@@ -14,6 +14,7 @@ router.post('/user/intake', userController.saveUserIntake);
 router.post('/send-otp', userController.sendOtp);
 router.post('/verify-otp', userController.verifyOtp);
 router.post('/astrologer/register', userController.registerAstrologer);
+router.post('/user/update-profile', userController.updateUserProfile);
 router.get('/admin/notifications', userController.getNotifications);
 router.post('/native/accept-call', userController.acceptCall);
 

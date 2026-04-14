@@ -62,7 +62,7 @@ object RemoteLogger {
 
                 val response = api.ingestLogs(logObj)
                 if (!response.isSuccessful) {
-                    Log.e(TAG, "Failed to send log to server: ${response.code()}")
+                    Log.e(TAG, "Failed to send log to server: ${response.code}")
                 }
             } catch (e: Exception) {
                 // Fail silently to avoid infinite recursion or app crash during logging
