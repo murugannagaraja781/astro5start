@@ -26,16 +26,16 @@ let SLAB_RATES = {
     4: 0.50
 };
 
-let RECHARGE_PACKS = [
-    { amount: 50, bonusText: "Get 5% Extra", offerPercentage: 5.0 },
-    { amount: 100, bonusText: "Get 5% Extra", offerPercentage: 5.0 },
-    { amount: 500, bonusText: "Get 10% Extra", offerPercentage: 10.0 },
-    { amount: 1000, bonusText: "Get 10% Extra", offerPercentage: 10.0 },
-    { amount: 200, bonusText: "Get 10% Extra", offerPercentage: 10.0 },
-    { amount: 5000, bonusText: "Get 20% Extra", offerPercentage: 20.0 },
-    { amount: 2000, bonusText: "Get 15% Extra", offerPercentage: 15.0 },
-    { amount: 20, bonusText: "Get 5% Extra", offerPercentage: 5.0 },
-    { amount: 1, bonusText: "Get 1% Extra", offerPercentage: 1.0 }
+const RECHARGE_PACKS = [
+    { amount: 50, bonusText: "Get 5% Extra", percentage: 5.0 },
+    { amount: 100, bonusText: "Get 5% Extra", percentage: 5.0 },
+    { amount: 500, bonusText: "Get 10% Extra", percentage: 10.0 },
+    { amount: 1000, bonusText: "Get 10% Extra", percentage: 10.0 },
+    { amount: 200, bonusText: "Get 10% Extra", percentage: 10.0 },
+    { amount: 5000, bonusText: "Get 20% Extra", percentage: 20.0 },
+    { amount: 2000, bonusText: "Get 15% Extra", percentage: 15.0 },
+    { amount: 20, bonusText: "Get 5% Extra", percentage: 5.0 },
+    { amount: 1, bonusText: "Get 1% Extra", percentage: 1.0 }
 ];
 
 let REFERRAL_CONFIG = {
@@ -122,7 +122,7 @@ async function loadRechargePacks() {
         const GlobalSettings = require('../models/GlobalSettings');
         const doc = await GlobalSettings.findOne({ key: 'RECHARGE_PACKS' });
         if (doc && doc.value) {
-            RECHARGE_PACKS = doc.value;
+            RECHARGE_PACKS.splice(0, RECHARGE_PACKS.length, ...doc.value);
             console.log('✓ Recharge packs loaded from DB');
         } else {
             // Save defaults if not exist
@@ -140,7 +140,7 @@ async function loadRechargePacks() {
 async function updateRechargePacks(newPacks) {
     try {
         const GlobalSettings = require('../models/GlobalSettings');
-        RECHARGE_PACKS = newPacks;
+        RECHARGE_PACKS.splice(0, RECHARGE_PACKS.length, ...newPacks);
         await GlobalSettings.findOneAndUpdate(
             { key: 'RECHARGE_PACKS' },
             { value: RECHARGE_PACKS },
