@@ -1394,7 +1394,7 @@
                                     </div>
                                 </section>
 
-                                <!-- Expertise Grid -->
+                                <!-- Expertise & Bio -->
                                 <section>
                                     <div class="flex items-center gap-2 mb-4">
                                         <div class="w-1.5 h-6 bg-blue-500 rounded-full"></div>
@@ -1402,15 +1402,25 @@
                                     </div>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div class="space-y-1.5">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Real Name (Private)</label>
+                                            <input type="text" id="edit-user-real-name"
+                                                class="w-full bg-white p-3.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs">
+                                        </div>
+                                        <div class="space-y-1.5">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</label>
+                                            <input type="email" id="edit-user-email"
+                                                class="w-full bg-white p-3.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs">
+                                        </div>
+                                        <div class="space-y-1.5">
                                             <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Experience (Years)</label>
                                             <input type="number" id="edit-user-exp"
-                                                class="w-full bg-white p-3.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs ring-4 ring-transparent transition-all">
+                                                class="w-full bg-white p-3.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs">
                                         </div>
                                         <div class="space-y-1.5">
                                             <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Skills</label>
                                             <input type="text" id="edit-user-skills"
                                                 class="w-full bg-white p-3.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs"
-                                                placeholder="Vedic, KP, Nadi...">
+                                                placeholder="Vedic, Tarot, Palmistry...">
                                         </div>
                                         <div class="md:col-span-2 space-y-1.5">
                                             <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Communication Languages</label>
@@ -1421,8 +1431,71 @@
                                         <div class="md:col-span-2 space-y-1.5">
                                             <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Public Bio & Introduction</label>
                                             <textarea id="edit-user-bio"
-                                                class="w-full bg-white p-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs min-h-[120px] custom-scrollbar focus:shadow-xl transition-all"
+                                                class="w-full bg-white p-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs min-h-[100px] custom-scrollbar"
                                                 placeholder="Tell users about your professional background..."></textarea>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <!-- Contact & Address -->
+                                <section>
+                                    <div class="flex items-center gap-2 mb-4">
+                                        <div class="w-1.5 h-6 bg-amber-500 rounded-full"></div>
+                                        <h5 class="text-xs font-black uppercase tracking-widest text-slate-800">Contact Information</h5>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="space-y-1.5">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">WhatsApp Number</label>
+                                            <input type="text" id="edit-user-whatsapp"
+                                                class="w-full bg-white p-3.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs">
+                                        </div>
+                                        <div class="space-y-1.5">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Alternate Number</label>
+                                            <input type="text" id="edit-user-phone2"
+                                                class="w-full bg-white p-3.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs">
+                                        </div>
+                                        <div class="md:col-span-2 space-y-1.5">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Residential Address</label>
+                                            <textarea id="edit-user-address"
+                                                class="w-full bg-white p-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs min-h-[80px]"
+                                                placeholder="House No, Street, City, ZIP..."></textarea>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <!-- Payout & ID Proof -->
+                                <section>
+                                    <div class="flex items-center gap-2 mb-4">
+                                        <div class="w-1.5 h-6 bg-red-500 rounded-full"></div>
+                                        <h5 class="text-xs font-black uppercase tracking-widest text-slate-800">Payout & Government IDs</h5>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="space-y-1.5">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">UPI ID (VPA)</label>
+                                            <input type="text" id="edit-user-upi-id"
+                                                class="w-full bg-white p-3.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs"
+                                                placeholder="example@upi">
+                                        </div>
+                                        <div class="space-y-1.5">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">UPI Linked Mobile</label>
+                                            <input type="text" id="edit-user-upi-num"
+                                                class="w-full bg-white p-3.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs">
+                                        </div>
+                                        <div class="md:col-span-2 space-y-1.5">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Bank Account Details</label>
+                                            <textarea id="edit-user-bank"
+                                                class="w-full bg-white p-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs min-h-[60px]"
+                                                placeholder="A/C No, IFSC, Branch Name..."></textarea>
+                                        </div>
+                                        <div class="space-y-1.5">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Aadhar Number</label>
+                                            <input type="text" id="edit-user-aadhar"
+                                                class="w-full bg-white p-3.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs">
+                                        </div>
+                                        <div class="space-y-1.5">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">PAN Card Number</label>
+                                            <input type="text" id="edit-user-pan"
+                                                class="w-full bg-white p-3.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs">
                                         </div>
                                     </div>
                                 </section>
@@ -2888,10 +2961,24 @@
                 document.getElementById('edit-user-video-price').value = u.videoPrice || 0;
                 document.getElementById('edit-user-unlimited-price').value = u.unlimitedPrice || 0;
                 document.getElementById('edit-user-unlimited-enabled').checked = u.unlimitedOfferEnabled || false;
-                document.getElementById('edit-user-exp').value = u.experience || 0;
+                
+                document.getElementById('edit-user-real-name').value = u.realName || '';
+                document.getElementById('edit-user-email').value = u.email || '';
+                document.getElementById('edit-user-exp').value = u.experience || u.astrologyExperience || 0;
                 document.getElementById('edit-user-skills').value = (u.skills || []).join(', ');
                 document.getElementById('edit-user-languages').value = (u.languages || []).join(', ');
-                document.getElementById('edit-user-bio').value = u.profession || u.bio || '';
+                document.getElementById('edit-user-bio').value = u.bio || u.profession || '';
+                
+                document.getElementById('edit-user-whatsapp').value = u.whatsAppNumber || '';
+                document.getElementById('edit-user-phone2').value = u.cellNumber2 || '';
+                document.getElementById('edit-user-address').value = u.address || '';
+                
+                document.getElementById('edit-user-upi-id').value = u.upiId || '';
+                document.getElementById('edit-user-upi-num').value = u.upiNumber || '';
+                document.getElementById('edit-user-bank').value = u.bankDetails || '';
+                document.getElementById('edit-user-aadhar').value = u.aadharNumber || '';
+                document.getElementById('edit-user-pan').value = u.panNumber || '';
+                
                 document.getElementById('edit-user-verified').checked = u.isVerified || false;
             }
             document.getElementById('modal-edit-user').classList.remove('hidden');
@@ -2914,11 +3001,25 @@
                 updates.videoPrice = parseFloat(document.getElementById('edit-user-video-price').value);
                 updates.unlimitedPrice = parseFloat(document.getElementById('edit-user-unlimited-price').value);
                 updates.unlimitedOfferEnabled = document.getElementById('edit-user-unlimited-enabled').checked;
+                
+                updates.realName = document.getElementById('edit-user-real-name').value;
+                updates.email = document.getElementById('edit-user-email').value;
                 updates.experience = parseInt(document.getElementById('edit-user-exp').value);
                 updates.skills = document.getElementById('edit-user-skills').value.split(',').map(s => s.trim()).filter(s => s);
                 updates.languages = document.getElementById('edit-user-languages').value.split(',').map(s => s.trim()).filter(s => s);
                 updates.bio = document.getElementById('edit-user-bio').value;
                 updates.profession = updates.bio;
+                
+                updates.whatsAppNumber = document.getElementById('edit-user-whatsapp').value;
+                updates.cellNumber2 = document.getElementById('edit-user-phone2').value;
+                updates.address = document.getElementById('edit-user-address').value;
+                
+                updates.upiId = document.getElementById('edit-user-upi-id').value;
+                updates.upiNumber = document.getElementById('edit-user-upi-num').value;
+                updates.bankDetails = document.getElementById('edit-user-bank').value;
+                updates.aadharNumber = document.getElementById('edit-user-aadhar').value;
+                updates.panNumber = document.getElementById('edit-user-pan').value;
+                
                 updates.isVerified = document.getElementById('edit-user-verified').checked;
             }
 

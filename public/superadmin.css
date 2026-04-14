@@ -50,12 +50,22 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(5, 150, 105, 0.1);
-    border-radius: 10px;
+    background: rgba(27, 94, 32, 0.3); /* Brand Green with opacity */
+    border-radius: 12px;
+    border: 2px solid transparent;
+    background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(5, 150, 105, 0.2);
+    background: rgba(27, 94, 32, 0.5);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(27, 94, 32, 0.2);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(27, 94, 32, 0.4);
 }
 
 /* Scrollbar Hide Utility */
