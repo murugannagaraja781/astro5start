@@ -19,6 +19,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
@@ -40,7 +41,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.painterResource
-import androidx.compose.foundation.border
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -115,6 +115,7 @@ class CallActivity : ComponentActivity() {
     private var isMutedState by mutableStateOf(false)
     private var isVideoEnabledState by mutableStateOf(true) // For camera toggle
     private var isSpeakerOnState by mutableStateOf(false) // For audio toggle
+    private var showConnectedOverlay by mutableStateOf(false)
     private var isEditingIntake by mutableStateOf(false) // Track when edit form is open
     private var remainingTime by mutableStateOf("") // Available time from wallet
     private var isRecordingState by mutableStateOf(false)
@@ -239,210 +240,212 @@ class CallActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        if (savedInstanceState != null) {
-            isEditingIntake = savedInstanceState.getBoolean("isEditingIntake")
-            val birthDataStr = savedInstanceState.getString("clientBirthData")
-            if (!birthDataStr.isNullOrEmpty()) {
-                clientBirthData = JSONObject(birthDataStr)
+        try {
+            if (savedInstanceState != null) {
+                isEditingIntake = savedInstanceState.getBoolean("isEditingIntake")
+                val birthDataStr = savedInstanceState.getString("clientBirthData")
+                if (!birthDataStr.isNullOrEmpty()) {
+                    clientBirthData = JSONObject(birthDataStr)
+                }
+                callDurationSeconds = savedInstanceState.getInt("callDurationSeconds")
+                sessionId = savedInstanceState.getString("sessionId")
+                partnerId = savedInstanceState.getString("partnerId")
             }
-            callDurationSeconds = savedInstanceState.getInt("callDurationSeconds")
-            sessionId = savedInstanceState.getString("sessionId")
-            partnerId = savedInstanceState.getString("partnerId")
-        }
 
-        // --- GLOBAL STATE FIX: Mark call as active to prevent duplicate starts ---
-        CallState.isCallActive = true
-        CallState.currentSessionId = intent.getStringExtra("sessionId")
+            // --- GLOBAL STATE FIX: Mark call as active to prevent duplicate starts ---
+            CallState.isCallActive = true
+            CallState.currentSessionId = intent.getStringExtra("sessionId")
 
-        // Initialize WebRTC Views Programmatically
-        localView = SurfaceViewRenderer(this)
-        remoteView = SurfaceViewRenderer(this)
+            // Initialize WebRTC Views Programmatically
+            localView = SurfaceViewRenderer(this)
+            remoteView = SurfaceViewRenderer(this)
 
-        // Params
-        partnerId = intent.getStringExtra("partnerId")
-        partnerName = intent.getStringExtra("partnerName") ?: partnerId
-        partnerImage = intent.getStringExtra("partnerImage")
-        sessionId = intent.getStringExtra("sessionId")
-        isInitiator = intent.getBooleanExtra("isInitiator", false)
-        isNewRequest = intent.getBooleanExtra("isNewRequest", false)
-        val rawType = intent.getStringExtra("type") ?: intent.getStringExtra("callType") ?: "video"
-        callType = if (rawType.lowercase() == "audio" || rawType.lowercase() == "voice") "audio" else "video"
+            // Params
+            partnerId = intent.getStringExtra("partnerId")
+            partnerName = intent.getStringExtra("partnerName") ?: partnerId
+            partnerImage = intent.getStringExtra("partnerImage")
+            sessionId = intent.getStringExtra("sessionId")
+            isInitiator = intent.getBooleanExtra("isInitiator", false)
+            isNewRequest = intent.getBooleanExtra("isNewRequest", false)
+            val rawType = intent.getStringExtra("type") ?: intent.getStringExtra("callType") ?: "video"
+            callType = if (rawType.lowercase() == "audio" || rawType.lowercase() == "voice") "audio" else "video"
 
-        // Initial state sync
-        isVideoEnabledState = (callType == "video")
-        isSpeakerOnState = (callType == "video") // Default speaker on for video, off for audio (earpiece)
+            // Initial state sync
+            isVideoEnabledState = (callType == "video")
+            isSpeakerOnState = (callType == "video") // Default speaker on for video, off for audio (earpiece)
 
-        val birthDataStr = intent.getStringExtra("birthData")
-        if (!birthDataStr.isNullOrEmpty()) {
-             try {
-                val obj = JSONObject(birthDataStr)
-                if (obj.length() > 0) clientBirthData = obj
-             } catch (e: Exception) { e.printStackTrace() }
-        }
+            val birthDataStr = intent.getStringExtra("birthData")
+            if (!birthDataStr.isNullOrEmpty()) {
+                 try {
+                    val obj = JSONObject(birthDataStr)
+                    if (obj.length() > 0) clientBirthData = obj
+                 } catch (e: Exception) { e.printStackTrace() }
+            }
 
-        tokenManager = TokenManager(this)
-        session = tokenManager.getUserSession()
-        val role = session?.role
+            tokenManager = TokenManager(this)
+            session = tokenManager.getUserSession()
+            val role = session?.role
 
-        // Set Content
-        setContent {
-            var lastBackPressedTime by remember { mutableStateOf(0L) }
-            BackHandler {
-                val currentTime = System.currentTimeMillis()
-                if (currentTime - lastBackPressedTime < 2000) {
-                    endCall()
-                } else {
-                    lastBackPressedTime = currentTime
-                    Toast.makeText(this@CallActivity, "Press back again to end the call", Toast.LENGTH_SHORT).show()
+            // Set Content
+            setContent {
+                var lastBackPressedTime by remember { mutableStateOf(0L) }
+                BackHandler {
+                    val currentTime = System.currentTimeMillis()
+                    if (currentTime - lastBackPressedTime < 2000) {
+                        endCall()
+                    } else {
+                        lastBackPressedTime = currentTime
+                        Toast.makeText(this@CallActivity, "Press back again to end the call", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                CosmicAppTheme {
+                    CallScreen(
+                        remoteRenderer = remoteView,
+                        localRenderer = localView,
+                        partnerName = partnerName ?: "Unknown",
+                        partnerImage = partnerImage ?: "",
+                        duration = formattedDuration,
+                        statusText = statusText,
+                        isBillingActive = isBillingActive,
+                        callType = callType,
+                        isMuted = isMutedState,
+                        isVideoEnabled = isVideoEnabledState,
+                        isSpeakerOn = isSpeakerOnState,
+                        role = role ?: "user",
+                        remainingTime = remainingTime,
+                        onToggleMic = { toggleMic() },
+                        onToggleCamera = { toggleCamera() },
+                        onToggleSpeaker = { toggleSpeaker() },
+                        onEndCall = { endCall() },
+                        onEditIntake = { openEditIntake() },
+                        onShowRasi = { showRasiChart() },
+                        onShowPorutham = { openPorutham() },
+                        hasPartner = clientBirthData?.has("partner") == true,
+                        isRecording = isRecordingState,
+                        onToggleRecording = { toggleRecording() },
+                        isReady = isWebRTCInitialized && ::peerConnection.isInitialized,
+                        showReviewDialog = showReviewDialog,
+                        callSummary = callSummaryMessage,
+                        isReviewSubmitting = isReviewSubmitting,
+                        onSubmitReview = { rating, comment -> submitReview(rating, comment) },
+                        onSkipReview = { finish() },
+                        showMatchSummary = showMatchSummary,
+                        matchSummaryData = matchSummaryData,
+                        onCloseMatchSummary = { showMatchSummary = false },
+                        onViewFullMatch = {
+                            val intent = android.content.Intent(this@CallActivity, com.astro5star.app.ui.chart.MatchDisplayActivity::class.java)
+                            intent.putExtra("birthData", clientBirthData.toString())
+                            startActivity(intent)
+                            showMatchSummary = false
+                        },
+                        showConnectedOverlay = showConnectedOverlay
+                    )
                 }
             }
-            CosmicAppTheme {
-                CallScreen(
-                    remoteRenderer = remoteView,
-                    localRenderer = localView,
-                    partnerName = partnerName ?: "Unknown",
-                    partnerImage = partnerImage ?: "",
-                    duration = formattedDuration,
-                    statusText = statusText,
-                    isBillingActive = isBillingActive,
-                    callType = callType,
-                    isMuted = isMutedState,
-                    isVideoEnabled = isVideoEnabledState,
-                    isSpeakerOn = isSpeakerOnState,
-                    role = role ?: "user",
-                    remainingTime = remainingTime,
-                    onToggleMic = { toggleMic() },
-                    onToggleCamera = { toggleCamera() },
-                    onToggleSpeaker = { toggleSpeaker() },
-                    onEndCall = { endCall() },
-                    onEditIntake = { openEditIntake() },
-                    onShowRasi = { showRasiChart() },
-                    onShowPorutham = { openPorutham() },
-                    hasPartner = clientBirthData?.has("partner") == true,
-                    isRecording = isRecordingState,
-                    onToggleRecording = { toggleRecording() },
-                    isReady = isWebRTCInitialized && ::peerConnection.isInitialized,
-                    showReviewDialog = showReviewDialog,
-                    callSummary = callSummaryMessage,
-                    isReviewSubmitting = isReviewSubmitting,
-                    onSubmitReview = { rating, comment -> submitReview(rating, comment) },
-                    onSkipReview = { finish() },
-                    showMatchSummary = showMatchSummary,
-                    matchSummaryData = matchSummaryData,
-                    onCloseMatchSummary = { showMatchSummary = false },
-                    onViewFullMatch = {
-                        val intent = android.content.Intent(this@CallActivity, com.astro5star.app.ui.chart.MatchDisplayActivity::class.java)
-                        intent.putExtra("birthData", clientBirthData.toString())
-                        startActivity(intent)
-                        showMatchSummary = false
+
+            // Create and setup listeners EARLY to capture signals while WebRTC is warming up
+            setupSocketListeners()
+
+            // --- Socket Init ---
+            try {
+                SocketManager.init()
+                session?.userId?.let { uid ->
+                    SocketManager.registerUser(uid)
+                    if (SocketManager.getSocket()?.connected() != true) {
+                        SocketManager.getSocket()?.connect()
                     }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Socket init failed", e)
+            }
+
+            // Initialize Proximity WakeLock for Audio Calls
+            try {
+                val powerManager = getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    // PROXIMITY_SCREEN_OFF_WAKE_LOCK is the standard way to turn off screen during calls
+                    if (powerManager.isWakeLockLevelSupported(android.os.PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK)) {
+                        proximityWakeLock = powerManager.newWakeLock(android.os.PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK, "Astro5Star:ProximityLock")
+                    }
+                }
+                sensorManager = getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager
+            } catch (e: Exception) {
+                Log.e(TAG, "Proximity lock init failed", e)
+            }
+
+            // Check Permissions
+            val neededPermissions = mutableListOf(android.Manifest.permission.RECORD_AUDIO)
+            if (callType == "video") {
+                neededPermissions.add(android.Manifest.permission.CAMERA)
+            }
+
+            if (checkPermissions()) {
+                startCallLimit()
+            } else {
+                androidx.core.app.ActivityCompat.requestPermissions(
+                    this,
+                    neededPermissions.toTypedArray(),
+                    PERMISSION_REQ_CODE
                 )
             }
-        }
 
-        // Create and setup listeners EARLY to capture signals while WebRTC is warming up
-        setupSocketListeners()
+            // Start Remaining Time Countdown (for astrologers only)
+            if (role == "astrologer") {
+                lifecycleScope.launch {
+                    while (isActive) {
+                        delay(1000)
+                        if (remainingTime.isNotEmpty() && remainingTime != "00:00") {
+                            val parts = remainingTime.split(":")
+                            val totalSecs = when (parts.size) {
+                                3 -> (parts[0].toIntOrNull() ?: 0) * 3600 + (parts[1].toIntOrNull() ?: 0) * 60 + (parts[2].toIntOrNull() ?: 0)
+                                2 -> (parts[0].toIntOrNull() ?: 0) * 60 + (parts[1].toIntOrNull() ?: 0)
+                                else -> 0
+                            } - 1
 
-        // --- Socket Init ---
-        try {
-            SocketManager.init()
-            session?.userId?.let { uid ->
-                SocketManager.registerUser(uid)
-                if (SocketManager.getSocket()?.connected() != true) {
-                    SocketManager.getSocket()?.connect()
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Socket init failed", e)
-        }
-
-        // Initialize Proximity WakeLock for Audio Calls
-        try {
-            val powerManager = getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                // PROXIMITY_SCREEN_OFF_WAKE_LOCK is the standard way to turn off screen during calls
-                if (powerManager.isWakeLockLevelSupported(android.os.PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK)) {
-                    proximityWakeLock = powerManager.newWakeLock(android.os.PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK, "Astro5Star:ProximityLock")
-                }
-            }
-            sensorManager = getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager
-        } catch (e: Exception) {
-            Log.e(TAG, "Proximity lock init failed", e)
-        }
-
-        // Check Permissions
-        val neededPermissions = mutableListOf(android.Manifest.permission.RECORD_AUDIO)
-        if (callType == "video") {
-            neededPermissions.add(android.Manifest.permission.CAMERA)
-        }
-
-        if (checkPermissions()) {
-            startCallLimit()
-        } else {
-            androidx.core.app.ActivityCompat.requestPermissions(
-                this,
-                neededPermissions.toTypedArray(),
-                PERMISSION_REQ_CODE
-            )
-        }
-
-        // Start Remaining Time Countdown (for astrologers only)
-        if (role == "astrologer") {
-            lifecycleScope.launch {
-                while (isActive) {
-                    delay(1000)
-                    if (remainingTime.isNotEmpty() && remainingTime != "00:00") {
-                        val parts = remainingTime.split(":")
-                        val totalSecs = when (parts.size) {
-                            3 -> (parts[0].toIntOrNull() ?: 0) * 3600 + (parts[1].toIntOrNull() ?: 0) * 60 + (parts[2].toIntOrNull() ?: 0)
-                            2 -> (parts[0].toIntOrNull() ?: 0) * 60 + (parts[1].toIntOrNull() ?: 0)
-                            else -> 0
-                        } - 1
-
-                        if (totalSecs > 0) {
-                            val h = totalSecs / 3600
-                            val m = (totalSecs % 3600) / 60
-                            val s = totalSecs % 60
-                            remainingTime = if (h > 0) String.format("%02d:%02d:%02d", h, m, s)
-                                           else String.format("%02d:%02d", m, s)
-                        } else {
-                            remainingTime = "00:00"
-                            // USER REQUEST: Do NOT endCall() here.
-                            // Sometimes balance check via API is slow/stale.
-                            // Let the server-side billing ticker (which has real-time data)
-                            // send the 'session-ended' event.
+                            if (totalSecs > 0) {
+                                val h = totalSecs / 3600
+                                val m = (totalSecs % 3600) / 60
+                                val s = totalSecs % 60
+                                remainingTime = if (h > 0) String.format("%02d:%02d:%02d", h, m, s)
+                                               else String.format("%02d:%02d", m, s)
+                            } else {
+                                remainingTime = "00:00"
+                            }
                         }
                     }
                 }
-            }
 
-            // Fetch wallet and calculate initial remaining time
-            lifecycleScope.launch(Dispatchers.IO) {
-                try {
-                    val client = okhttp3.OkHttpClient()
-                    val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL ?: "https://astro5star.com"
-                    val request = okhttp3.Request.Builder()
-                        .url("$baseUrl/api/user/${partnerId}")
-                        .build()
-                    val response = client.newCall(request).execute()
-                    if (response.isSuccessful) {
-                        val json = JSONObject(response.body?.string() ?: "{}")
-                        val walletBalance = json.optDouble("walletBalance", 0.0)
-                        val ratePerMin = json.optDouble("ratePerMinute", 10.0).takeIf { it > 0 } ?: 10.0
-                        val totalSeconds = (walletBalance / ratePerMin * 60).toInt()
+                // Fetch wallet and calculate initial remaining time
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        val client = okhttp3.OkHttpClient()
+                        val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL ?: "https://astro5star.com"
+                        val request = okhttp3.Request.Builder()
+                            .url("$baseUrl/api/user/${partnerId}")
+                            .build()
+                        val response = client.newCall(request).execute()
+                        if (response.isSuccessful) {
+                            val json = JSONObject(response.body?.string() ?: "{}")
+                            val walletBalance = json.optDouble("walletBalance", 0.0)
+                            val ratePerMin = json.optDouble("ratePerMinute", 10.0).takeIf { it > 0 } ?: 10.0
+                            val totalSeconds = (walletBalance / ratePerMin * 60).toInt()
 
-                        val h = totalSeconds / 3600
-                        val m = (totalSeconds % 3600) / 60
-                        val s = totalSeconds % 60
+                            val h = totalSeconds / 3600
+                            val m = (totalSeconds % 3600) / 60
+                            val s = totalSeconds % 60
 
-                        remainingTime = if (h > 0) String.format("%02d:%02d:%02d", h, m, s)
-                                       else String.format("%02d:%02d", m, s)
+                            remainingTime = if (h > 0) String.format("%02d:%02d:%02d", h, m, s)
+                                           else String.format("%02d:%02d", m, s)
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to fetch wallet balance", e)
                     }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to fetch wallet balance", e)
                 }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Fatal crash in CallActivity.onCreate", e)
+            Toast.makeText(this, "Call initialization error: ${e.message}", Toast.LENGTH_LONG).show()
+            finish()
         }
     }
 
@@ -951,15 +954,31 @@ class CallActivity : ComponentActivity() {
                     when (newState) {
                         PeerConnection.IceConnectionState.CONNECTED -> {
                             sendAppLog("ICE CONNECTED - Call established!")
-                            // USER REQUEST: Show "Communication Starting..." only if billing event hasn't already cleared the connecting state
-                            if (!isBillingActive) {
-                                statusText = "📡 Communication Starting..."
-                            }
                             
-                            // Start local timer immediately if not already running to give immediate feedback
+                            // NEW: Show localized "Astrologer Connected" premium overlay
+                            runOnUiThread {
+                                if (!isBillingActive && !showConnectedOverlay) {
+                                    showConnectedOverlay = true
+                                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                        showConnectedOverlay = false
+                                    }, 2500)
+                                }
+                                statusText = "📡 Connected"
+                            }
+
+                            // FIX: Start local timer ONLY when communication is verified
                             if (callDurationSeconds == 0) {
                                 timerHandler.removeCallbacks(timerRunnable)
                                 timerHandler.postDelayed(timerRunnable, 1000)
+                                
+                                // SIGNAL Backend: Communication officially started to trigger billing
+                                val commPayload = JSONObject().apply {
+                                    put("sessionId", sessionId)
+                                    put("userId", session?.userId)
+                                    put("role", session?.role)
+                                }
+                                SocketManager.getSocket()?.emit("comm-started", commPayload)
+                                sendAppLog("Sent comm-started signal to backend")
                             }
 
                             // FIX: Add 2-second delay before starting MediaRecorder
@@ -1545,6 +1564,7 @@ class CallActivity : ComponentActivity() {
         statusText = "Ending call..."
 
         SocketManager.endSession(sessionId)
+        SocketManager.cancelCall(sessionId, partnerId)
 
         // Safety: If after 4 seconds we don't get a "session-ended" response from server,
         // force finish the activity so the user isn't stuck.
@@ -1782,6 +1802,7 @@ fun CallScreen(
     matchSummaryData: JSONObject? = null,
     onCloseMatchSummary: () -> Unit = {},
     onViewFullMatch: () -> Unit = {},
+    showConnectedOverlay: Boolean = false,
     isRecording: Boolean = false,
     onToggleRecording: () -> Unit = {},
     isReady: Boolean = false,
@@ -1806,6 +1827,10 @@ fun CallScreen(
             onClose = onCloseMatchSummary,
             onViewFull = onViewFullMatch
         )
+    }
+
+    if (showConnectedOverlay) {
+        ConnectionOverlay(partnerName)
     }
 
     Box(
@@ -1856,9 +1881,15 @@ fun CallScreen(
                 .fillMaxWidth()
                 .padding(16.dp)
                 .padding(top = 24.dp)
-                .height(110.dp)
-                .shadow(8.dp, RoundedCornerShape(24.dp))
-                .background(Color.White, RoundedCornerShape(24.dp))
+                .height(115.dp)
+                .shadow(12.dp, RoundedCornerShape(24.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0xFF004D40), Color(0xFF00332B))
+                    ),
+                    RoundedCornerShape(24.dp)
+                )
+                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp))
         )
 
         Row(
@@ -1870,38 +1901,39 @@ fun CallScreen(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = partnerName,
-                    color = Color(0xFF2E7D32),
+                    color = Color.White,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
+                    fontSize = 22.sp
                 )
                 Text(
                     text = duration,
-                    color = Color.Gray,
-                    fontSize = 14.sp
+                    color = Color(0xFFA5D6A7),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium
                 )
                 if (role == "astrologer" && remainingTime.isNotEmpty() && remainingTime != "00:00") {
                       Text(
-                        text = "Time: $remainingTime",
-                        color = Color.Red,
+                        text = "⏳ Bal: $remainingTime",
+                        color = Color(0xFF00E676),
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 2.dp)
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
                 if (statusText.isNotEmpty()) {
-                      Row(verticalAlignment = Alignment.CenterVertically) {
+                      Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top=2.dp)) {
                           if (statusText.contains("Connecting") || statusText.contains("Starting")) {
                               CircularProgressIndicator(
                                   modifier = Modifier.size(12.dp).padding(end = 4.dp),
                                   strokeWidth = 2.dp,
-                                  color = Color(0xFF4CAF50)
+                                  color = Color(0xFF00E676)
                               )
                           }
                           Text(
                             text = statusText,
-                            color = Color(0xFF4CAF50),
+                            color = Color(0xFF00E676),
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Bold
                         )
                       }
                 }
@@ -1914,10 +1946,11 @@ fun CallScreen(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .padding(end = 16.dp, bottom = 150.dp)
-                    .size(width = 100.dp, height = 140.dp)
+                    .size(width = 110.dp, height = 155.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .border(2.dp, Color.White, RoundedCornerShape(16.dp))
-                    .background(Color.DarkGray)
+                    .border(2.dp, Color(0xFF00E676), RoundedCornerShape(16.dp))
+                    .shadow(12.dp, RoundedCornerShape(16.dp))
+                    .background(Color.Black)
             ) {
                 if (isReady) {
                     AndroidView(
@@ -1929,13 +1962,17 @@ fun CallScreen(
         }
 
         // Bottom Controls Container (Grid)
+        val bottomBg = Brush.verticalGradient(
+            colors = listOf(Color(0xFF004D40), Color(0xFF002115))
+        )
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(16.dp)
                 .fillMaxWidth()
-                .shadow(16.dp, RoundedCornerShape(32.dp))
-                .background(Color.White, RoundedCornerShape(32.dp))
+                .shadow(24.dp, RoundedCornerShape(32.dp))
+                .background(bottomBg, RoundedCornerShape(32.dp))
+                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(32.dp))
                 .padding(20.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -1943,7 +1980,6 @@ fun CallScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // NEW Layout: Left(Mute, Speaker) | Center(End, Rec) | Right(Chart, Edit)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1960,11 +1996,12 @@ fun CallScreen(
                         IconButton(
                             onClick = onEndCall,
                             modifier = Modifier
-                                .size(72.dp)
-                                .shadow(8.dp, CircleShape)
-                                .background(Color(0xFFFF5252), CircleShape)
+                                .size(76.dp)
+                                .shadow(12.dp, CircleShape)
+                                .background(Color(0xFFFF3D00).copy(alpha = 0.9f), CircleShape)
+                                .border(2.dp, Color.White.copy(alpha=0.3f), CircleShape)
                         ) {
-                            Icon(Icons.Default.CallEnd, "End", tint = Color.White, modifier = Modifier.size(36.dp))
+                            Icon(Icons.Default.CallEnd, "End", tint = Color.White, modifier = Modifier.size(38.dp))
                         }
 
                         if (role == "astrologer") {
@@ -1990,6 +2027,56 @@ fun CallScreen(
                         ControlBtnItem(onClick = onEditIntake, icon = Icons.Default.Edit, label = "Edit", active = false)
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ConnectionOverlay(partnerName: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(
+                colors = listOf(
+                    Color.Black.copy(alpha = 0.9f),
+                    Color.Black.copy(alpha = 0.7f),
+                    Color.Black.copy(alpha = 0.9f)
+                )
+            )),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Call,
+                contentDescription = null,
+                tint = Color(0xFF4CAF50),
+                modifier = Modifier.size(64.dp)
+            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Communication Established",
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = partnerName,
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Consultation Started",
+                    color = Color(0xFF4CAF50),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
         }
     }

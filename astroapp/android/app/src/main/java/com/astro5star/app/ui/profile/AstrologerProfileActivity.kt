@@ -394,36 +394,55 @@ fun AstrologerProfileScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Actions
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
+                // Subscribe / Follow Button
+                Button(
+                    onClick = {
+                        if (currentUser == null) {
+                            Toast.makeText(context, "Please login to subscribe", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        val newStatus = !isFavorite
+                        isFavorite = newStatus
+                        scope.launch {
+                            try {
+                                val req = com.google.gson.JsonObject().apply {
+                                    addProperty("clientId", currentUser.userId)
+                                    addProperty("astrologerId", id)
+                                }
+                                ApiClient.api.toggleFavorite(req)
+                                if (newStatus) {
+                                    Toast.makeText(context, "Subscribed! You will be notified when $name is online.", Toast.LENGTH_LONG).show()
+                                } else {
+                                    Toast.makeText(context, "Unsubscribed from $name", Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isFavorite) Color.LightGray else peacockTeal,
+                        contentColor = if (isFavorite) Color.DarkGray else Color.White
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                 ) {
-                    ActionButton(
-                        icon = Icons.Default.Chat,
-                        label = "Chat",
-                        color = Color(0xFF00BCD4),
-                        isEnabled = isChatOnline,
-                        onClick = { checkAndProceed("chat") }
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, 
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
                     )
-
-                    ActionButton(
-                        icon = Icons.Default.Call,
-                        label = "Call",
-                        color = Color(0xFF00796B),
-                        isEnabled = isAudioOnline,
-                        onClick = { checkAndProceed("audio") }
-                    )
-
-                    ActionButton(
-                        icon = androidx.compose.material.icons.Icons.Rounded.VideoCall,
-                        label = "Video",
-                        color = Color(0xFFD32F2F),
-                        isEnabled = isVideoOnline,
-                        onClick = { checkAndProceed("video") }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = if (isFavorite) "Subscribed" else "Subscribe to $name",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        letterSpacing = 0.5.sp
                     )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Waitlist Option (If Offline)
                 if (!isChatOnline && !isAudioOnline && !isVideoOnline) {

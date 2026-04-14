@@ -2616,7 +2616,9 @@
         }
 
         async function fetchBanners() {
-            const res = await fetch('/api/admin/banners').then(r => r.json());
+            const res = await fetch('/api/admin/banners', {
+                headers: { 'x-admin-key': ADMIN_SECRET_KEY }
+            }).then(r => r.json());
             if (res.ok) document.getElementById('banner-list').innerHTML = res.banners.map(b => `
                 <div class="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-premium relative group overflow-hidden">
                     <div class="relative overflow-hidden aspect-[16/9] rounded-2xl mb-4">
@@ -2691,7 +2693,10 @@
             try {
                 const res = await fetch(url, {
                     method,
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-admin-key': ADMIN_SECRET_KEY
+                    },
                     body: JSON.stringify(data)
                 }).then(r => r.json());
 
@@ -2768,7 +2773,10 @@
 
         async function deleteBanner(id) {
             if (confirm('Erase this visual asset?')) {
-                await fetch('/api/admin/banners/' + id, { method: 'DELETE' });
+                await fetch('/api/admin/banners/' + id, { 
+                    method: 'DELETE',
+                    headers: { 'x-admin-key': ADMIN_SECRET_KEY }
+                });
                 showToast('Asset Removed', 'success');
                 fetchBanners();
                 socket.emit('admin-broadcast-refresh', { type: 'banners' });
@@ -3315,7 +3323,7 @@
             try {
                 const res = await fetch('/api/reviews/delete/admin', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_SECRET_KEY },
                     body: JSON.stringify({ reviewId: id })
                 }).then(r => r.json());
                 if (res.ok) {
@@ -3451,7 +3459,9 @@
         // RECHARGE SETTINGS LOGIC
         async function fetchRechargeSettings() {
             try {
-                const res = await fetch('/api/payment/recharge-packs').then(r => r.json());
+                const res = await fetch('/api/payment/recharge-packs', {
+                    headers: { 'x-admin-key': ADMIN_SECRET_KEY }
+                }).then(r => r.json());
                 const tbody = document.getElementById('recharge-packs-body');
                 tbody.innerHTML = '';
                 if (res.ok && res.packs) {
@@ -3460,14 +3470,15 @@
             } catch (e) { showToast('Recharge Node Error', 'error'); }
         }
 
-        function addRechargePackRow(data = { amount: 0, offerPercentage: 0, bonusText: '' }) {
+        function addRechargePackRow(data = { amount: 0, offerPercentage: 0, percentage: 0, bonusText: '' }) {
             const tbody = document.getElementById('recharge-packs-body');
             const row = document.createElement('tr');
-            row.className = 'hover:bg-slate-50 transition-colors';
+            row.className = 'hover:bg-slate-50 transition-colors border-b border-slate-50 rp-row';
+            const displayPercentage = data.offerPercentage || data.percentage || 0;
             row.innerHTML = `
-                <td class="py-4 px-4"><input type="number" class="rp-amount w-24 bg-slate-50 p-2 rounded-lg font-bold border-0" value="${data.amount}"></td>
-                <td class="py-4 px-4"><input type="number" class="rp-offer w-24 bg-slate-50 p-2 rounded-lg font-bold border-0" value="${data.offerPercentage}"></td>
-                <td class="py-4 px-4"><input type="text" class="rp-text w-full bg-slate-50 p-2 rounded-lg font-bold border-0" value="${data.bonusText}" placeholder="e.g. Recommended"></td>
+                <td class="py-4 px-4"><input type="number" class="rp-amount w-full bg-slate-50 p-3 rounded-lg border-0 focus:ring-2 focus:ring-emerald-500 font-bold text-xs" value="${data.amount}"></td>
+                <td class="py-4 px-4"><input type="number" class="rp-offer w-full bg-slate-50 p-3 rounded-lg border-0 focus:ring-2 focus:ring-emerald-500 font-bold text-xs" value="${displayPercentage}"></td>
+                <td class="py-4 px-4"><input type="text" class="rp-text w-full bg-slate-50 p-3 rounded-lg border-0 focus:ring-2 focus:ring-emerald-500 font-bold text-xs" value="${data.bonusText}" placeholder="e.g. Get 10% Bonus"></td>
                 <td class="py-4 px-4 text-right">
                     <button onclick="this.closest('tr').remove()" class="text-red-400 hover:text-red-600 p-2"><i class="fas fa-trash-alt"></i></button>
                 </td>
@@ -3486,7 +3497,10 @@
             try {
                 const res = await fetch('/api/admin/recharge-settings', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-admin-key': ADMIN_SECRET_KEY
+                    },
                     body: JSON.stringify({ packs })
                 }).then(r => r.json());
                 if (res.ok) {

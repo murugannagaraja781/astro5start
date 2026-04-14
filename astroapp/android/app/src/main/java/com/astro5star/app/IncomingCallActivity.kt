@@ -19,6 +19,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -33,10 +34,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -105,66 +108,56 @@ class IncomingCallActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        processIntent(intent)
-
-        // CRITICAL FIX: If already in a call, ignore new incoming intent to avoid crash
-        if (!CallState.canReceiveCall(callId)) {
-            Log.w(TAG, "Already in an active call, rejecting new session: $callId")
-            finish()
-            return
-        }
-
-        setupWindowFlags()
-
-        ContextCompat.registerReceiver(
-            this,
-            callControlReceiver,
-            android.content.IntentFilter("com.astro5star.app.ACTION_CANCEL_CALL"),
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
-
-        startCallForegroundService()
-        startRingtone()
-        startVibration()
-        handler.postDelayed(timeoutRunnable, CALL_TIMEOUT_MS)
-
-        // Ensure socket is connecting AND user is registered early
         try {
-            SocketManager.init()
-            // Early registration helps ensure we are in our personal room for signaling
-            com.astro5star.app.data.local.TokenManager(this).getUserSession()?.userId?.let { uid ->
-                 SocketManager.registerUser(uid)
+            processIntent(intent)
+
+            // CRITICAL FIX: If already in a call, ignore new incoming intent to avoid crash
+            if (!CallState.canReceiveCall(callId)) {
+                Log.w(TAG, "Already in an active call, rejecting new session: $callId")
+                finish()
+                return
             }
 
-            // Listen for session end (caller cancelled while ringing)
-            SocketManager.onSessionEnded {
-                runOnUiThread {
-                    Log.d(TAG, "Session ended by caller while ringing")
-                    onCallRejected() // Stops ringing, vibration, service and finishes
+            setupWindowFlags()
+
+            ContextCompat.registerReceiver(
+                this,
+                callControlReceiver,
+                android.content.IntentFilter("com.astro5star.app.ACTION_CANCEL_CALL"),
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+
+            startCallForegroundService()
+            startRingtone()
+            startVibration()
+            handler.postDelayed(timeoutRunnable, CALL_TIMEOUT_MS)
+
+            // Ensure socket is connecting AND user is registered early
+            try {
+                SocketManager.init()
+                // Early registration helps ensure we are in our personal room for signaling
+                com.astro5star.app.data.local.TokenManager(this).getUserSession()?.userId?.let { uid ->
+                    SocketManager.registerUser(uid)
                 }
-            }
-        } catch(e: Exception) { e.printStackTrace() }
 
-        setContent {
-            CosmicAppTheme {
-                IncomingCallScreen(
-                    callerName = callerName,
-                    callerId = callerId,
-                    callerImage = callerImage ?: "",
-                    callType = callType,
-                    onAccept = { onCallAccepted() },
-                    onReject = { onCallRejected() }
-                )
-            }
-        }
-    }
+                // Listen for session end (caller cancelled while ringing)
+                SocketManager.onSessionEnded { _ ->
+                    runOnUiThread {
+                        Log.d(TAG, "Session ended by caller while ringing")
+                        onCallRejected()
+                    }
+                }
 
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        intent?.let {
-            setIntent(it)
-            processIntent(it)
-            // Refresh content via Re-composition
+                SocketManager.onCallCancelled { _ ->
+                    runOnUiThread {
+                        Log.d(TAG, "Call explicitly cancelled by caller")
+                        onCallRejected()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Socket initialization error in IncomingCallActivity", e)
+            }
+
             setContent {
                 CosmicAppTheme {
                     IncomingCallScreen(
@@ -177,45 +170,83 @@ class IncomingCallActivity : ComponentActivity() {
                     )
                 }
             }
-            // Reset timeout
-            handler.removeCallbacks(timeoutRunnable)
-            handler.postDelayed(timeoutRunnable, CALL_TIMEOUT_MS)
+        } catch (e: Exception) {
+            Log.e(TAG, "Fatal error in onCreate", e)
+            android.widget.Toast.makeText(this, "Incoming call error: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            finish()
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        try {
+            intent?.let {
+                setIntent(it)
+                processIntent(it)
+                // Refresh content via Re-composition
+                setContent {
+                    CosmicAppTheme {
+                        IncomingCallScreen(
+                            callerName = callerName,
+                            callerId = callerId,
+                            callerImage = callerImage ?: "",
+                            callType = callType,
+                            onAccept = { onCallAccepted() },
+                            onReject = { onCallRejected() }
+                        )
+                    }
+                }
+                // Reset timeout
+                handler.removeCallbacks(timeoutRunnable)
+                handler.postDelayed(timeoutRunnable, CALL_TIMEOUT_MS)
+            }
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
     private fun processIntent(intent: Intent?) {
-        if (intent == null) return
-        callerId = intent.getStringExtra("callerId") ?: "Unknown"
-        callerName = intent.getStringExtra("callerName") ?: callerId
-        callId = intent.getStringExtra("callId") ?: "" // Room ID
-        callType = intent.getStringExtra("callType") ?: "audio"
-        birthData = intent.getStringExtra("birthData")
-        callerImage = intent.getStringExtra("callerImage")
-        Log.d(TAG, "Processing Call Intent: $callerName ($callId) Type: $callType Img: $callerImage")
+        try {
+            if (intent == null) return
+            callerId = intent.getStringExtra("callerId") ?: "Unknown"
+            callerName = intent.getStringExtra("callerName") ?: callerId
+            callId = intent.getStringExtra("callId") ?: "" // Room ID
+            callType = intent.getStringExtra("callType") ?: "audio"
+            birthData = intent.getStringExtra("birthData")
+            callerImage = intent.getStringExtra("callerImage")
+            Log.d(TAG, "Processing Call Intent: $callerName ($callId) Type: $callType Img: $callerImage")
 
-        // Cancel notification on new call
-        clearAllCallNotifications()
+            // Cancel notification on new call
+            clearAllCallNotifications()
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
     private fun clearAllCallNotifications() {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-        notificationManager.cancel(9999) // FCM Incoming
-        notificationManager.cancel(1001) // Foreground Service
-        notificationManager.cancel(1002) // Generic FCM
+        try {
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            notificationManager.cancel(9999) // FCM Incoming
+            notificationManager.cancel(1001) // Foreground Service
+            notificationManager.cancel(1002) // Generic FCM
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
     private fun startCallForegroundService() {
-        val serviceIntent = Intent(this, CallForegroundService::class.java).apply {
-            putExtra("callerName", callerName)
-            putExtra("callId", callId)
-        }
+        try {
+            val serviceIntent = Intent(this, CallForegroundService::class.java).apply {
+                putExtra("callerName", callerName)
+                putExtra("callId", callId)
+            }
 
-        ContextCompat.startForegroundService(this, serviceIntent)
+            ContextCompat.startForegroundService(this, serviceIntent)
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
     private fun startRingtone() {
         try {
-            val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            // Attempt to get default ringtone
+            var ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            if (ringtoneUri == null) {
+                // Fallback to notification sound if ringtone is not set
+                ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            }
 
             mediaPlayer = MediaPlayer().apply {
                 setAudioAttributes(
@@ -230,33 +261,50 @@ class IncomingCallActivity : ComponentActivity() {
                 start()
             }
 
-            Log.d(TAG, "Ringtone started")
+            Log.d(TAG, "Ringtone started using URI: $ringtoneUri")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start ringtone", e)
+            Log.e(TAG, "Failed to start primary ringtone, attempting secondary fallback", e)
+            try {
+                // Secondary fallback: Built-in system notification sound as a last resort
+                val fallbackUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                mediaPlayer?.release()
+                mediaPlayer = MediaPlayer().apply {
+                    setDataSource(this@IncomingCallActivity, fallbackUri)
+                    isLooping = true
+                    prepare()
+                    start()
+                }
+            } catch (e2: Exception) {
+                Log.e(TAG, "All ringtone fallbacks failed", e2)
+            }
         }
     }
 
     private fun startVibration() {
-        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vibratorManager.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        try {
+            vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                vibratorManager?.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            }
+
+            val pattern = longArrayOf(0, 500, 500) // delay, vibrate, sleep, repeat
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator?.vibrate(
+                    VibrationEffect.createWaveform(pattern, 0) // 0 = repeat from index 0
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(pattern, 0)
+            }
+
+            Log.d(TAG, "Vibration started")
+        } catch (e: Exception) {
+            Log.e(TAG, "Vibration failed", e)
         }
-
-        val pattern = longArrayOf(0, 500, 500) // delay, vibrate, sleep, repeat
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator?.vibrate(
-                VibrationEffect.createWaveform(pattern, 0) // 0 = repeat from index 0
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator?.vibrate(pattern, 0)
-        }
-
-        Log.d(TAG, "Vibration started")
     }
 
     private fun stopRingtoneAndVibration() {
@@ -396,47 +444,68 @@ fun IncomingCallScreen(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color(0xFF121212)
+        color = Color(0xFF002115) // Deep Dark Green base
     ) {
+        val bgGradient = Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF1B5E20), // Dark Forest
+                Color(0xFF00382E), // Deepest Green
+                Color(0xFF002115)  // Near Black Green
+            )
+        )
+
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().background(bgGradient),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(48.dp))
             Image(
                 painter = painterResource(id = com.astro5star.app.R.drawable.app_logo),
                 contentDescription = "Astro5Star",
-                modifier = Modifier.size(36.dp),
+                modifier = Modifier.size(48.dp),
                 contentScale = ContentScale.Fit,
-                alpha = 0.6f
+                alpha = 0.8f
             )
-            Text("Astro5Star", color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
-
-            Spacer(modifier = Modifier.height(30.dp))
-
-            val typeLabel = when(callType) {
-                "chat" -> "Incoming Chat Request"
-                "video" -> "Incoming Video Call"
-                else -> "Incoming Call"
-            }
-
-            Text(typeLabel, color = Color.Gray, fontSize = 16.sp)
+            Text("Astro5Star", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp, fontWeight = FontWeight.Bold)
 
             Spacer(modifier = Modifier.height(40.dp))
+
+            val typeLabel = when(callType) {
+                "chat" -> "INCOMING CHAT REQUEST"
+                "video" -> "INCOMING VIDEO CALL"
+                else -> "INCOMING AUDIO CALL"
+            }
+
+            Text(
+                typeLabel,
+                color = Color(0xFF00E676), // Bright green accent
+                fontSize = 14.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 2.sp
+            )
+
+            Spacer(modifier = Modifier.height(50.dp))
 
             Box(contentAlignment = Alignment.Center) {
                  Box(
                     modifier = Modifier
-                        .size(160.dp)
+                        .size(180.dp)
                         .scale(pulseScale)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha=0.1f))
+                        .background(Color(0xFF00E676).copy(alpha=0.15f))
+                )
+                 Box(
+                    modifier = Modifier
+                        .size(240.dp)
+                        .scale(pulseScale * 0.8f)
+                        .clip(CircleShape)
+                        .background(Color(0xFF00E676).copy(alpha=0.08f))
                 )
 
                 Surface(
                     shape = CircleShape,
-                    color = Color.DarkGray,
-                    modifier = Modifier.size(140.dp)
+                    color = Color(0xFF004D40),
+                    modifier = Modifier.size(150.dp).border(2.dp, Color(0xFF00E676).copy(alpha = 0.5f), CircleShape)
                 ) {
                     if (callerImage.isNotEmpty()) {
                         coil.compose.AsyncImage(
@@ -449,7 +518,7 @@ fun IncomingCallScreen(
                         Image(
                             painter = painterResource(id = com.astro5star.app.R.drawable.app_logo),
                             contentDescription = "Caller",
-                            modifier = Modifier.padding(24.dp).fillMaxSize(),
+                            modifier = Modifier.padding(32.dp).fillMaxSize(),
                             contentScale = ContentScale.Fit
                         )
                     }

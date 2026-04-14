@@ -168,12 +168,15 @@ object SocketManager {
         if (sessionId != null) {
             payload.put("sessionId", sessionId)
         }
-        if (socket?.connected() == true) {
-            socket?.emit("end-session", payload)
-        } else {
-            Log.e(TAG, "Socket not connected, buffering end-session might fail")
-            socket?.emit("end-session", payload)
+        socket?.emit("end-session", payload)
+    }
+
+    fun cancelCall(sessionId: String?, toUserId: String?) {
+        val payload = JSONObject().apply {
+            put("sessionId", sessionId)
+            put("toUserId", toUserId)
         }
+        socket?.emit("cancel-call", payload)
     }
 
     fun getHistory(sessionId: String, callback: ((List<JSONObject>) -> Unit)) {
@@ -197,25 +200,24 @@ object SocketManager {
         })
     }
 
-    fun onSessionEnded(listener: () -> Unit) {
+    fun onSessionEnded(listener: (JSONObject?) -> Unit) {
         socket?.off("session-ended")
-        socket?.on("session-ended") {
-            listener()
+        socket?.on("session-ended") { args ->
+            val data = if (args != null && args.isNotEmpty()) args[0] as? JSONObject else null
+            listener(data)
         }
     }
 
     fun onSessionEndedWithSummary(listener: (reason: String, deducted: Double, earned: Double, duration: Int) -> Unit) {
-        socket?.off("session-ended")
-        socket?.on("session-ended") { args ->
+        onSessionEnded { data ->
             var reason = "ended"
             var deducted = 0.0
             var earned = 0.0
             var duration = 0
 
-            if (args != null && args.isNotEmpty()) {
-                val data = args[0] as? JSONObject
-                reason = data?.optString("reason", "ended") ?: "ended"
-                val summary = data?.optJSONObject("summary")
+            if (data != null) {
+                reason = data.optString("reason", "ended") ?: "ended"
+                val summary = data.optJSONObject("summary")
                 if (summary != null) {
                     deducted = summary.optDouble("deducted", 0.0)
                     earned = summary.optDouble("earned", 0.0)
@@ -243,6 +245,16 @@ object SocketManager {
                 val availableMinutes = data?.optInt("availableMinutes", 0) ?: 0
                 Log.d(TAG, "Billing started. Available: $availableMinutes mins, Balance: ₹$clientBalance")
                 listener(BillingInfo(startTime, clientBalance, ratePerMinute, availableMinutes))
+            }
+        }
+    }
+
+    fun onCallCancelled(listener: (JSONObject) -> Unit) {
+        socket?.off("call-cancelled")
+        socket?.on("call-cancelled") { args ->
+            if (args != null && args.isNotEmpty()) {
+                val data = args[0] as JSONObject
+                listener(data)
             }
         }
     }

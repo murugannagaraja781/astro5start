@@ -13,6 +13,7 @@ const createPayment = async (req, res) => {
         let creditedAmount = 0;
         let gstAmount = 0;
         let couponBonus = 0;
+        let internalOfferPercentage = parseFloat(offerPercentage || 0);
 
         if (token) {
             const tokenData = paymentTokens.get(token);
@@ -32,6 +33,8 @@ const createPayment = async (req, res) => {
             baseAmount = tokenData.baseAmount || amount;
             creditedAmount = tokenData.creditedAmount || baseAmount;
             gstAmount = tokenData.gstAmount || 0;
+            couponCode = tokenData.couponCode || couponCode;
+            if (tokenData.offerPercentage > 0) internalOfferPercentage = tokenData.offerPercentage;
         } else {
             baseAmount = parseFloat(amount || 0);
             creditedAmount = baseAmount; // Default is 1:1
@@ -52,14 +55,13 @@ const createPayment = async (req, res) => {
         if (couponCode) {
             const code = couponCode.toUpperCase().trim();
             if (code === 'WELCOME50') couponBonus = baseAmount * 0.50;
-        } else if (offerPercentage > 0) {
-            // Treat offerPercentage as a DIRECT DISCOUNT on the base amount (as requested: Pay 45 instead of 50)
-            const discountAmount = baseAmount * (offerPercentage / 100);
-            baseAmount = baseAmount - discountAmount;
-            couponBonus = 0; // No extra bonus added if discount was applied at checkout
+        } else if (internalOfferPercentage > 0) {
+            // Requirement Fix: Treat offerPercentage as CASHBACK/BONUS (Credit to SuperWallet)
+            // Instead of reducing pay amount (discount), we increase the bonus.
+            couponBonus = baseAmount * (internalOfferPercentage / 100);
         }
 
-        // Recalculate everything based on discounted baseAmount
+        // Recalculate if Discount flow is ever re-enabled, but for now we prioritize cashback
         gstAmount = baseAmount * 0.18;
         amount = baseAmount + gstAmount;
 
@@ -75,7 +77,7 @@ const createPayment = async (req, res) => {
             withGst: true,
             isApp: !!isApp,
             isSuperWallet: !!isSuperWallet || !!couponBonus,
-            offerPercentage: parseFloat(offerPercentage || 0),
+            offerPercentage: internalOfferPercentage,
             couponCode: couponCode || null,
             couponBonus: couponBonus
         });
@@ -220,7 +222,7 @@ const handleCallback = async (req, res) => {
 
 const getPaymentToken = async (req, res) => {
     try {
-        const { userId, amount, couponCode } = req.body;
+        const { userId, amount, couponCode, offerPercentage } = req.body;
         if (!userId || !amount) return res.status(400).json({ ok: false, error: 'Missing fields' });
 
         const token = crypto.randomBytes(16).toString('hex');
@@ -236,6 +238,7 @@ const getPaymentToken = async (req, res) => {
             creditedAmount: baseAmount,
             gstAmount,
             couponCode,
+            offerPercentage: parseFloat(offerPercentage || 0),
             createdAt: Date.now(),
             used: false
         });

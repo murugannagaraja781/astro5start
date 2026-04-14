@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
@@ -80,125 +82,130 @@ class ChatActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Ensure socket is initialized and connected
-        com.astro5star.app.data.remote.SocketManager.init()
-        com.astro5star.app.data.remote.SocketManager.ensureConnection()
-        window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-        handleIntent(intent)
+        try {
+            // Ensure socket is initialized and connected
+            com.astro5star.app.data.remote.SocketManager.init()
+            com.astro5star.app.data.remote.SocketManager.ensureConnection()
+            window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+            handleIntent(intent)
 
-
-        // --- GLOBAL STATE FIX: Mark chat as active to prevent incoming calls during session ---
-        com.astro5star.app.utils.CallState.isCallActive = true
-        com.astro5star.app.utils.CallState.currentSessionId = sessionId
-        setContent {
-            CosmicAppTheme {
-                ChatScreen(
-                    viewModel = viewModel,
-                    sessionDuration = sessionDuration,
-                    title = intent?.getStringExtra("toUserName") ?: "Chat",
-                    onBack = { finish() },
-                    onEndChat = { endChat() },
-                    onEditIntake = {
-                        val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java)
-                        intent.putExtra("isEditMode", true)
-                        intent.putExtra("existingData", clientBirthData?.toString())
-                        if (TokenManager(this).getUserSession()?.role == "astrologer") {
-                            intent.putExtra("targetUserId", toUserId)
-                        }
-                        editIntakeLauncher.launch(intent)
-                    },
-                    onViewChart = {
-                        if (clientBirthData != null) {
-                            val hasPartner = clientBirthData!!.has("partner") && clientBirthData!!.optJSONObject("partner") != null
-                            if (!hasPartner) {
-                                val intent = Intent(this, com.astro5star.app.ui.chart.VipChartActivity::class.java)
-                                intent.putExtra("birthData", clientBirthData.toString())
-                                intent.putExtra("toUserId", toUserId)
-                                intent.putExtra("sessionId", sessionId)
-                                startActivity(intent)
-                            } else {
-                                val items = arrayOf(
-                                    "📊 Client Rasi Chart",
-                                    "📊 Partner Rasi Chart",
-                                    "💑 Marriage Compatibility Match"
-                                )
-                                android.app.AlertDialog.Builder(this)
-                                    .setTitle("View Chart")
-                                    .setItems(items) { _, which ->
-                                        when (which) {
-                                            0 -> {
-                                                val intent = Intent(this, com.astro5star.app.ui.chart.VipChartActivity::class.java)
-                                                intent.putExtra("birthData", clientBirthData.toString())
-                                                startActivity(intent)
-                                            }
-                                            1 -> {
-                                                val partnerObj = clientBirthData!!.optJSONObject("partner")
-                                                if (partnerObj != null) {
-                                                    val partnerBirthData = JSONObject().apply {
-                                                        put("name", partnerObj.optString("name", "Partner"))
-                                                        put("gender", partnerObj.optString("gender", ""))
-                                                        put("day", partnerObj.optInt("day", 1))
-                                                        put("month", partnerObj.optInt("month", 1))
-                                                        put("year", partnerObj.optInt("year", 2000))
-                                                        put("hour", partnerObj.optInt("hour", 12))
-                                                        put("minute", partnerObj.optInt("minute", 0))
-                                                        put("latitude", partnerObj.optDouble("latitude", 13.0827))
-                                                        put("longitude", partnerObj.optDouble("longitude", 80.2707))
-                                                        put("timezone", partnerObj.optDouble("timezone", 5.5))
-                                                        if (partnerObj.has("timezoneId")) put("timezoneId", partnerObj.optString("timezoneId"))
-                                                        put("city", partnerObj.optString("city", ""))
-                                                    }
+            // --- GLOBAL STATE FIX: Mark chat as active to prevent incoming calls during session ---
+            com.astro5star.app.utils.CallState.isCallActive = true
+            com.astro5star.app.utils.CallState.currentSessionId = sessionId
+            setContent {
+                CosmicAppTheme {
+                    ChatScreen(
+                        viewModel = viewModel,
+                        sessionDuration = sessionDuration,
+                        title = intent?.getStringExtra("toUserName") ?: "Chat",
+                        onBack = { finish() },
+                        onEndChat = { endChat() },
+                        onEditIntake = {
+                            val intent = Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java)
+                            intent.putExtra("isEditMode", true)
+                            intent.putExtra("existingData", clientBirthData?.toString())
+                            if (TokenManager(this).getUserSession()?.role == "astrologer") {
+                                intent.putExtra("targetUserId", toUserId)
+                            }
+                            editIntakeLauncher.launch(intent)
+                        },
+                        onViewChart = {
+                            if (clientBirthData != null) {
+                                val hasPartner = clientBirthData!!.has("partner") && clientBirthData!!.optJSONObject("partner") != null
+                                if (!hasPartner) {
+                                    val intent = Intent(this, com.astro5star.app.ui.chart.VipChartActivity::class.java)
+                                    intent.putExtra("birthData", clientBirthData.toString())
+                                    intent.putExtra("toUserId", toUserId)
+                                    intent.putExtra("sessionId", sessionId)
+                                    startActivity(intent)
+                                } else {
+                                    val items = arrayOf(
+                                        "📊 Client Rasi Chart",
+                                        "📊 Partner Rasi Chart",
+                                        "💑 Marriage Compatibility Match"
+                                    )
+                                    android.app.AlertDialog.Builder(this)
+                                        .setTitle("View Chart")
+                                        .setItems(items) { _, which ->
+                                            when (which) {
+                                                0 -> {
                                                     val intent = Intent(this, com.astro5star.app.ui.chart.VipChartActivity::class.java)
-                                                    intent.putExtra("birthData", partnerBirthData.toString())
-                                                    intent.putExtra("toUserId", toUserId)
-                                                    intent.putExtra("sessionId", sessionId)
+                                                    intent.putExtra("birthData", clientBirthData.toString())
                                                     startActivity(intent)
-                                                } else {
-                                                    Toast.makeText(this, "Partner data unavailable", Toast.LENGTH_SHORT).show()
+                                                }
+                                                1 -> {
+                                                    val partnerObj = clientBirthData!!.optJSONObject("partner")
+                                                    if (partnerObj != null) {
+                                                        val partnerBirthData = JSONObject().apply {
+                                                            put("name", partnerObj.optString("name", "Partner"))
+                                                            put("gender", partnerObj.optString("gender", ""))
+                                                            put("day", partnerObj.optInt("day", 1))
+                                                            put("month", partnerObj.optInt("month", 1))
+                                                            put("year", partnerObj.optInt("year", 2000))
+                                                            put("hour", partnerObj.optInt("hour", 12))
+                                                            put("minute", partnerObj.optInt("minute", 0))
+                                                            put("latitude", partnerObj.optDouble("latitude", 13.0827))
+                                                            put("longitude", partnerObj.optDouble("longitude", 80.2707))
+                                                            put("timezone", partnerObj.optDouble("timezone", 5.5))
+                                                            if (partnerObj.has("timezoneId")) put("timezoneId", partnerObj.optString("timezoneId"))
+                                                            put("city", partnerObj.optString("city", ""))
+                                                        }
+                                                        val intent = Intent(this, com.astro5star.app.ui.chart.VipChartActivity::class.java)
+                                                        intent.putExtra("birthData", partnerBirthData.toString())
+                                                        intent.putExtra("toUserId", toUserId)
+                                                        intent.putExtra("sessionId", sessionId)
+                                                        startActivity(intent)
+                                                    } else {
+                                                        Toast.makeText(this, "Partner data unavailable", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                }
+                                                2 -> {
+                                                    val intent = Intent(this, com.astro5star.app.ui.chart.MatchDisplayActivity::class.java)
+                                                    intent.putExtra("birthData", clientBirthData.toString())
+                                                    startActivity(intent)
                                                 }
                                             }
-                                            2 -> {
-                                                val intent = Intent(this, com.astro5star.app.ui.chart.MatchDisplayActivity::class.java)
-                                                intent.putExtra("birthData", clientBirthData.toString())
-                                                startActivity(intent)
-                                            }
                                         }
-                                    }
-                                    .show()
+                                        .show()
+                                }
+                            } else {
+                                 Toast.makeText(this, "Waiting for Client Data...", Toast.LENGTH_SHORT).show()
                             }
-                        } else {
-                             Toast.makeText(this, "Waiting for Client Data...", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    isAstrologer = TokenManager(this).getUserSession()?.role == "astrologer",
-                    toUserId = toUserId,
-                    sessionId = sessionId,
-                    remainingTime = remainingTime,
-                    remainingSeconds = remainingSeconds,
-                    clientBirthData = clientBirthData
-                )
+                        },
+                        isAstrologer = TokenManager(this).getUserSession()?.role == "astrologer",
+                        toUserId = toUserId,
+                        sessionId = sessionId,
+                        remainingTime = remainingTime,
+                        remainingSeconds = remainingSeconds,
+                        clientBirthData = clientBirthData
+                    )
+                }
             }
-        }
-        setupObservers()
-        timerHandler.post(timerRunnable)
+            setupObservers()
+            timerHandler.post(timerRunnable)
 
-        // Listen for client birth data updates during session
-        com.astro5star.app.data.remote.SocketManager.getSocket()?.on("client-birth-chart") { args ->
-            if (args != null && args.isNotEmpty()) {
-                val data = args[0] as? JSONObject
-                val updatedData = data?.optJSONObject("birthData")
-                if (updatedData != null) {
-                    runOnUiThread {
-                        clientBirthData = updatedData
-                        val myRole = TokenManager(this@ChatActivity).getUserSession()?.role
-                        if (myRole == "client") {
-                            Toast.makeText(this@ChatActivity, "Astrologer updated your birth details", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(this@ChatActivity, "Client updated their birth details", Toast.LENGTH_SHORT).show()
+            // Listen for client birth data updates during session
+            com.astro5star.app.data.remote.SocketManager.getSocket()?.on("client-birth-chart") { args ->
+                if (args != null && args.isNotEmpty()) {
+                    val data = args[0] as? JSONObject
+                    val updatedData = data?.optJSONObject("birthData")
+                    if (updatedData != null) {
+                        runOnUiThread {
+                            clientBirthData = updatedData
+                            val myRole = TokenManager(this@ChatActivity).getUserSession()?.role
+                            if (myRole == "client") {
+                                Toast.makeText(this@ChatActivity, "Astrologer updated your birth details", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(this@ChatActivity, "Client updated their birth details", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     }
                 }
             }
+        } catch (e: Exception) {
+            android.util.Log.e("ChatActivity", "Fatal error in onCreate", e)
+            Toast.makeText(this, "Chat Error: ${e.message}", Toast.LENGTH_LONG).show()
+            finish()
         }
     }
 
@@ -392,7 +399,6 @@ fun ChatScreen(
     var inputText by remember { mutableStateOf("") }
 
     // Reply State
-    // Reply State
     var replyingTo by remember { mutableStateOf<ChatMessage?>(null) }
 
     // History Visibility State
@@ -405,33 +411,51 @@ fun ChatScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)
-                        if (isAstrologer && remainingTime.isNotEmpty() && remainingTime != "00:00") {
-                             val timerColor = when {
-                                 remainingSeconds < 120 -> Color.Red
-                                 remainingSeconds < 300 -> Color(0xFFFFA500) // Orange
-                                 else -> Color.White
-                             }
-                             Text("Time: $remainingTime", fontSize = 12.sp, color = timerColor, fontWeight = FontWeight.Bold)
-                        } else {
-                             Text("Online", fontSize = 12.sp, color = Color.White.copy(alpha=0.7f))
-                        }
-                    }
-                },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back", tint = Color.White) } },
-                actions = {
-                    Text(sessionDuration, color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end=12.dp))
-                    IconButton(onClick = onEditIntake) { Icon(Icons.Default.Edit, "Intake", tint = Color.White) }
-                    TextButton(onClick = onEndChat) { Text("End", color = Color.Red, fontWeight = FontWeight.Bold) }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1B5E20),
-                    titleContentColor = Color.White
-                )
-            )
+            val topBarBg = Brush.verticalGradient(listOf(Color(0xFF004D40), Color(0xFF00332B)))
+            Surface(
+                modifier = Modifier.fillMaxWidth().shadow(8.dp),
+                color = Color.Transparent
+            ) {
+                Box(modifier = Modifier.background(topBarBg)) {
+                    TopAppBar(
+                        title = {
+                            Column {
+                                Text(title, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1)
+                                if (isAstrologer && remainingTime.isNotEmpty() && remainingTime != "00:00") {
+                                     val timerColor = if (remainingSeconds < 120) Color(0xFFFF5252) else Color(0xFF00E676)
+                                     Text("⏳ Bal: $remainingTime", fontSize = 12.sp, color = timerColor, fontWeight = FontWeight.ExtraBold)
+                                } else {
+                                     Text("📡 Active Consultation", fontSize = 11.sp, color = Color.White.copy(alpha=0.75f))
+                                }
+                            }
+                        },
+                        navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back", tint = Color.White) } },
+                        actions = {
+                            Surface(
+                                color = Color.White.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.padding(end = 8.dp)
+                            ) {
+                                Text(
+                                    sessionDuration,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Black,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    fontSize = 13.sp
+                                )
+                            }
+                            IconButton(onClick = onEditIntake) { Icon(Icons.Default.Edit, "Intake", tint = Color.White) }
+                            TextButton(onClick = onEndChat) {
+                                Text("END", color = Color(0xFFFF5252), fontWeight = FontWeight.Black, fontSize = 14.sp)
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.Transparent,
+                            titleContentColor = Color.White
+                        )
+                    )
+                }
+            }
         },
         bottomBar = {
             ChatInputBar(

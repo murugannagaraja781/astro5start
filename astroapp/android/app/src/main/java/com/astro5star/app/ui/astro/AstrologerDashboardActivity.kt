@@ -546,6 +546,24 @@ fun AstrologerDashboardScreen(
         )
     }
 
+    val colors = object {
+        val accent = Color(0xFF00E676) // Bright Green
+        val cardBg = Color(0xFF004D40) // Tealish Green
+        val cardStroke = Color.White.copy(alpha = 0.12f)
+        val textPrimary = Color.White
+        val textSecondary = Color(0xFFA5D6A7) // Light Sage
+        val headerStart = Color(0xFF1B5E20)
+        val headerEnd = Color(0xFF00382E)
+        val bgStart = Color(0xFF1B5E20)
+        val bgEnd = Color(0xFF002115)
+        val headerGradient = Brush.verticalGradient(
+            colors = listOf(headerStart, headerEnd)
+        )
+        val bgGradient = Brush.verticalGradient(
+            colors = listOf(bgStart, Color(0xFF00332B), bgEnd)
+        )
+    }
+
     Scaffold(
         containerColor = Color.Transparent, // Transparent to show gradient if needed, or use BgStart
         floatingActionButton = {
@@ -572,12 +590,10 @@ fun AstrologerDashboardScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(CosmicAppTheme.headerBrush) // Dynamic Header Gradient
+                    .background(colors.headerGradient) // Green Gradient Header
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val colors = CosmicAppTheme.colors
-                // Skeuomorphic Avatar
                 Box(
                     modifier = Modifier
                         .size(56.dp)
@@ -661,7 +677,6 @@ fun AstrologerDashboardScreen(
                             )
                         )
                     )
-                    // ID Removed as requested
                 }
                 IconButton(
                     onClick = {
@@ -689,13 +704,11 @@ fun AstrologerDashboardScreen(
             }
         }
     ) { padding ->
-        val colors = CosmicAppTheme.colors
-
         Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(CosmicAppTheme.backgroundBrush) // Dynamic Background
+                .background(colors.bgGradient) // Green Gradient Background
                 .verticalScroll(scrollState) // ENABLE SCROLLING
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -761,14 +774,12 @@ fun AstrologerDashboardScreen(
                     modifier = Modifier
                         .background(
                             Brush.linearGradient(
-                                colors = listOf(Color(0xFFFFFFFF), Color(0xFFE1F5FE), Color(0xFFB3E5FC)),
-                                start = Offset(0f, 0f),
-                                end = Offset.Infinite
+                                colors = listOf(Color(0xFF00332B), Color(0xFF004D40))
                             )
                         )
                         .padding(24.dp)
                 ) {
-                    Text("Total Earnings", color = colors.textSecondary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text("Total Earnings", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -992,15 +1003,15 @@ fun AstrologerDashboardScreen(
                     ) {
                         rowItems.forEach { (label, icon) ->
                              Card(
-                                 colors = CardDefaults.cardColors(containerColor = colors.cardBg),
+                                 colors = CardDefaults.cardColors(containerColor = Color(0xFF004D40).copy(alpha = 0.5f)),
                                  shape = RoundedCornerShape(20.dp),
                                  modifier = Modifier
                                      .weight(1f)
                                      .aspectRatio(1f)
-                                     .shadow(6.dp, RoundedCornerShape(20.dp))
+                                     .shadow(12.dp, RoundedCornerShape(20.dp))
                                      .border(
                                          1.dp,
-                                         Brush.linearGradient(listOf(Color.White, Color.Transparent)),
+                                         Color.White.copy(alpha = 0.12f),
                                          RoundedCornerShape(20.dp)
                                      )
                                      .clickable {
@@ -1028,13 +1039,7 @@ fun AstrologerDashboardScreen(
                                  Column(
                                      modifier = Modifier
                                          .fillMaxSize()
-                                         .background(
-                                             Brush.linearGradient(
-                                                 colors = listOf(Color.White, Color(0xFFF0F7FF)),
-                                                 start = Offset(0f, 0f),
-                                                 end = Offset(100f, 100f)
-                                             )
-                                         )
+                                         .background(Color.Transparent)
                                          .padding(12.dp),
                                      horizontalAlignment = Alignment.CenterHorizontally,
                                      verticalArrangement = Arrangement.Center
@@ -1045,7 +1050,7 @@ fun AstrologerDashboardScreen(
                                              .shadow(4.dp, CircleShape)
                                              .background(
                                                  Brush.radialGradient(
-                                                     colors = listOf(Color.White, colors.bgEnd),
+                                                     colors = listOf(Color(0xFF00E676).copy(alpha = 0.2f), Color.Transparent),
                                                      center = Offset(15f, 15f)
                                                  ),
                                                  CircleShape
@@ -1088,12 +1093,17 @@ fun ServiceTogglesCard(
     onAudioToggle: (Boolean) -> Unit,
     onVideoToggle: (Boolean) -> Unit
 ) {
-    val colors = CosmicAppTheme.colors
+    val colors = object {
+        val accent = Color(0xFF00E676)
+        val cardBg = Color(0xFF004D40)
+        val textPrimary = Color.White
+        val textSecondary = Color(0xFFA5D6A7)
+    }
     Card(
-        colors = CardDefaults.cardColors(containerColor = colors.cardBg),
+        colors = CardDefaults.cardColors(containerColor = colors.cardBg.copy(alpha = 0.6f)),
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(16.dp)),
-        border = BorderStroke(1.dp, colors.cardStroke.copy(alpha = 0.15f))
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -1142,7 +1152,10 @@ fun ServiceToggleRow(
     isEnabled: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
-    val colors = CosmicAppTheme.colors
+    val colors = object {
+        val accent = Color(0xFF00E676)
+        val textPrimary = Color.White
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()

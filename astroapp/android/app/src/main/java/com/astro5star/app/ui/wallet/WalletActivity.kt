@@ -295,7 +295,18 @@ fun WalletScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(8.dp, RoundedCornerShape(12.dp)),
+                    .shadow(8.dp, RoundedCornerShape(12.dp))
+                    .clickable {
+                        // Implement Referral Share Logic
+                        val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            val appLink = "https://play.google.com/store/apps/details?id=${context.packageName}"
+                            putExtra(android.content.Intent.EXTRA_SUBJECT, "Astro 5 Star Referral")
+                            val shareMessage = "Hey! I'm using Astro 5 Star for accurate astrology consultations. Join using my referral to get ₹50 FREE wallet balance! \nDownload now: $appLink"
+                            putExtra(android.content.Intent.EXTRA_TEXT, shareMessage)
+                        }
+                        context.startActivity(android.content.Intent.createChooser(shareIntent, "Refer a Friend"))
+                    },
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)) // Light blue
             ) {
