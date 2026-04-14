@@ -58,6 +58,11 @@ class AstrologerProfileActivity : ComponentActivity() {
         val astroId = intent.getStringExtra("astro_id") ?: ""
         val astroImage = intent.getStringExtra("astro_image") ?: ""
         val astroPrice = intent.getIntExtra("astro_price", 15)
+        val chatPrice = intent.getIntExtra("chat_price", 10)
+        val audioPrice = intent.getIntExtra("audio_price", 20)
+        val videoPrice = intent.getIntExtra("video_price", 30)
+        val unlimitedPrice = intent.getIntExtra("unlimited_price", 299)
+        val unlimitedOfferEnabled = intent.getBooleanExtra("unlimited_enabled", false)
         val isChatOnline = intent.getBooleanExtra("is_chat_online", false)
         val isAudioOnline = intent.getBooleanExtra("is_audio_online", false)
         val isVideoOnline = intent.getBooleanExtra("is_video_online", false)
@@ -71,6 +76,11 @@ class AstrologerProfileActivity : ComponentActivity() {
                     skills = astroSkills,
                     image = astroImage,
                     price = astroPrice,
+                    chatPrice = chatPrice,
+                    audioPrice = audioPrice,
+                    videoPrice = videoPrice,
+                    unlimitedPrice = unlimitedPrice,
+                    unlimitedEnabled = unlimitedOfferEnabled,
                     isChatOnline = isChatOnline,
                     isAudioOnline = isAudioOnline,
                     isVideoOnline = isVideoOnline,
@@ -99,6 +109,11 @@ fun AstrologerProfileScreen(
     skills: String,
     image: String,
     price: Int,
+    chatPrice: Int = 10,
+    audioPrice: Int = 20,
+    videoPrice: Int = 30,
+    unlimitedPrice: Int = 299,
+    unlimitedEnabled: Boolean = false,
     isChatOnline: Boolean,
     isAudioOnline: Boolean,
     isVideoOnline: Boolean,
@@ -401,6 +416,7 @@ fun AstrologerProfileScreen(
                     ActionButton(
                         icon = Icons.Default.Chat,
                         label = "Chat",
+                        priceLabel = "₹$chatPrice/m",
                         color = Color(0xFF00BCD4),
                         isEnabled = isChatOnline,
                         onClick = { checkAndProceed("chat") }
@@ -409,6 +425,7 @@ fun AstrologerProfileScreen(
                     ActionButton(
                         icon = Icons.Default.Call,
                         label = "Call",
+                        priceLabel = "₹$audioPrice/m",
                         color = Color(0xFF00796B),
                         isEnabled = isAudioOnline,
                         onClick = { checkAndProceed("audio") }
@@ -417,10 +434,25 @@ fun AstrologerProfileScreen(
                     ActionButton(
                         icon = androidx.compose.material.icons.Icons.Rounded.VideoCall,
                         label = "Video",
+                        priceLabel = "₹$videoPrice/m",
                         color = Color(0xFFD32F2F),
                         isEnabled = isVideoOnline,
                         onClick = { checkAndProceed("video") }
                     )
+                }
+
+                if (unlimitedEnabled) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { onAction("unlimited") },
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF673AB7)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Star, null, tint = Color.White)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Unlimited Horoscope (40 Min) - ₹$unlimitedPrice", fontWeight = FontWeight.Bold)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -679,9 +711,9 @@ fun StatItem(icon: ImageVector, value: String) {
 }
 
 @Composable
-fun ActionButton(icon: ImageVector, label: String, color: Color, isEnabled: Boolean, onClick: () -> Unit) {
+fun ActionButton(icon: ImageVector, label: String, priceLabel: String = "", color: Color, isEnabled: Boolean, onClick: () -> Unit) {
     val finalColor = if (isEnabled) color else Color.Gray
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(4.dp)) {
         IconButton(
             onClick = onClick,
             enabled = isEnabled,
@@ -693,6 +725,9 @@ fun ActionButton(icon: ImageVector, label: String, color: Color, isEnabled: Bool
             Icon(imageVector = icon, contentDescription = label, tint = finalColor)
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = finalColor)
+        Text(text = label, fontSize = 11.sp, fontWeight = FontWeight.Black, color = finalColor, uppercase = true)
+        if (priceLabel.isNotEmpty()) {
+            Text(text = priceLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+        }
     }
 }

@@ -21,5 +21,10 @@ data class Astrologer(
     val rating: Double = 5.0,
     val orders: Int = 0,
     val isBusy: Boolean = false,
+    val chatPrice: Int = 10,
+    val audioPrice: Int = 20,
+    val videoPrice: Int = 30,
+    val unlimitedPrice: Int = 299,
+    val unlimitedOfferEnabled: Boolean = false,
     val displayOrder: Int = 0
 )

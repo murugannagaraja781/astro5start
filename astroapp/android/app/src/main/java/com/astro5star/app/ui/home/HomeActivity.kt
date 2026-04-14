@@ -523,6 +523,46 @@ class HomeActivity : AppCompatActivity() {
         loadWalletBalance()
         refreshWalletBalance()
         fetchBanners()
+
+        // Handle open_astro_id from Queue Notification
+        intent.getStringExtra("open_astro_id")?.let { astroId ->
+            Log.d(TAG, "Notification Intent: Opening Astro Profile for $astroId")
+            intent.removeExtra("open_astro_id") // Consume the extra
+            
+            // Collect astrologers or wait for them to load
+            lifecycleScope.launch {
+                // Wait for list to load (max 5 seconds)
+                var retry = 0
+                while (_astrologers.value.isEmpty() && retry < 10) {
+                    delay(500)
+                    retry++
+                }
+                
+                val astro = _astrologers.value.find { it.userId == astroId }
+                if (astro != null) {
+                    val profileIntent = Intent(this@HomeActivity, com.astro5star.app.ui.profile.AstrologerProfileActivity::class.java).apply {
+                        putExtra("astro_name", astro.name)
+                        putExtra("astro_exp", astro.experience.toString())
+                        putExtra("astro_skills", astro.skills.joinToString(", "))
+                        putExtra("astro_id", astro.userId)
+                        putExtra("is_chat_online", astro.isChatOnline)
+                        putExtra("is_audio_online", astro.isAudioOnline)
+                        putExtra("is_video_online", astro.isVideoOnline)
+                        putExtra("astro_image", astro.image)
+                        putExtra("astro_price", astro.price)
+                        putExtra("chat_price", astro.chatPrice)
+                        putExtra("audio_price", astro.audioPrice)
+                        putExtra("video_price", astro.videoPrice)
+                        putExtra("unlimited_price", astro.unlimitedPrice)
+                        putExtra("unlimited_enabled", astro.unlimitedOfferEnabled)
+                    }
+                    startActivity(profileIntent)
+                } else {
+                    Toast.makeText(this@HomeActivity, "Astrologer not found", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
         // Ensure astrologer list is fresh when returning to the screen
         SocketManager.getSocket()?.emit("get-astrologers")
     }

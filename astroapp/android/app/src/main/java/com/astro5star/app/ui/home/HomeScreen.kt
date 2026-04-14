@@ -1242,6 +1242,11 @@ fun AstrologerCard(
                     putExtra("is_video_online", astro.isVideoOnline)
                     putExtra("astro_image", astro.image)
                     putExtra("astro_price", astro.price)
+                    putExtra("chat_price", astro.chatPrice)
+                    putExtra("audio_price", astro.audioPrice)
+                    putExtra("video_price", astro.videoPrice)
+                    putExtra("unlimited_price", astro.unlimitedPrice)
+                    putExtra("unlimited_enabled", astro.unlimitedOfferEnabled)
                 }
                 context.startActivity(intent)
             },
@@ -1335,9 +1340,10 @@ fun AstrologerCard(
 
                      Column(horizontalAlignment = Alignment.End) {
                          Row(verticalAlignment = Alignment.CenterVertically) {
-                             Text("₹ ${astro.price}", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = PriceRed)
+                          val dp = when(selectedTab) { 1->astro.chatPrice; 2->astro.videoPrice; 3->astro.audioPrice; else->astro.chatPrice }
+                          Text("₹ $dp", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = PriceRed)
                              Spacer(modifier = Modifier.width(4.dp))
-                             Text("${(astro.price*2).toInt()}/Min", style = MaterialTheme.typography.bodySmall.copy(textDecoration = TextDecoration.LineThrough, fontSize = 10.sp), color = Color.Gray)
+                              Text("${(dp*2).toInt()}/Min", style = MaterialTheme.typography.bodySmall.copy(textDecoration = TextDecoration.LineThrough, fontSize = 10.sp), color = Color.Gray)
                          }
                      }
                  }

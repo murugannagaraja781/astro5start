@@ -84,17 +84,26 @@ async function tickSessions(io) {
                 }
 
                 // PERFORMANCE FIX: Emit timer-update EVERY second for better UX
-                // but only if the users are connected.
                 const client = await User.findOne({ userId: session.clientId }).select('walletBalance superWalletBalance').lean();
                 if (client) {
-                    const price = session.pricePerMin || 10;
-                    const totalBalance = (client.walletBalance || 0) + (client.superWalletBalance || 0);
-                    const remainingSeconds = Math.floor((totalBalance / price) * 60);
+                    let remainingSeconds = 0;
+                    if (session.type === 'unlimited') {
+                        // 40 Minute Cap
+                        remainingSeconds = 2400 - secondsElapsed;
+                        if (remainingSeconds < 1) {
+                            console.log(`[Ticker] Force-cutting session ${sessionId}: Unlimited time limit reached.`);
+                            return forceEndSession(sessionId, 'unlimited_limit_reached', io);
+                        }
+                    } else {
+                        const price = session.pricePerMin || 10;
+                        const totalBalance = (client.walletBalance || 0) + (client.superWalletBalance || 0);
+                        remainingSeconds = Math.floor((totalBalance / price) * 60);
 
-                    // FINANCIAL SAFETY: Force-cut call IMMEDIATELY if balance hits zero
-                    if (remainingSeconds < 1) {
-                        console.log(`[Ticker] Force-cutting session ${sessionId}: Balance exhausted.`);
-                        return forceEndSession(sessionId, 'insufficient_funds', io);
+                        // FINANCIAL SAFETY: Force-cut call IMMEDIATELY if balance hits zero
+                        if (remainingSeconds < 1) {
+                            console.log(`[Ticker] Force-cutting session ${sessionId}: Balance exhausted.`);
+                            return forceEndSession(sessionId, 'insufficient_funds', io);
+                        }
                     }
 
                     const timerPayload = {
@@ -148,7 +157,10 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
         if (!client) return;
 
         let pricePerMin = 10;
-        if (session.type === 'chat') pricePerMin = astro.chatPrice || 10;
+        let isUnlimited = session.type === 'unlimited';
+
+        if (isUnlimited) pricePerMin = astro.unlimitedPrice || 299;
+        else if (session.type === 'chat') pricePerMin = astro.chatPrice || 10;
         else if (session.type === 'audio') pricePerMin = astro.audioPrice || 20;
         else if (session.type === 'video') pricePerMin = astro.videoPrice || 30;
         else if (astro.price && astro.price > 0) pricePerMin = parseInt(astro.price);
@@ -159,8 +171,34 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
         let reason = '';
         let isFinalBalanceUpdate = false;
 
-        // TYPE 1: Charge the client for a whole minute. Start/Fractional minutes are 100% Admin-owned.
-        if (type === 'client_full_charge') {
+        // UNLIMITED LOGIC: Charge full amount at Minute 1, then 0.
+        if (isUnlimited) {
+            if (type === 'client_full_charge') {
+                if (minuteIndex === 1) {
+                    totalToClientDeduct = pricePerMin;
+                    adminAmount = pricePerMin;
+                    reason = 'unlimited_full_upfront';
+                    isFinalBalanceUpdate = true;
+                } else {
+                    return; // No further charges to client
+                }
+            } else if (type === 'astro_share_payout') {
+                // Pay astro 1/40th of their share per minute? 
+                // Or pay based on a virtual per-minute rate (pricePerMin / 40)
+                const virtualPrice = pricePerMin / 40;
+                const activeSess = activeSessions.get(sessionId);
+                const currentSlab = activeSess?.currentSlab || 1;
+                let rate = SLAB_RATES[currentSlab] || 0.30;
+                if (rate > 1) rate = rate / 100;
+                
+                astroAmount = virtualPrice * rate;
+                adminAmount = -astroAmount;
+                reason = `unlimited_slab_${currentSlab}_payout`;
+                isFinalBalanceUpdate = true;
+            }
+        } 
+        // STANDARD LOGIC
+        else if (type === 'client_full_charge') {
             totalToClientDeduct = pricePerMin;
             adminAmount = pricePerMin;
             astroAmount = 0;

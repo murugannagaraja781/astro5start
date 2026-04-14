@@ -198,6 +198,32 @@ class FCMService : FirebaseMessagingService() {
                         Log.d(TAG, "App in foreground - skipping notification for $messageId")
                     }
                 }
+                "QUEUE_TURN" -> {
+                    val astrologerId = data["astrologerId"] ?: ""
+                    val title = data["title"] ?: "It's your turn!"
+                    val body = data["body"] ?: "Astrologer is now free. Connect now!"
+                    
+                    val intent = Intent(this, com.astro5star.app.ui.home.HomeActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        putExtra("open_astro_id", astrologerId)
+                    }
+                    
+                    val pendingIntent = PendingIntent.getActivity(
+                        this, System.currentTimeMillis().toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    
+                    val notification = NotificationCompat.Builder(this, CHAT_CHANNEL_ID)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setContentTitle(title)
+                        .setContentText(body)
+                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setContentIntent(pendingIntent)
+                        .setAutoCancel(true)
+                        .build()
+                        
+                    val notificationManager = getSystemService(NotificationManager::class.java)
+                    notificationManager.notify(astrologerId.hashCode(), notification)
+                }
                 "WALLET_DEBIT" -> {
                     // Removed SoundManager call as per user request to silence wallet notifications
                     showGenericNotification(data["title"] ?: "Wallet Updated", data["body"] ?: "Amount deducted")
