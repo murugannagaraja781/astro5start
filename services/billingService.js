@@ -151,7 +151,11 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
         if (!session) return;
 
         // Financial Safety Check: Don't process if this exact minute + type is already in the ledger
-        const exists = await BillingLedger.exists({ sessionId, minuteIndex, reason: { $regex: type === 'client_full_charge' ? '^first_minute|^minute_start' : '^slab_' } });
+        const exists = await BillingLedger.exists({ 
+            sessionId, 
+            minuteIndex, 
+            reason: { $regex: type === 'client_full_charge' ? '^first_minute|^minute_start|^unlimited' : '^slab_|^unlimited' } 
+        });
         if (exists) {
             console.log(`[Billing] Skipping duplicate charge: sid=${sessionId}, minute=${minuteIndex}, type=${type}`);
             return;

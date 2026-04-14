@@ -410,6 +410,9 @@ function getOtherUserIdFromSession(sessionId, myUserId) {
 module.exports = {
     handleUserConnection,
     acceptSession,
+    endSessionRecord,
+    handleMissedCallLogic,
+    sendCancelCallPush,
     cancelCall,
     getOtherUserIdFromSession
 };

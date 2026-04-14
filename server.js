@@ -36,6 +36,7 @@ const connectDB = require('./config/database');
 const { initSocket } = require('./services/socketManager');
 const { isAdmin } = require('./middleware/authMiddleware');
 const { initFcmAuth } = require('./services/fcmService');
+const multer = require('multer');
 const uploadDir = path.join(__dirname, 'uploads');
 if (!require('fs').existsSync(uploadDir)) require('fs').mkdirSync(uploadDir);
 
