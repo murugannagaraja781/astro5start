@@ -93,11 +93,19 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
 
             let user = await User.findOne({ userId });
             if (user) {
+                const wasAvailable = !!user.isAvailable;
                 Object.assign(user, update);
                 user.isOnline = !!(user.isChatOnline || user.isAudioOnline || user.isVideoOnline || user.unlimitedOfferEnabled);
                 // Fix: availability depends on online status and busy state
                 user.isAvailable = user.isOnline && !user.isBusy;
                 user.lastSeen = new Date();
+
+                // Trigger notification if newly available
+                if (!wasAvailable && user.isAvailable) {
+                    const { notifyFollowersOfOnlineStatus, notifyWaitlistUsers } = require('../notificationService');
+                    notifyFollowersOfOnlineStatus(userId).catch(e => {});
+                    notifyWaitlistUsers(userId).catch(e => {});
+                }
 
                 const updateParams = {
                     isChatOnline: user.isChatOnline,
@@ -141,12 +149,20 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
             const isOnline = !!data.isOnline;
             let user = await User.findOne({ userId });
             if (user) {
+                const wasAvailable = !!user.isAvailable;
                 user.isChatOnline = isOnline;
                 user.isAudioOnline = isOnline;
                 user.isVideoOnline = isOnline;
                 user.isOnline = isOnline;
                 user.isAvailable = isOnline && !user.isBusy;
                 user.lastSeen = new Date();
+
+                // Trigger notification if newly available
+                if (!wasAvailable && user.isAvailable) {
+                    const { notifyFollowersOfOnlineStatus, notifyWaitlistUsers } = require('../notificationService');
+                    notifyFollowersOfOnlineStatus(userId).catch(e => {});
+                    notifyWaitlistUsers(userId).catch(e => {});
+                }
 
                 const updateParams = {
                     isChatOnline: user.isChatOnline,
