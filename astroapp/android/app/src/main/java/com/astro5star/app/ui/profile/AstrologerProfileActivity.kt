@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.rounded.VideoCall
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -788,7 +789,7 @@ fun ActionButton(icon: ImageVector, label: String, priceLabel: String = "", colo
             Icon(imageVector = icon, contentDescription = label, tint = finalColor)
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = label, fontSize = 11.sp, fontWeight = FontWeight.Black, color = finalColor, uppercase = true)
+        Text(text = label.uppercase(), fontSize = 11.sp, fontWeight = FontWeight.Black, color = finalColor)
         if (priceLabel.isNotEmpty()) {
             Text(text = priceLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
         }

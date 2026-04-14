@@ -1214,7 +1214,7 @@ class CallActivity : ComponentActivity() {
                             "⚠️ Your balance is low! Only 2 minutes left."
                         }
                         Toast.makeText(this@CallActivity, msg, Toast.LENGTH_LONG).show()
-                        SoundManager.playNotificationSound() // Use appropriate helper if exists
+                        com.astro5star.app.utils.SoundManager.playReceiveSound()
                     }
                 }
             }
