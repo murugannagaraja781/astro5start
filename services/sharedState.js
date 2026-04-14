@@ -53,7 +53,7 @@ let REFERRAL_CONFIG = {
     REFERRAL_STEP1_EN: "Share your Referral Code with friends.",
     REFERRAL_STEP2_TA: "உங்கள் நண்பர் இணைந்தவுடன் உங்களுக்கு ₹81 போனஸ் கிடைக்கும்!",
     REFERRAL_STEP2_EN: "Get ₹81 bonus when your friend joins!",
-    REFERRAL_WHATSAPP_MSG_TA: "Astro 5 Star செயலியில் இணையுங்கள்! இணைந்து ₹188 போனஸ் பெறுங்கள்: ",
+    REFERRAL_WHATSAPP_MSG_TA: "Astro 5 Star செயலியில் இணையுங்கள்! என் Referral Code: {code}. இணைந்து ₹188 போனஸ் பெறுங்கள்: ",
     REFERRAL_WHATSAPP_MSG_EN: "Join Astro 5 Star! Get ₹188 bonus: ",
     SUPPORT_WHATSAPP: process.env.SUPPORT_WHATSAPP || "919999999999",
     SUPPORT_EMAIL: process.env.ADMIN_EMAIL || "admin@astro5star.com"

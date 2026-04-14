@@ -545,15 +545,21 @@ fun HomeScreen(
             shape = RoundedCornerShape(16.dp)
         )
     }
-
-
     if (showReferralDialog) {
         val uiTitle = appConfig?.optString("REFERRAL_TITLE_TA") ?: "🎁 பரிசு வெல்லுங்கள்!"
         val uiSubtitle = appConfig?.optString("REFERRAL_SUBTITLE_TA") ?: "நண்பர்களை அழைத்து வாலட் பணத்தை அள்ளுங்கள்"
         val uiStep1 = appConfig?.optString("REFERRAL_STEP1_TA") ?: "உங்கள் Referral Code-ஐ நண்பர்களுக்கு பகிருங்கள்."
         val uiStep2 = appConfig?.optString("REFERRAL_STEP2_TA") ?: "உங்கள் நண்பர் இணைந்தவுடன் உங்களுக்கு ₹81 போனஸ் கிடைக்கும்!"
-        val uiWaMsg = appConfig?.optString("REFERRAL_WHATSAPP_MSG_TA") ?: "Astro 5 Star செயலியில் இணையுங்கள்! என் Referral Code: ${referralCode ?: ""}. இணைந்து ₹188 போனஸ் பெறுங்கள்: "
+        val uiRawMsg = appConfig?.optString("REFERRAL_WHATSAPP_MSG_TA") ?: "Astro 5 Star செயலியில் இணையுங்கள்! இணைந்து ₹188 போனஸ் பெறுங்கள்: "
         val appUrl = appConfig?.optString("APP_BASE_URL") ?: "https://play.google.com/store/apps/details?id=com.astro5star.app"
+        
+        // Final message with code replacement or appending
+        val myCode = referralCode ?: "ASTRO55"
+        val uiWaMsg = if (uiRawMsg.contains("{code}")) {
+            uiRawMsg.replace("{code}", myCode)
+        } else {
+            "$uiRawMsg (Referral Code: $myCode)"
+        }
 
         AlertDialog(
             onDismissRequest = { showReferralDialog = false },
@@ -609,20 +615,49 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Button(
-                        onClick = {
-                            // Share via WhatsApp
-                            val msg = "$uiWaMsg $appUrl"
-                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                data = Uri.parse("https://api.whatsapp.com/send?text=${Uri.encode(msg)}")
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = {
+                                // Share via System Share Sheet
+                                val msg = "$uiWaMsg $appUrl"
+                                val sendIntent: Intent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, msg)
+                                    type = "text/plain"
+                                }
+                                val shareIntent = Intent.createChooser(sendIntent, "Share Referral Link")
+                                context.startActivity(shareIntent)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = PeacockGreen),
+                            modifier = Modifier.weight(1f).height(50.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Rounded.AddCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("பகிரவும் (Share)", fontWeight = FontWeight.Bold)
                             }
-                            context.startActivity(intent)
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("WhatsApp-ல் பகிரவும்", fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                // Direct WhatsApp
+                                val msg = "$uiWaMsg $appUrl"
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    data = Uri.parse("https://wa.me/?text=${Uri.encode(msg)}")
+                                }
+                                try {
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "WhatsApp not found", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                            modifier = Modifier.weight(1f).height(50.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("WhatsApp", fontWeight = FontWeight.Bold)
+                        }
                     }
 
                     if (isNewUser) {
