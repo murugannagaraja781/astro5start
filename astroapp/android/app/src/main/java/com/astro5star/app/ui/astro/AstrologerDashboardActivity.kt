@@ -546,7 +546,7 @@ fun AstrologerDashboardScreen(
         )
     }
 
-    val colors = object {
+    val dashColors = object {
         val accent = Color(0xFF00E676) // Bright Green
         val cardBg = Color(0xFF004D40) // Tealish Green
         val cardStroke = Color.White.copy(alpha = 0.12f)
@@ -590,7 +590,7 @@ fun AstrologerDashboardScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(colors.headerGradient) // Green Gradient Header
+                    .background(dashColors.headerGradient) // Green Gradient Header
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -600,7 +600,7 @@ fun AstrologerDashboardScreen(
                         .clip(CircleShape)
                         .background(
                             Brush.radialGradient(
-                                colors = listOf(Color.White, colors.cardBg),
+                                colors = listOf(Color.White, dashColors.cardBg),
                                 center = Offset(20f, 20f)
                             )
                         )
@@ -608,7 +608,7 @@ fun AstrologerDashboardScreen(
                            BorderStroke(
                                2.dp,
                                Brush.linearGradient(
-                                   colors = listOf(Color.White.copy(alpha = 0.9f), colors.accent.copy(alpha = 0.4f))
+                                   colors = listOf(Color.White.copy(alpha = 0.9f), dashColors.accent.copy(alpha = 0.4f))
                                )
                            ),
                            CircleShape
@@ -618,7 +618,7 @@ fun AstrologerDashboardScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     if (isUploading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = colors.accent)
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = dashColors.accent)
                     } else {
                         val imageUrl = if (profileImage?.startsWith("http") == true) profileImage
                         else if (!profileImage.isNullOrEmpty()) {
@@ -650,7 +650,7 @@ fun AstrologerDashboardScreen(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .size(18.dp)
-                            .background(colors.accent, CircleShape)
+                            .background(dashColors.accent, CircleShape)
                             .border(1.dp, Color.White, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
@@ -708,14 +708,14 @@ fun AstrologerDashboardScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(colors.bgGradient) // Green Gradient Background
+                .background(dashColors.bgGradient) // Green Gradient Background
                 .verticalScroll(scrollState) // ENABLE SCROLLING
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 1. Emergency Banner (Skeuomorphic)
             Card(
-                colors = CardDefaults.cardColors(containerColor = colors.headerStart),
+                colors = CardDefaults.cardColors(containerColor = dashColors.headerStart),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(16.dp)),
                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
@@ -724,7 +724,7 @@ fun AstrologerDashboardScreen(
                     modifier = Modifier
                         .background(
                             Brush.linearGradient(
-                                colors = listOf(colors.headerStart, colors.headerEnd.copy(alpha = 0.8f))
+                                colors = listOf(dashColors.headerStart, dashColors.headerEnd.copy(alpha = 0.8f))
                             )
                         )
                         .padding(20.dp)
@@ -758,15 +758,15 @@ fun AstrologerDashboardScreen(
 
             // 2. Earnings Card (Skeuomorphic)
             Card(
-                colors = CardDefaults.cardColors(containerColor = colors.cardBg),
+                colors = CardDefaults.cardColors(containerColor = dashColors.cardBg),
                 shape = RoundedCornerShape(24.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(12.dp, RoundedCornerShape(24.dp), spotColor = colors.accent.copy(alpha = 0.2f)),
+                    .shadow(12.dp, RoundedCornerShape(24.dp), spotColor = dashColors.accent.copy(alpha = 0.2f)),
                 border = BorderStroke(
                     2.dp,
                     Brush.linearGradient(
-                        colors = listOf(Color.White, colors.cardStroke.copy(alpha = 0.3f))
+                        colors = listOf(Color.White, dashColors.cardStroke.copy(alpha = 0.3f))
                     )
                 )
             ) {
@@ -786,18 +786,18 @@ fun AstrologerDashboardScreen(
                             text = "₹${String.format("%.2f", walletBalance)}",
                             fontSize = 32.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = colors.accent
+                            color = dashColors.accent
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         Button(
                             onClick = { showWithdrawDialog = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = colors.accent),
+                            colors = ButtonDefaults.buttonColors(containerColor = dashColors.accent),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text("Withdraw", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
-                    Text("Min. ₹500 to Withdraw", color = colors.textSecondary.copy(alpha = 0.6f), fontSize = 11.sp)
+                    Text("Min. ₹500 to Withdraw", color = dashColors.textSecondary.copy(alpha = 0.6f), fontSize = 11.sp)
                 }
             }
 
@@ -809,7 +809,7 @@ fun AstrologerDashboardScreen(
                     "Recent Withdrawal Status",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    color = colors.accent,
+                    color = dashColors.accent,
                     modifier = Modifier.padding(top = 8.dp)
                 )
 
@@ -826,9 +826,9 @@ fun AstrologerDashboardScreen(
                         }
 
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = colors.cardBg),
+                            colors = CardDefaults.cardColors(containerColor = dashColors.cardBg),
                             modifier = Modifier.fillMaxWidth(),
-                            border = BorderStroke(0.5.dp, colors.cardStroke)
+                            border = BorderStroke(0.5.dp, dashColors.cardStroke)
                         ) {
                             Row(
                                 modifier = Modifier.padding(12.dp),
@@ -836,8 +836,8 @@ fun AstrologerDashboardScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text("₹$amount", fontWeight = FontWeight.Bold, color = colors.textPrimary)
-                                    Text(date, fontSize = 10.sp, color = colors.textSecondary)
+                                    Text("₹$amount", fontWeight = FontWeight.Bold, color = dashColors.textPrimary)
+                                    Text(date, fontSize = 10.sp, color = dashColors.textSecondary)
                                 }
                                 Text(
                                     status.uppercase(),
@@ -853,36 +853,36 @@ fun AstrologerDashboardScreen(
 
             // 3. Today's Progress (Skeuomorphic)
             Card(
-                colors = CardDefaults.cardColors(containerColor = colors.cardBg),
+                colors = CardDefaults.cardColors(containerColor = dashColors.cardBg),
                 shape = RoundedCornerShape(20.dp),
                 modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(20.dp)),
-                border = BorderStroke(1.dp, colors.cardStroke.copy(alpha = 0.2f))
+                border = BorderStroke(1.dp, dashColors.cardStroke.copy(alpha = 0.2f))
             ) {
                 Row(
                    modifier = Modifier
                        .background(
                            Brush.verticalGradient(
-                               colors = listOf(Color.White, colors.cardBg)
+                               colors = listOf(Color.White, dashColors.cardBg)
                            )
                        )
                        .padding(20.dp),
                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Today's Progress", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = colors.textPrimary)
+                        Text("Today's Progress", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = dashColors.textPrimary)
                         val totalHours = 12.0
                         val completedHours = (todayProgress / 100.0) * totalHours
-                        Text("$todayProgress% completed (${String.format("%.1f", completedHours)} hours)", fontSize = 12.sp, color = colors.textSecondary)
+                        Text("$todayProgress% completed (${String.format("%.1f", completedHours)} hours)", fontSize = 12.sp, color = dashColors.textSecondary)
                     }
                     Box(contentAlignment = Alignment.Center) {
                          CircularProgressIndicator(
                              progress = todayProgress / 100f,
-                             trackColor = colors.bgEnd,
-                             color = colors.accent,
+                             trackColor = dashColors.bgEnd,
+                             color = dashColors.accent,
                              modifier = Modifier.size(54.dp),
                              strokeWidth = 6.dp
                          )
-                         Text("$todayProgress%", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = colors.textPrimary)
+                         Text("$todayProgress%", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = dashColors.textPrimary)
                     }
                 }
             }
@@ -1057,10 +1057,10 @@ fun AstrologerDashboardScreen(
                                              ),
                                          contentAlignment = Alignment.Center
                                      ) {
-                                         Icon(icon, null, tint = colors.accent, modifier = Modifier.size(24.dp))
+                                         Icon(icon, null, tint = dashColors.accent, modifier = Modifier.size(24.dp))
                                      }
                                      Spacer(modifier = Modifier.height(10.dp))
-                                     Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                                     Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = dashColors.textPrimary)
                                  }
                              }
                         }
@@ -1074,9 +1074,9 @@ fun AstrologerDashboardScreen(
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 horizontalArrangement = Arrangement.Center
             ) {
-                 Text("Terms | Refunds | Shipping | Returns", fontSize = 11.sp, color = colors.textSecondary)
+                 Text("Terms | Refunds | Shipping | Returns", fontSize = 11.sp, color = dashColors.textSecondary)
             }
-            Text("© 2024 Astro5Star", fontSize = 10.sp, color = colors.textSecondary, modifier = Modifier.align(Alignment.CenterHorizontally))
+            Text("© 2024 Astro5Star", fontSize = 10.sp, color = dashColors.textSecondary, modifier = Modifier.align(Alignment.CenterHorizontally))
 
             // Extra spacing for safe area
             Spacer(modifier = Modifier.height(32.dp))
@@ -1093,14 +1093,14 @@ fun ServiceTogglesCard(
     onAudioToggle: (Boolean) -> Unit,
     onVideoToggle: (Boolean) -> Unit
 ) {
-    val colors = object {
+    val dashColors = object {
         val accent = Color(0xFF00E676)
         val cardBg = Color(0xFF004D40)
         val textPrimary = Color.White
         val textSecondary = Color(0xFFA5D6A7)
     }
     Card(
-        colors = CardDefaults.cardColors(containerColor = colors.cardBg.copy(alpha = 0.6f)),
+        colors = CardDefaults.cardColors(containerColor = dashColors.cardBg.copy(alpha = 0.6f)),
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(16.dp)),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
@@ -1110,7 +1110,7 @@ fun ServiceTogglesCard(
                 "Service Availability",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
-                color = colors.textPrimary
+                color = dashColors.textPrimary
             )
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -1152,7 +1152,7 @@ fun ServiceToggleRow(
     isEnabled: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
-    val colors = object {
+    val dashColors = object {
         val accent = Color(0xFF00E676)
         val textPrimary = Color.White
     }
@@ -1178,7 +1178,7 @@ fun ServiceToggleRow(
             label,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
-            color = colors.textPrimary,
+            color = dashColors.textPrimary,
             modifier = Modifier.weight(1f)
         )
         Text(

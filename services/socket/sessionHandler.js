@@ -276,6 +276,14 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         endSessionRecord(sessionId, reason || 'ended_by_user', io, broadcastAstroUpdate);
     });
 
+    socket.on('cancel-call', async (data) => {
+        const { sessionId, toUserId } = data || {};
+        const fromUserId = socketToUser.get(socket.id);
+        if (!fromUserId || !sessionId) return;
+
+        sessionService.cancelCall(sessionId, toUserId, fromUserId, io, broadcastAstroUpdate);
+    });
+
     socket.on('session-connect', async (data) => {
         try {
             const { sessionId } = data || {};

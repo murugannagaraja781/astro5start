@@ -34,6 +34,8 @@ const UserSchema = new mongoose.Schema({
     chatPrice: { type: Number, default: 10 },
     audioPrice: { type: Number, default: 20 },
     videoPrice: { type: Number, default: 30 },
+    unlimitedPrice: { type: Number, default: 299 }, // Requirement 11/12: Fixed price for unlimited offer
+    unlimitedOfferEnabled: { type: Boolean, default: false },
     walletBalance: { type: Number, default: 108 },
     superWalletBalance: { type: Number, default: 0 },
     totalEarnings: { type: Number, default: 0 },

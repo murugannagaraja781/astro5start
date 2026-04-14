@@ -371,15 +371,45 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
             return { ok: true };
         }
     } catch (err) {
-        console.error('[SessionService] acceptSession error', err);
         return { ok: false, error: 'Internal Error' };
     }
 }
 
+async function cancelCall(sessionId, toUserId, fromUserId, io, broadcastAstroUpdate) {
+    try {
+        console.log(`[SessionService] cancelCall: sessionId=${sessionId}, from=${fromUserId}, to=${toUserId}`);
+        
+        let targetId = toUserId;
+        if (!targetId || targetId === 'Unknown') {
+            targetId = getOtherUserIdFromSession(sessionId, fromUserId);
+        }
+
+        if (io) {
+            if (targetId) io.to(targetId).emit('call-cancelled', { sessionId, fromUserId });
+            io.to(sessionId).emit('call-cancelled', { sessionId, fromUserId });
+        }
+
+        if (targetId) {
+            sendCancelCallPush(targetId, sessionId);
+        }
+
+        await endSessionRecord(sessionId, 'caller_cancel', io, broadcastAstroUpdate);
+        return { ok: true };
+    } catch (err) {
+        console.error('[SessionService] cancelCall error', err);
+        return { ok: false };
+    }
+}
+
+function getOtherUserIdFromSession(sessionId, myUserId) {
+    const s = activeSessions.get(sessionId);
+    if (!s || !s.users) return null;
+    return s.users.find(u => u !== myUserId);
+}
+
 module.exports = {
-    sendCancelCallPush,
-    handleMissedCallLogic,
-    endSessionRecord,
     handleUserConnection,
-    acceptSession
+    acceptSession,
+    cancelCall,
+    getOtherUserIdFromSession
 };

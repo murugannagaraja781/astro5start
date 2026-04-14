@@ -55,6 +55,7 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import coil.compose.AsyncImage
 import com.astro5star.app.R
 import com.astro5star.app.ui.theme.PeacockGreen
@@ -323,6 +324,7 @@ class CallActivity : ComponentActivity() {
                         hasPartner = clientBirthData?.has("partner") == true,
                         isRecording = isRecordingState,
                         onToggleRecording = { toggleRecording() },
+                        onRecharge = { openRecharge() },
                         isReady = isWebRTCInitialized && ::peerConnection.isInitialized,
                         showReviewDialog = showReviewDialog,
                         callSummary = callSummaryMessage,
@@ -590,6 +592,12 @@ class CallActivity : ComponentActivity() {
         editIntakeLauncher.launch(intent)
     }
 
+    private fun openRecharge() {
+        // Requirement 6: Recharge during call
+        val intent = android.content.Intent(this, com.astro5star.app.ui.wallet.WalletActivity::class.java)
+        startActivity(intent)
+    }
+
     private fun toggleRecording() {
         if (isRecordingState) {
             stopRecording()
@@ -612,7 +620,7 @@ class CallActivity : ComponentActivity() {
             }
 
             mediaRecorder?.apply {
-                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
                 setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                 setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
                 setOutputFile(audioFile?.absolutePath ?: throw Exception("Failed to create file path"))
@@ -1177,12 +1185,26 @@ class CallActivity : ComponentActivity() {
 
         SocketManager.onTimerUpdate { data ->
             val elapsed = data.optInt("elapsedSeconds", -1)
-            if (elapsed >= 0) {
-                runOnUiThread {
-                    // Only update if difference is more than 2 seconds to avoid jitter
+            val remaining = data.optInt("remainingSeconds", -1)
+            
+            runOnUiThread {
+                if (elapsed >= 0) {
                     if (Math.abs(elapsed - callDurationSeconds) > 2) {
                         callDurationSeconds = elapsed
-                        sendAppLog("Timer Correction: Synced to server ($elapsed s)")
+                    }
+                }
+                
+                if (remaining >= 0) {
+                    val h = remaining / 3600
+                    val m = (remaining % 3600) / 60
+                    val s = remaining % 60
+                    remainingTime = if (h > 0) String.format("%02d:%02d:%02d", h, m, s)
+                                   else String.format("%02d:%02d", m, s)
+                    
+                    // Requirement 7: 2-minute warning for client
+                    if (remaining == 120 && session?.role == "client") {
+                        Toast.makeText(this@CallActivity, "⚠️ Your balance is low! Only 2 minutes left.", Toast.LENGTH_LONG).show()
+                        SoundManager.playNotificationSound() // Use appropriate helper if exists
                     }
                 }
             }
@@ -1236,6 +1258,14 @@ class CallActivity : ComponentActivity() {
                         .setCancelable(false)
                         .show()
                 }
+            }
+        }
+
+        SocketManager.onCallCancelled { data ->
+            runOnUiThread {
+                sendAppLog("Call Cancelled by other side")
+                statusText = "Call Cancelled"
+                timerHandler.postDelayed({ finish() }, 1500)
             }
         }
 
@@ -1805,6 +1835,7 @@ fun CallScreen(
     showConnectedOverlay: Boolean = false,
     isRecording: Boolean = false,
     onToggleRecording: () -> Unit = {},
+    onRecharge: () -> Unit = {},
     isReady: Boolean = false,
     showReviewDialog: Boolean = false,
     callSummary: String = "",
@@ -1911,10 +1942,10 @@ fun CallScreen(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium
                 )
-                if (role == "astrologer" && remainingTime.isNotEmpty() && remainingTime != "00:00") {
+                if (remainingTime.isNotEmpty() && remainingTime != "00:00") {
                       Text(
                         text = "⏳ Bal: $remainingTime",
-                        color = Color(0xFF00E676),
+                        color = if (remainingTime.startsWith("00") || remainingTime.startsWith("01")) Color(0xFFFF5252) else Color(0xFF00E676),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.ExtraBold,
                         modifier = Modifier.padding(top = 4.dp)
@@ -2004,7 +2035,7 @@ fun CallScreen(
                             Icon(Icons.Default.CallEnd, "End", tint = Color.White, modifier = Modifier.size(38.dp))
                         }
 
-                        if (role == "astrologer") {
+                        if (role == "client") {
                             ControlBtnItem(
                                 onClick = onToggleRecording,
                                 icon = if (isRecording) Icons.Default.Stop else Icons.Default.FiberManualRecord,
@@ -2023,6 +2054,9 @@ fun CallScreen(
                             ControlBtnItem(onClick = onShowRasi, icon = Icons.Default.Assessment, label = "Chart", active = false)
                         } else if (hasPartner) {
                             ControlBtnItem(onClick = onShowPorutham, icon = Icons.Default.AutoFixHigh, label = "Match", active = false)
+                        }
+                        if (role == "client") {
+                            ControlBtnItem(onClick = onRecharge, icon = Icons.Default.AccountBalanceWallet, label = "Add ₹", active = true)
                         }
                         ControlBtnItem(onClick = onEditIntake, icon = Icons.Default.Edit, label = "Edit", active = false)
                     }

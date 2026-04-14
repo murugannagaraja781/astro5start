@@ -392,6 +392,37 @@ fun AstrologerProfileScreen(
                     }
                 }
 
+                // Actions
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ActionButton(
+                        icon = Icons.Default.Chat,
+                        label = "Chat",
+                        color = Color(0xFF00BCD4),
+                        isEnabled = isChatOnline,
+                        onClick = { checkAndProceed("chat") }
+                    )
+
+                    ActionButton(
+                        icon = Icons.Default.Call,
+                        label = "Call",
+                        color = Color(0xFF00796B),
+                        isEnabled = isAudioOnline,
+                        onClick = { checkAndProceed("audio") }
+                    )
+
+                    ActionButton(
+                        icon = androidx.compose.material.icons.Icons.Rounded.VideoCall,
+                        label = "Video",
+                        color = Color(0xFFD32F2F),
+                        isEnabled = isVideoOnline,
+                        onClick = { checkAndProceed("video") }
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Subscribe / Follow Button

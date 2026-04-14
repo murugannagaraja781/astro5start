@@ -2,9 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { REFERRAL_CONFIG, updateReferralConfig } = require('../services/sharedState');
-
-// Middleware to check if user is admin (Assuming basic role check or handled in superadmin.html auth)
-// For now, we'll implement the logic safely.
+const bannerController = require('../controllers/bannerController');
 
 router.get('/referral-settings', (req, res) => {
     res.json({ ok: true, data: REFERRAL_CONFIG });
@@ -65,5 +63,11 @@ router.post('/recharge-settings', async (req, res) => {
         res.status(500).json({ ok: false, error: err.message });
     }
 });
+
+// Banner Management (Requirement 3: Fix for admin panel)
+router.get('/banners', bannerController.getAllBanners);
+router.post('/banners', bannerController.createBanner);
+router.put('/banners/:id', bannerController.updateBanner);
+router.delete('/banners/:id', bannerController.deleteBanner);
 
 module.exports = router;
