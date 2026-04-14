@@ -4,7 +4,14 @@ const https = require('https');
 const { otpStore } = require('./sharedState');
 
 function sendMsg91(phoneNumber, otp) {
-    const cleanPhone = phoneNumber.replace(/\D/g, '');
+    let cleanPhone = phoneNumber.replace(/\D/g, '');
+    
+    // Remove leading 91 or 0 if present to avoid duplication when we prepend 91
+    if (cleanPhone.length > 10) {
+        if (cleanPhone.startsWith('91')) cleanPhone = cleanPhone.slice(2);
+        else if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.slice(1);
+    }
+    
     const mobile = `91${cleanPhone}`;
     const authKey = process.env.MSG91_AUTH_KEY;
     const templateId = process.env.MSG91_TEMPLATE_ID;
@@ -35,7 +42,11 @@ function sendMsg91(phoneNumber, otp) {
 }
 
 function sendSmsNotification(phoneNumber, message) {
-    const cleanPhone = phoneNumber.replace(/\D/g, '');
+    let cleanPhone = phoneNumber.replace(/\D/g, '');
+    if (cleanPhone.length > 10) {
+        if (cleanPhone.startsWith('91')) cleanPhone = cleanPhone.slice(2);
+        else if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.slice(1);
+    }
     const mobile = `91${cleanPhone}`;
     const authKey = process.env.MSG91_AUTH_KEY;
     

@@ -212,8 +212,12 @@ const sendOtp = async (req, res) => {
         const { phone } = req.body;
         if (!phone) return res.status(400).json({ ok: false, error: 'Phone is required' });
 
-        // Clean phone
-        const cleanPhone = phone.replace(/\D/g, '');
+        // Clean phone: Remove all non-digits and normalize to 10 digits
+        let cleanPhone = phone.replace(/\D/g, '');
+        if (cleanPhone.length > 10) {
+            if (cleanPhone.startsWith('91')) cleanPhone = cleanPhone.slice(2);
+            else if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.slice(1);
+        }
 
         // Test numbers
         if (['8000000001', '9000000001', '9876543210'].includes(cleanPhone)) {
@@ -241,7 +245,11 @@ const verifyOtp = async (req, res) => {
         const { phone, otp, referralCode } = req.body;
         if (!phone || !otp) return res.status(400).json({ ok: false, error: 'Phone and OTP are required' });
 
-        const cleanPhone = phone.replace(/\D/g, '');
+        let cleanPhone = phone.replace(/\D/g, '');
+        if (cleanPhone.length > 10) {
+            if (cleanPhone.startsWith('91')) cleanPhone = cleanPhone.slice(2);
+            else if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.slice(1);
+        }
         let isValid = false;
 
         // Test mode
