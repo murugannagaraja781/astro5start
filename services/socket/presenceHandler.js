@@ -36,7 +36,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
 
             const wasAvailable = !!user.isAvailable;
             Object.assign(user, update);
-            user.isOnline = !!(user.isChatOnline || user.isAudioOnline || user.isVideoOnline);
+            user.isOnline = !!(user.isChatOnline || user.isAudioOnline || user.isVideoOnline || user.unlimitedOfferEnabled);
             // Fix: availability depends on both online status AND busy state
             user.isAvailable = user.isOnline && !user.isBusy;
             user.lastSeen = new Date();
@@ -94,7 +94,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
             let user = await User.findOne({ userId });
             if (user) {
                 Object.assign(user, update);
-                user.isOnline = !!(user.isChatOnline || user.isAudioOnline || user.isVideoOnline);
+                user.isOnline = !!(user.isChatOnline || user.isAudioOnline || user.isVideoOnline || user.unlimitedOfferEnabled);
                 // Fix: availability depends on online status and busy state
                 user.isAvailable = user.isOnline && !user.isBusy;
                 user.lastSeen = new Date();
