@@ -1270,135 +1270,182 @@
     </main>
 
     <div id="modal-edit-user"
-        class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-2 lg:p-4 transition-all duration-300 hidden">
+        class="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[9999] flex items-center justify-center p-2 lg:p-4 transition-all duration-300 hidden">
         <div
-            class="bg-white w-full max-w-xl rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300 max-h-[92vh] flex flex-col">
+            class="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300 max-h-[95vh] flex flex-col border border-white/20">
+            
+            <!-- Modern Header with Quick Save -->
             <header
-                class="p-4 lg:p-6 border-b border-slate-50 flex justify-between items-center bg-emerald-50/50 shrink-0">
-                <h3 class="text-lg lg:text-xl font-black text-deep-green tracking-tight">Edit Profile</h3>
-                <button onclick="closeModal('modal-edit-user')"
-                    class="w-10 h-10 rounded-2xl bg-white text-red-500 hover:bg-red-50 flex items-center justify-center transition-all text-2xl shadow-sm border border-red-100">&times;</button>
+                class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
+                        <i class="fas fa-user-edit text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-black text-slate-800 tracking-tight leading-tight">Advanced Profile Editor</h3>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Administrator Control Panel</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="document.getElementById('edit-user-form').dispatchEvent(new Event('submit'))"
+                        class="hidden md:flex px-5 py-2.5 bg-brand-green text-white rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-deep-green transition-all shadow-lg shadow-emerald-100 items-center gap-2">
+                        <i class="fas fa-check-circle"></i> Quick Save
+                    </button>
+                    <button onclick="closeModal('modal-edit-user')"
+                        class="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-all text-xl shadow-sm border border-slate-100">&times;</button>
+                </div>
             </header>
-            <div class="p-5 lg:p-6 overflow-y-auto custom-scrollbar flex-1">
-                <form id="edit-user-form" onsubmit="saveAdminEditUser(event)" class="space-y-4">
+
+            <div class="p-0 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/30">
+                <form id="edit-user-form" onsubmit="saveAdminEditUser(event)" class="h-full">
                     <input type="hidden" id="edit-user-id">
                     <input type="hidden" id="edit-user-image">
 
-                    <!-- Photo Edit Section -->
-                    <div
-                        class="flex flex-col items-center gap-3 py-3 bg-slate-50/50 rounded-2xl border border-dashed border-emerald-100 mb-4">
-                        <img id="edit-user-preview" src=""
-                            class="w-16 h-16 lg:w-20 lg:h-20 rounded-2xl object-cover ring-4 ring-white shadow-lg">
-                        <button type="button" onclick="triggerEditPhotoUpload()"
-                            class="px-4 py-1.5 rounded-lg bg-white text-brand-green font-black text-[9px] uppercase shadow-sm hover:bg-brand-green hover:text-white transition-all border border-emerald-100">Change
-                            Photo</button>
-                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-0">
+                        <!-- Left Sidebar: Profile Essentials -->
+                        <aside class="lg:col-span-4 p-6 lg:p-8 space-y-6 lg:border-r border-slate-100 bg-white">
+                            <div class="flex flex-col items-center group/photo">
+                                <div class="relative">
+                                    <img id="edit-user-preview" src=""
+                                        class="w-24 h-24 lg:w-32 lg:h-32 rounded-[2rem] object-cover ring-8 ring-slate-50 shadow-2xl transition-transform group-hover/photo:scale-105 duration-500">
+                                    <button type="button" onclick="triggerEditPhotoUpload()"
+                                        class="absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl bg-brand-green text-white shadow-xl flex items-center justify-center border-4 border-white hover:bg-deep-green transition-colors">
+                                        <i class="fas fa-camera text-sm"></i>
+                                    </button>
+                                </div>
+                                <h4 class="mt-4 font-black text-slate-800 text-center tracking-tight">Main Identity</h4>
+                            </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-1.5 md:col-span-2">
-                            <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Full
-                                Name</label>
-                            <input type="text" id="edit-user-name"
-                                class="w-full bg-slate-50 p-3 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-xs">
-                        </div>
+                            <div class="space-y-4 pt-4">
+                                <div class="space-y-1.5">
+                                    <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Display Name</label>
+                                    <div class="relative">
+                                        <i class="fas fa-signature absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                                        <input type="text" id="edit-user-name"
+                                            class="w-full bg-slate-50 pl-10 pr-4 py-3.5 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-xs shadow-inner">
+                                    </div>
+                                </div>
 
-                        <div id="edit-astro-fields" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="space-y-1.5">
-                                <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Legacy Price
-                                    / Min (₹)</label>
-                                <input type="number" id="edit-user-price"
-                                    class="w-full bg-slate-50 p-3 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-xs">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Chat Price
-                                    / Min (₹)</label>
-                                <input type="number" id="edit-user-chat-price"
-                                    class="w-full bg-slate-50 p-3 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-xs">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Call Price
-                                    / Min (₹)</label>
-                                <input type="number" id="edit-user-audio-price"
-                                    class="w-full bg-slate-50 p-3 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-xs">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Video Price
-                                    / Min (₹)</label>
-                                <input type="number" id="edit-user-video-price"
-                                    class="w-full bg-slate-50 p-3 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-xs">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Unlimited Price
-                                    (₹)</label>
-                                <input type="number" id="edit-user-unlimited-price"
-                                    class="w-full bg-slate-50 p-3 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-xs"
-                                    placeholder="Fixed price for 40 mins">
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="flex items-center gap-3 p-3 bg-blue-50 rounded-xl cursor-pointer border border-blue-100 mt-2">
-                                    <input type="checkbox" id="edit-user-unlimited-enabled"
-                                        class="w-5 h-5 rounded text-blue-600 focus:ring-blue-600 border-blue-200">
-                                    <span class="font-bold text-blue-900 text-[11px]">Enable Unlimited Horoscope Offer (Fixed 40 Mins)</span>
-                                </label>
-                            </div>
-                            <div class="space-y-1.5">
-                                <label
-                                    class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Experience
-                                    (Yrs)</label>
-                                <input type="number" id="edit-user-exp"
-                                    class="w-full bg-slate-50 p-3 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-xs">
-                            </div>
-                            <div class="space-y-1.5 md:col-span-2">
-                                <label
-                                    class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Expertise
-                                    Skills</label>
-                                <input type="text" id="edit-user-skills"
-                                    class="w-full bg-slate-50 p-3 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-xs"
-                                    placeholder="e.g. Vedic, Nadi, Numerology">
-                            </div>
-                            <div class="space-y-1.5 md:col-span-2">
-                                <label
-                                    class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Languages</label>
-                                <input type="text" id="edit-user-languages"
-                                    class="w-full bg-slate-50 p-3 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-xs"
-                                    placeholder="e.g. Tamil, English, Hindi">
-                            </div>
-                            <div class="space-y-1.5 md:col-span-2">
-                                <label
-                                    class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Professional
-                                    Bio</label>
-                                <textarea id="edit-user-bio"
-                                    class="w-full bg-slate-50 p-3 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-xs min-h-[80px]"></textarea>
-                            </div>
-                            <div class="md:col-span-2">
-                                <label
-                                    class="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl cursor-pointer border border-emerald-100">
-                                    <input type="checkbox" id="edit-user-verified"
-                                        class="w-5 h-5 rounded text-brand-green focus:ring-brand-green border-emerald-200">
-                                    <span class="font-bold text-emerald-900 text-[11px]">Verified Professional
-                                        Badge</span>
-                                </label>
-                            </div>
-                        </div>
+                                <div class="p-5 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-3xl shadow-xl shadow-indigo-100 group">
+                                    <label class="text-[9px] font-black uppercase tracking-widest text-white/70 block mb-2">Wallet Adjustment (₹)</label>
+                                    <input type="number" id="edit-user-wallet-adj"
+                                        class="w-full bg-white/10 text-white placeholder:text-white/40 p-4 rounded-2xl border border-white/20 focus:ring-2 focus:ring-white font-black text-2xl shadow-inner outline-none transition-all group-hover:bg-white/20"
+                                        placeholder="0">
+                                    <div class="flex items-center gap-2 mt-3">
+                                        <i class="fas fa-info-circle text-white/60 text-[10px]"></i>
+                                        <span class="text-[9px] text-white/60 font-medium">Use negative (-) to deduct</span>
+                                    </div>
+                                </div>
 
-                        <div class="md:col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                            <label
-                                class="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1.5">Wallet
-                                Adjustment (₹)</label>
-                            <input type="number" id="edit-user-wallet-adj"
-                                class="w-full bg-white p-3 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-black text-lg shadow-sm"
-                                placeholder="e.g. 100 or -50">
-                            <p class="text-[9px] text-slate-400 mt-1.5 font-medium italic">Positive adds balance,
-                                negative subtracts.</p>
+                                <div class="pt-4">
+                                    <label class="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl cursor-pointer border border-emerald-100 transition-all hover:bg-emerald-100/50">
+                                        <input type="checkbox" id="edit-user-verified"
+                                            class="w-5 h-5 rounded text-brand-green focus:ring-brand-green border-emerald-200">
+                                        <div class="flex flex-col">
+                                            <span class="font-black text-emerald-900 text-[11px] uppercase tracking-tight">Verified Professional</span>
+                                            <span class="text-[9px] text-emerald-600/70 font-bold">Trusted Badge Enabled</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </aside>
+
+                        <!-- Right Content: Deep Details -->
+                        <div class="lg:col-span-8 p-6 lg:p-8 space-y-8">
+                            <div id="edit-astro-fields" class="hidden space-y-8 animate-in fade-in duration-500">
+                                
+                                <!-- Pricing Grid -->
+                                <section>
+                                    <div class="flex items-center gap-2 mb-4">
+                                        <div class="w-1.5 h-6 bg-brand-green rounded-full"></div>
+                                        <h5 class="text-xs font-black uppercase tracking-widest text-slate-800">Financial Service Rates</h5>
+                                    </div>
+                                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        <div class="space-y-1.5 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Legacy Price</label>
+                                            <input type="number" id="edit-user-price" class="w-full font-black text-lg text-slate-700 outline-none">
+                                            <p class="text-[8px] font-bold text-slate-300">Base Rate / Min</p>
+                                        </div>
+                                        <div class="space-y-1.5 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Chat Price</label>
+                                            <input type="number" id="edit-user-chat-price" class="w-full font-black text-lg text-slate-700 outline-none">
+                                            <p class="text-[8px] font-bold text-slate-300">Chat Rate / Min</p>
+                                        </div>
+                                        <div class="space-y-1.5 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Call Price</label>
+                                            <input type="number" id="edit-user-audio-price" class="w-full font-black text-lg text-slate-700 outline-none">
+                                            <p class="text-[8px] font-bold text-slate-300">Audio Rate / Min</p>
+                                        </div>
+                                        <div class="space-y-1.5 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Video Price</label>
+                                            <input type="number" id="edit-user-video-price" class="w-full font-black text-lg text-slate-700 outline-none">
+                                            <p class="text-[8px] font-bold text-slate-300">Video Rate / Min</p>
+                                        </div>
+                                        <div class="space-y-1.5 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 shadow-sm md:col-span-2 flex items-center gap-6">
+                                            <div class="flex-1">
+                                                <label class="text-[9px] font-black text-blue-400 uppercase tracking-widest">Unlimited Package Price</label>
+                                                <input type="number" id="edit-user-unlimited-price" class="w-full font-black text-xl text-blue-600 bg-transparent outline-none" placeholder="299">
+                                                <p class="text-[8px] font-bold text-blue-400">Fixed Cost for 40 Minutes Session</p>
+                                            </div>
+                                            <label class="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-md cursor-pointer border border-blue-50">
+                                                <input type="checkbox" id="edit-user-unlimited-enabled" class="w-6 h-6 rounded text-blue-600 focus:ring-blue-600">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <!-- Expertise Grid -->
+                                <section>
+                                    <div class="flex items-center gap-2 mb-4">
+                                        <div class="w-1.5 h-6 bg-blue-500 rounded-full"></div>
+                                        <h5 class="text-xs font-black uppercase tracking-widest text-slate-800">Professional Expertise</h5>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="space-y-1.5">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Experience (Years)</label>
+                                            <input type="number" id="edit-user-exp"
+                                                class="w-full bg-white p-3.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs ring-4 ring-transparent transition-all">
+                                        </div>
+                                        <div class="space-y-1.5">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Skills</label>
+                                            <input type="text" id="edit-user-skills"
+                                                class="w-full bg-white p-3.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs"
+                                                placeholder="Vedic, KP, Nadi...">
+                                        </div>
+                                        <div class="md:col-span-2 space-y-1.5">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Communication Languages</label>
+                                            <input type="text" id="edit-user-languages"
+                                                class="w-full bg-white p-3.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs"
+                                                placeholder="Tamil, English, Hindi...">
+                                        </div>
+                                        <div class="md:col-span-2 space-y-1.5">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Public Bio & Introduction</label>
+                                            <textarea id="edit-user-bio"
+                                                class="w-full bg-white p-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-green font-bold text-xs min-h-[120px] custom-scrollbar focus:shadow-xl transition-all"
+                                                placeholder="Tell users about your professional background..."></textarea>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
                         </div>
                     </div>
                 </form>
             </div>
-            <footer class="p-4 lg:p-6 border-t border-slate-50 shrink-0 bg-white">
-                <button
-                    class="w-full bg-brand-green text-white font-black py-3.5 rounded-xl shadow-lg shadow-emerald-100 hover:bg-deep-green transition-all uppercase tracking-widest text-[11px]"
-                    onclick="document.getElementById('edit-user-form').dispatchEvent(new Event('submit'))">Save
-                    Changes</button>
+
+            <!-- Enhanced Footer -->
+            <footer class="p-6 lg:p-8 border-t border-slate-100 shrink-0 bg-white/80 backdrop-blur-sm flex flex-col md:flex-row gap-4 items-center">
+                <div class="flex-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fas fa-shield-alt text-brand-green"></i> Secure Database Tunnel Established
+                </div>
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <button onclick="closeModal('modal-edit-user')"
+                        class="px-8 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl hover:bg-slate-200 transition-all uppercase tracking-widest text-[11px] w-full md:w-auto">Discard</button>
+                    <button
+                        class="px-12 py-4 bg-brand-green text-white font-black rounded-2xl shadow-xl shadow-emerald-100 hover:bg-deep-green hover:-translate-y-0.5 active:translate-y-0 transition-all uppercase tracking-widest text-[11px] flex-1 md:flex-none flex items-center justify-center gap-2"
+                        onclick="document.getElementById('edit-user-form').dispatchEvent(new Event('submit'))">
+                        <i class="fas fa-cloud-upload-alt"></i> Commit Changes
+                    </button>
+                </div>
             </footer>
         </div>
     </div>

@@ -30,7 +30,8 @@ const getFormattedAstrologers = async () => {
     .select({
         userId: 1, name: 1, phone: 1, skills: 1, price: 1, isOnline: 1, isChatOnline: 1, isAudioOnline: 1, isVideoOnline: 1, 
         experience: 1, isVerified: 1, image: 1, walletBalance: 1, totalEarnings: 1, isBusy: 1, languages: 1, 
-        orderCount: 1, isDocumentVerified: 1, displayOrder: 1, isAvailable: 1
+        orderCount: 1, isDocumentVerified: 1, displayOrder: 1, isAvailable: 1,
+        chatPrice: 1, audioPrice: 1, videoPrice: 1, unlimitedPrice: 1, unlimitedOfferEnabled: 1
     })
     .sort({ 
         displayOrder: -1, 

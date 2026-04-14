@@ -38,17 +38,29 @@ async function tickSessions(io) {
 
                 let needsDbSync = false;
 
+                // PERFORMANCE: Fetch client data once for all billing calculations
+                const client = await User.findOne({ userId: session.clientId }).select('isFirstCallDone walletBalance superWalletBalance').lean();
+
                 // RULE: Global Free Call Duration (e.g., first 3 minutes free)
                 const { REFERRAL_CONFIG } = require('./sharedState');
-                const freeSeconds = (REFERRAL_CONFIG.FREE_CALL_DURATION || 0) * 60;
+                let freeSeconds = (REFERRAL_CONFIG.FREE_CALL_DURATION || 0) * 60;
+                
+                // NEW REQUIREMENT: First 60 seconds free for the VERY FIRST call of a new user
+                if (client && !client.isFirstCallDone) {
+                    freeSeconds += 60; // Add 1 minute free for the first call
+                }
 
                 if (secondsElapsed > freeSeconds) {
                     const billableSecondsSinceFree = secondsElapsed - freeSeconds;
                     
                     // RULE: Charge Client at the END of each minute (at 60s, 120s...)
-                    // This satisfies the requirement: "No charge if session ends within the first minute"
                     const currentCompletedMinute = Math.floor(billableSecondsSinceFree / 60);
                     const MAX_CATCHUP = 5;
+
+                    // Mark first call done if they've passed the first 60s milestone
+                    if (currentCompletedMinute >= 1 && client && !client.isFirstCallDone) {
+                        await User.updateOne({ userId: session.clientId }, { $set: { isFirstCallDone: true } });
+                    }
 
                     if (currentCompletedMinute > (session.lastBilledMinute || 0)) {
                         const startMin = (session.lastBilledMinute || 0) + 1;
@@ -78,7 +90,6 @@ async function tickSessions(io) {
                 }
 
                 // PERFORMANCE FIX: Only persist state to DB when billing markers change.
-                // This removes the heavy 1-second write loop.
                 if (needsDbSync) {
                     Session.updateOne({ sessionId }, {
                         lastBilledMinute: session.lastBilledMinute,
@@ -90,7 +101,6 @@ async function tickSessions(io) {
                 }
 
                 // PERFORMANCE FIX: Emit timer-update EVERY second for better UX
-                const client = await User.findOne({ userId: session.clientId }).select('walletBalance superWalletBalance').lean();
                 if (client) {
                     let remainingSeconds = 0;
                     if (session.type === 'unlimited') {
