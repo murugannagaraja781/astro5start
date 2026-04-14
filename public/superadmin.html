@@ -3501,22 +3501,30 @@
         // RECHARGE SETTINGS LOGIC
         async function fetchRechargeSettings() {
             try {
-                const res = await fetch('/api/payment/recharge-packs', {
+                const res = await fetch('/api/admin/recharge-settings', {
                     headers: { 'x-admin-key': ADMIN_SECRET_KEY }
                 }).then(r => r.json());
+                
                 const tbody = document.getElementById('recharge-packs-body');
                 tbody.innerHTML = '';
-                if (res.ok && res.packs) {
-                    res.packs.forEach(p => addRechargePackRow(p));
+                
+                const packs = res.data || res.packs || [];
+                if (packs.length > 0) {
+                    packs.forEach(p => addRechargePackRow(p));
+                } else {
+                    checkNoPacks();
                 }
-            } catch (e) { showToast('Recharge Node Error', 'error'); }
+            } catch (e) { 
+                console.error(e);
+                alert('Error loading recharge settings from server');
+            }
         }
 
-        function addRechargePackRow(data = { amount: 0, offerPercentage: 0, percentage: 0, bonusText: '' }) {
+        function addRechargePackRow(data = { amount: 0, percentage: 0, bonusText: '' }) {
             const tbody = document.getElementById('recharge-packs-body');
             const row = document.createElement('tr');
             row.className = 'hover:bg-slate-50/50 transition-colors border-b border-slate-50/50 rp-row group';
-            const displayPercentage = data.offerPercentage || data.percentage || 0;
+            const displayPercentage = data.percentage || data.offerPercentage || 0;
             
             row.innerHTML = `
                 <td class="py-6 px-4">
@@ -3552,7 +3560,7 @@
 
         function updateRowPreview(el) {
             const row = el.closest('tr');
-            const amt = row.querySelector('.rp-amount').value;
+            const amt = row.querySelector('.rp-amount').value || 0;
             const label = row.querySelector('.rp-text').value;
             row.querySelector('.preview-amt').innerText = `₹ ${amt}`;
             row.querySelector('.preview-label').innerText = label || 'NO BONUS';
@@ -3561,6 +3569,7 @@
         function checkNoPacks() {
             const tbody = document.getElementById('recharge-packs-body');
             const msg = document.getElementById('no-packs-msg');
+            if (!tbody || !msg) return;
             if (tbody.children.length === 0) msg.classList.remove('hidden');
             else msg.classList.add('hidden');
         }
@@ -3569,9 +3578,14 @@
             const rows = document.querySelectorAll('#recharge-packs-body tr');
             const packs = Array.from(rows).map(r => ({
                 amount: parseInt(r.querySelector('.rp-amount').value),
-                offerPercentage: parseFloat(r.querySelector('.rp-offer').value),
+                percentage: parseFloat(r.querySelector('.rp-offer').value),
                 bonusText: r.querySelector('.rp-text').value
             })).filter(p => !isNaN(p.amount));
+
+            if (packs.length === 0) {
+                alert('Please add at least one recharge pack');
+                return;
+            }
 
             try {
                 const res = await fetch('/api/admin/recharge-settings', {
@@ -3582,11 +3596,18 @@
                     },
                     body: JSON.stringify({ packs })
                 }).then(r => r.json());
+
                 if (res.ok) {
-                    showToast('Recharge Packs Synced to App', 'success');
+                    alert('SUCCESS: Recharge Packs Updated and Synced to App!');
+                    showToast('Recharge Packs Synced', 'success');
                     socket.emit('admin-broadcast-refresh', { type: 'recharge' });
-                } else alert('Update Link Failure');
-            } catch (e) { alert('Network Fault'); }
+                } else {
+                    alert('ERROR: Failed to save settings to server. Check API logs.');
+                }
+            } catch (e) { 
+                console.error(e);
+                alert('CRITICAL ERROR: Could not connect to the server. Please check your internet.');
+            }
         }
     </script>
 </body>
