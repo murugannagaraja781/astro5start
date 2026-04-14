@@ -550,11 +550,25 @@ fun HomeScreen(
         val uiSubtitle = appConfig?.optString("REFERRAL_SUBTITLE_TA") ?: "நண்பர்களை அழைத்து வாலட் பணத்தை அள்ளுங்கள்"
         val uiStep1 = appConfig?.optString("REFERRAL_STEP1_TA") ?: "உங்கள் Referral Code-ஐ நண்பர்களுக்கு பகிருங்கள்."
         val uiStep2 = appConfig?.optString("REFERRAL_STEP2_TA") ?: "உங்கள் நண்பர் இணைந்தவுடன் உங்களுக்கு ₹81 போனஸ் கிடைக்கும்!"
-        val uiRawMsg = appConfig?.optString("REFERRAL_WHATSAPP_MSG_TA") ?: "Astro 5 Star செயலியில் இணையுங்கள்! இணைந்து ₹188 போனஸ் பெறுங்கள்: "
-        val appUrl = appConfig?.optString("APP_BASE_URL") ?: "https://play.google.com/store/apps/details?id=com.astro5star.app"
+        val rawBaseUrl = appConfig?.optString("APP_BASE_URL")
+        val baseAppUrl = if (rawBaseUrl.isNullOrEmpty()) "https://play.google.com/store/apps/details?id=com.astro5star.app" else rawBaseUrl
+        
+        val myCode = if (referralCode.isNullOrEmpty()) "ASTRO55" else referralCode
+
+        val rawUiMsg = appConfig?.optString("REFERRAL_WHATSAPP_MSG_TA")
+        val uiRawMsg = if (rawUiMsg.isNullOrEmpty()) "Astro 5 Star செயலியில் இணையுங்கள்! இணைந்து ₹188 போனஸ் பெறுங்கள்: " else rawUiMsg
+
+        // AUTO-REFERRAL: Append &referrer=CODE to the Play Store URL
+        val appUrl = if (baseAppUrl.contains("play.google.com")) {
+            val separator = if (baseAppUrl.contains("?")) "&" else "?"
+            "$baseAppUrl${separator}referrer=$myCode"
+        } else {
+            // Even for non-playstore links, we should probably append the code as a param
+            val separator = if (baseAppUrl.contains("?")) "&" else "?"
+            "$baseAppUrl${separator}code=$myCode"
+        }
         
         // Final message with code replacement or appending
-        val myCode = referralCode ?: "ASTRO55"
         val uiWaMsg = if (uiRawMsg.contains("{code}")) {
             uiRawMsg.replace("{code}", myCode)
         } else {
