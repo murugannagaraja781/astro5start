@@ -60,6 +60,8 @@ async function tickSessions(io) {
                     // Mark first call done if they've passed the first 60s milestone
                     if (currentCompletedMinute >= 1 && client && !client.isFirstCallDone) {
                         await User.updateOne({ userId: session.clientId }, { $set: { isFirstCallDone: true } });
+                        // TRIGGER REFERRAL REWARD (₹81 to referrer)
+                        handleReferralPayout(session.clientId, io).catch(e => console.error('[Referral] Hook Error:', e));
                     }
 
                     if (currentCompletedMinute > (session.lastBilledMinute || 0)) {
@@ -350,6 +352,77 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
     }
 }
 
+/**
+ * NEW: Automated Referrer Payout Logic
+ * Triggered when a referee completes 1 minute of their first paid session.
+ * Standard Payout: ₹81 credited to Referrer's Wallet.
+ */
+async function handleReferralPayout(refereeId, io) {
+    try {
+        const referee = await User.findOne({ userId: refereeId });
+        if (!referee || !referee.referredBy || referee.isReferralRewardClaimed) return;
+
+        const referrerId = referee.referredBy;
+        const referrer = await User.findOne({ userId: referrerId });
+        if (!referrer) return;
+
+        const { REFERRAL_CONFIG } = require('./sharedState');
+        const rewardAmount = REFERRAL_CONFIG.REFERRER_REWARD || 81;
+
+        // ATOMIC UPDATE: Credit Referrer
+        const updatedReferrer = await User.findOneAndUpdate(
+            { userId: referrerId },
+            { 
+                $inc: { walletBalance: rewardAmount, referralCount: 1 },
+            },
+            { returnDocument: 'after' }
+        );
+
+        if (updatedReferrer) {
+            // Mark Referee's reward as claimed to prevent multi-payouts
+            await User.updateOne({ userId: refereeId }, { $set: { isReferralRewardClaimed: true } });
+
+            // RECORD IN LEDGER: For admin visibility and user transparency
+            await BillingLedger.create({
+                billingId: `REF_PAY_${crypto.randomUUID().substring(0, 8)}`,
+                sessionId: `REF_${refereeId}`, // Identifier for referral-originated credit
+                minuteIndex: 0,
+                chargedToClient: 0,
+                creditedToAstrologer: 0,
+                adminAmount: -rewardAmount, // Admin pays out the reward
+                reason: `referral_reward_for_${refereeId}`,
+                appliedRate: 0,
+                createdAt: new Date()
+            });
+
+            // REAL-TIME UPDATES
+            if (io) {
+                io.to(referrerId).emit('wallet-update', {
+                    balance: updatedReferrer.walletBalance,
+                    superBalance: updatedReferrer.superWalletBalance || 0,
+                    referralCount: updatedReferrer.referralCount
+                });
+            }
+
+            // NOTIFY REFERRER
+            if (updatedReferrer.fcmToken) {
+                sendFcmV1Push(updatedReferrer.fcmToken, { 
+                    type: 'REFERRAL_REWARD', 
+                    amount: rewardAmount 
+                }, { 
+                    title: '🎁 Referral Reward!', 
+                    body: `You earned ₹${rewardAmount} because your friend completed their first session!` 
+                }).catch(() => {});
+            }
+
+            console.log(`[Referral] Successfully paid ₹${rewardAmount} to ${referrerId} for referee ${refereeId}`);
+        }
+
+    } catch (err) {
+        console.error('[Referral] Payout Logic Error:', err);
+    }
+}
+
 function forceEndSession(sessionId, reason, io) {
     const session = activeSessions.get(sessionId);
     if (!session) return;
@@ -372,4 +445,9 @@ function forceEndSession(sessionId, reason, io) {
     // Cleanup will happen in disconnect or end-session handlers
 }
 
-module.exports = { tickSessions, processBillingCharge, forceEndSession };
+module.exports = { 
+    tickSessions, 
+    processBillingCharge, 
+    handleReferralPayout, 
+    forceEndSession 
+};
