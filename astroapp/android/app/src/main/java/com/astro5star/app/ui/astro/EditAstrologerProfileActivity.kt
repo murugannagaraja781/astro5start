@@ -29,10 +29,13 @@ import androidx.lifecycle.lifecycleScope
 import com.astro5star.app.data.api.ApiClient
 import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.ui.theme.CosmicAppTheme
-import com.astro5star.app.ui.theme.PeacockGreen
 import com.google.gson.JsonObject
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+
+private val PeacockTeal = Color(0xFF004D40)
+private val PeacockGreen = Color(0xFF4CAF50)
+private val GoldAccent = Color(0xFFFFD54F)
 
 class EditAstrologerProfileActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -137,8 +140,6 @@ fun EditAstrologerProfileScreen(onBack: () -> Unit) {
         }
     }
 
-    val peacockTeal = Color(0xFF004D40)
-    val goldAccent = Color(0xFFFFD54F)
 
     Scaffold(
         topBar = {
@@ -149,13 +150,13 @@ fun EditAstrologerProfileScreen(onBack: () -> Unit) {
                         Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = peacockTeal)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = PeacockTeal)
             )
         }
     ) { padding ->
         if (isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = peacockTeal)
+                CircularProgressIndicator(color = PeacockTeal)
             }
         } else {
             Column(
@@ -255,7 +256,7 @@ fun EditAstrologerProfileScreen(onBack: () -> Unit) {
                                     }
                                     onBack()
                                 } else {
-                                    Toast.makeText(context, "Update failed: ${res.code}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Update failed: ${res.code()}", Toast.LENGTH_SHORT).show()
                                 }
                             } catch (e: Exception) {
                                 e.printStackTrace()
@@ -266,7 +267,7 @@ fun EditAstrologerProfileScreen(onBack: () -> Unit) {
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(60.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = peacockTeal),
+                    colors = ButtonDefaults.buttonColors(containerColor = PeacockTeal),
                     shape = RoundedCornerShape(16.dp),
                     enabled = !isSaving
                 ) {

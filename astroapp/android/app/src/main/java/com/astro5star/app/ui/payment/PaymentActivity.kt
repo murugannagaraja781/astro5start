@@ -361,8 +361,8 @@ class PaymentActivity : AppCompatActivity() {
 
                 } else {
                     val errorMsg = response.body()?.error ?: response.errorBody()?.string() ?: "Unknown Error"
-                    Log.e(TAG, "Sign API Failed: $errorMsg Code: ${response.code}")
-                    showError("Server Error (${response.code}): $errorMsg")
+                    Log.e(TAG, "Sign API Failed: $errorMsg Code: ${response.code()}")
+                    showError("Server Error (${response.code()}): $errorMsg")
                 }
 
             } catch (e: Exception) {

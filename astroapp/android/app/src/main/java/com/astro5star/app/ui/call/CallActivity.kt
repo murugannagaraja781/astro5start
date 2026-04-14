@@ -1709,7 +1709,7 @@ class CallActivity : ComponentActivity() {
                         Toast.makeText(this@CallActivity, "Failed: $err", Toast.LENGTH_LONG).show()
                     }
                 } else {
-                    Toast.makeText(this@CallActivity, "Error: ${res.code}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@CallActivity, "Error: ${res.code()}", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
