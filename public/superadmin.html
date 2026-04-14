@@ -1296,174 +1296,159 @@
                 </div>
             </header>
 
-            <!-- Master Grid View -->
-            <div class="overflow-y-auto flex-1 custom-scrollbar bg-slate-50/10" style="min-height: 0;">
-                <form id="edit-user-form" onsubmit="saveAdminEditUser(event)" class="p-4">
+            <!-- Master 3-Column Grid View with Green Theme -->
+            <div class="overflow-y-auto flex-1 custom-scrollbar bg-emerald-950/5" style="min-height: 0;">
+                <form id="edit-user-form" onsubmit="saveAdminEditUser(event)" class="p-6 space-y-6">
                     <input type="hidden" id="edit-user-id">
                     <input type="hidden" id="edit-user-image">
 
                     <div class="space-y-6">
                         <!-- Header Row: Identity (Visible for all roles) -->
-                        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                            <div class="flex items-center gap-4 lg:col-span-2">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 bg-emerald-900 shadow-xl p-6 rounded-[2rem] border border-white/10">
+                            <div class="flex items-center gap-5 lg:col-span-2">
                                 <div class="relative shrink-0">
-                                    <img id="edit-user-preview" src="" class="w-16 h-16 rounded-xl object-cover ring-4 ring-emerald-50 shadow-md">
-                                    <button type="button" onclick="triggerEditPhotoUpload()" class="absolute -bottom-1 -right-1 w-6 h-6 bg-brand-green text-white rounded-lg flex items-center justify-center shadow-lg border-2 border-white hover:scale-110 transition-all">
-                                        <i class="fas fa-camera text-[9px]"></i>
+                                    <img id="edit-user-preview" src="" class="w-20 h-20 rounded-2xl object-cover ring-4 ring-white/20 shadow-2xl">
+                                    <button type="button" onclick="triggerEditPhotoUpload()" class="absolute -bottom-2 -right-2 w-8 h-8 bg-white text-emerald-900 rounded-xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-emerald-900">
+                                        <i class="fas fa-camera text-xs"></i>
                                     </button>
                                 </div>
-                                <div class="space-y-1.5 flex-1">
-                                    <label class="text-[8px] font-black uppercase text-slate-400 tracking-widest">User Display Name</label>
-                                    <input type="text" id="edit-user-name" class="w-full bg-slate-50 px-3 py-2 rounded-xl border-0 focus:ring-2 focus:ring-brand-green font-black text-xs shadow-inner">
+                                <div class="space-y-2 flex-1">
+                                    <label class="text-[9px] font-black uppercase text-emerald-300 tracking-[0.2em]">Profile Identity</label>
+                                    <input type="text" id="edit-user-name" class="w-full bg-white/10 text-white px-4 py-3 rounded-2xl border-0 focus:ring-2 focus:ring-emerald-400 font-black text-sm shadow-inner placeholder:text-white/20">
                                 </div>
                             </div>
-                            <div class="bg-gradient-to-br from-emerald-600 to-emerald-800 p-3 rounded-2xl shadow-lg flex flex-col justify-center">
-                                <label class="text-[8px] font-black uppercase text-white/60 tracking-widest mb-1">Adjust Wallet (₹)</label>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-white/60 font-black text-xl">₹</span>
-                                    <input type="number" id="edit-user-wallet-adj" class="w-full bg-transparent text-white font-black text-2xl outline-none border-none p-0 focus:ring-0" placeholder="0">
+                            <div class="bg-white/10 backdrop-blur-md p-5 rounded-[1.5rem] border border-white/10 flex flex-col justify-center">
+                                <label class="text-[9px] font-black uppercase text-emerald-300 tracking-widest mb-1">Adjust Wallet</label>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-emerald-400 font-black text-2xl">₹</span>
+                                    <input type="number" id="edit-user-wallet-adj" class="w-full bg-transparent text-white font-black text-3xl outline-none border-none p-0 focus:ring-0" placeholder="0">
                                 </div>
-                            </div>
-                            <div class="flex flex-col justify-center gap-2">
-                                <label class="flex items-center gap-3 p-3 bg-emerald-50 rounded-2xl cursor-pointer border-2 border-emerald-100 hover:bg-emerald-100 transition-all">
-                                    <input type="checkbox" id="edit-user-verified" class="w-5 h-5 rounded text-brand-green focus:ring-brand-green border-emerald-300">
-                                    <span class="font-black text-emerald-900 text-[10px] uppercase">Verified Account</span>
-                                </label>
                             </div>
                         </div>
 
-                        <!-- Specialized Astro Grid (Visible for Astrologers only) -->
-                        <div id="edit-astro-fields" class="hidden space-y-6">
-                            <!-- Core Data Master Grid -->
-                            <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                        <!-- Specialized Astro Grid (3-Column Layout) -->
+                        <div id="edit-astro-fields" class="hidden space-y-8">
                             
-                            <!-- Rates Tiled Grid -->
-                            <div class="lg:col-span-2 space-y-3">
-                                <h5 class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-800 px-1">
-                                    <i class="fas fa-coins text-brand-green"></i> Service Rates / Min
-                                </h5>
-                                <div class="grid grid-cols-2 gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                                    <div class="p-3 bg-slate-50/50 rounded-xl border border-slate-100 group hover:border-brand-green transition-all">
-                                        <label class="text-[8px] font-black text-slate-400 uppercase block mb-1">General Chat</label>
-                                        <input type="number" id="edit-user-chat-price" class="w-full bg-transparent font-black text-base text-slate-700 outline-none">
+                            <div class="flex flex-col gap-3 p-4 bg-emerald-50 rounded-[2rem] border border-emerald-100">
+                                <label class="flex items-center gap-4 cursor-pointer group">
+                                    <input type="checkbox" id="edit-user-verified" class="w-6 h-6 rounded-lg text-emerald-600 focus:ring-emerald-500 border-emerald-200">
+                                    <div class="flex flex-col">
+                                        <span class="font-black text-emerald-900 text-xs uppercase tracking-tight">Verified System Partner</span>
+                                        <span class="text-[9px] font-bold text-emerald-600/60 uppercase">Enable global trust badge for this profile</span>
                                     </div>
-                                    <div class="p-3 bg-slate-50/50 rounded-xl border border-slate-100 group hover:border-brand-green transition-all">
-                                        <label class="text-[8px] font-black text-slate-400 uppercase block mb-1">Audio Call</label>
-                                        <input type="number" id="edit-user-audio-price" class="w-full bg-transparent font-black text-base text-slate-700 outline-none">
-                                    </div>
-                                    <div class="p-3 bg-slate-50/50 rounded-xl border border-slate-100 group hover:border-brand-green transition-all">
-                                        <label class="text-[8px] font-black text-slate-400 uppercase block mb-1">Video Call</label>
-                                        <input type="number" id="edit-user-video-price" class="w-full bg-transparent font-black text-base text-slate-700 outline-none">
-                                    </div>
-                                    <div class="p-3 bg-slate-50/50 rounded-xl border border-slate-100 group hover:border-brand-green transition-all">
-                                        <label class="text-[8px] font-black text-slate-400 uppercase block mb-1">Legacy Price</label>
-                                        <input type="number" id="edit-user-price" class="w-full bg-transparent font-black text-base text-slate-700 outline-none">
-                                    </div>
-                                    <div class="col-span-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100 flex items-center justify-between gap-4">
-                                        <div class="flex-1">
-                                            <label class="text-[8px] font-black text-blue-400 uppercase block mb-1">Unlimited Pkg (40m)</label>
-                                            <div class="flex items-center gap-2">
-                                                <span class="text-blue-300 font-black">₹</span>
-                                                <input type="number" id="edit-user-unlimited-price" class="w-full bg-transparent font-black text-lg text-blue-600 outline-none border-none p-0 focus:ring-0">
+                                </label>
+                            </div>
+
+                            <!-- Master Grid -->
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                
+                                <!-- Column 1: Rates -->
+                                <div class="space-y-4">
+                                    <h5 class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-900 ml-2">
+                                        <i class="fas fa-fire text-orange-500"></i> Service Rates
+                                    </h5>
+                                    <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-emerald-100 space-y-4 text-emerald-950">
+                                        <div class="p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                                            <label class="text-[8px] font-black text-emerald-700/60 uppercase block mb-1">Legacy Payout</label>
+                                            <input type="number" id="edit-user-price" class="w-full bg-transparent font-black text-lg text-emerald-900 outline-none">
+                                        </div>
+                                        <div class="p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                                            <label class="text-[8px] font-black text-emerald-700/60 uppercase block mb-1">Chat Rate / Min</label>
+                                            <input type="number" id="edit-user-chat-price" class="w-full bg-transparent font-black text-lg text-emerald-900 outline-none">
+                                        </div>
+                                        <div class="p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                                            <label class="text-[8px] font-black text-emerald-700/60 uppercase block mb-1">Audio Rate / Min</label>
+                                            <input type="number" id="edit-user-audio-price" class="w-full bg-transparent font-black text-lg text-emerald-900 outline-none">
+                                        </div>
+                                        <div class="p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                                            <label class="text-[8px] font-black text-emerald-700/60 uppercase block mb-1">Video Rate / Min</label>
+                                            <input type="number" id="edit-user-video-price" class="w-full bg-transparent font-black text-lg text-emerald-900 outline-none">
+                                        </div>
+                                        <div class="p-4 bg-emerald-900 rounded-2xl border border-emerald-800 shadow-lg">
+                                            <label class="text-[8px] font-black text-emerald-400 uppercase block mb-1">Unlimited (40m)</label>
+                                            <div class="flex items-center justify-between">
+                                                <input type="number" id="edit-user-unlimited-price" class="bg-transparent font-black text-xl text-white outline-none w-2/3 border-none p-0 focus:ring-0">
+                                                <input type="checkbox" id="edit-user-unlimited-enabled" class="w-5 h-5 rounded text-emerald-400">
                                             </div>
                                         </div>
-                                        <div class="text-right">
-                                            <label class="text-[7px] font-black text-blue-400 uppercase block mb-1">Activate</label>
-                                            <label class="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" id="edit-user-unlimited-enabled" class="sr-only peer">
-                                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                            </label>
+                                    </div>
+                                </div>
+
+                                <!-- Column 2: Professional -->
+                                <div class="space-y-4">
+                                    <h5 class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-900 ml-2">
+                                        <i class="fas fa-user-tie text-blue-500"></i> Qualifications
+                                    </h5>
+                                    <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-emerald-100 space-y-4">
+                                        <div class="space-y-1 text-emerald-950">
+                                            <label class="text-[8px] font-black uppercase text-slate-400">Real Name</label>
+                                            <input type="text" id="edit-user-real-name" class="w-full bg-slate-50 px-4 py-2.5 rounded-2xl border-0 text-[11px] font-bold">
+                                        </div>
+                                        <div class="space-y-1 text-emerald-950">
+                                            <label class="text-[8px] font-black uppercase text-slate-400">Official Email</label>
+                                            <input type="email" id="edit-user-email" class="w-full bg-slate-50 px-4 py-2.5 rounded-2xl border-0 text-[11px] font-bold">
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-3 text-emerald-950">
+                                            <div class="space-y-1">
+                                                <label class="text-[8px] font-black uppercase text-slate-400">Experience</label>
+                                                <input type="number" id="edit-user-exp" class="w-full bg-slate-50 px-4 py-2.5 rounded-2xl border-0 text-[11px] font-bold">
+                                            </div>
+                                            <div class="space-y-1">
+                                                <label class="text-[8px] font-black uppercase text-slate-400">Main Skill</label>
+                                                <input type="text" id="edit-user-skills" class="w-full bg-slate-50 px-4 py-2.5 rounded-2xl border-0 text-[11px] font-bold">
+                                            </div>
+                                        </div>
+                                        <div class="space-y-1 text-emerald-950">
+                                            <label class="text-[8px] font-black uppercase text-slate-400">Expert Bio</label>
+                                            <textarea id="edit-user-bio" class="w-full bg-slate-50 px-4 py-2.5 rounded-2xl border-0 text-[11px] font-bold h-24 custom-scrollbar"></textarea>
+                                        </div>
+                                        <div class="space-y-1 text-emerald-950">
+                                            <label class="text-[8px] font-black uppercase text-slate-400">Languages Known</label>
+                                            <input type="text" id="edit-user-languages" class="w-full bg-slate-50 px-4 py-2.5 rounded-2xl border-0 text-[11px] font-bold">
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- Professional Credentials -->
-                            <div class="lg:col-span-2 space-y-3">
-                                <h5 class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-800 px-1">
-                                    <i class="fas fa-certificate text-blue-500"></i> Expertise & Bio
-                                </h5>
-                                <div class="grid grid-cols-2 gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                                    <div class="space-y-1">
-                                        <label class="text-[8px] font-black uppercase text-slate-400">Real Name</label>
-                                        <input type="text" id="edit-user-real-name" class="w-full bg-slate-50 px-3 py-2 rounded-xl border-0 text-[10px] font-bold">
-                                    </div>
-                                    <div class="space-y-1">
-                                        <label class="text-[8px] font-black uppercase text-slate-400">Email Address</label>
-                                        <input type="email" id="edit-user-email" class="w-full bg-slate-50 px-3 py-2 rounded-xl border-0 text-[10px] font-bold">
-                                    </div>
-                                    <div class="space-y-1">
-                                        <label class="text-[8px] font-black uppercase text-slate-400">Exp (Yrs)</label>
-                                        <input type="number" id="edit-user-exp" class="w-full bg-slate-50 px-3 py-2 rounded-xl border-0 text-[10px] font-bold">
-                                    </div>
-                                    <div class="space-y-1">
-                                        <label class="text-[8px] font-black uppercase text-slate-400">Skills / Niche</label>
-                                        <input type="text" id="edit-user-skills" class="w-full bg-slate-50 px-3 py-2 rounded-xl border-0 text-[10px] font-bold">
-                                    </div>
-                                    <div class="col-span-2 space-y-1">
-                                        <label class="text-[8px] font-black uppercase text-slate-400">Short Bio</label>
-                                        <textarea id="edit-user-bio" class="w-full bg-slate-50 px-3 py-2 rounded-xl border-0 text-[10px] font-bold h-12 custom-scrollbar"></textarea>
-                                    </div>
-                                    <div class="col-span-2 space-y-1">
-                                        <label class="text-[8px] font-black uppercase text-slate-400">Languages</label>
-                                        <input type="text" id="edit-user-languages" class="w-full bg-slate-50 px-3 py-2 rounded-xl border-0 text-[10px] font-bold">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Financial & Banking Grid -->
-                            <div class="lg:col-span-3 space-y-3">
-                                <h5 class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-800 px-1">
-                                    <i class="fas fa-university text-amber-500"></i> Payout & Government IDs
-                                </h5>
-                                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                                    <div class="space-y-1">
-                                        <label class="text-[8px] font-black uppercase text-slate-400">WhatsApp</label>
-                                        <input type="text" id="edit-user-whatsapp" class="w-full bg-slate-50 px-3 py-2 rounded-xl border-0 text-[10px] font-bold text-emerald-600">
-                                    </div>
-                                    <div class="space-y-1">
-                                        <label class="text-[8px] font-black uppercase text-slate-400">Backup Phone</label>
-                                        <input type="text" id="edit-user-phone2" class="w-full bg-slate-50 px-3 py-2 rounded-xl border-0 text-[10px] font-bold">
-                                    </div>
-                                    <div class="space-y-1">
-                                        <label class="text-[8px] font-black uppercase text-slate-400">UPI VPA</label>
-                                        <input type="text" id="edit-user-upi-id" class="w-full bg-slate-50 px-3 py-2 rounded-xl border-0 text-[10px] font-bold text-blue-600" placeholder="user@upi">
-                                    </div>
-                                    <div class="space-y-1">
-                                        <label class="text-[8px] font-black uppercase text-slate-400">UPI Phone</label>
-                                        <input type="text" id="edit-user-upi-num" class="w-full bg-slate-50 px-3 py-2 rounded-xl border-0 text-[10px] font-bold text-blue-600">
-                                    </div>
-                                    <div class="lg:col-span-2 space-y-1">
-                                        <label class="text-[8px] font-black uppercase text-slate-400">Complete Bank Details</label>
-                                        <textarea id="edit-user-bank" class="w-full bg-slate-50 px-3 py-2 rounded-xl border-0 text-[10px] font-bold h-10 custom-scrollbar"></textarea>
-                                    </div>
-                                    <div class="lg:col-span-2 space-y-1">
-                                        <label class="text-[8px] font-black uppercase text-slate-400">Professional Address</label>
-                                        <textarea id="edit-user-address" class="w-full bg-slate-50 px-3 py-2 rounded-xl border-0 text-[10px] font-bold h-10 custom-scrollbar"></textarea>
-                                    </div>
-                                    <div class="lg:col-span-2 space-y-1">
-                                        <label class="text-[8px] font-black uppercase text-slate-400">Aadhar Card Number</label>
-                                        <input type="text" id="edit-user-aadhar" class="w-full bg-slate-50 px-3 py-2 rounded-xl border-0 text-xs font-black tracking-widest">
-                                    </div>
-                                    <div class="lg:col-span-2 space-y-1">
-                                        <label class="text-[8px] font-black uppercase text-slate-400">PAN Card Number</label>
-                                        <input type="text" id="edit-user-pan" class="w-full bg-slate-50 px-3 py-2 rounded-xl border-0 text-xs font-black tracking-widest uppercase">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Audit Status / Info -->
-                            <div class="lg:col-span-1 space-y-3">
-                                <h5 class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-800 px-1">
-                                    <i class="fas fa-info-circle text-slate-400"></i> Global Meta
-                                </h5>
-                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center justify-center text-center space-y-2 h-[calc(100%-1.5rem)]">
-                                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-brand-green">
-                                        <i class="fas fa-check-circle text-lg"></i>
-                                    </div>
-                                    <div class="space-y-1">
-                                        <p class="text-[10px] font-black text-slate-800 uppercase tracking-tight">System Integrity OK</p>
-                                        <p class="text-[8px] font-bold text-slate-400 leading-tight">All fields are indexed and ready for database sync.</p>
+                                <!-- Column 3: Contact & Banking -->
+                                <div class="space-y-4">
+                                    <h5 class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-900 ml-2">
+                                        <i class="fas fa-shield-alt text-emerald-600"></i> Secure Data
+                                    </h5>
+                                    <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-emerald-100 space-y-4">
+                                        <div class="grid grid-cols-2 gap-3 text-emerald-950">
+                                            <div class="space-y-1">
+                                                <label class="text-[8px] font-black uppercase text-slate-400">WhatsApp</label>
+                                                <input type="text" id="edit-user-whatsapp" class="w-full bg-slate-50 px-4 py-2.5 rounded-2xl border-0 text-[11px] font-bold text-emerald-600">
+                                            </div>
+                                            <div class="space-y-1">
+                                                <label class="text-[8px] font-black uppercase text-slate-400">Alternative</label>
+                                                <input type="text" id="edit-user-phone2" class="w-full bg-slate-50 px-4 py-2.5 rounded-2xl border-0 text-[11px] font-bold">
+                                            </div>
+                                        </div>
+                                        <div class="p-4 bg-emerald-50 rounded-2xl space-y-3 text-emerald-950">
+                                            <div class="space-y-1">
+                                                <label class="text-[8px] font-black uppercase text-emerald-700/60">UPI ID (VPA)</label>
+                                                <input type="text" id="edit-user-upi-id" class="w-full bg-white px-4 py-2 rounded-xl border-emerald-100 text-[11px] font-black text-emerald-900">
+                                            </div>
+                                            <div class="space-y-1">
+                                                <label class="text-[8px] font-black uppercase text-emerald-700/60">UPI Linked Number</label>
+                                                <input type="text" id="edit-user-upi-num" class="w-full bg-white px-4 py-2 rounded-xl border-emerald-100 text-[11px] font-black text-emerald-900">
+                                            </div>
+                                        </div>
+                                        <div class="space-y-1 text-emerald-950">
+                                            <label class="text-[8px] font-black uppercase text-slate-400">Bank Details</label>
+                                            <textarea id="edit-user-bank" class="w-full bg-slate-50 px-4 py-2.5 rounded-2xl border-0 text-[11px] font-bold h-20 custom-scrollbar"></textarea>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-3 text-emerald-950">
+                                            <div class="space-y-1">
+                                                <label class="text-[8px] font-black uppercase text-slate-400">Aadhar Num</label>
+                                                <input type="text" id="edit-user-aadhar" class="w-full bg-slate-50 px-4 py-2.5 rounded-2xl border-0 text-[11px] font-bold tracking-tighter">
+                                            </div>
+                                            <div class="space-y-1">
+                                                <label class="text-[8px] font-black uppercase text-slate-400">PAN Num</label>
+                                                <input type="text" id="edit-user-pan" class="w-full bg-slate-50 px-4 py-2.5 rounded-2xl border-0 text-[11px] font-bold tracking-tighter">
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
