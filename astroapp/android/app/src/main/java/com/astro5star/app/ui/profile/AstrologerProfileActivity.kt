@@ -129,9 +129,24 @@ fun AstrologerProfileScreen(
 
     var pendingActionType by remember { mutableStateOf<String?>(null) }
     var isFavorite by remember { mutableStateOf(false) }
+    
+    var walletBalance by remember { mutableDoubleStateOf(currentUser?.walletBalance ?: 0.0) }
+    var superBalance by remember { mutableDoubleStateOf(currentUser?.superWalletBalance ?: 0.0) }
 
     // Check initial favorite status
     LaunchedEffect(id) {
+        if (currentUser?.userId != null) {
+            scope.launch {
+                try {
+                    val profileRes = ApiClient.api.getUserProfile(currentUser.userId)
+                    if (profileRes.isSuccessful && profileRes.body() != null) {
+                        walletBalance = profileRes.body()!!.walletBalance ?: walletBalance
+                        superBalance = profileRes.body()!!.superWalletBalance ?: superBalance
+                    }
+                } catch (e: Exception) {}
+            }
+        }
+        
         if (id.isEmpty() || currentUser?.userId == null) return@LaunchedEffect
         try {
             val res = ApiClient.api.getFavorites(currentUser.userId)
@@ -163,8 +178,34 @@ fun AstrologerProfileScreen(
     }
 
     fun checkAndProceed(type: String) {
+        if (currentUser == null) {
+            Toast.makeText(context, "Please login to continue", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // --- NEW: BALANCE CHECK BEFORE PERMISSIONS ---
+        val totalBal = walletBalance + superBalance
+        
+        // Use a 5-minute minimum rule for regular calls, upfront for unlimited
+        // Exception: New user offer might allow a 1-rupee start (if applicable in your business logic)
+        val minMins = if (type == "unlimited") 1 else 5
+        val rate = when(type) {
+            "chat" -> chatPrice
+            "audio" -> audioPrice
+            "video" -> videoPrice
+            "unlimited" -> unlimitedPrice
+            else -> price
+        }
+        val minRequired = (rate * minMins).toDouble()
+
+        if (totalBal < minRequired && totalBal < 1.0) { // Allow if they have at least 1 rupee for the first call maybe? 
+            // Better to stay safe and enforce the minRequired
+            Toast.makeText(context, "Insufficient balance! Please recharge (Min ₹${minRequired.toInt()} required).", Toast.LENGTH_LONG).show()
+            return
+        }
+
         val permissions = mutableListOf<String>()
-        if (type == "audio" || type == "video") {
+        if (type == "audio" || type == "video" || type == "unlimited") {
             permissions.add(android.Manifest.permission.RECORD_AUDIO)
         }
         if (type == "video") {
@@ -444,7 +485,7 @@ fun AstrologerProfileScreen(
                 if (unlimitedEnabled) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
-                        onClick = { onAction("unlimited") },
+                        onClick = { checkAndProceed("unlimited") },
                         modifier = Modifier.fillMaxWidth().height(54.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF673AB7)),
                         shape = RoundedCornerShape(12.dp)

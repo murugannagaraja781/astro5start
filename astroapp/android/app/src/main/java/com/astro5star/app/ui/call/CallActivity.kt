@@ -217,6 +217,7 @@ class CallActivity : ComponentActivity() {
 
     // Logic internal state
     private var callType: String = "video"
+    private var billingType: String = "video"
     private var partnerName: String? = null
     private var partnerImage: String? = null
 
@@ -269,7 +270,11 @@ class CallActivity : ComponentActivity() {
             isInitiator = intent.getBooleanExtra("isInitiator", false)
             isNewRequest = intent.getBooleanExtra("isNewRequest", false)
             val rawType = intent.getStringExtra("type") ?: intent.getStringExtra("callType") ?: "video"
-            callType = if (rawType.lowercase() == "audio" || rawType.lowercase() == "voice") "audio" else "video"
+            // Record billing type (unlimited vs standard)
+            billingType = rawType.lowercase()
+            
+            // Map to core media type for UI/WebRTC
+            callType = if (billingType == "audio" || billingType == "voice" || billingType == "unlimited") "audio" else "video"
 
             // Initial state sync
             isVideoEnabledState = (callType == "video")
@@ -1203,7 +1208,12 @@ class CallActivity : ComponentActivity() {
                     
                     // Requirement 7: 2-minute warning for client
                     if (remaining == 120 && session?.role == "client") {
-                        Toast.makeText(this@CallActivity, "⚠️ Your balance is low! Only 2 minutes left.", Toast.LENGTH_LONG).show()
+                        val msg = if (billingType == "unlimited") {
+                            "⚠️ Your 40-minute session ends in 2 minutes."
+                        } else {
+                            "⚠️ Your balance is low! Only 2 minutes left."
+                        }
+                        Toast.makeText(this@CallActivity, msg, Toast.LENGTH_LONG).show()
                         SoundManager.playNotificationSound() // Use appropriate helper if exists
                     }
                 }

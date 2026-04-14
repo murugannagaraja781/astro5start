@@ -370,10 +370,19 @@ fun AstrologerDashboardScreen(
     var showWithdrawDialog by remember { mutableStateOf(false) }
     var withdrawAmount by remember { mutableStateOf("") }
     var withdrawalHistory by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var waitlistCount by remember { mutableIntStateOf(0) }
 
     fun refreshBalanceAndHistory() {
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
+                // Fetch initial waitlist count
+                val queueRes = ApiClient.api.getMyQueueStatus(sessionId)
+                if (queueRes.isSuccessful && queueRes.body() != null) {
+                    val root = JSONObject(queueRes.body().toString())
+                    val arr = root.optJSONArray("queue")
+                    waitlistCount = arr?.length() ?: 0
+                }
+
                 val client = okhttp3.OkHttpClient()
                 val request = okhttp3.Request.Builder()
                     .url("${com.astro5star.app.utils.Constants.SERVER_URL}/api/user/${sessionId}")
@@ -481,13 +490,21 @@ fun AstrologerDashboardScreen(
     // Listener for real-time updates
     DisposableEffect(Unit) {
         val socket = SocketManager.getSocket()
-        val listener = { _: Array<Any> ->
+        val updateListener = { _: Array<Any> ->
             refreshTrigger++
             Unit
         }
-        socket?.on("my-profile-updated", listener)
+        val waitlistListener = { args: Array<Any> ->
+            val data = args.getOrNull(0) as? JSONObject
+            val count = data?.optInt("count", 0) ?: 0
+            waitlistCount = count
+            Unit
+        }
+        socket?.on("my-profile-updated", updateListener)
+        socket?.on("waitlist-update", waitlistListener)
         onDispose {
-            socket?.off("my-profile-updated", listener)
+            socket?.off("my-profile-updated", updateListener)
+            socket?.off("waitlist-update", waitlistListener)
         }
     }
 
@@ -798,6 +815,28 @@ fun AstrologerDashboardScreen(
                         }
                     }
                     Text("Min. ₹500 to Withdraw", color = dashColors.textSecondary.copy(alpha = 0.6f), fontSize = 11.sp)
+                }
+            }
+
+            // 2.5 Waitlist Status Card
+            if (waitlistCount > 0) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4)), // Light Yellow
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(16.dp)),
+                    border = BorderStroke(1.dp, Color(0xFFFBC02D))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFF57F17), modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("$waitlistCount customers waiting", fontWeight = FontWeight.ExtraBold, color = Color(0xFFF57F17))
+                            Text("Process your current session to connect with the next person.", fontSize = 11.sp, color = Color(0xFF7F6D01))
+                        }
+                    }
                 }
             }
 

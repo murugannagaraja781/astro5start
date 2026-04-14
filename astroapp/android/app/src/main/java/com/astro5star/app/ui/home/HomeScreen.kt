@@ -271,6 +271,57 @@ fun PremiumCard(
 }
 
 @Composable
+fun WaitlistSection(waitlist: List<org.json.JSONObject>, onItemClick: (String) -> Unit) {
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text(
+            text = "Active Waitlist",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = PeacockGreen
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            waitlist.forEach { item ->
+                val astroId = item.optJSONObject("astrologerId")?.optString("userId") ?: ""
+                val astroName = item.optJSONObject("astrologerId")?.optString("name") ?: "Astrologer"
+                val position = item.optInt("positionAhead", 0)
+                val isMyTurn = item.optBoolean("isMyTurn", false)
+
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = if (isMyTurn) Color(0xFFE8F5E9) else Color.White),
+                    border = BorderStroke(1.dp, if (isMyTurn) PeacockGreen else Color.LightGray),
+                    modifier = Modifier
+                        .width(220.dp)
+                        .shadow(4.dp, RoundedCornerShape(16.dp))
+                        .clickable { onItemClick(astroId) }
+                ) {
+                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Filled.Schedule, 
+                            contentDescription = null, 
+                            tint = if (isMyTurn) PeacockGreen else Color.Gray,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(astroName, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (isMyTurn) {
+                                Text("It's your turn! Tap to Connect", color = PeacockGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            } else {
+                                Text("$position people ahead", color = Color.Gray, fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun HomeScreen(
     walletBalance: Double,
     superWalletBalance: Double = 0.0,
@@ -289,6 +340,8 @@ fun HomeScreen(
     isGuest: Boolean = false,
     referralCode: String? = null,
     isNewUser: Boolean = false,
+    waitlist: List<org.json.JSONObject> = emptyList(),
+    onWaitlistClick: (String) -> Unit = {},
     onApplyReferral: (String) -> Unit = {}
 ) {
 
@@ -691,6 +744,13 @@ fun HomeScreen(
                                     onBannerClick(banner)
                                 }
                             })
+                        }
+                    }
+
+                    // Active Waitlist Component
+                    if (waitlist.isNotEmpty()) {
+                        item {
+                            WaitlistSection(waitlist, onItemClick = onWaitlistClick)
                         }
                     }
 

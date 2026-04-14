@@ -58,6 +58,7 @@ class HomeActivity : AppCompatActivity() {
     private val _referralCode = MutableStateFlow<String?>(null)
     private val _isNewUser = MutableStateFlow(false)
     private val _banners = MutableStateFlow<List<Banner>>(emptyList())
+    private val _waitlist = MutableStateFlow<List<JSONObject>>(emptyList())
  
     private var pendingAstro: Astrologer? = null
     private var pendingType: String? = null
@@ -145,6 +146,7 @@ class HomeActivity : AppCompatActivity() {
                 val referralCode by _referralCode.collectAsState()
                 val isNewUser by _isNewUser.collectAsState()
                 val banners by _banners.collectAsState()
+                val waitlist by _waitlist.collectAsState()
 
                 var selectedRasiItem by remember { mutableStateOf<ComposeRasiItem?>(null) }
 
@@ -235,6 +237,35 @@ class HomeActivity : AppCompatActivity() {
                     },
                     referralCode = referralCode,
                     isNewUser = isNewUser,
+                    waitlist = waitlist,
+                    onWaitlistClick = { astroId ->
+                        // Re-use logic for opening astro profile
+                        intent.putExtra("open_astro_id", astroId)
+                        // This will be picked up by onResume or we can call it manually
+                        // But since we are already here, we can trigger the navigation directly or let onResume handle it.
+                        // For immediate feedback, let's call the logic helper if we Refactor it.
+                        // Or just navigate now.
+                        val astro = _astrologers.value.find { it.userId == astroId }
+                        if (astro != null) {
+                            val profileIntent = Intent(this, com.astro5star.app.ui.profile.AstrologerProfileActivity::class.java).apply {
+                                putExtra("astro_name", astro.name)
+                                putExtra("astro_exp", astro.experience.toString())
+                                putExtra("astro_skills", astro.skills.joinToString(", "))
+                                putExtra("astro_id", astro.userId)
+                                putExtra("is_chat_online", astro.isChatOnline)
+                                putExtra("is_audio_online", astro.isAudioOnline)
+                                putExtra("is_video_online", astro.isVideoOnline)
+                                putExtra("astro_image", astro.image)
+                                putExtra("astro_price", astro.price)
+                                putExtra("chat_price", astro.chatPrice)
+                                putExtra("audio_price", astro.audioPrice)
+                                putExtra("video_price", astro.videoPrice)
+                                putExtra("unlimited_price", astro.unlimitedPrice)
+                                putExtra("unlimited_enabled", astro.unlimitedOfferEnabled)
+                            }
+                            startActivity(profileIntent)
+                        }
+                    },
                     onApplyReferral = { code -> applyReferralCode(code) }
                 )
 
@@ -250,9 +281,32 @@ class HomeActivity : AppCompatActivity() {
         loadDailyHoroscope()
         loadAstrologers()
         fetchBanners()
+        fetchWaitlist()
 
         // Setup Socket for real-time updates
         setupSocket()
+    }
+
+    private fun fetchWaitlist() {
+        val userId = tokenManager.getUserSession()?.userId ?: return
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val res = ApiClient.api.getMyQueueStatus(userId)
+                if (res.isSuccessful && res.body() != null) {
+                    val root = JSONObject(res.body().toString())
+                    if (root.optBoolean("ok")) {
+                        val arr = root.optJSONArray("queue") ?: JSONArray()
+                        val list = mutableListOf<JSONObject>()
+                        for (i in 0 until arr.length()) {
+                            list.add(arr.getJSONObject(i))
+                        }
+                        _waitlist.value = list
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Queue fetch error", e)
+            }
+        }
     }
 
     // Composable State (Must be hoisted or handled via callback to Compose)

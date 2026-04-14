@@ -24,6 +24,12 @@ const joinQueue = async (req, res) => {
             queuePosition: queueCount + 1
         });
 
+        // Notify Astrologer of updated count
+        if (global.io) {
+            const currentCount = await Appointment.countDocuments({ astrologerId, status: 'waiting' });
+            global.io.to(astrologerId).emit('waitlist-update', { count: currentCount });
+        }
+
         res.json({ ok: true, appointmentId: appointment.appointmentId, position: appointment.queuePosition });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
@@ -80,6 +86,12 @@ const processNextInQueue = async (astrologerId, io) => {
             nextApt.status = 'notified';
             nextApt.notifiedAt = new Date();
             await nextApt.save();
+
+            // Notify Astrologer of updated count
+            if (io || global.io) {
+                const currentCount = await Appointment.countDocuments({ astrologerId, status: 'waiting' });
+                (io || global.io).to(astrologerId).emit('waitlist-update', { count: currentCount });
+            }
         }
     } catch (err) {
         console.error('Error processing next in queue', err);
