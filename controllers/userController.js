@@ -67,11 +67,19 @@ const getAstrologers = async (req, res) => {
 
         const total = await User.countDocuments({ role: 'astrologer', approvalStatus: 'approved' });
 
+        const currentUserId = req.query.currentUserId || null;
+        let userFavorites = [];
+        if (currentUserId) {
+            const user = await User.findOne({ userId: currentUserId }).select('favorites').lean();
+            userFavorites = user?.favorites || [];
+        }
+
         const formatted = astros.map(a => {
             const isOnlineCalculated = !!(a.isOnline || a.isAudioOnline || a.isChatOnline || a.isVideoOnline);
             return {
                 ...a,
                 isOnline: isOnlineCalculated,
+                isFavorite: userFavorites.includes(a.userId),
                 image: formatImageUrl(a.image, a.name),
                 showAudio: !isOnlineCalculated || !!a.isAudioOnline,
                 showChat: !isOnlineCalculated || !!a.isChatOnline,
