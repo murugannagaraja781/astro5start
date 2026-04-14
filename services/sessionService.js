@@ -209,11 +209,13 @@ async function tryStartBilling(sessionId, io) {
         }
         
         if (typeof activeSession.elapsedBillableSeconds === 'undefined' || activeSession.elapsedBillableSeconds === 0) {
-            const astro = await User.findOne({ userId: session.astrologerId }).select('price').lean();
+            const astro = await User.findOne({ userId: session.astrologerId }).select('price unlimitedPrice').lean();
+            const finalPrice = (session.type === 'unlimited') ? (astro?.unlimitedPrice || 299) : (astro?.price || 10);
+            
             Object.assign(activeSession, {
                 elapsedBillableSeconds: billingStart ? Math.max(0, Math.floor((Date.now() - billingStart) / 1000)) : 0,
                 lastBilledMinute: session.lastBilledMinute || 0, 
-                pricePerMin: astro?.price || 10,
+                pricePerMin: finalPrice,
                 totalDeducted: session.totalCharged || 0,
                 totalEarned: session.totalEarned || 0
             });
@@ -222,15 +224,15 @@ async function tryStartBilling(sessionId, io) {
         if (io) {
             const client = await User.findOne({ userId: session.clientId });
             const astro = await User.findOne({ userId: session.astrologerId });
-            const price = astro?.price || 10;
+            const finalPrice = (session.type === 'unlimited') ? (astro?.unlimitedPrice || 299) : (astro?.price || 10);
             const balance = (client?.walletBalance || 0) + (client?.superWalletBalance || 0);
-            const availableMinutes = Math.floor(balance / price);
+            const availableMinutes = (session.type === 'unlimited') ? 40 : Math.floor(balance / finalPrice);
 
             const billingPayload = { 
                 startTime: billingStart,
                 availableMinutes: availableMinutes,
                 clientBalance: balance,
-                ratePerMinute: price
+                ratePerMinute: finalPrice
             };
 
             const broadcast = () => {
@@ -279,14 +281,19 @@ async function handleUserConnection(sessionId, userId, io) {
 
     let activeSession = activeSessions.get(sessionId);
     if (!activeSession) {
-        const astro = await User.findOne({ userId: session.astrologerId }).select('price').lean();
+        const astro = await User.findOne({ userId: session.astrologerId })
+            .select('price unlimitedPrice')
+            .lean();
+            
+        const finalPrice = (session.type === 'unlimited') ? (astro?.unlimitedPrice || 299) : (astro?.price || 10);
+
         activeSession = {
             sessionId: session.sessionId,
             type: session.type,
             clientId: session.clientId,
             astrologerId: session.astrologerId,
             users: [session.clientId, session.astrologerId],
-            pricePerMin: astro?.price || 10,
+            pricePerMin: finalPrice,
             isAnswered: session.status === 'active',
             actualBillingStart: session.actualBillingStart,
             totalDeducted: session.totalCharged || 0,
