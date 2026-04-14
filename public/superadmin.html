@@ -1266,9 +1266,9 @@
                 </div>
             </div>
         </div>
-
     </main>
 
+    <!-- Corrected Fixed-Footer Compact Modal -->
     <div id="modal-edit-user"
         class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-1 lg:p-2 transition-all duration-300 hidden">
         <div
@@ -1296,8 +1296,9 @@
                 </div>
             </header>
 
-            <div class="p-0 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/20">
-                <form id="edit-user-form" onsubmit="saveAdminEditUser(event)" class="h-full">
+            <!-- Scrollable Content Area -->
+            <div class="overflow-y-auto flex-1 custom-scrollbar bg-slate-50/10" style="min-height: 0;">
+                <form id="edit-user-form" onsubmit="saveAdminEditUser(event)" class="p-0">
                     <input type="hidden" id="edit-user-id">
                     <input type="hidden" id="edit-user-image">
 
@@ -1455,16 +1456,14 @@
                 </form>
             </div>
 
-            <!-- Mini Footer -->
-            <footer class="px-4 py-3 border-t border-slate-100 shrink-0 bg-white flex justify-between items-center">
+            <!-- Mini Fixed Footer -->
+            <footer class="px-4 py-3 border-t border-slate-200 shrink-0 bg-white flex justify-between items-center shadow-[0_-4px_10px_rgba(0,0,0,0.03)] z-10">
                 <span class="text-[7.5px] font-bold text-slate-400 uppercase tracking-widest"><i class="fas fa-lock text-brand-green"></i> ADMIN DATA CONTROL</span>
                 <div class="flex gap-2">
-                    <button onclick="closeModal('modal-edit-user')" class="px-4 py-2 bg-slate-100 text-slate-600 font-black rounded-lg text-[9px] uppercase">Close</button>
-                    <button onclick="document.getElementById('edit-user-form').dispatchEvent(new Event('submit'))" class="px-6 py-2 bg-brand-green text-white font-black rounded-lg shadow-md text-[9px] uppercase">Commit Changes</button>
+                    <button type="button" onclick="closeModal('modal-edit-user')" class="px-3 py-1.5 bg-slate-100 text-slate-600 font-black rounded-lg text-[9px] uppercase hover:bg-slate-200 transition-all">Close</button>
+                    <button type="button" onclick="document.getElementById('edit-user-form').dispatchEvent(new Event('submit'))" class="px-5 py-1.5 bg-brand-green text-white font-black rounded-lg shadow-md text-[9px] uppercase hover:bg-deep-green transition-all">Commit Changes</button>
                 </div>
             </footer>
-        </div>
-
         </div>
     </div>
 
