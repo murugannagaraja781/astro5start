@@ -55,12 +55,18 @@ async function tickSessions(io) {
                         const endMin = Math.min(currentCompletedMinute, startMin + MAX_CATCHUP - 1);
                         
                         for (let m = startMin; m <= endMin; m++) {
-                            processBillingCharge(sessionId, m, 'client_full_charge', io);
+                            // Verify session still exists before charging
+                            if (!activeSessions.has(sessionId)) break;
+                            await processBillingCharge(sessionId, m, 'client_full_charge', io);
                         }
-                        session.lastBilledMinute = endMin;
-                        session.lastMaturedMinute = endMin; // Payout astro simultaneously if minute is complete
-                        processBillingCharge(sessionId, endMin, 'astro_share_payout', io);
-                        needsDbSync = true;
+                        
+                        // Final check before updating state
+                        if (activeSessions.has(sessionId)) {
+                            session.lastBilledMinute = endMin;
+                            session.lastMaturedMinute = endMin;
+                            await processBillingCharge(sessionId, endMin, 'astro_share_payout', io);
+                            needsDbSync = true;
+                        }
                     }
                 }
 
@@ -148,7 +154,7 @@ function updateSessionSlab(session) {
 async function processBillingCharge(sessionId, minuteIndex, type, io) {
     try {
         const session = await Session.findOne({ sessionId });
-        if (!session) return;
+        if (!session || session.status === 'ended' || session.status === 'rejected') return;
 
         // Financial Safety Check: Don't process if this exact minute + type is already in the ledger
         const exists = await BillingLedger.exists({ 
