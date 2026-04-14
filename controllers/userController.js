@@ -59,7 +59,7 @@ const getAstrologers = async (req, res) => {
             role: 'astrologer', 
             approvalStatus: 'approved' 
         })
-        .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image languages displayOrder isAvailable isBusy')
+        .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image languages displayOrder isAvailable isBusy chatPrice audioPrice videoPrice unlimitedPrice unlimitedOfferEnabled')
         .sort({ isOnline: -1, isAvailable: -1, displayOrder: -1 })
         .limit(limit)
         .skip(skip)

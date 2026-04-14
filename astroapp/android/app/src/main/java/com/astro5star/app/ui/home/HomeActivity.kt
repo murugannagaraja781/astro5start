@@ -443,6 +443,11 @@ class HomeActivity : AppCompatActivity() {
             isVerified = json.optBoolean("isVerified", false),
             walletBalance = json.optDouble("walletBalance", 0.0),
             isBusy = json.optBoolean("isBusy", false),
+            chatPrice = json.optInt("chatPrice", 10),
+            audioPrice = json.optInt("audioPrice", 20),
+            videoPrice = json.optInt("videoPrice", 30),
+            unlimitedPrice = json.optInt("unlimitedPrice", 299),
+            unlimitedOfferEnabled = json.optBoolean("unlimitedOfferEnabled", false),
             displayOrder = json.optInt("displayOrder", 1000)
         )
     }
