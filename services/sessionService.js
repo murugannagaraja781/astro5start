@@ -128,9 +128,20 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
 
         (async () => {
             try {
-                await User.updateMany({ userId: { $in: s.users }, role: 'astrologer' }, { isBusy: false });
-                await User.updateMany({ userId: { $in: s.users }, role: 'astrologer', isOnline: true }, { isAvailable: true });
-                await User.updateMany({ userId: { $in: s.users }, role: 'astrologer', isOnline: false }, { isAvailable: false });
+                // Check if anyone is waiting for this astrologer
+                const Appointment = require('../models/Appointment');
+                const waitingCount = await Appointment.countDocuments({ astrologerId: s.astrologerId, status: 'waiting' });
+
+                if (waitingCount > 0) {
+                    // There are people waiting! Keep the astrologer 'Busy' so others can't jump the line
+                    console.log(`[Queue] Astrologer ${s.astrologerId} has ${waitingCount} people waiting. Keeping BUSY for queue.`);
+                    await User.updateMany({ userId: { $in: s.users }, role: 'astrologer' }, { isBusy: true });
+                } else {
+                    // No one waiting, release the status normally
+                    await User.updateMany({ userId: { $in: s.users }, role: 'astrologer' }, { isBusy: false });
+                    await User.updateMany({ userId: { $in: s.users }, role: 'astrologer', isOnline: true }, { isAvailable: true });
+                    await User.updateMany({ userId: { $in: s.users }, role: 'astrologer', isOnline: false }, { isAvailable: false });
+                }
 
                 if (s.astrologerId) {
                     const appointmentController = require('../controllers/appointmentController');
@@ -139,7 +150,7 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
 
                 if (broadcastAstroUpdate) broadcastAstroUpdate();
             } catch (e) {
-                console.error('[EndSession] Busy release error:', e);
+                console.error('[EndSession] Queue/Busy release error:', e);
             }
         })();
 
@@ -168,6 +179,10 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
                 { $inc: { slabLockedAt: billableSeconds } }
             ).catch(() => {});
         }
+
+        // QUEUE SYNC: Complete any linked appointment
+        const Appointment = require('../models/Appointment');
+        await Appointment.updateOne({ sessionId }, { $set: { status: 'completed' } }).catch(() => {});
 
         const { processBillingCharge } = require('./billingService');
         if (billableSeconds > 0) {

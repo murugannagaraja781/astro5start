@@ -87,6 +87,25 @@ const processNextInQueue = async (astrologerId, io) => {
             nextApt.notifiedAt = new Date();
             await nextApt.save();
 
+            // RESERVATION TIMEOUT: After 3 minutes, if not started, expire it.
+            setTimeout(async () => {
+                const checkApt = await Appointment.findById(nextApt._id);
+                if (checkApt && checkApt.status === 'notified') {
+                    console.log(`[Queue] Appointment ${checkApt.appointmentId} expired (3m timeout).`);
+                    checkApt.status = 'expired';
+                    await checkApt.save();
+
+                    // Release astro or move to next
+                    const isStillBusy = await Appointment.countDocuments({ astrologerId, status: 'waiting' });
+                    if (isStillBusy === 0) {
+                        await User.updateOne({ userId: astrologerId }, { $set: { isBusy: false, isAvailable: true } });
+                    }
+                    
+                    // Trigger next in line
+                    processNextInQueue(astrologerId, io || global.io);
+                }
+            }, 3 * 60 * 1000); // 3 Minutes
+
             // Notify Astrologer of updated count
             if (io || global.io) {
                 const currentCount = await Appointment.countDocuments({ astrologerId, status: 'waiting' });

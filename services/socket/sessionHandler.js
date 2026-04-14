@@ -89,6 +89,13 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 clientId, astrologerId, status: 'requested'
             });
 
+            // QUEUE SYNC: If this call is from a waitlist, mark it as in-progress
+            const Appointment = require('../../models/Appointment');
+            await Appointment.updateOne(
+                { clientId, astrologerId, status: 'notified' },
+                { $set: { status: 'in-progress', sessionId } }
+            );
+
             const callerDisplayName = birthData?.name || fromUser?.name || 'Client';
             const callerImage = formatImageUrl(fromUser?.image, callerDisplayName);
 
