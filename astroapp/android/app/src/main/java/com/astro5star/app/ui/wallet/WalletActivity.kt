@@ -343,17 +343,25 @@ fun WalletScreen(
             
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
                 Text(
-                    "Available Balance",
+                    "Available Total Balance",
                     fontSize = 16.sp,
                     color = astroBlack,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    "₹ ${balance}",
+                    "₹ ${balance + superBalance}",
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Black,
                     color = astroBlack
                 )
+                if (superBalance > 0) {
+                    Text(
+                        "(Main: ₹$balance + Bonus: ₹$superBalance)",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(24.dp))

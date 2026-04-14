@@ -88,6 +88,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
             if (data.service === 'chat') update.isChatOnline = isEnabled;
             if (data.service === 'call' || data.service === 'audio') update.isAudioOnline = isEnabled;
             if (data.service === 'video') update.isVideoOnline = isEnabled;
+            if (data.service === 'unlimited') update.unlimitedOfferEnabled = isEnabled;
 
             let user = await User.findOne({ userId });
             if (user) {
@@ -101,6 +102,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                     isChatOnline: user.isChatOnline,
                     isAudioOnline: user.isAudioOnline,
                     isVideoOnline: user.isVideoOnline,
+                    unlimitedOfferEnabled: user.unlimitedOfferEnabled,
                     isOnline: user.isOnline,
                     isAvailable: user.isAvailable,
                     lastSeen: user.lastSeen
@@ -332,6 +334,7 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
                 if (data.chatPrice) updates.chatPrice = parseInt(data.chatPrice);
                 if (data.audioPrice) updates.audioPrice = parseInt(data.audioPrice);
                 if (data.videoPrice) updates.videoPrice = parseInt(data.videoPrice);
+                if (data.unlimitedPrice) updates.unlimitedPrice = parseInt(data.unlimitedPrice);
             }
 
             // PERFORMANCE: Use findOneAndUpdate to get updated doc in one atomic op, avoiding VersionError

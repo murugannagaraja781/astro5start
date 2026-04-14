@@ -210,6 +210,24 @@ fun BannerSection(banners: List<Banner>, onBannerClick: (Banner) -> Unit) {
                              }
                         }
                     }
+
+                    // 4. Top-Right Offer Badge (moved out of Column for better alignment)
+                    if ((banner.offerPercentage ?: 0.0) > 0.0) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(16.dp)
+                                .background(Color.Red, RoundedCornerShape(8.dp))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "${banner.offerPercentage?.toInt()}% OFF",
+                                color = Color.White,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
                 }
             }
         }

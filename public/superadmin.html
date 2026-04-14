@@ -3508,7 +3508,7 @@
             const rows = document.querySelectorAll('#recharge-packs-body tr');
             const packs = Array.from(rows).map(r => ({
                 amount: parseInt(r.querySelector('.rp-amount').value),
-                offerPercentage: parseInt(r.querySelector('.rp-offer').value),
+                offerPercentage: parseFloat(r.querySelector('.rp-offer').value),
                 bonusText: r.querySelector('.rp-text').value
             })).filter(p => !isNaN(p.amount));
 

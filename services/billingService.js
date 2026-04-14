@@ -113,6 +113,13 @@ async function tickSessions(io) {
 
                     io.to(session.clientId).emit('timer-update', timerPayload);
                     io.to(session.astrologerId).emit('timer-update', timerPayload);
+
+                    // 2-Minute Warning for Unlimited
+                    if (session.type === 'unlimited' && remainingSeconds === 120) {
+                        const warningMsg = "Your 40-minute session will end in 2 minutes.";
+                        io.to(session.clientId).emit('session-warning', { message: warningMsg });
+                        io.to(session.astrologerId).emit('session-warning', { message: warningMsg });
+                    }
                 }
             }
         }

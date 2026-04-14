@@ -325,6 +325,13 @@ fun AstrologerDashboardScreen(
     var isChatOnline by remember { mutableStateOf(false) }
     var isAudioOnline by remember { mutableStateOf(false) }
     var isVideoOnline by remember { mutableStateOf(false) }
+    
+    // Separate Prices
+    var chatPrice by remember { mutableIntStateOf(10) }
+    var audioPrice by remember { mutableIntStateOf(20) }
+    var videoPrice by remember { mutableIntStateOf(30) }
+    var unlimitedPrice by remember { mutableIntStateOf(299) }
+    var unlimitedEnabled by remember { mutableStateOf(false) }
 
     var refreshTrigger by remember { mutableIntStateOf(0) }
 
@@ -357,13 +364,6 @@ fun AstrologerDashboardScreen(
     }
 
 
-    val services = remember {
-        mutableStateListOf(
-            ServiceData("Chat", true, Icons.Default.Chat),
-            ServiceData("Call", true, Icons.Default.Call),
-            ServiceData("Video", true, Icons.Default.Person)
-        )
-    }
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
 
@@ -406,6 +406,13 @@ fun AstrologerDashboardScreen(
                     isChatOnline = chatFromDb
                     isAudioOnline = audioFromDb
                     isVideoOnline = videoFromDb
+
+                    // Sync Prices
+                    chatPrice = json.optInt("chatPrice", 10)
+                    audioPrice = json.optInt("audioPrice", 20)
+                    videoPrice = json.optInt("videoPrice", 30)
+                    unlimitedPrice = json.optInt("unlimitedPrice", 299)
+                    unlimitedEnabled = json.optBoolean("unlimitedOfferEnabled", false)
 
                     // Reconnect socket if any service is online
                     if (isChatOnline || isAudioOnline || isVideoOnline) {
@@ -926,11 +933,16 @@ fun AstrologerDashboardScreen(
                 }
             }
 
-            // 3b. Service Toggles (Separate for Chat, Audio, Video)
+            // 3b. Service Toggles (Separate for Chat, Audio, Video, Unlimited)
             ServiceTogglesCard(
                 isChatOnline = isChatOnline,
                 isAudioOnline = isAudioOnline,
                 isVideoOnline = isVideoOnline,
+                chatPrice = chatPrice,
+                audioPrice = audioPrice,
+                videoPrice = videoPrice,
+                unlimitedPrice = unlimitedPrice,
+                unlimitedEnabled = unlimitedEnabled,
                 onChatToggle = { enabled ->
                     if (enabled) {
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M && !android.provider.Settings.canDrawOverlays(context)) {
@@ -1019,8 +1031,13 @@ fun AstrologerDashboardScreen(
                             updateServiceStatus(context, sessionId, "video", false)
                         }
                     }
+                },
+                onUnlimitedToggle = { enabled ->
+                    unlimitedEnabled = enabled
+                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        updateServiceStatus(context, sessionId, "unlimited", enabled)
+                    }
                 }
-
             )
 
 
@@ -1128,9 +1145,15 @@ fun ServiceTogglesCard(
     isChatOnline: Boolean,
     isAudioOnline: Boolean,
     isVideoOnline: Boolean,
+    chatPrice: Int,
+    audioPrice: Int,
+    videoPrice: Int,
+    unlimitedPrice: Int,
+    unlimitedEnabled: Boolean,
     onChatToggle: (Boolean) -> Unit,
     onAudioToggle: (Boolean) -> Unit,
-    onVideoToggle: (Boolean) -> Unit
+    onVideoToggle: (Boolean) -> Unit,
+    onUnlimitedToggle: (Boolean) -> Unit
 ) {
     val dashColors = object {
         val accent = Color(0xFF00E676)
@@ -1156,6 +1179,7 @@ fun ServiceTogglesCard(
             // Chat Toggle
             ServiceToggleRow(
                 label = "Chat",
+                subLabel = "₹$chatPrice/min",
                 icon = Icons.Default.Chat,
                 isEnabled = isChatOnline,
                 onToggle = onChatToggle
@@ -1166,6 +1190,7 @@ fun ServiceTogglesCard(
             // Audio Call Toggle
             ServiceToggleRow(
                 label = "Audio Call",
+                subLabel = "₹$audioPrice/min",
                 icon = Icons.Default.Call,
                 isEnabled = isAudioOnline,
                 onToggle = onAudioToggle
@@ -1176,9 +1201,23 @@ fun ServiceTogglesCard(
             // Video Call Toggle
             ServiceToggleRow(
                 label = "Video Call",
+                subLabel = "₹$videoPrice/min",
                 icon = Icons.Default.Videocam,
                 isEnabled = isVideoOnline,
                 onToggle = onVideoToggle
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+            Divider(color = Color.White.copy(alpha = 0.1f))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Unlimited Offer Toggle
+            ServiceToggleRow(
+                label = "Unlimited (40 Min)",
+                subLabel = "₹$unlimitedPrice/session",
+                icon = Icons.Default.Star,
+                isEnabled = unlimitedEnabled,
+                onToggle = onUnlimitedToggle
             )
         }
     }
@@ -1187,6 +1226,7 @@ fun ServiceTogglesCard(
 @Composable
 fun ServiceToggleRow(
     label: String,
+    subLabel: String = "",
     icon: ImageVector,
     isEnabled: Boolean,
     onToggle: (Boolean) -> Unit
@@ -1213,13 +1253,21 @@ fun ServiceToggleRow(
             modifier = Modifier.size(22.dp)
         )
         Spacer(modifier = Modifier.width(10.dp))
-        Text(
-            label,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Medium,
-            color = dashColors.textPrimary,
-            modifier = Modifier.weight(1f)
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                label,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = dashColors.textPrimary
+            )
+            if (subLabel.isNotEmpty()) {
+                Text(
+                    subLabel,
+                    fontSize = 11.sp,
+                    color = if (isEnabled) Color(0xFFA5D6A7) else Color.Gray
+                )
+            }
+        }
         Text(
             if (isEnabled) "ON" else "OFF",
             fontSize = 12.sp,

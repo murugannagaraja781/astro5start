@@ -262,6 +262,7 @@ class HomeActivity : AppCompatActivity() {
                                 putExtra("video_price", astro.videoPrice)
                                 putExtra("unlimited_price", astro.unlimitedPrice)
                                 putExtra("unlimited_enabled", astro.unlimitedOfferEnabled)
+                                putExtra("is_busy", astro.isBusy)
                             }
                             startActivity(profileIntent)
                         }
@@ -609,6 +610,7 @@ class HomeActivity : AppCompatActivity() {
                         putExtra("video_price", astro.videoPrice)
                         putExtra("unlimited_price", astro.unlimitedPrice)
                         putExtra("unlimited_enabled", astro.unlimitedOfferEnabled)
+                        putExtra("is_busy", astro.isBusy)
                     }
                     startActivity(profileIntent)
                 } else {

@@ -66,6 +66,7 @@ class AstrologerProfileActivity : ComponentActivity() {
         val isChatOnline = intent.getBooleanExtra("is_chat_online", false)
         val isAudioOnline = intent.getBooleanExtra("is_audio_online", false)
         val isVideoOnline = intent.getBooleanExtra("is_video_online", false)
+        val isBusy = intent.getBooleanExtra("is_busy", false)
 
         setContent {
             CosmicAppTheme {
@@ -84,6 +85,7 @@ class AstrologerProfileActivity : ComponentActivity() {
                     isChatOnline = isChatOnline,
                     isAudioOnline = isAudioOnline,
                     isVideoOnline = isVideoOnline,
+                    isBusy = isBusy,
                     onBack = { finish() },
                     onAction = { type ->
                         val intent = android.content.Intent(this, com.astro5star.app.ui.intake.IntakeActivity::class.java).apply {
@@ -117,6 +119,7 @@ fun AstrologerProfileScreen(
     isChatOnline: Boolean,
     isAudioOnline: Boolean,
     isVideoOnline: Boolean,
+    isBusy: Boolean,
     onBack: () -> Unit,
     onAction: (String) -> Unit
 ) {
@@ -548,9 +551,28 @@ fun AstrologerProfileScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Waitlist Option (If Offline)
-                if (!isChatOnline && !isAudioOnline && !isVideoOnline) {
+                // Waitlist Option (If Offline OR Busy)
+                val isAnyOnline = isChatOnline || isAudioOnline || isVideoOnline
+                if (!isAnyOnline || isBusy) {
                     Spacer(modifier = Modifier.height(16.dp))
+                    
+                    if (isBusy) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFFFB300).copy(alpha = 0.1f),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                        ) {
+                            Text(
+                                "Astrologer is currently BUSY in another consultation.",
+                                modifier = Modifier.padding(12.dp),
+                                color = Color(0xFFE65100),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
                     Button(
                         onClick = {
                             if (currentUser == null) {
@@ -579,9 +601,9 @@ fun AstrologerProfileScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.Default.Star, null, tint = Color.White)
+                        Icon(Icons.Default.AccessTime, null, tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Join Waitlist / Notify Me", fontWeight = FontWeight.Bold)
+                        Text(if (isBusy) "Join Waitlist" else "Notify Me when Online", fontWeight = FontWeight.Bold)
                     }
                 }
 
