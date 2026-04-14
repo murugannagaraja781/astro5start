@@ -25,6 +25,7 @@ router.post('/referral/apply', userController.applyReferral);
 
 const { upload } = require('../config/multer');
 router.post('/user/profile-pic', upload.single('image'), userController.uploadProfilePic);
+router.post('/call/upload-recording', upload.single('recording'), userController.uploadRecording);
 
 // Appointment & Queue
 const appointmentController = require('../controllers/appointmentController');

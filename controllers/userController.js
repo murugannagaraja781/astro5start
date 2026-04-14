@@ -139,14 +139,15 @@ const getSessionHistory = async (req, res) => {
             const durationFormatted = `${minutes}m ${seconds}s`;
 
             return {
-                ...s,
+                ...s, // Includes recordingUrl from DB
+                recordingUrl: s.recordingUrl ? formatImageUrl(s.recordingUrl, 'Recording') : null,
                 clientName: cName,
                 astrologerName: aName,
                 totalAmount: totalCharged,
                 astroProfit: totalEarned,
                 adminProfit: adminProfit,
                 durationFormatted: durationFormatted,
-                readableSummary: `Call: ${aName} (${durationFormatted}) | Charge: ₹${totalCharged.toFixed(2)}`
+                readableSummary: `${s.type === 'chat' ? 'Chat' : 'Call'}: ${aName} (${durationFormatted}) | Charge: ₹${totalCharged.toFixed(2)}`
             };
         });
 
@@ -583,6 +584,21 @@ const applyReferral = async (req, res) => {
     }
 };
 
+const uploadRecording = async (req, res) => {
+    try {
+        const { sessionId } = req.body;
+        if (!req.file) return res.status(400).json({ ok: false, error: 'No file uploaded' });
+        if (!sessionId) return res.status(400).json({ ok: false, error: 'sessionId required' });
+
+        const recordingUrl = req.file.filename;
+        await Session.updateOne({ sessionId }, { $set: { recordingUrl } });
+
+        res.json({ ok: true, recordingUrl: formatImageUrl(recordingUrl, 'Recording') });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
 module.exports = {
     getUserProfile,
     getAstrologers,
@@ -600,5 +616,6 @@ module.exports = {
     getChatHistory,
     uploadProfilePic,
     initiateCall,
-    applyReferral
+    applyReferral,
+    uploadRecording
 };

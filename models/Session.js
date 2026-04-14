@@ -25,7 +25,8 @@ const SessionSchema = new mongoose.Schema({
     endTime: Number,
     duration: Number,
     totalEarned: Number, 
-    totalCharged: Number 
+    totalCharged: Number,
+    recordingUrl: { type: String } // URL to call recording audio file
 });
 
 module.exports = mongoose.model('Session', SessionSchema);
