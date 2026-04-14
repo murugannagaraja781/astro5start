@@ -176,7 +176,7 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
 
             if (totalMinutes > lastBilled) {
                 for (let i = lastBilled + 1; i <= totalMinutes; i++) {
-                    processBillingCharge(sessionId, i, 'client_full_charge', io);
+                    await processBillingCharge(sessionId, i, 'client_full_charge', io);
                 }
             }
         }
