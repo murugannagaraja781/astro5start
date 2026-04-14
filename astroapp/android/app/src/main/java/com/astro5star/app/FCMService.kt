@@ -198,10 +198,10 @@ class FCMService : FirebaseMessagingService() {
                         Log.d(TAG, "App in foreground - skipping notification for $messageId")
                     }
                 }
-                "QUEUE_TURN" -> {
+                "QUEUE_TURN", "ASTRO_ONLINE", "ASTRO_AVAILABLE" -> {
                     val astrologerId = data["astrologerId"] ?: ""
-                    val title = data["title"] ?: "It's your turn!"
-                    val body = data["body"] ?: "Astrologer is now free. Connect now!"
+                    val title = data["title"] ?: (if (messageType == "ASTRO_ONLINE") "🌟 ஜோதிடர் ஆன்லைனில் உள்ளார்!" else "It's your turn!")
+                    val body = data["body"] ?: (if (messageType == "ASTRO_ONLINE") "உங்களுக்குப் பிடித்தமான ஜோதிடர் இப்போது ஆன்லைனில் உள்ளார்." else "Astrologer is now free. Connect now!")
                     
                     val intent = Intent(this, com.astro5star.app.ui.home.HomeActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -212,31 +212,46 @@ class FCMService : FirebaseMessagingService() {
                         this, System.currentTimeMillis().toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                     )
                     
-                    val notification = NotificationCompat.Builder(this, CHAT_CHANNEL_ID)
+                    val notificationBuilder = NotificationCompat.Builder(this, CHAT_CHANNEL_ID)
                         .setSmallIcon(R.mipmap.ic_launcher)
                         .setContentTitle(title)
                         .setContentText(body)
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
                         .setContentIntent(pendingIntent)
                         .setAutoCancel(true)
-                        .build()
-                        
+
+                    // Unified handling for data images if present: Set as Large Icon for 'Jothidar' feel
+                    data["image"]?.let { imgUrl ->
+                         try {
+                             val url = java.net.URL(imgUrl)
+                             val connection = url.openConnection() as java.net.HttpURLConnection
+                             connection.doInput = true
+                             connection.connect()
+                             val input = connection.inputStream
+                             val bitmap = android.graphics.BitmapFactory.decodeStream(input)
+                             notificationBuilder.setLargeIcon(bitmap)
+                             notificationBuilder.setStyle(NotificationCompat.BigPictureStyle().bigPicture(bitmap).bigLargeIcon(null as android.graphics.Bitmap?))
+                         } catch (e: Exception) {
+                             Log.e("FCMService", "Image download failed: ${e.message}")
+                         }
+                    }
+                    
                     val notificationManager = getSystemService(NotificationManager::class.java)
-                    notificationManager.notify(astrologerId.hashCode(), notification)
+                    notificationManager.notify(astrologerId.hashCode(), notificationBuilder.build())
                 }
                 "WALLET_DEBIT" -> {
                     // Removed SoundManager call as per user request to silence wallet notifications
-                    showGenericNotification(data["title"] ?: "Wallet Updated", data["body"] ?: "Amount deducted")
+                    showGenericNotification(data["title"] ?: "Wallet Updated", data["body"] ?: "Amount deducted", data)
                 }
                 "WALLET_CREDIT" -> {
                     // Removed SoundManager call as per user request to silence wallet notifications
-                    showGenericNotification(data["title"] ?: "Earnings Updated", data["body"] ?: "Amount credited")
+                    showGenericNotification(data["title"] ?: "Earnings Updated", data["body"] ?: "Amount credited", data)
                 }
                 else -> {
                     // Handle generic data messages or unknown types by showing a simple notification
                     val title = data["title"] ?: message.notification?.title ?: "Astro5Star"
                     val body = data["body"] ?: message.notification?.body ?: "New Message"
-                    showGenericNotification(title, body)
+                    showGenericNotification(title, body, data)
                 }
             }
         }
@@ -251,15 +266,31 @@ class FCMService : FirebaseMessagingService() {
         }
     }
 
-    private fun showGenericNotification(title: String, body: String) {
+    private fun showGenericNotification(title: String, body: String, data: Map<String, String>? = null) {
+        val intent = if (data != null && data.containsKey("astrologerId")) {
+            Intent(this, com.astro5star.app.ui.home.HomeActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("open_astro_id", data["astrologerId"])
+            }
+        } else {
+            Intent(this, com.astro5star.app.MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this, System.currentTimeMillis().toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val notification = NotificationCompat.Builder(this, CHAT_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()
-
+ 
         val notificationManager = getSystemService(NotificationManager::class.java)
         notificationManager.notify(GENERIC_NOTIFICATION_ID, notification)
     }

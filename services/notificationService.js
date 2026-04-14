@@ -5,8 +5,11 @@ const User = require('../models/User');
 
 const notifyFollowersOfOnlineStatus = async (astrologerId) => {
     try {
-        const astrologer = await User.findOne({ userId: astrologerId }).select('userId name followers').lean();
+        const astrologer = await User.findOne({ userId: astrologerId }).select('userId name followers image').lean();
         if (!astrologer || !astrologer.followers || astrologer.followers.length === 0) return;
+
+        const { formatImageUrl } = require('../utils/formatImage');
+        const astroImg = formatImageUrl(astrologer.image, astrologer.name);
 
         console.log(`[Notification] Notifying ${astrologer.followers.length} followers of ${astrologer.name}'s online status.`);
 
@@ -20,12 +23,14 @@ const notifyFollowersOfOnlineStatus = async (astrologerId) => {
             if (follower.fcmToken) {
                 const notification = {
                     title: "🌟 ஜோதிடர் ஆன்லைனில் உள்ளார்!",
-                    body: `உங்களுக்குப் பிடித்தமான ஜோதிடர் ${astrologer.name} இப்போது ஆன்லைனில் உங்கள் அழைப்பிற்காகக் காத்திருக்கிறார். உடனே அவரிடம் ஆலோசனை பெறவும்!`
+                    body: `உங்களுக்குப் பிடித்தமான ஜோதிடர் ${astrologer.name} இப்போது ஆன்லைனில் உங்கள் அழைப்பிற்காகக் காத்திருக்கிறார். உடனே அவரிடம் ஆலோசனை பெறவும்!`,
+                    image: astroImg
                 };
                 const data = { 
                     type: 'ASTRO_ONLINE', 
                     astrologerId: astrologer.userId, 
-                    astrologerName: astrologer.name 
+                    astrologerName: astrologer.name,
+                    image: astroImg
                 };
                 sendFcmV1Push(follower.fcmToken, data, notification).catch(() => {});
             }
@@ -44,8 +49,11 @@ const notifyFollowersOfOnlineStatus = async (astrologerId) => {
 const notifyWaitlistUsers = async (astrologerId) => {
     try {
         const Appointment = require('../models/Appointment');
-        const astrologer = await User.findOne({ userId: astrologerId }).select('userId name').lean();
+        const astrologer = await User.findOne({ userId: astrologerId }).select('userId name image').lean();
         if (!astrologer) return;
+
+        const { formatImageUrl } = require('../utils/formatImage');
+        const astroImg = formatImageUrl(astrologer.image, astrologer.name);
 
         // Using Appointment model for queue instead of old Waitlist model for live consistency
         const pending = await Appointment.find({ astrologerId, status: 'waiting' }).lean();
@@ -63,9 +71,10 @@ const notifyWaitlistUsers = async (astrologerId) => {
             if (client.fcmToken) {
                 const notification = {
                     title: "🔔 ஜோதிடர் முன்பதிவு!",
-                    body: `ஜோதிடர் ${astrologer.name} இப்போது ஆன்லைனில் வந்துள்ளார். ஏற்கனவே காத்திருப்புப் பட்டியலில் இருக்கும் நீங்கள், உடனே அவரிடம் ஆலோசனை பெறலாம்!`
+                    body: `ஜோதிடர் ${astrologer.name} இப்போது ஆன்லைனில் வந்துள்ளார். ஏற்கனவே காத்திருப்புப் பட்டியலில் இருக்கும் நீங்கள், உடனே அவரிடம் ஆலோசனை பெறலாம்!`,
+                    image: astroImg
                 };
-                const data = { type: 'ASTRO_AVAILABLE', astrologerId: astrologer.userId };
+                const data = { type: 'ASTRO_AVAILABLE', astrologerId: astrologer.userId, image: astroImg };
                 sendFcmV1Push(client.fcmToken, data, notification).catch(e => {});
             }
 
