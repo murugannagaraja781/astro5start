@@ -36,12 +36,13 @@ const connectDB = require('./config/database');
 const { initSocket } = require('./services/socketManager');
 const { isAdmin } = require('./middleware/authMiddleware');
 const { initFcmAuth } = require('./services/fcmService');
-const multer = require('multer');
+const uploadDir = path.join(__dirname, 'uploads');
+if (!require('fs').existsSync(uploadDir)) require('fs').mkdirSync(uploadDir);
 
 // Configure Multer for File Uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'public/uploads/');
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);

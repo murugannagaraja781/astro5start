@@ -75,3 +75,4 @@ firebase-service-account.json
 releases/
 build_tools/
 tailwindcss-macos-arm64
+astroapp/android/app/src/main/assets/csc.db
