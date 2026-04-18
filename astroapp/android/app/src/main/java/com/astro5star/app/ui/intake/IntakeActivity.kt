@@ -187,6 +187,7 @@ fun IntakeScreen(
     var occupation by remember { mutableStateOf("") }
     var maritalStatus by remember { mutableStateOf("Single") }
     var topic by remember { mutableStateOf("Career / Job") }
+    var selectedOfferType by remember { mutableStateOf("normal") } // normal, silver, gold, diamond
 
     // Partner
     var includePartner by remember { mutableStateOf(false) }
@@ -626,7 +627,7 @@ fun IntakeScreen(
              if (partnerId != null && callType != null) {
                  SocketManager.init()
                  submittedBirthData = birthData
-                 SocketManager.requestSession(partnerId, callType, birthData) { response ->
+                 SocketManager.requestSession(partnerId, callType, birthData, if (callType == "unlimited") selectedOfferType else null) { response ->
                      if (response?.optBoolean("ok") == true) {
                          waitingSessionId = response.optString("sessionId")
                          scope.launch { isWaiting = true }
@@ -883,6 +884,31 @@ fun IntakeScreen(
                                 items = listOf("General", "Marriage", "Career", "Finance", "Health", "Education", "Legal"),
                                 onSelect = { topic = it }
                             )
+
+                            if (callType == "unlimited") {
+                                val offerLabels = listOf(
+                                    "Normal (15m - ₹200)",
+                                    "Silver (30m - ₹350)",
+                                    "Gold (45m - ₹500)",
+                                    "Diamond (60m - ₹700)"
+                                )
+                                val offerValues = listOf("normal", "silver", "gold", "diamond")
+
+                                var selectedLabelIndex by remember {
+                                    mutableStateOf(offerValues.indexOf(selectedOfferType).coerceAtLeast(0))
+                                }
+
+                                SpinnerDropdown(
+                                    label = "Select Unlimited Plan",
+                                    selected = offerLabels[selectedLabelIndex],
+                                    items = offerLabels,
+                                    onSelect = { label ->
+                                        val idx = offerLabels.indexOf(label)
+                                        selectedLabelIndex = idx
+                                        selectedOfferType = offerValues[idx]
+                                    }
+                                )
+                            }
 
                             // Partners toggle
                             if (callType != "match") {

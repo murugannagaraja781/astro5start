@@ -26,6 +26,8 @@ const SessionSchema = new mongoose.Schema({
     duration: Number,
     totalEarned: Number, 
     totalCharged: Number,
+    offerType: { type: String, enum: ['normal', 'silver', 'gold', 'diamond', null], default: null },
+    unlimitedDuration: { type: Number, default: 0 }, // in minutes
     recordingUrl: { type: String } // URL to call recording audio file
 });
 

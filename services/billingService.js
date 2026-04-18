@@ -17,127 +17,92 @@ async function tickSessions(io) {
         const tickTime = Math.floor(now / 1000);
 
         for (const [sessionId, session] of activeSessions) {
-            if (!session.actualBillingStart) {
-                // If it's a valid session but missing start time, log it once
-                if (session.isAnswered && !session._skipLogSent) {
-                    console.log(`[Ticker] Skipping session ${sessionId}: missing actualBillingStart. isAnswered=${session.isAnswered}`);
-                    session._skipLogSent = true;
-                }
-                continue;
-            }
+            if (!session.actualBillingStart) continue;
             if (now < session.actualBillingStart) continue;
 
-            // STABILITY FIX: Don't pause billing for 1-second socket flickers. 
-            // Only pause if session is explicitly ended or stale beyond 60s without any heartbeat.
             const isSessionValid = session.isAnswered && !session.isEnded;
 
             if (isSessionValid) {
-                // SYNC: Differential time (seconds from start)
                 const secondsElapsed = Math.floor((now - session.actualBillingStart) / 1000);
                 session.elapsedBillableSeconds = secondsElapsed;
 
-                let needsDbSync = false;
-
-                // PERFORMANCE: Fetch client data once for all billing calculations
                 const client = await User.findOne({ userId: session.clientId }).select('isFirstCallDone walletBalance superWalletBalance').lean();
+                if (!client) continue;
 
-                // RULE: Global Free Call Duration (e.g., first 3 minutes free)
                 const { REFERRAL_CONFIG } = require('./sharedState');
-                let freeSeconds = (REFERRAL_CONFIG.FREE_CALL_DURATION || 0) * 60;
                 
-                // NEW REQUIREMENT: First 60 seconds free for the VERY FIRST call of a new user
-                if (client && !client.isFirstCallDone) {
-                    freeSeconds += 60; // Add 1 minute free for the first call
+                // CLIENT BILLING CALCULATION
+                // Rule: 50s free (global), 3m free (first call)
+                const globalFreeSec = REFERRAL_CONFIG.CLIENT_FREE_SECONDS || 50;
+                const firstCallFreeSec = client.isFirstCallDone ? 0 : (REFERRAL_CONFIG.FREE_CALL_DURATION || 3) * 60;
+                
+                // Client rounding: Math.ceil if > 50s. 
+                // Transition points: 51s -> 1m, 61s -> 2m, 121s -> 3m...
+                let clientBillableMin = 0;
+                if (secondsElapsed > globalFreeSec) {
+                    // Total minutes based on ceil rounding
+                    const totalMins = Math.ceil(secondsElapsed / 60);
+                    // Subtract free minutes for first call
+                    clientBillableMin = Math.max(0, totalMins - (firstCallFreeSec / 60));
                 }
 
-                if (secondsElapsed > freeSeconds) {
-                    const billableSecondsSinceFree = secondsElapsed - freeSeconds;
-                    
-                    // RULE: Charge Client at the END of each minute (at 60s, 120s...)
-                    const currentCompletedMinute = Math.floor(billableSecondsSinceFree / 60);
-                    const MAX_CATCHUP = 5;
-
-                    // Mark first call done if they've passed the first 60s milestone
-                    if (currentCompletedMinute >= 1 && client && !client.isFirstCallDone) {
+                if (clientBillableMin > (session.lastBilledMinute || 0)) {
+                    if (clientBillableMin >= 1 && !client.isFirstCallDone) {
                         await User.updateOne({ userId: session.clientId }, { $set: { isFirstCallDone: true } });
-                        // TRIGGER REFERRAL REWARD (₹81 to referrer)
-                        handleReferralPayout(session.clientId, io).catch(e => console.error('[Referral] Hook Error:', e));
                     }
+                    const startMin = (session.lastBilledMinute || 0) + 1;
+                    for (let m = startMin; m <= clientBillableMin; m++) {
+                        if (!activeSessions.has(sessionId)) break;
+                        await processBillingCharge(sessionId, m, 'client_full_charge', io);
+                    }
+                    session.lastBilledMinute = clientBillableMin;
+                }
 
-                    if (currentCompletedMinute > (session.lastBilledMinute || 0)) {
-                        const startMin = (session.lastBilledMinute || 0) + 1;
-                        const endMin = Math.min(currentCompletedMinute, startMin + MAX_CATCHUP - 1);
-                        
-                        for (let m = startMin; m <= endMin; m++) {
-                            // Verify session still exists before charging
-                            if (!activeSessions.has(sessionId)) break;
-                            await processBillingCharge(sessionId, m, 'client_full_charge', io);
-                        }
-                        
-                        // Final check before updating state
-                        if (activeSessions.has(sessionId)) {
-                            session.lastBilledMinute = endMin;
-                            session.lastMaturedMinute = endMin;
-                            await processBillingCharge(sessionId, endMin, 'astro_share_payout', io);
-                            needsDbSync = true;
-                        }
+                // ASTROLOGER PAYOUT CALCULATION
+                // Rule: 1 min free. Rounding > 50s. 
+                // 7m 48s -> 7m. 7m 51s -> 8m.
+                const astroFreeMin = REFERRAL_CONFIG.ASTRO_FREE_MINUTES || 1;
+                const astroThreshold = REFERRAL_CONFIG.ASTRO_ROUNDING_THRESHOLD || 50;
+
+                let astroTotalMinutes = Math.floor(secondsElapsed / 60);
+                if ((secondsElapsed % 60) > astroThreshold) {
+                    astroTotalMinutes += 1;
+                }
+                const astroBillableMinutes = Math.max(0, astroTotalMinutes - astroFreeMin);
+
+                if (astroBillableMinutes > (session.lastMaturedMinute || 0)) {
+                    const startMin = (session.lastMaturedMinute || 0) + 1;
+                    for (let m = startMin; m <= astroBillableMinutes; m++) {
+                        if (!activeSessions.has(sessionId)) break;
+                        await processBillingCharge(sessionId, m, 'astro_share_payout', io);
                     }
+                    session.lastMaturedMinute = astroBillableMinutes;
                 }
 
                 // Periodic slab check (every 10s)
-                if (session.elapsedBillableSeconds % 10 === 0 && session.pairMonthId) {
-                    const oldSlab = session.currentSlab;
+                if (secondsElapsed % 10 === 0 && session.pairMonthId) {
                     updateSessionSlab(session);
-                    if (session.currentSlab !== oldSlab) needsDbSync = true;
                 }
 
-                // PERFORMANCE FIX: Only persist state to DB when billing markers change.
-                if (needsDbSync) {
-                    Session.updateOne({ sessionId }, {
-                        lastBilledMinute: session.lastBilledMinute,
-                        lastMaturedMinute: session.lastMaturedMinute,
-                        currentSlab: session.currentSlab,
-                        totalEarned: session.totalEarned,
-                        totalCharged: session.totalDeducted
-                    }).catch(e => console.error('[Ticker] DB Sync Error', e));
+                // Timer Update
+                let remainingSeconds = 0;
+                if (session.type === 'unlimited') {
+                    remainingSeconds = 2400 - secondsElapsed;
+                } else {
+                    const price = session.pricePerMin || 10;
+                    const totalBalance = (client.walletBalance || 0) + (client.superWalletBalance || 0);
+                    remainingSeconds = Math.floor((totalBalance / price) * 60);
                 }
 
-                // PERFORMANCE FIX: Emit timer-update EVERY second for better UX
-                if (client) {
-                    let remainingSeconds = 0;
-                    if (session.type === 'unlimited') {
-                        // 40 Minute Cap
-                        remainingSeconds = 2400 - secondsElapsed;
-                        if (remainingSeconds < 1) {
-                            console.log(`[Ticker] Force-cutting session ${sessionId}: Unlimited time limit reached.`);
-                            return forceEndSession(sessionId, 'unlimited_limit_reached', io);
-                        }
-                    } else {
-                        const price = session.pricePerMin || 10;
-                        const totalBalance = (client.walletBalance || 0) + (client.superWalletBalance || 0);
-                        remainingSeconds = Math.floor((totalBalance / price) * 60);
+                const timerPayload = {
+                    elapsedSeconds: secondsElapsed,
+                    remainingSeconds: Math.max(0, remainingSeconds)
+                };
+                io.to(session.clientId).emit('timer-update', timerPayload);
+                io.to(session.astrologerId).emit('timer-update', timerPayload);
 
-                        // FINANCIAL SAFETY: Force-cut call IMMEDIATELY if balance hits zero
-                        if (remainingSeconds < 1) {
-                            console.log(`[Ticker] Force-cutting session ${sessionId}: Balance exhausted.`);
-                            return forceEndSession(sessionId, 'insufficient_funds', io);
-                        }
-                    }
-
-                    const timerPayload = {
-                        elapsedSeconds: secondsElapsed,
-                        remainingSeconds: Math.max(0, remainingSeconds)
-                    };
-
-                    io.to(session.clientId).emit('timer-update', timerPayload);
-                    io.to(session.astrologerId).emit('timer-update', timerPayload);
-
-                    // 2-Minute Warning for Unlimited
-                    if (session.type === 'unlimited' && remainingSeconds === 120) {
-                        const warningMsg = "Your 40-minute session will end in 2 minutes.";
-                        io.to(session.clientId).emit('session-warning', { message: warningMsg });
-                        io.to(session.astrologerId).emit('session-warning', { message: warningMsg });
-                    }
+                if (remainingSeconds < 1) {
+                    return forceEndSession(sessionId, 'insufficient_funds', io);
                 }
             }
         }
@@ -151,11 +116,16 @@ async function tickSessions(io) {
 function updateSessionSlab(session) {
     const totalSeconds = (session.initialPairSeconds || 0) + session.elapsedBillableSeconds;
     let calculatedSlab = 1;
-    if (totalSeconds > 1200) calculatedSlab = 4;
+    
+    // RULE: Level 1: 0-5m, Level 2: 5-10m, Level 3: 10-15m, Level 4: 15-20m, Level 5: 20m+
+    if (totalSeconds > 1200) calculatedSlab = 5;
     else if (totalSeconds > 900) calculatedSlab = 4;
     else if (totalSeconds > 600) calculatedSlab = 3;
     else if (totalSeconds > 300) calculatedSlab = 2;
 
+    // RULE: Levels 1-3 are PERMANENT. Levels 4-5 reset to 3 every month.
+    // Logic: If they were 4 or 5 in a PREVIOUS month, we start them at 3 inside tryStartBilling.
+    // During the session, we only progress UPwards.
     const effectiveSlab = Math.max(calculatedSlab, session.currentSlab || 0);
     if (effectiveSlab > session.currentSlab) {
         session.currentSlab = effectiveSlab;
@@ -168,16 +138,13 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
         const session = await Session.findOne({ sessionId });
         if (!session || session.status === 'ended' || session.status === 'rejected') return;
 
-        // Financial Safety Check: Don't process if this exact minute + type is already in the ledger
+        // Financial Safety Check
         const exists = await BillingLedger.exists({ 
             sessionId, 
             minuteIndex, 
             reason: { $regex: type === 'client_full_charge' ? '^first_minute|^minute_start|^unlimited' : '^slab_|^unlimited' } 
         });
-        if (exists) {
-            console.log(`[Billing] Skipping duplicate charge: sid=${sessionId}, minute=${minuteIndex}, type=${type}`);
-            return;
-        }
+        if (exists) return;
 
         const astro = await User.findOne({ userId: session.astrologerId });
         if (!astro) return;
@@ -185,85 +152,86 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
         const client = await User.findOne({ userId: session.clientId });
         if (!client) return;
 
+        const { UNLIMITED_PAYOUT_CONFIG, SLAB_RATES } = require('./sharedState');
         let pricePerMin = 10;
         let isUnlimited = session.type === 'unlimited';
 
-        if (isUnlimited) pricePerMin = astro.unlimitedPrice || 299;
-        else if (session.type === 'chat') pricePerMin = astro.chatPrice || 10;
-        else if (session.type === 'audio') pricePerMin = astro.audioPrice || 20;
-        else if (session.type === 'video') pricePerMin = astro.videoPrice || 30;
-        else if (astro.price && astro.price > 0) pricePerMin = parseInt(astro.price);
+        if (isUnlimited) {
+            // Price is fixed upfront for the selected tier (Normal/Silver/Gold/Diamond)
+            if (session.offerType === 'silver') pricePerMin = 350;
+            else if (session.offerType === 'gold') pricePerMin = 500;
+            else if (session.offerType === 'diamond') pricePerMin = 700;
+            else pricePerMin = 200; // normal
+        } else {
+            if (session.type === 'chat') pricePerMin = astro.chatPrice || 10;
+            else if (session.type === 'audio') pricePerMin = astro.audioPrice || 20;
+            else if (session.type === 'video') pricePerMin = astro.videoPrice || 30;
+            else pricePerMin = parseInt(astro.price) || 10;
+        }
 
         let totalToClientDeduct = 0;
         let adminAmount = 0;
         let astroAmount = 0;
         let reason = '';
-        let isFinalBalanceUpdate = false;
 
-        // UNLIMITED LOGIC: Charge full amount at Minute 1, then 0.
         if (isUnlimited) {
-            if (type === 'client_full_charge') {
-                if (minuteIndex === 1) {
-                    totalToClientDeduct = pricePerMin;
-                    adminAmount = pricePerMin;
-                    reason = 'unlimited_full_upfront';
-                    isFinalBalanceUpdate = true;
-                } else {
-                    return; // No further charges to client
-                }
+            if (type === 'client_full_charge' && minuteIndex === 1) {
+                totalToClientDeduct = pricePerMin;
+                adminAmount = pricePerMin;
+                reason = `unlimited_${session.offerType || 'normal'}_full_upfront`;
             } else if (type === 'astro_share_payout') {
-                // Pay astro 1/40th of their share per minute? 
-                // Or pay based on a virtual per-minute rate (pricePerMin / 40)
-                const virtualPrice = pricePerMin / 40;
+                // RULE: 30% to Astrologer for all call/chat in UNLIMITED.
+                const totalPackagePrice = pricePerMin;
+                const totalDuration = session.unlimitedDuration || 15;
+                const virtualPricePerMin = totalPackagePrice / totalDuration;
+                
+                const astroPercentage = UNLIMITED_PAYOUT_CONFIG.ASTRO_PERCENTAGE || 30;
+                astroAmount = virtualPricePerMin * (astroPercentage / 100);
+                adminAmount = -astroAmount;
+                reason = `unlimited_${session.offerType || 'normal'}_payout_min_${minuteIndex}`;
+            } else {
+                return;
+            }
+        } else {
+            // STANDARD LOGIC
+            if (type === 'client_full_charge') {
+                totalToClientDeduct = pricePerMin;
+                adminAmount = pricePerMin;
+                reason = (minuteIndex === 1) ? 'first_minute_admin' : 'minute_start_admin';
+            } else if (type === 'astro_share_payout') {
                 const activeSess = activeSessions.get(sessionId);
                 const currentSlab = activeSess?.currentSlab || 1;
                 let rate = SLAB_RATES[currentSlab] || 0.30;
                 if (rate > 1) rate = rate / 100;
-                
-                astroAmount = virtualPrice * rate;
-                adminAmount = -astroAmount;
-                reason = `unlimited_slab_${currentSlab}_payout`;
-                isFinalBalanceUpdate = true;
-            }
-        } 
-        // STANDARD LOGIC
-        else if (type === 'client_full_charge') {
-            totalToClientDeduct = pricePerMin;
-            adminAmount = pricePerMin;
-            astroAmount = 0;
-            reason = (minuteIndex === 1) ? 'first_minute_admin' : 'minute_start_admin';
-            isFinalBalanceUpdate = true;
-        } 
-        // TYPE 2: Pay the astrologer their share for a COMPLETED minute (M >= 2).
-        else if (type === 'astro_share_payout') {
-            const activeSess = activeSessions.get(sessionId);
-            const currentSlab = activeSess?.currentSlab || 1;
-            let rate = SLAB_RATES[currentSlab] || 0.30;
-            if (rate > 1) rate = rate / 100;
 
-            const shareAmount = pricePerMin * rate;
-            
-            // We transfer the share from Admin back to Astro for this matured minute.
-            // Client is NOT deducted again.
-            totalToClientDeduct = 0; 
-            astroAmount = shareAmount;
-            adminAmount = -shareAmount; // Deduct from Admin's previous 100% hold
-            reason = `slab_${currentSlab}_payout`;
-            isFinalBalanceUpdate = true;
-        } else {
-            return;
+                astroAmount = pricePerMin * rate;
+                adminAmount = -astroAmount;
+                reason = `slab_${currentSlab}_payout`;
+            } else {
+                return;
+            }
         }
 
         if (totalToClientDeduct > 0) {
             let mainDeduct = totalToClientDeduct;
             let superDeduct = 0;
 
-            // Logic remains for calculation, but update must be atomic
+            // Simple split: Bonus first, then Wallet
             if (client.superWalletBalance > 0) {
-                const potentialSuperDeduct = totalToClientDeduct * 0.3;
-                superDeduct = Math.min(client.superWalletBalance, potentialSuperDeduct);
+                superDeduct = Math.min(client.superWalletBalance, totalToClientDeduct);
                 mainDeduct = totalToClientDeduct - superDeduct;
             }
+
+            const updatedClient = await User.findOneAndUpdate(
+                { userId: client.userId, walletBalance: { $gte: mainDeduct } },
+                { $inc: { walletBalance: -mainDeduct, superWalletBalance: -superDeduct } },
+                { returnDocument: 'after' }
+            );
+
+            if (!updatedClient) return forceEndSession(sessionId, 'insufficient_funds', io);
+            client.walletBalance = updatedClient.walletBalance;
+            client.superWalletBalance = updatedClient.superWalletBalance;
+        }
 
             // ATOMIC UPDATE: No more race conditions
             const updatedClient = await User.findOneAndUpdate(

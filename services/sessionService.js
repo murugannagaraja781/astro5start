@@ -239,14 +239,26 @@ async function tryStartBilling(sessionId, io) {
         if (io) {
             const client = await User.findOne({ userId: session.clientId });
             const astro = await User.findOne({ userId: session.astrologerId });
-            const finalPrice = (session.type === 'unlimited') ? (astro?.unlimitedPrice || 299) : (astro?.price || 10);
-            const balance = (client?.walletBalance || 0) + (client?.superWalletBalance || 0);
-            const availableMinutes = (session.type === 'unlimited') ? 40 : Math.floor(balance / finalPrice);
+            
+            let finalPrice = 10;
+            let availableMinutes = 40;
+
+            if (session.type === 'unlimited') {
+                if (session.offerType === 'silver') finalPrice = 350;
+                else if (session.offerType === 'gold') finalPrice = 500;
+                else if (session.offerType === 'diamond') finalPrice = 700;
+                else finalPrice = 200; // normal
+                availableMinutes = session.unlimitedDuration || 15;
+            } else {
+                finalPrice = (session.type === 'chat' ? astro?.chatPrice : (session.type === 'audio' ? astro?.audioPrice : (session.type === 'video' ? astro?.videoPrice : astro?.price))) || 10;
+                const balance = (client?.walletBalance || 0) + (client?.superWalletBalance || 0);
+                availableMinutes = Math.floor(balance / finalPrice);
+            }
 
             const billingPayload = { 
                 startTime: billingStart,
                 availableMinutes: availableMinutes,
-                clientBalance: balance,
+                clientBalance: (client?.walletBalance || 0) + (client?.superWalletBalance || 0),
                 ratePerMinute: finalPrice
             };
 
@@ -373,10 +385,19 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
             userActiveSession.set(astrologerId, sessionId);
             userActiveSession.set(fromUserId, sessionId);
 
+            // Initialize Slab for the pair (Monthly Reset Handling)
+            const pairMonth = await initPairMonth(session.clientId, astrologerId);
+            if (pairMonth) {
+                session.pairMonthId = pairMonth._id;
+                session.currentSlab = pairMonth.currentSlab || 1;
+                session.initialPairSeconds = pairMonth.slabLockedAt || 0;
+            }
+
             User.updateOne({ userId: astrologerId }, { isBusy: true }).catch(e => {});
             Session.updateOne({ sessionId }, { 
                 status: 'active', 
-                startTime: Date.now()
+                startTime: Date.now(),
+                currentSlab: session.currentSlab || 1
             }).catch(e => {});
 
             if (broadcastAstroUpdate) broadcastAstroUpdate();
@@ -423,6 +444,41 @@ async function cancelCall(sessionId, toUserId, fromUserId, io, broadcastAstroUpd
     }
 }
 
+async function initPairMonth(clientId, astrologerId) {
+    try {
+        const yearMonth = new Date().toISOString().substring(0, 7); // "YYYY-MM"
+        const pairId = `${clientId}_${astrologerId}`;
+
+        let current = await PairMonth.findOne({ pairId, yearMonth });
+        if (current) return current;
+
+        // If not found for current month, look for the most recent one
+        const latest = await PairMonth.findOne({ pairId }).sort({ yearMonth: -1 });
+        let startSlab = 1;
+
+        if (latest) {
+            // RULE: Levels 1-3 are permanent. Levels 4-5 reset to 3 each month.
+            if (latest.currentSlab >= 3) {
+                startSlab = 3;
+            } else {
+                startSlab = latest.currentSlab || 1;
+            }
+        }
+
+        return await PairMonth.create({
+            pairId,
+            clientId,
+            astrologerId,
+            yearMonth,
+            currentSlab: startSlab,
+            slabLockedAt: (latest ? latest.slabLockedAt : 0) // optional: keep history
+        });
+    } catch (e) {
+        console.error('[PairMonth] Initialization Error:', e);
+        return null;
+    }
+}
+
 function getOtherUserIdFromSession(sessionId, myUserId) {
     const s = activeSessions.get(sessionId);
     if (!s || !s.users) return null;
@@ -436,5 +492,6 @@ module.exports = {
     handleMissedCallLogic,
     sendCancelCallPush,
     cancelCall,
-    getOtherUserIdFromSession
+    getOtherUserIdFromSession,
+    initPairMonth
 };

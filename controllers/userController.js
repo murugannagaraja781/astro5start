@@ -289,18 +289,19 @@ const verifyOtp = async (req, res) => {
             const userId = crypto.randomUUID();
             
             const { REFERRAL_CONFIG } = require('../services/sharedState');
-            let initialBalance = REFERRAL_CONFIG.REFEREE_BONUS_STANDARD || 108;
+            let initialBonus = REFERRAL_CONFIG.INITIAL_BONUS_AMOUNT || 108;
             let referredBy = null;
 
             if (referralCode) {
                 const referrer = await User.findOne({ referralCode: referralCode.toUpperCase() });
                 if (referrer) {
                     referredBy = referrer.userId;
-                    initialBalance = REFERRAL_CONFIG.REFEREE_BONUS_REFERRAL || 188;
-                    
-                    // Increment count immediately, but credit money on first call
-                    referrer.referralCount = (referrer.referralCount || 0) + 1;
-                    await referrer.save();
+                    // User A gets 50 Bonus immediately when User B (this user) signs up with OTP
+                    const rewardAmount = REFERRAL_CONFIG.REFERRER_REWARD || 50;
+                    await User.updateOne(
+                        { userId: referrer.userId },
+                        { $inc: { superWalletBalance: rewardAmount, referralCount: 1 } }
+                    );
                 }
             }
 
@@ -309,7 +310,8 @@ const verifyOtp = async (req, res) => {
                 phone: cleanPhone,
                 role: cleanPhone === '9876543210' ? 'superadmin' : (cleanPhone === '8000000001' ? 'astrologer' : 'client'),
                 name: 'User ' + cleanPhone.slice(-4),
-                walletBalance: initialBalance,
+                walletBalance: 0, // Recharge only
+                superWalletBalance: initialBonus, // Bonus only
                 referredBy,
                 approvalStatus: cleanPhone === '8000000001' ? 'approved' : 'pending'
             });

@@ -726,9 +726,18 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                             }
                             if (msg.type == "image" && !msg.fileUrl.isNullOrEmpty()) {
                                 val fullUrl = remember(msg.fileUrl) {
-                                    if (msg.fileUrl!!.startsWith("http")) msg.fileUrl!!
-                                    else if (msg.fileUrl!!.startsWith("/")) "${com.astro5star.app.utils.Constants.SERVER_URL}${msg.fileUrl}"
-                                    else "${com.astro5star.app.utils.Constants.SERVER_URL}/uploads/${msg.fileUrl}"
+                                    var url = msg.fileUrl ?: ""
+                                    // Brute-force: Replace old domain with IP if found
+                                    if (url.contains("astro5star.com")) {
+                                        url = url.replace("https://astro5star.com", com.astro5star.app.utils.Constants.SERVER_URL)
+                                            .replace("http://astro5star.com", com.astro5star.app.utils.Constants.SERVER_URL)
+                                    }
+                                    
+                                    when {
+                                        url.startsWith("http") -> url
+                                        url.startsWith("/") -> "${com.astro5star.app.utils.Constants.SERVER_URL}$url"
+                                        else -> "${com.astro5star.app.utils.Constants.SERVER_URL}/uploads/$url"
+                                    }
                                 }
 
                                 SubcomposeAsyncImage(
@@ -736,28 +745,32 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                                     contentDescription = "Image",
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .heightIn(max = 250.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color.Gray.copy(alpha = 0.1f))
+                                        .heightIn(max = 300.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color.Gray.copy(alpha = 0.05f))
                                         .clickable {
                                             val intent = Intent(context, com.astro5star.app.ui.chat.FullScreenImageActivity::class.java)
                                             intent.putExtra("imageUrl", fullUrl)
                                             context.startActivity(intent)
                                         },
-                                    contentScale = ContentScale.Fit,
+                                    contentScale = ContentScale.FillWidth,
                                     loading = {
-                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                                        Box(modifier = Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
+                                            CircularProgressIndicator(modifier = Modifier.size(30.dp), strokeWidth = 2.dp)
                                         }
                                     },
                                     error = {
                                         Column(
-                                            modifier = Modifier.fillMaxSize().padding(16.dp),
+                                            modifier = Modifier.fillMaxWidth().padding(16.dp),
                                             horizontalAlignment = Alignment.CenterHorizontally,
                                             verticalArrangement = Arrangement.Center
                                         ) {
-                                            Icon(Icons.Default.Warning, null, tint = Color.Red, modifier = Modifier.size(24.dp))
-                                            Text("Failed", fontSize = 10.sp, color = Color.Red)
+                                            Icon(Icons.Default.Warning, null, tint = Color.Gray, modifier = Modifier.size(24.dp))
+                                            Text("Image not available", fontSize = 11.sp, color = Color.Gray)
+                                            // Debug: Show a snippet of the URL if it fails
+                                            if (fullUrl.length > 5) {
+                                                Text(fullUrl.takeLast(15), fontSize = 8.sp, color = Color.LightGray)
+                                            }
                                         }
                                     }
                                 )

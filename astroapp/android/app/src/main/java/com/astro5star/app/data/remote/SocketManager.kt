@@ -112,10 +112,13 @@ object SocketManager {
         return socket
     }
 
-    fun requestSession(toUserId: String, type: String, birthData: JSONObject? = null, callback: ((JSONObject?) -> Unit)? = null) {
+    fun requestSession(toUserId: String, type: String, birthData: JSONObject? = null, offerType: String? = null, callback: ((JSONObject?) -> Unit)? = null) {
         val payload = JSONObject().apply {
             put("toUserId", toUserId)
             put("type", type)
+            if (offerType != null) {
+                put("offerType", offerType)
+            }
             if (birthData != null) {
                 put("birthData", birthData)
             }

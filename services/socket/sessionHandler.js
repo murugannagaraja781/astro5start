@@ -24,7 +24,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
     socket.on('request-session', async (data, cb) => {
         try {
-            const { toUserId, type, birthData } = data || {};
+            const { toUserId, type, birthData, offerType } = data || {};
             const fromUserId = socketToUser.get(socket.id);
 
             if (!fromUserId) if (typeof cb === "function") return cb({ ok: false, error: 'Not registered' });
@@ -75,18 +75,26 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 clientId = toUserId;
                 astrologerId = fromUserId;
             } else if (toUser && toUser.role === 'astrologer') {
-                // Testing fallback: if target is an astrologer, treat them as the astrologer side
                 astrologerId = toUserId;
                 clientId = fromUserId;
             } else {
-                // Secondary fallback: from is client, to is astrologer
                 clientId = fromUserId;
                 astrologerId = toUserId;
             }
 
+            let unlimitedDuration = 0;
+            if (type === 'unlimited') {
+                if (offerType === 'silver') unlimitedDuration = 30;
+                else if (offerType === 'gold') unlimitedDuration = 45;
+                else if (offerType === 'diamond') unlimitedDuration = 60;
+                else unlimitedDuration = 15; // normal default
+            }
+
             await Session.create({
                 sessionId, fromUserId, toUserId, type, startTime: Date.now(),
-                clientId, astrologerId, status: 'requested'
+                clientId, astrologerId, status: 'requested',
+                offerType: offerType || (type === 'unlimited' ? 'normal' : null),
+                unlimitedDuration
             });
 
             // QUEUE SYNC: If this call is from a waitlist, mark it as in-progress
@@ -100,7 +108,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             const callerImage = formatImageUrl(fromUser?.image, callerDisplayName);
 
             // Log session request state
-            console.log(`[Session] New Request: ${sessionId} Type:${type} from:${fromUserId}(${fromUser?.name}) to:${toUserId}(${toUser?.name})`);
+            console.log(`[Session] New Request: ${sessionId} Type:${type} from:${fromUserId}(${fromUser?.name}) to:${toUserId}(${toUser?.name}) Offer:${offerType}`);
 
             const timeoutId = setTimeout(async () => {
                 const s = activeSessions.get(sessionId);
@@ -110,7 +118,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     io.to(toUserId).emit('session-ended', { sessionId, reason: 'missed' });
 
                     await sendCancelCallPush(toUserId, sessionId);
-                    await handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpdate);
+                    await handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpdate, type);
 
                     userActiveSession.delete(fromUserId);
                     userActiveSession.delete(toUserId);
@@ -123,6 +131,8 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             activeSessions.set(sessionId, {
                 sessionId,
                 type,
+                offerType: offerType || (type === 'unlimited' ? 'normal' : null),
+                unlimitedDuration,
                 users: [fromUserId, toUserId],
                 startedAt: Date.now(),
                 clientId,
@@ -156,6 +166,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 callerName: callerDisplayName,
                 callerImage,
                 type,
+                offerType: offerType || (type === 'unlimited' ? 'normal' : null),
                 birthData: birthData || null
             });
 

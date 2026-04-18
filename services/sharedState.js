@@ -23,7 +23,20 @@ let SLAB_RATES = {
     1: 0.30,
     2: 0.35,
     3: 0.40,
-    4: 0.50
+    4: 0.50,
+    5: 0.60
+};
+
+const UNLIMITED_OFFERS = [
+    { type: 'normal', price: 200, duration: 15, label: 'Normal' },
+    { type: 'silver', price: 350, duration: 30, label: 'Silver' },
+    { type: 'gold', price: 500, duration: 45, label: 'Gold' },
+    { type: 'diamond', price: 700, duration: 60, label: 'Diamond' }
+];
+
+let UNLIMITED_PAYOUT_CONFIG = {
+    ASTRO_PERCENTAGE: 30, // 30% to Astrologer
+    ADMIN_PERCENTAGE: 70  // 70% to Admin
 };
 
 const RECHARGE_PACKS = [
@@ -39,22 +52,25 @@ const RECHARGE_PACKS = [
 ];
 
 let REFERRAL_CONFIG = {
-    REFEREE_BONUS_STANDARD: parseInt(process.env.REFEREE_BONUS_STANDARD) || 108,
-    REFEREE_BONUS_REFERRAL: parseInt(process.env.REFEREE_BONUS_REFERRAL) || 188,
-    REFERRER_REWARD: parseInt(process.env.REFERRER_REWARD) || 81,
+    REFEREE_BONUS_STANDARD: 0, 
+    REFEREE_BONUS_REFERRAL: 0,
+    INITIAL_BONUS_AMOUNT: 108,
+    REFERRER_REWARD: 50,
     APP_BASE_URL: process.env.APP_BASE_URL || "https://play.google.com/store/apps/details?id=com.astro5star.app&pcampaignid=web_share",
-    FREE_CALL_DURATION: 3, // Default 3 minutes free
-    // UI Text Config (Dynamic via Super Admin)
-    REFERRAL_TITLE_TA: "🎁 பரிசு வெல்லுங்கள்!",
-    REFERRAL_TITLE_EN: "🎁 Win Rewards!",
-    REFERRAL_SUBTITLE_TA: "நண்பர்களை அழைத்து வாலட் பணத்தை அள்ளுங்கள்",
-    REFERRAL_SUBTITLE_EN: "Invite friends and fill your wallet",
-    REFERRAL_STEP1_TA: "உங்கள் Referral Code-ஐ நண்பர்களுக்கு பகிருங்கள்.",
-    REFERRAL_STEP1_EN: "Share your Referral Code with friends.",
-    REFERRAL_STEP2_TA: "உங்கள் நண்பர் இணைந்தவுடன் உங்களுக்கு ₹81 போனஸ் கிடைக்கும்!",
-    REFERRAL_STEP2_EN: "Get ₹81 bonus when your friend joins!",
-    REFERRAL_WHATSAPP_MSG_TA: "Astro 5 Star செயலியில் இணையுங்கள்! என் Referral Code: {code}. இணைந்து ₹188 போனஸ் பெறுங்கள்: ",
-    REFERRAL_WHATSAPP_MSG_EN: "Join Astro 5 Star! Get ₹188 bonus: ",
+    FREE_CALL_DURATION: 3, 
+    CLIENT_FREE_SECONDS: 50,
+    ASTRO_FREE_MINUTES: 1, 
+    ASTRO_ROUNDING_THRESHOLD: 50,
+    REFERRAL_TITLE_TA: "🎁 பரிந்துரை செய்து வெல்லுங்கள்!",
+    REFERRAL_TITLE_EN: "🎁 Referral Rewards!",
+    REFERRAL_SUBTITLE_TA: "நண்பர்களை அழைத்து ₹50 போனஸ் பெறுங்கள்",
+    REFERRAL_SUBTITLE_EN: "Invite friends and get ₹50 bonus",
+    REFERRAL_STEP1_TA: "உங்கள் Referral Code-ஐ பகிருங்கள்.",
+    REFERRAL_STEP1_EN: "Share your Referral Code.",
+    REFERRAL_STEP2_TA: "நண்பர் இணைந்தவுடன் உங்களுக்கு ₹50 போனஸ் கிடைக்கும்!",
+    REFERRAL_STEP2_EN: "Get ₹50 bonus on signup!",
+    REFERRAL_WHATSAPP_MSG_TA: "Astro 5 Star-ல் இணையுங்கள்! Referral Code: {code}. ₹108 போனஸ் பெறுங்கள்: ",
+    REFERRAL_WHATSAPP_MSG_EN: "Join Astro 5 Star! Get ₹108 bonus: ",
     SUPPORT_WHATSAPP: process.env.SUPPORT_WHATSAPP || "919999999999",
     SUPPORT_EMAIL: process.env.ADMIN_EMAIL || "admin@astro5star.com"
 };
