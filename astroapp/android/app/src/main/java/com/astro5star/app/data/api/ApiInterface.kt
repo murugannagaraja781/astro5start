@@ -85,6 +85,12 @@ interface ApiInterface {
         @retrofit2.http.Part image: okhttp3.MultipartBody.Part
     ): Response<com.google.gson.JsonObject>
 
+    @retrofit2.http.Multipart
+    @POST("api/chat/upload-media")
+    suspend fun uploadChatMedia(
+        @retrofit2.http.Part file: okhttp3.MultipartBody.Part
+    ): Response<com.google.gson.JsonObject>
+
     @retrofit2.http.GET("api/ice-config")
     suspend fun getIceConfig(): Response<com.google.gson.JsonObject>
 

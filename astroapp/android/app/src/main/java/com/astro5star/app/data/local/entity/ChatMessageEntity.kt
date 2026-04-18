@@ -12,5 +12,9 @@ data class ChatMessageEntity(
     val senderId: String,
     val timestamp: Long,
     val status: String, // "sent", "delivered", "read"
-    val isSentByMe: Boolean
+    val isSentByMe: Boolean,
+    val type: String = "text",
+    val fileUrl: String? = null,
+    val fileType: String? = null,
+    val fileName: String? = null
 )

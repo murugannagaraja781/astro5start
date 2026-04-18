@@ -47,14 +47,21 @@ const handleChat = (socket, io) => {
                 status: 'sent',
             });
 
-            ChatMessage.create({
+            // Prepare save object
+            const saveObj = {
                 messageId,
                 sessionId,
                 fromUserId,
                 toUserId,
                 text: content.text,
+                type: content.type || 'text',
+                fileUrl: content.fileUrl,
+                fileType: content.fileType,
+                fileName: content.fileName,
                 timestamp: timestamp || Date.now()
-            }).catch(e => console.error('ChatSave Error', e));
+            };
+
+            ChatMessage.create(saveObj).catch(e => console.error('ChatSave Error', e));
 
             io.to(toUserId).emit('chat-message', {
                 fromUserId,
@@ -64,7 +71,11 @@ const handleChat = (socket, io) => {
                 messageId,
             });
 
-            sendChatMessagePush(toUserId, fromUserId, content.text || 'New message', sessionId, messageId);
+            let pushText = content.text;
+            if (content.type === 'image') pushText = '📷 Sent an image';
+            else if (content.type === 'file') pushText = '📄 Sent a file';
+
+            sendChatMessagePush(toUserId, fromUserId, pushText || 'New message', sessionId, messageId);
         } catch (err) { console.error('chat-message error', err); }
     });
 

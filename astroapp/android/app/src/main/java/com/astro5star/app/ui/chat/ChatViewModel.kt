@@ -64,7 +64,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 // Save to local DB first (optimistic)
                 val msgId = data.getString("messageId")
-                val text = data.getJSONObject("content").getString("text")
+                val content = data.getJSONObject("content")
+                val text = content.optString("text", "")
+                val type = content.optString("type", "text")
+                val fileUrl = content.optString("fileUrl", "")
+                val fileType = content.optString("fileType", "")
+                val fileName = content.optString("fileName", "")
+                
                 val sessionId = data.optString("sessionId")
                 val senderId = com.astro5star.app.data.local.TokenManager(getApplication()).getUserSession()?.userId ?: ""
 
@@ -75,7 +81,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     senderId = senderId,
                     timestamp = System.currentTimeMillis(),
                     status = "sent",
-                    isSentByMe = true
+                    isSentByMe = true,
+                    type = type,
+                    fileUrl = if (fileUrl.isEmpty()) null else fileUrl,
+                    fileType = if (fileType.isEmpty()) null else fileType,
+                    fileName = if (fileName.isEmpty()) null else fileName
                 )
                 repository.saveMessage(entity)
             } catch (e: Exception) { e.printStackTrace() }
@@ -176,13 +186,41 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private val _uploadResult = MutableLiveData<JSONObject?>()
+    val uploadResult: LiveData<JSONObject?> = _uploadResult
+
+    fun uploadMedia(filePart: okhttp3.MultipartBody.Part) {
+        viewModelScope.launch {
+            try {
+                val response = repository.uploadChatMedia(filePart)
+                if (response.isSuccessful) {
+                    _uploadResult.postValue(JSONObject(response.body().toString()))
+                } else {
+                    _uploadResult.postValue(null)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uploadResult.postValue(null)
+            }
+        }
+    }
+
+    fun clearUploadResult() {
+        _uploadResult.value = null
+    }
+
     fun startListeners() {
         repository.listenIncoming { data ->
             val content = data.getJSONObject("content")
-            val text = content.getString("text")
+            val text = content.optString("text", "")
             val msgId = data.optString("messageId")
             val sessionId = data.optString("sessionId")
             val senderId = data.optString("fromUserId")
+            
+            val type = content.optString("type", "text")
+            val fileUrl = content.optString("fileUrl", "")
+            val fileType = content.optString("fileType", "")
+            val fileName = content.optString("fileName", "")
 
             // Save to DB
             viewModelScope.launch(Dispatchers.IO) {
@@ -194,7 +232,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         senderId = senderId,
                         timestamp = System.currentTimeMillis(),
                         status = "read",
-                        isSentByMe = false
+                        isSentByMe = false,
+                        type = type,
+                        fileUrl = if (fileUrl.isEmpty()) null else fileUrl,
+                        fileType = if (fileType.isEmpty()) null else fileType,
+                        fileName = if (fileName.isEmpty()) null else fileName
                     )
                     repository.saveMessage(entity)
 
@@ -206,7 +248,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
 
 
-            val msg = ChatMessage(msgId, text, false, timestamp = System.currentTimeMillis())
+            val msg = ChatMessage(
+                id = msgId, 
+                text = text, 
+                isSent = false, 
+                timestamp = System.currentTimeMillis(),
+                type = type,
+                fileUrl = if (fileUrl.isEmpty()) null else fileUrl,
+                fileType = if (fileType.isEmpty()) null else fileType,
+                fileName = if (fileName.isEmpty()) null else fileName
+            )
             _messages.postValue(msg)
             com.astro5star.app.utils.SoundManager.playReceiveSound()
         }
@@ -290,7 +341,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         text = entity.text,
                         isSent = entity.isSentByMe,
                         status = entity.status,
-                        timestamp = entity.timestamp
+                        timestamp = entity.timestamp,
+                        type = entity.type,
+                        fileUrl = entity.fileUrl,
+                        fileType = entity.fileType,
+                        fileName = entity.fileName
                     )
                 }
                 _history.postValue(uiMessages)

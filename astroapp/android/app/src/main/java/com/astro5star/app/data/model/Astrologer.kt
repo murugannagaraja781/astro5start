@@ -26,5 +26,6 @@ data class Astrologer(
     val videoPrice: Int = 30,
     val unlimitedPrice: Int = 299,
     val unlimitedOfferEnabled: Boolean = false,
-    val displayOrder: Int = 0
+    val displayOrder: Int = 0,
+    val isFavorite: Boolean = false
 )

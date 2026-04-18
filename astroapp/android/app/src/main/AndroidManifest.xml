@@ -143,6 +143,7 @@
         <activity android:name=".ui.wallet.WalletActivity" />
         <activity android:name=".ui.wallet.SuperWalletActivity" />
         <activity android:name=".ui.chat.ChatActivity" android:windowSoftInputMode="adjustResize"/>
+        <activity android:name=".ui.chat.FullScreenImageActivity" android:theme="@style/Theme.FCMCallApp" />
         <activity android:name=".ui.call.CallActivity" />
         <activity android:name=".ui.intake.IntakeActivity" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ui.chart.ChartDisplayActivity"

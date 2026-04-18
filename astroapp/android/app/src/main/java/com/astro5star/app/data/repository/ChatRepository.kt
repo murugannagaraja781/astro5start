@@ -124,6 +124,10 @@ class ChatRepository(private val context: Context) {
         SocketManager.removeChatListeners()
     }
 
+    suspend fun uploadChatMedia(file: okhttp3.MultipartBody.Part): retrofit2.Response<com.google.gson.JsonObject> {
+        return com.astro5star.app.data.api.ApiClient.api.uploadChatMedia(file)
+    }
+
     // Sync
     suspend fun fetchHistoryFromServer(sessionId: String, limit: Int = 50, before: Long? = null): Boolean {
         // Implementation calling Socket 'get-history'
@@ -144,6 +148,12 @@ class ChatRepository(private val context: Context) {
 
                      val msgId = json.optString("messageId")
                      val senderId = json.optString("fromUserId")
+                     
+                     val type = content?.optString("type", "text") ?: json.optString("type", "text")
+                     val fileUrl = content?.optString("fileUrl") ?: json.optString("fileUrl")
+                     val fileType = content?.optString("fileType") ?: json.optString("fileType")
+                     val fileName = content?.optString("fileName") ?: json.optString("fileName")
+
                      // Use timestamp from server or fallback
                      var timestamp = json.optLong("timestamp", 0L)
                      if (timestamp == 0L) timestamp = json.optLong("createdAt", System.currentTimeMillis())
@@ -158,7 +168,11 @@ class ChatRepository(private val context: Context) {
                              senderId = senderId,
                              timestamp = timestamp,
                              status = "read",
-                             isSentByMe = isMe
+                             isSentByMe = isMe,
+                             type = type,
+                             fileUrl = if (fileUrl.isNullOrEmpty()) null else fileUrl,
+                             fileType = if (fileType.isNullOrEmpty()) null else fileType,
+                             fileName = if (fileName.isNullOrEmpty()) null else fileName
                          )
                          saveMessage(entity)
                      }

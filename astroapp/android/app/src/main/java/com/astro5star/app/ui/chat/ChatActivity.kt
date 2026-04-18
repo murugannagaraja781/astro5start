@@ -42,8 +42,21 @@ import com.astro5star.app.ui.theme.CosmicAppTheme
 import com.astro5star.app.utils.SoundManager
 import org.json.JSONObject
 import java.util.UUID
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.clickable
 
-data class ChatMessage(val id: String, val text: String, val isSent: Boolean, var status: String = "sent", val timestamp: Long = 0)
+data class ChatMessage(
+    val id: String,
+    val text: String,
+    val isSent: Boolean,
+    var status: String = "sent",
+    val timestamp: Long = 0,
+    val type: String = "text",
+    val fileUrl: String? = null,
+    val fileType: String? = null,
+    val fileName: String? = null
+)
 
 class ChatActivity : ComponentActivity() {
 
@@ -77,6 +90,26 @@ class ChatActivity : ComponentActivity() {
                      })
                  } catch (e: Exception) { e.printStackTrace() }
              }
+        }
+    }
+
+    private val imagePickerLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri: android.net.Uri? ->
+        uri?.let { handleMediaUpload(it) }
+    }
+
+    private val filePickerLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri: android.net.Uri? ->
+        uri?.let { handleMediaUpload(it) }
+    }
+
+    private fun handleMediaUpload(uri: android.net.Uri) {
+        val file = com.astro5star.app.utils.FileUtils.getFileFromUri(this, uri)
+        if (file != null) {
+            val requestFile = okhttp3.RequestBody.create(okhttp3.MediaType.parse(contentResolver.getType(uri) ?: "application/octet-stream"), file)
+            val body = okhttp3.MultipartBody.Part.createFormData("file", file.name, requestFile)
+            Toast.makeText(this, "Uploading media...", Toast.LENGTH_SHORT).show()
+            viewModel.uploadMedia(body)
+        } else {
+            Toast.makeText(this, "Failed to get file", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -177,7 +210,9 @@ class ChatActivity : ComponentActivity() {
                         sessionId = sessionId,
                         remainingTime = remainingTime,
                         remainingSeconds = remainingSeconds,
-                        clientBirthData = clientBirthData
+                        clientBirthData = clientBirthData,
+                        onPickImage = { imagePickerLauncher.launch("image/*") },
+                        onPickFile = { filePickerLauncher.launch("*/*") }
                     )
                 }
             }
@@ -285,6 +320,33 @@ class ChatActivity : ComponentActivity() {
             remainingTime = String.format("%02d:%02d", remMins, remSecs)
         }
 
+        viewModel.uploadResult.observe(this) { result ->
+            if (result != null) {
+                val fileUrl = result.optString("fileUrl")
+                val fileName = result.optString("fileName")
+                val fileType = result.optString("fileType")
+
+                if (!fileUrl.isNullOrEmpty() && toUserId != null && sessionId != null) {
+                    val payload = JSONObject().apply {
+                        put("toUserId", toUserId)
+                        put("sessionId", sessionId)
+                        put("messageId", UUID.randomUUID().toString())
+                        put("timestamp", System.currentTimeMillis())
+                        put("content", JSONObject().apply {
+                            put("text", "")
+                            put("type", if (fileType.contains("image")) "image" else "file")
+                            put("fileUrl", fileUrl)
+                            put("fileName", fileName)
+                            put("fileType", fileType)
+                        })
+                    }
+                    viewModel.sendMessage(payload)
+                    SoundManager.playSentSound()
+                    viewModel.clearUploadResult()
+                }
+            }
+        }
+
         /* USER REQUEST: Wallet sounds silenced during session. Summary shown at end.
         SocketManager.onWalletUpdate { data ->
             runOnUiThread {
@@ -390,7 +452,9 @@ fun ChatScreen(
     sessionId: String?,
     remainingTime: String,
     remainingSeconds: Int,
-    clientBirthData: JSONObject? = null
+    clientBirthData: JSONObject? = null,
+    onPickImage: () -> Unit,
+    onPickFile: () -> Unit
 ) {
     val messages by viewModel.history.observeAsState(emptyList())
     val isTyping by viewModel.typingStatus.observeAsState(false)
@@ -490,7 +554,9 @@ fun ChatScreen(
                     }
                 },
                 onViewChart = if (isAstrologer) onViewChart else null,
-                clientBirthData = clientBirthData
+                clientBirthData = clientBirthData,
+                onPickImage = onPickImage,
+                onPickFile = onPickFile
             )
         }
     ) { padding ->
@@ -661,8 +727,52 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                                     }
                                 }
                             }
+                            if (msg.type == "image" && msg.fileUrl != null) {
+                                AsyncImage(
+                                    model = msg.fileUrl,
+                                    contentDescription = "Image",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 200.dp)
+                                        .background(Color.Gray.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                                        .clickable {
+                                            val intent = Intent(context, com.astro5star.app.ui.chat.FullScreenImageActivity::class.java)
+                                            intent.putExtra("imageUrl", msg.fileUrl)
+                                            context.startActivity(intent)
+                                        },
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else if (msg.type == "file" && msg.fileUrl != null) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color.Black.copy(alpha = 0.05f), RoundedCornerShape(4.dp))
+                                        .padding(8.dp)
+                                        .clickable {
+                                            val browserIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(msg.fileUrl))
+                                            context.startActivity(browserIntent)
+                                        }
+                                ) {
+                                    Icon(Icons.Default.InsertDriveFile, null, tint = Color.Gray, modifier = Modifier.size(32.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = msg.fileName ?: "File",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1,
+                                        color = Color.Black
+                                    )
+                                }
+                            }
 
-                            Text(displayText, fontSize = 16.sp, color = Color.Black)
+                            if (displayText.isNotEmpty()) {
+                                Text(
+                                    text = displayText,
+                                    fontSize = 16.sp,
+                                    color = Color.Black,
+                                    modifier = Modifier.padding(top = if (msg.type != "text") 4.dp else 0.dp)
+                                )
+                            }
 
                             if (isMe) {
                                 Row(
@@ -729,7 +839,9 @@ fun ChatInputBar(
     onCancelReply: () -> Unit,
     onSend: () -> Unit,
     onViewChart: (() -> Unit)?,
-    clientBirthData: JSONObject? = null
+    clientBirthData: JSONObject? = null,
+    onPickImage: () -> Unit,
+    onPickFile: () -> Unit
 ) {
     Surface(
         color = Color.White,
@@ -752,9 +864,16 @@ fun ChatInputBar(
                 }
             }
             Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 8.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                IconButton(onClick = onPickImage) {
+                    Icon(Icons.Default.Image, "Pick Image", tint = Color(0xFF6200EE))
+                }
+                IconButton(onClick = onPickFile) {
+                    Icon(Icons.Default.AttachFile, "Pick File", tint = Color(0xFF6200EE))
+                }
+                
                 if (onViewChart != null) {
                     val isReady = clientBirthData != null
                     IconButton(onClick = onViewChart) {

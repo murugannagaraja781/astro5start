@@ -6,7 +6,10 @@ const ChatMessageSchema = new mongoose.Schema({
     fromUserId: String,
     toUserId: String,
     text: String,
-    type: { type: String, default: 'text' }, // text, system
+    fileUrl: String,
+    fileType: String, // image, video, document
+    fileName: String,
+    type: { type: String, default: 'text' }, // text, system, image, file
     timestamp: { type: Number, default: Date.now }
 }, { timestamps: true });
 

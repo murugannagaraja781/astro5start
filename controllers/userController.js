@@ -639,6 +639,22 @@ const uploadRecording = async (req, res) => {
     }
 };
 
+const uploadChatMedia = async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ ok: false, error: 'No file uploaded' });
+
+        const fileUrl = `/uploads/${req.file.filename}`;
+        res.json({
+            ok: true,
+            fileUrl: formatImageUrl(fileUrl, 'ChatMedia'),
+            fileName: req.file.originalname,
+            fileType: req.file.mimetype.split('/')[0] // 'image', 'video', 'application' etc.
+        });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
 module.exports = {
     getUserProfile,
     getAstrologers,
@@ -658,5 +674,6 @@ module.exports = {
     uploadProfilePic,
     initiateCall,
     applyReferral,
-    uploadRecording
+    uploadRecording,
+    uploadChatMedia
 };
