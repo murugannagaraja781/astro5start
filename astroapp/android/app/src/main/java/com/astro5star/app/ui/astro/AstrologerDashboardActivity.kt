@@ -287,6 +287,9 @@ class AstrologerDashboardActivity : ComponentActivity() {
 // Helper function to update individual service status
 suspend fun updateServiceStatus(context: android.content.Context, userId: String, service: String, enabled: Boolean) {
     try {
+        com.astro5star.app.data.remote.SocketManager.init() // Ensure instance exists
+        com.astro5star.app.data.remote.SocketManager.ensureConnection() // Ensure connected
+
         if (enabled) {
             // Start Foreground Service to keep app alive
             com.astro5star.app.AstrologerStatusService.startService(context, userId)
@@ -296,12 +299,9 @@ suspend fun updateServiceStatus(context: android.content.Context, userId: String
                 val token = if (task.isSuccessful) task.result else null
                 com.astro5star.app.data.remote.SocketManager.updateServiceStatus(userId, service, enabled, token)
             }
-            com.astro5star.app.data.remote.SocketManager.init()
             com.astro5star.app.data.remote.SocketManager.registerUser(userId)
         } else {
             com.astro5star.app.data.remote.SocketManager.updateServiceStatus(userId, service, enabled)
-            // Note: We don't stop service here immediately because other services might still be online.
-            // A more robust check could be added in the UI layer.
         }
     } catch (e: Exception) {
         e.printStackTrace()

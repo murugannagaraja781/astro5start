@@ -42,9 +42,15 @@ import com.astro5star.app.ui.theme.CosmicAppTheme
 import com.astro5star.app.utils.SoundManager
 import org.json.JSONObject
 import java.util.UUID
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.LocalContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.asRequestBody
 
 data class ChatMessage(
     val id: String,
@@ -104,7 +110,8 @@ class ChatActivity : ComponentActivity() {
     private fun handleMediaUpload(uri: android.net.Uri) {
         val file = com.astro5star.app.utils.FileUtils.getFileFromUri(this, uri)
         if (file != null) {
-            val requestFile = okhttp3.RequestBody.create(okhttp3.MediaType.parse(contentResolver.getType(uri) ?: "application/octet-stream"), file)
+            val mediaType = (contentResolver.getType(uri) ?: "application/octet-stream").toMediaTypeOrNull()
+            val requestFile = file.asRequestBody(mediaType)
             val body = okhttp3.MultipartBody.Part.createFormData("file", file.name, requestFile)
             Toast.makeText(this, "Uploading media...", Toast.LENGTH_SHORT).show()
             viewModel.uploadMedia(body)
@@ -458,6 +465,13 @@ fun ChatScreen(
 ) {
     val messages by viewModel.history.observeAsState(emptyList())
     val isTyping by viewModel.typingStatus.observeAsState(false)
+    val context = LocalContext.current
+
+    // Disable Back Button for Clients
+    BackHandler(enabled = !isAstrologer) {
+        Toast.makeText(context, "Please use the END button to finish transparency chat", Toast.LENGTH_SHORT).show()
+    }
+
     val statusMsg by viewModel.statusUpdate.observeAsState("")
     val listState = rememberLazyListState()
     var inputText by remember { mutableStateOf("") }
@@ -683,66 +697,71 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                     ) {
                         Column(modifier = Modifier.padding(8.dp)) {
 
-                            var displayText = msg.text
-                            // Check if this is a reply message
-                            if (msg.text.contains("> Replying to:")) {
-                                // Robust splitting
-                                val parts = msg.text.split("\n", limit = 2)
-                                if (parts.size >= 1 && parts[0].startsWith("> Replying to:")) {
-                                    val quoteText = parts[0].removePrefix("> Replying to: ").trim()
-                                    if (parts.size > 1) displayText = parts[1] else displayText = ""
+                            val displayText = remember(msg.text) {
+                                if (msg.text.contains("> Replying to:")) {
+                                    val parts = msg.text.split("\n", limit = 2)
+                                    if (parts.size > 1) parts[1] else ""
+                                } else msg.text
+                            }
 
-                                    // WhatsApp Style Quote Block
+                            // Reply Preview Logic
+                            if (msg.text.contains("> Replying to:")) {
+                                val parts = msg.text.split("\n", limit = 2)
+                                if (parts.size > 0 && parts[0].startsWith("> Replying to:")) {
+                                    val quoteText = parts[0].removePrefix("> Replying to: ").trim()
                                     Surface(
-                                        color = Color.Black.copy(alpha = 0.05f), // Slightly dimmed inside bubble
+                                        color = Color.Black.copy(alpha = 0.05f),
                                         shape = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 6.dp)
+                                        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
                                     ) {
                                         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-                                            // Accent Bar
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxHeight()
-                                                    .width(4.dp)
-                                                    .background(Color(0xFF6200EE))
-                                            )
-                                            // Quote Content
+                                            Box(modifier = Modifier.fillMaxHeight().width(4.dp).background(Color(0xFF6200EE)))
                                             Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                                Text(
-                                                    text = "Replying to:",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = Color(0xFF6200EE),
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                                Text(
-                                                    text = quoteText,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = Color.Black.copy(alpha = 0.7f),
-                                                    maxLines = 3
-                                                )
+                                                Text("Replying to:", style = MaterialTheme.typography.bodySmall, color = Color(0xFF6200EE), fontWeight = FontWeight.Bold)
+                                                Text(quoteText, style = MaterialTheme.typography.bodySmall, color = Color.Black.copy(alpha = 0.7f), maxLines = 1)
                                             }
                                         }
                                     }
                                 }
                             }
-                            if (msg.type == "image" && msg.fileUrl != null) {
-                                AsyncImage(
-                                    model = msg.fileUrl,
+                            if (msg.type == "image" && !msg.fileUrl.isNullOrEmpty()) {
+                                val fullUrl = remember(msg.fileUrl) {
+                                    if (msg.fileUrl!!.startsWith("http")) msg.fileUrl!!
+                                    else if (msg.fileUrl!!.startsWith("/")) "${com.astro5star.app.utils.Constants.SERVER_URL}${msg.fileUrl}"
+                                    else "${com.astro5star.app.utils.Constants.SERVER_URL}/uploads/${msg.fileUrl}"
+                                }
+
+                                SubcomposeAsyncImage(
+                                    model = fullUrl,
                                     contentDescription = "Image",
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .heightIn(max = 200.dp)
-                                        .background(Color.Gray.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                                        .heightIn(max = 250.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color.Gray.copy(alpha = 0.1f))
                                         .clickable {
                                             val intent = Intent(context, com.astro5star.app.ui.chat.FullScreenImageActivity::class.java)
-                                            intent.putExtra("imageUrl", msg.fileUrl)
+                                            intent.putExtra("imageUrl", fullUrl)
                                             context.startActivity(intent)
                                         },
-                                    contentScale = ContentScale.Crop
+                                    contentScale = ContentScale.Fit,
+                                    loading = {
+                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                                        }
+                                    },
+                                    error = {
+                                        Column(
+                                            modifier = Modifier.fillMaxSize().padding(16.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Icon(Icons.Default.Warning, null, tint = Color.Red, modifier = Modifier.size(24.dp))
+                                            Text("Failed", fontSize = 10.sp, color = Color.Red)
+                                        }
+                                    }
                                 )
-                            } else if (msg.type == "file" && msg.fileUrl != null) {
+                            } else if (msg.type == "file" && !msg.fileUrl.isNullOrEmpty()) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
@@ -750,8 +769,12 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                                         .background(Color.Black.copy(alpha = 0.05f), RoundedCornerShape(4.dp))
                                         .padding(8.dp)
                                         .clickable {
-                                            val browserIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(msg.fileUrl))
-                                            context.startActivity(browserIntent)
+                                            try {
+                                                val browserIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(msg.fileUrl))
+                                                context.startActivity(browserIntent)
+                                            } catch (e: Exception) {
+                                                Toast.makeText(context, "Cannot open file", Toast.LENGTH_SHORT).show()
+                                            }
                                         }
                                 ) {
                                     Icon(Icons.Default.InsertDriveFile, null, tint = Color.Gray, modifier = Modifier.size(32.dp))
@@ -765,7 +788,7 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                                 }
                             }
 
-                            if (displayText.isNotEmpty()) {
+                            if (!displayText.isNullOrEmpty()) {
                                 Text(
                                     text = displayText,
                                     fontSize = 16.sp,

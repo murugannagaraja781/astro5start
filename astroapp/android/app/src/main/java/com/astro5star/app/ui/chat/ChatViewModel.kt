@@ -211,7 +211,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startListeners() {
         repository.listenIncoming { data ->
-            val content = data.getJSONObject("content")
+            val content = data.optJSONObject("content") ?: JSONObject()
             val text = content.optString("text", "")
             val msgId = data.optString("messageId")
             val sessionId = data.optString("sessionId")
