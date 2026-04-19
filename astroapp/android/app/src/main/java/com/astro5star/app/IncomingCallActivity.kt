@@ -48,6 +48,10 @@ import kotlinx.coroutines.delay
 import com.astro5star.app.data.remote.SocketManager
 import com.astro5star.app.utils.CallState
 import org.json.JSONObject
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 
 /**
  * IncomingCallActivity - Full-screen incoming call UI
@@ -131,6 +135,9 @@ class IncomingCallActivity : ComponentActivity() {
             startRingtone()
             startVibration()
             handler.postDelayed(timeoutRunnable, CALL_TIMEOUT_MS)
+
+            // GHOST CALL PROTECTION: Check with server immediately if this call is still valid
+            checkSessionStatus(callId)
 
             // Ensure socket is connecting AND user is registered early
             try {
@@ -369,6 +376,31 @@ class IncomingCallActivity : ComponentActivity() {
 
         shouldStopServiceOnDestroy = false
         finish()
+    }
+
+    private fun checkSessionStatus(sessionId: String) {
+        if (sessionId.isEmpty()) return
+        
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val response = com.astro5star.app.data.api.ApiClient.api.getSessionStatus(sessionId)
+                if (response.isSuccessful) {
+                    val body = response.body() ?: return@launch
+                    val status = body.get("status")?.asString ?: "expired"
+                    
+                    if (status != "requested") {
+                        Log.w(TAG, "Ghost Call Detected: Session $sessionId is $status. Auto-dismissing.")
+                        withContext(Dispatchers.Main) {
+                            onCallRejected()
+                        }
+                    } else {
+                        Log.d(TAG, "Call verified: Session $sessionId is still $status")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to check session status: ${e.message}")
+            }
+        }
     }
 
     private fun onCallRejected() {

@@ -17,7 +17,9 @@ async function sendCancelCallPush(toUserId, sessionId) {
         if (toUser && toUser.fcmToken) {
             const payload = {
                 type: 'CANCEL_CALL',
-                sessionId: sessionId || ''
+                sessionId: sessionId || '',
+                priority: 'high',
+                timestamp: Date.now().toString()
             };
             const { sendFcmV1Push } = require('./fcmService');
             await sendFcmV1Push(toUser.fcmToken, payload, null);
@@ -336,8 +338,11 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
     try {
         let session = activeSessions.get(sessionId);
         if (!session) {
-            const dbSession = await Session.findOne({ sessionId, status: { $in: ['requested', 'active'] } });
+            const dbSession = await Session.findOne({ sessionId });
             if (dbSession) {
+                if (dbSession.status !== 'requested') {
+                    return { ok: false, error: `Call already ${dbSession.status}` };
+                }
                 session = {
                     sessionId: dbSession.sessionId,
                     type: dbSession.type,
@@ -351,6 +356,12 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
         }
 
         if (!session) return { ok: false, error: 'Session expired or not found' };
+        
+        // Final sanity check for memory-based sessions too
+        const dbStatusCheck = await Session.findOne({ sessionId }).select('status').lean();
+        if (dbStatusCheck && dbStatusCheck.status !== 'requested' && !accept === false) {
+             return { ok: false, error: `Call already ${dbStatusCheck.status}` };
+        }
 
         const fromUserId = session.users.find(u => u !== astrologerId);
         if (!fromUserId) return { ok: false, error: 'Counterpart not found' };

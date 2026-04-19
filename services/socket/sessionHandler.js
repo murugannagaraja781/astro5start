@@ -299,7 +299,23 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
         const fromUserId = socketToUser.get(socket.id);
         if (!fromUserId || !sessionId) return;
 
-        sessionService.cancelCall(sessionId, toUserId, fromUserId, io, broadcastAstroUpdate);
+        console.log(`[Session] [CANCEL] User:${fromUserId} cancelling session:${sessionId} for recipient:${toUserId}`);
+        
+        // Immediate cleanup in memory
+        const s = activeSessions.get(sessionId);
+        if (s) {
+            clearTimeout(s.timeoutId);
+            activeSessions.delete(sessionId);
+        }
+        userActiveSession.delete(fromUserId);
+        if (toUserId) userActiveSession.delete(toUserId);
+
+        await sessionService.cancelCall(sessionId, toUserId, fromUserId, io, broadcastAstroUpdate);
+        
+        // Extra safety: Send a high priority FCM skip-ring
+        if (toUserId) {
+            await sessionService.sendCancelCallPush(toUserId, sessionId);
+        }
     });
 
     socket.on('session-connect', async (data) => {

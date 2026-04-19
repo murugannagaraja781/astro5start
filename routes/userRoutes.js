@@ -22,6 +22,7 @@ router.post('/native/accept-call', userController.acceptCall);
 router.post('/city-autocomplete', userController.searchCity);
 router.post('/city-timezone', userController.getCityTimezone);
 router.get('/chat/history/:sessionId', userController.getChatHistory);
+router.get('/session/status/:sessionId', userController.getSessionStatus);
 router.post('/referral/apply', userController.applyReferral);
 
 const { upload } = require('../config/multer');

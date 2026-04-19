@@ -662,6 +662,17 @@ const uploadChatMedia = async (req, res) => {
     }
 };
 
+const getSessionStatus = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const session = await Session.findOne({ sessionId }).select('status type clientId astrologerId').lean();
+        if (!session) return res.json({ ok: false, status: 'not_found' });
+        res.json({ ok: true, status: session.status, type: session.type });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: 'Server error' });
+    }
+};
+
 module.exports = {
     getUserProfile,
     getAstrologers,
@@ -678,6 +689,7 @@ module.exports = {
     searchCity,
     getCityTimezone,
     getChatHistory,
+    getSessionStatus,
     uploadProfilePic,
     initiateCall,
     applyReferral,
