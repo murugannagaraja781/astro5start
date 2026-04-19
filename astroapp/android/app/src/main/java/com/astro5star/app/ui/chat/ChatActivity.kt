@@ -220,7 +220,9 @@ class ChatActivity : ComponentActivity() {
                         remainingSeconds = remainingSeconds,
                         clientBirthData = clientBirthData,
                         onPickImage = { imagePickerLauncher.launch("image/*") },
-                        onPickFile = { filePickerLauncher.launch("*/*") }
+                        onPickFile = { filePickerLauncher.launch("*/*") },
+                        summaryData = showSummaryData,
+                        onDismissSummary = { finishSessionAndNavigate() }
                     )
                 }
             }
@@ -305,23 +307,14 @@ class ChatActivity : ComponentActivity() {
         }
     }
 
+    private var showSummaryData by mutableStateOf<com.astro5star.app.data.repository.SessionSummary?>(null)
+
     private fun setupObservers() {
         viewModel.sessionSummary.observe(this) { summary ->
-            timerHandler.removeCallbacks(timerRunnable)
-            val minutes = summary.duration / 60
-            val seconds = summary.duration % 60
-            val durationStr = String.format("%02d:%02d", minutes, seconds)
-            val message = if (summary.reason == "no_answer") {
-                "Call not answered"
-            } else {
-                "Duration: $durationStr\nAmount: ₹${String.format("%.2f", if (TokenManager(this).getUserSession()?.role == "astrologer") summary.earned else summary.deducted)}"
+            if (summary != null) {
+                timerHandler.removeCallbacks(timerRunnable)
+                showSummaryData = summary
             }
-            androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Chat Summary")
-                .setMessage(message)
-                .setPositiveButton("Dismiss") { _, _ -> finishSessionAndNavigate() }
-                .setCancelable(false)
-                .show()
         }
         viewModel.sessionEnded.observe(this) { ended ->
             if (ended) {
@@ -485,7 +478,9 @@ fun ChatScreen(
     remainingSeconds: Int,
     clientBirthData: JSONObject? = null,
     onPickImage: () -> Unit,
-    onPickFile: () -> Unit
+    onPickFile: () -> Unit,
+    summaryData: com.astro5star.app.data.repository.SessionSummary? = null,
+    onDismissSummary: () -> Unit
 ) {
     val messages by viewModel.history.observeAsState(emptyList())
     val isTyping by viewModel.typingStatus.observeAsState(false)
@@ -598,6 +593,15 @@ fun ChatScreen(
             )
         }
     ) { padding ->
+        // Summary Dialog Integration
+        if (summaryData != null) {
+            ModernSummaryDialog(
+                summary = summaryData, 
+                isAstrologer = isAstrologer,
+                onDismiss = onDismissSummary
+            )
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()

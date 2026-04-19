@@ -110,6 +110,5 @@ async function getCachedFcmToken() {
         return { success: false, error: err.message };
     }
 }
-}
 
 module.exports = { initFcmAuth, sendFcmV1Push };
