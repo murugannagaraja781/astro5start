@@ -16,5 +16,6 @@ data class ChatMessageEntity(
     val type: String = "text",
     val fileUrl: String? = null,
     val fileType: String? = null,
-    val fileName: String? = null
+    val fileName: String? = null,
+    val fileSize: Long? = null
 )

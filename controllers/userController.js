@@ -663,7 +663,8 @@ const uploadChatMedia = async (req, res) => {
             ok: true,
             fileUrl: formattedUrl,
             fileName: req.file.originalname,
-            fileType: req.file.mimetype.split('/')[0] 
+            fileType: req.file.mimetype.split('/')[0],
+            fileSize: req.file.size // Added file size in bytes
         });
     } catch (err) {
         console.error('[Upload] Error processing chat media:', err.message);

@@ -30,6 +30,13 @@ class FullScreenImageActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val imageUrl = intent.getStringExtra("imageUrl") ?: ""
+        val autoDownload = intent.getBooleanExtra("autoDownload", false)
+        
+        if (autoDownload && imageUrl.isNotEmpty()) {
+            downloadImage(imageUrl)
+            finish()
+            return
+        }
         setContent {
             CosmicAppTheme {
                 Box(

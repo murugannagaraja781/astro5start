@@ -52,6 +52,11 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.ui.platform.LocalContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.lifecycleScope
 
 data class ChatMessage(
     val id: String,
@@ -62,7 +67,8 @@ data class ChatMessage(
     val type: String = "text",
     val fileUrl: String? = null,
     val fileType: String? = null,
-    val fileName: String? = null
+    val fileName: String? = null,
+    val fileSize: Long? = null
 )
 
 class ChatActivity : ComponentActivity() {
@@ -104,29 +110,45 @@ class ChatActivity : ComponentActivity() {
         uri?.let { handleMediaUpload(it) }
     }
 
+    private val permissionLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (!isGranted) Toast.makeText(this, "Microphone permission required for voice messages", Toast.LENGTH_SHORT).show()
+    }
+
+    private lateinit var voiceRecorder: com.astro5star.app.utils.VoiceRecorder
+    val audioPlayer = com.astro5star.app.utils.ChatAudioPlayer()
+
     private val filePickerLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri: android.net.Uri? ->
         uri?.let { handleMediaUpload(it) }
     }
 
-    private fun handleMediaUpload(uri: android.net.Uri) {
-        android.util.Log.d("ChatActivity", "handleMediaUpload: URI=$uri")
-        val file = com.astro5star.app.utils.FileUtils.getFileFromUri(this, uri)
-        if (file != null) {
-            android.util.Log.d("ChatActivity", "File obtained: Name=${file.name}, Size=${file.length()}")
-            val mediaType = (contentResolver.getType(uri) ?: "application/octet-stream").toMediaTypeOrNull()
-            val requestFile = file.asRequestBody(mediaType)
-            val body = okhttp3.MultipartBody.Part.createFormData("file", file.name, requestFile)
-            Toast.makeText(this, "Uploading image to astro server...", Toast.LENGTH_SHORT).show()
-            viewModel.uploadMedia(body)
-        } else {
-            android.util.Log.e("ChatActivity", "Failed to resolve file from URI")
-            Toast.makeText(this, "Failed to get file from device", Toast.LENGTH_SHORT).show()
+    private fun handleMediaUpload(uri: android.net.Uri? = null, directFile: java.io.File? = null) {
+        android.util.Log.d("ChatActivity", "handleMediaUpload: URI=$uri, DirectFile=$directFile")
+        
+        val file = if (directFile != null) {
+            directFile
+        } else if (uri != null) {
+            com.astro5star.app.utils.FileUtils.getFileFromUri(this, uri)
+        } else null
+
+        if (file == null || !file.exists()) {
+            Toast.makeText(this, "Failed to capture file", Toast.LENGTH_SHORT).show()
+            return
         }
+
+        // Optimized Upload logic
+        val requestFile = file.asRequestBody("multipart/form-data".toMediaTypeOrNull())
+        val body = okhttp3.MultipartBody.Part.createFormData("file", file.name, requestFile)
+        Toast.makeText(this, "Uploading file to astro server...", Toast.LENGTH_SHORT).show()
+        viewModel.uploadMedia(body)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {
+            voiceRecorder = com.astro5star.app.utils.VoiceRecorder(this)
+            lifecycleScope.launchWhenResumed {
+                audioPlayer.updateProgress()
+            }
             // Ensure socket is initialized and connected
             com.astro5star.app.data.remote.SocketManager.init()
             com.astro5star.app.data.remote.SocketManager.ensureConnection()
@@ -236,6 +258,23 @@ class ChatActivity : ComponentActivity() {
                         onPickImage = { imagePickerLauncher.launch("image/*") },
                         onPickFile = { filePickerLauncher.launch("*/*") },
                         summaryData = showSummaryData,
+                        onDismissSummary = { showSummaryData = null },
+                        audioPlayer = audioPlayer,
+                        onStartRecording = {
+                            if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                voiceRecorder.startRecording()
+                            } else {
+                                permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                            }
+                        },
+                        onStopRecording = {
+                            val file = voiceRecorder.stopRecording()
+                            if (file != null && file.exists()) {
+                                handleMediaUpload(directFile = file)
+                            } else {
+                                Toast.makeText(this, "Recording failed", Toast.LENGTH_SHORT).show()
+                            }
+                        },
                         onDismissSummary = { finishSessionAndNavigate() }
                     )
                 }
@@ -359,8 +398,9 @@ class ChatActivity : ComponentActivity() {
                 val fileUrl = result.optString("fileUrl")
                 val fileName = result.optString("fileName")
                 val fileType = result.optString("fileType")
+                val fileSize = result.optLong("fileSize")
 
-                android.util.Log.d("ChatActivity", "Media Info: URL=$fileUrl, Type=$fileType")
+                android.util.Log.d("ChatActivity", "Media Info: URL=$fileUrl, Type=$fileType, Size=$fileSize")
 
                 if (!fileUrl.isNullOrEmpty() && toUserId != null && sessionId != null) {
                     val isImage = fileType.contains("image", ignoreCase = true) || 
@@ -379,6 +419,7 @@ class ChatActivity : ComponentActivity() {
                             put("fileUrl", fileUrl)
                             put("fileName", fileName)
                             put("fileType", fileType)
+                            put("fileSize", fileSize)
                         })
                     }
                     viewModel.sendMessage(payload)
@@ -477,6 +518,7 @@ class ChatActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        audioPlayer.stop()
         timerHandler.removeCallbacks(timerRunnable)
         viewModel.stopListeners()
     }
@@ -488,24 +530,28 @@ fun ChatScreen(
     viewModel: ChatViewModel,
     sessionDuration: String,
     title: String,
+    remainingTime: String,
+    remainingSeconds: Int,
+    toUserId: String?,
+    sessionId: String?,
+    isAstrologer: Boolean,
     onBack: () -> Unit,
     onEndChat: () -> Unit,
     onEditIntake: () -> Unit,
     onViewChart: () -> Unit,
-    isAstrologer: Boolean,
-    toUserId: String?,
-    sessionId: String?,
-    remainingTime: String,
-    remainingSeconds: Int,
-    clientBirthData: JSONObject? = null,
+    clientBirthData: JSONObject?,
     onPickImage: () -> Unit,
     onPickFile: () -> Unit,
-    summaryData: SessionSummary? = null,
-    onDismissSummary: () -> Unit
+    summaryData: SessionSummary?,
+    onDismissSummary: () -> Unit,
+    audioPlayer: com.astro5star.app.utils.ChatAudioPlayer,
+    onStartRecording: () -> Unit,
+    onStopRecording: () -> Unit
 ) {
     val messages by viewModel.history.observeAsState(emptyList())
     val isTyping by viewModel.typingStatus.observeAsState(false)
     val context = LocalContext.current
+    var isRecording by remember { mutableStateOf(false) }
 
     // Disable Back Button for Clients
     BackHandler(enabled = !isAstrologer) {
@@ -610,7 +656,16 @@ fun ChatScreen(
                 onViewChart = if (isAstrologer) onViewChart else null,
                 clientBirthData = clientBirthData,
                 onPickImage = onPickImage,
-                onPickFile = onPickFile
+                onPickFile = onPickFile,
+                isRecording = isRecording,
+                onStartRecording = {
+                    isRecording = true
+                    onStartRecording()
+                },
+                onStopRecording = {
+                    isRecording = false
+                    onStopRecording()
+                }
             )
         }
     ) { padding ->
@@ -677,7 +732,7 @@ fun ChatScreen(
                     }
 
                     items(displayedMessages) { msg ->
-                        ChatBubble(msg, isAstrologer, onReply = { replyingTo = msg })
+                        ChatBubble(msg, isAstrologer, { replyingTo = msg }, audioPlayer)
                     }
                     if (isTyping) item { TypingBubble() }
                 }
@@ -688,7 +743,12 @@ fun ChatScreen(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
+fun ChatBubble(
+    msg: ChatMessage,
+    amIAstrologer: Boolean,
+    onReply: () -> Unit,
+    audioPlayer: com.astro5star.app.utils.ChatAudioPlayer
+) {
     val isMe = msg.isSent
     val isMsgFromAstrologer = if (isMe) amIAstrologer else !amIAstrologer
 
@@ -776,7 +836,7 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                                     }
                                 }
                             }
-                            if (msg.type == "image" && !msg.fileUrl.isNullOrEmpty()) {
+                             if (msg.type == "image" && !msg.fileUrl.isNullOrEmpty()) {
                                 val context = androidx.compose.ui.platform.LocalContext.current
                                 val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL
                                 val fullUrl = remember(msg.fileUrl) {
@@ -794,33 +854,125 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                                     }
                                 }
 
-                                android.util.Log.d("ChatActivity", "Rendering Image: $fullUrl")
+                                val fileSizeText = remember(msg.fileSize) {
+                                    val size = msg.fileSize ?: 0L
+                                    when {
+                                        size <= 0 -> ""
+                                        size < 1024 -> "$size B"
+                                        size < 1024 * 1024 -> "${size / 1024} KB"
+                                        else -> String.format("%.1f MB", size.toDouble() / (1024 * 1024))
+                                    }
+                                }
 
-                                // WhatsApp-like modern image loading with loading spinner
-                                SubcomposeAsyncImage(
-                                    model = fullUrl,
-                                    contentDescription = "Image",
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .heightIn(max = 300.dp)
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(Color.Gray.copy(alpha = 0.05f))
-                                        .clickable {
+                                        .background(Color.Gray.copy(alpha = 0.1f))
+                                ) {
+                                    // Main Image
+                                    SubcomposeAsyncImage(
+                                        model = fullUrl,
+                                        contentDescription = "Image",
+                                        modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp).clickable {
                                             val intent = Intent(context, com.astro5star.app.ui.chat.FullScreenImageActivity::class.java).apply {
                                                 putExtra("imageUrl", fullUrl)
                                             }
                                             context.startActivity(intent)
                                         },
-                                    loading = {
-                                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                            CircularProgressIndicator(modifier = Modifier.size(32.dp), strokeWidth = 2.dp, color = Color(0xFF004D40))
+                                        loading = {
+                                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                CircularProgressIndicator(modifier = Modifier.size(32.dp), strokeWidth = 2.dp)
+                                            }
+                                        },
+                                        error = {
+                                            // Fallback for failed load or "not downloaded yet" feel
+                                            Box(Modifier.fillMaxSize().background(Color.DarkGray.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                    Icon(androidx.compose.material.icons.Icons.Default.CloudDownload, "Download", tint = Color.White, modifier = Modifier.size(48.dp))
+                                                    if (fileSizeText.isNotEmpty()) {
+                                                        Text(fileSizeText, color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        contentScale = ContentScale.FillWidth
+                                    )
+
+                                    // Overlay for Info (Bottom Right WhatsApp Style)
+                                    Row(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomEnd)
+                                            .padding(8.dp)
+                                            .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        if (fileSizeText.isNotEmpty()) {
+                                            Text(fileSizeText, color = Color.White, style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                                            Spacer(Modifier.width(4.dp))
                                         }
-                                    },
-                                    error = {
-                                         Icon(Icons.Default.BrokenImage, "Error", tint = Color.Gray, modifier = Modifier.size(48.dp).align(Alignment.Center))
-                                    },
-                                    contentScale = ContentScale.FillWidth
-                                )
+                                        Icon(
+                                            androidx.compose.material.icons.Icons.Default.FileDownload, 
+                                            "Download", 
+                                            tint = Color.White, 
+                                            modifier = Modifier.size(14.dp).clickable {
+                                                // Trigger explicit download
+                                                val intent = Intent(context, com.astro5star.app.ui.chat.FullScreenImageActivity::class.java).apply {
+                                                    putExtra("imageUrl", fullUrl)
+                                                    putExtra("autoDownload", true)
+                                                }
+                                                context.startActivity(intent)
+                                            }
+                                        )
+                                    }
+                                }
+                            } else if (msg.type == "voice" && !msg.fileUrl.isNullOrEmpty()) {
+                                // WhatsApp-like Voice Player
+                                val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL
+                                val fullUrl = remember(msg.fileUrl) {
+                                    if (msg.fileUrl!!.startsWith("http")) msg.fileUrl!! else "$baseUrl${msg.fileUrl}"
+                                }
+                                val isPlaying by audioPlayer.isPlaying.collectAsState()
+                                val progress by audioPlayer.progress.collectAsState()
+                                val currentUrl by audioPlayer.currentUrl.collectAsState()
+                                
+                                val isThisPlaying = isPlaying && currentUrl == fullUrl
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color.Black.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
+                                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                                ) {
+                                    IconButton(
+                                        onClick = { audioPlayer.play(fullUrl) },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            if (isThisPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                            contentDescription = "Play",
+                                            tint = if (isMe) Color(0xFF6200EE) else Color(0xFFC2185B)
+                                        )
+                                    }
+                                    
+                                    // Waveform placeholder / Seekbar
+                                    LinearProgressIndicator(
+                                        progress = if (isThisPlaying) progress else 0f,
+                                        modifier = Modifier.weight(1f).height(4.dp).padding(horizontal = 8.dp),
+                                        color = if (isMe) Color(0xFF6200EE) else Color(0xFFC2185B),
+                                        trackColor = Color.LightGray.copy(alpha = 0.5f)
+                                    )
+                                    
+                                    Icon(
+                                        Icons.Default.Mic,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = Color.Gray
+                                    )
+                                }
                             } else if (msg.type == "file" && !msg.fileUrl.isNullOrEmpty()) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -924,8 +1076,12 @@ fun ChatInputBar(
     onViewChart: (() -> Unit)?,
     clientBirthData: JSONObject? = null,
     onPickImage: () -> Unit,
-    onPickFile: () -> Unit
+    onPickFile: () -> Unit,
+    isRecording: Boolean,
+    onStartRecording: () -> Unit,
+    onStopRecording: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     Surface(
         color = Color.White,
         shadowElevation = 8.dp,
@@ -964,22 +1120,19 @@ fun ChatInputBar(
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_chart),
                                 contentDescription = "Chart",
-                                tint = Color(0xFF4CAF50) // Green when ready
+                                tint = Color(0xFF4CAF50)
                             )
                         } else {
-                            // Spin icon replacement - Use Refresh as a placeholder for "loading/pending"
-                            Icon(
-                                Icons.Default.Refresh,
-                                contentDescription = "Waiting for data",
-                                tint = Color.Gray
-                            )
+                            Icon(Icons.Default.Refresh, "Pending", tint = Color.Gray)
                         }
                     }
                 }
+                
                 OutlinedTextField(
-                    value = text,
+                    value = if (isRecording) "Recording Voice Note..." else text,
                     onValueChange = onTextChange,
                     modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+                    enabled = !isRecording,
                     shape = RoundedCornerShape(24.dp),
                     placeholder = { Text("Type a message", fontSize = 14.sp) },
                     maxLines = 4,
@@ -990,14 +1143,38 @@ fun ChatInputBar(
                        unfocusedIndicatorColor = Color.Transparent
                     )
                 )
-                FloatingActionButton(
-                    onClick = onSend,
-                    containerColor = Color(0xFFC9A227),
-                    contentColor = Color.White,
-                    shape = CircleShape,
-                    modifier = Modifier.size(44.dp)
-                ) {
-                    Icon(Icons.Default.Send, "Send", modifier = Modifier.size(20.dp))
+
+                if (text.isNotBlank()) {
+                    IconButton(onClick = onSend) {
+                        Icon(Icons.Default.Send, "Send", tint = Color(0xFF6200EE))
+                    }
+                } else {
+                    // Record Button with PointerInput for Hold-to-Record
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(if (isRecording) Color.Red else Color(0xFF6200EE))
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onPress = {
+                                        onStartRecording()
+                                        try {
+                                            awaitRelease()
+                                        } finally {
+                                            onStopRecording()
+                                        }
+                                    }
+                                )
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            if (isRecording) Icons.Default.Mic else Icons.Default.MicNone,
+                            "Record",
+                            tint = Color.White
+                        )
+                    }
                 }
             }
         }

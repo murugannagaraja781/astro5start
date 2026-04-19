@@ -172,7 +172,8 @@ class ChatRepository(private val context: Context) {
                              type = type,
                              fileUrl = if (fileUrl.isNullOrEmpty()) null else fileUrl,
                              fileType = if (fileType.isNullOrEmpty()) null else fileType,
-                             fileName = if (fileName.isNullOrEmpty()) null else fileName
+                             fileName = if (fileName.isNullOrEmpty()) null else fileName,
+                             fileSize = content?.optLong("fileSize") ?: json.optLong("fileSize", 0L).let { if(it==0L) null else it }
                          )
                          saveMessage(entity)
                      }

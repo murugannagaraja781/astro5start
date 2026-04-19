@@ -246,7 +246,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 type = type,
                 fileUrl = if (fileUrl.isNullOrEmpty()) null else fileUrl,
                 fileType = if (fileType.isNullOrEmpty()) null else fileType,
-                fileName = if (fileName.isNullOrEmpty()) null else fileName
+                fileName = if (fileName.isNullOrEmpty()) null else fileName,
+                fileSize = content?.optLong("fileSize") ?: data.optLong("fileSize", 0L).let { if(it==0L) null else it }
             )
             
             _messages.postValue(msg) // Trigger individual message observer
@@ -274,7 +275,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         type = type,
                         fileUrl = if (fileUrl.isNullOrEmpty()) null else fileUrl,
                         fileType = if (fileType.isNullOrEmpty()) null else fileType,
-                        fileName = if (fileName.isNullOrEmpty()) null else fileName
+                        fileName = if (fileName.isNullOrEmpty()) null else fileName,
+                        fileSize = content?.optLong("fileSize") ?: data.optLong("fileSize", 0L).let { if(it==0L) null else it }
                     )
                     repository.saveMessage(entity)
 
@@ -369,7 +371,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         type = entity.type,
                         fileUrl = entity.fileUrl,
                         fileType = entity.fileType,
-                        fileName = entity.fileName
+                        fileName = entity.fileName,
+                        fileSize = entity.fileSize
                     )
                 }
                 _history.postValue(uiMessages)
