@@ -353,8 +353,10 @@ class IncomingCallActivity : ComponentActivity() {
         }
 
         val intent: Intent
-        if (callType == "chat") {
+        val finalType = callType.lowercase()
+        if (finalType == "chat") {
             intent = Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 putExtra("sessionId", callId)
                 putExtra("toUserId", callerId)
                 putExtra("toUserName", callerName)
@@ -363,6 +365,7 @@ class IncomingCallActivity : ComponentActivity() {
             }
         } else {
             intent = Intent(this, com.astro5star.app.ui.call.CallActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 putExtra("sessionId", callId)
                 putExtra("partnerId", callerId)
                 putExtra("partnerName", callerName)

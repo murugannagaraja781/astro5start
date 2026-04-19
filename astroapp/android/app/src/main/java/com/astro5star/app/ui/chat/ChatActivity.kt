@@ -135,11 +135,27 @@ class ChatActivity : ComponentActivity() {
             return
         }
 
-        // Optimized Upload logic
-        val requestFile = file.asRequestBody("multipart/form-data".toMediaTypeOrNull())
+        // Detection logic for better server-side handling
+        val mimeType = when {
+            file.name.endsWith(".jpg", true) || file.name.endsWith(".jpeg", true) -> "image/jpeg"
+            file.name.endsWith(".png", true) -> "image/png"
+            file.name.endsWith(".mp3", true) || file.name.endsWith(".mpeg", true) -> "audio/mpeg"
+            file.name.endsWith(".m4a", true) -> "audio/mp4"
+            else -> contentResolver.getType(uri ?: android.net.Uri.EMPTY) ?: "application/octet-stream"
+        }
+
+        val requestFile = file.asRequestBody(mimeType.toMediaTypeOrNull())
         val body = okhttp3.MultipartBody.Part.createFormData("file", file.name, requestFile)
-        Toast.makeText(this, "Uploading file to astro server...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Uploading...", Toast.LENGTH_SHORT).show()
         viewModel.uploadMedia(body)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        viewModel.startListeners()
+        if (sessionId != null) {
+            viewModel.joinSessionSafe(sessionId!!)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -258,7 +274,6 @@ class ChatActivity : ComponentActivity() {
                         onPickImage = { imagePickerLauncher.launch("image/*") },
                         onPickFile = { filePickerLauncher.launch("*/*") },
                         summaryData = showSummaryData,
-                        onDismissSummary = { showSummaryData = null },
                         audioPlayer = audioPlayer,
                         onStartRecording = {
                             if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -392,21 +407,37 @@ class ChatActivity : ComponentActivity() {
             remainingTime = String.format("%02d:%02d", remMins, remSecs)
         }
 
+        // Ensure Audio Progress Updates
+        LaunchedEffect(Unit) {
+            audioPlayer.updateProgress()
+        }
+
         viewModel.uploadResult.observe(this) { result ->
-            android.util.Log.d("ChatActivity", "Upload Result Received: $result")
             if (result != null) {
                 val fileUrl = result.optString("fileUrl")
                 val fileName = result.optString("fileName")
                 val fileType = result.optString("fileType")
                 val fileSize = result.optLong("fileSize")
 
-                android.util.Log.d("ChatActivity", "Media Info: URL=$fileUrl, Type=$fileType, Size=$fileSize")
-
                 if (!fileUrl.isNullOrEmpty() && toUserId != null && sessionId != null) {
+                    Toast.makeText(this, "Media Ready!", Toast.LENGTH_SHORT).show()
+                    
                     val isImage = fileType.contains("image", ignoreCase = true) || 
                                  fileUrl.endsWith(".jpg", true) || 
                                  fileUrl.endsWith(".png", true) || 
                                  fileUrl.endsWith(".jpeg", true)
+                    
+                    val isVoice = fileType.contains("audio", ignoreCase = true) || 
+                                 fileUrl.endsWith(".mp3", true) || 
+                                 fileUrl.endsWith(".wav", true) ||
+                                 fileUrl.endsWith(".mpeg", true) ||
+                                 fileUrl.endsWith(".m4a", true)
+
+                    val type = when {
+                        isImage -> "image"
+                        isVoice -> "voice"
+                        else -> "file"
+                    }
 
                     val payload = JSONObject().apply {
                         put("toUserId", toUserId)
@@ -414,8 +445,12 @@ class ChatActivity : ComponentActivity() {
                         put("messageId", UUID.randomUUID().toString())
                         put("timestamp", System.currentTimeMillis())
                         put("content", JSONObject().apply {
-                            put("text", if (isImage) "📷 Photo" else "📄 File")
-                            put("type", if (isImage) "image" else "file")
+                            put("text", when(type) {
+                                "image" -> "📷 Photo"
+                                "voice" -> "🎤 Voice message"
+                                else -> "📄 File"
+                            })
+                            put("type", type)
                             put("fileUrl", fileUrl)
                             put("fileName", fileName)
                             put("fileType", fileType)
@@ -423,11 +458,9 @@ class ChatActivity : ComponentActivity() {
                         })
                     }
                     viewModel.sendMessage(payload)
-                    android.util.Log.d("ChatActivity", "Image message payload sent via socket")
                     SoundManager.playSentSound()
                     viewModel.clearUploadResult()
                 } else {
-                    android.util.Log.e("ChatActivity", "Upload failed: fileUrl is empty or target lost")
                     Toast.makeText(this, "Upload failed - try again", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -864,41 +897,41 @@ fun ChatBubble(
                                     }
                                 }
 
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(max = 300.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Color.Gray.copy(alpha = 0.1f))
-                                ) {
-                                    // Main Image
-                                    SubcomposeAsyncImage(
-                                        model = fullUrl,
-                                        contentDescription = "Image",
-                                        modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp).clickable {
-                                            val intent = Intent(context, com.astro5star.app.ui.chat.FullScreenImageActivity::class.java).apply {
-                                                putExtra("imageUrl", fullUrl)
-                                            }
-                                            context.startActivity(intent)
-                                        },
-                                        loading = {
-                                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                                CircularProgressIndicator(modifier = Modifier.size(32.dp), strokeWidth = 2.dp)
-                                            }
-                                        },
-                                        error = {
-                                            // Fallback for failed load or "not downloaded yet" feel
-                                            Box(Modifier.fillMaxSize().background(Color.DarkGray.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
-                                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                    Icon(androidx.compose.material.icons.Icons.Default.CloudDownload, "Download", tint = Color.White, modifier = Modifier.size(48.dp))
-                                                    if (fileSizeText.isNotEmpty()) {
-                                                        Text(fileSizeText, color = Color.White, style = MaterialTheme.typography.labelSmall)
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        contentScale = ContentScale.FillWidth
-                                    )
+                                 Box(
+                                     modifier = Modifier
+                                         .fillMaxWidth()
+                                         .heightIn(min = 150.dp, max = 300.dp)
+                                         .clip(RoundedCornerShape(12.dp))
+                                         .background(Color.Gray.copy(alpha = 0.1f))
+                                 ) {
+                                     // Main Image
+                                     SubcomposeAsyncImage(
+                                         model = fullUrl,
+                                         contentDescription = "Image",
+                                         modifier = Modifier.fillMaxWidth().heightIn(min = 150.dp, max = 300.dp).clickable {
+                                             val intent = Intent(context, com.astro5star.app.ui.chat.FullScreenImageActivity::class.java).apply {
+                                                 putExtra("imageUrl", fullUrl)
+                                             }
+                                             context.startActivity(intent)
+                                         },
+                                         loading = {
+                                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                 CircularProgressIndicator(modifier = Modifier.size(32.dp), strokeWidth = 2.dp)
+                                             }
+                                         },
+                                         error = {
+                                             // Fallback for failed load
+                                             Box(Modifier.fillMaxSize().background(Color.DarkGray.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
+                                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                     Icon(androidx.compose.material.icons.Icons.Default.CloudDownload, "Download", tint = Color.White, modifier = Modifier.size(48.dp))
+                                                     if (fileSizeText.isNotEmpty()) {
+                                                         Text(fileSizeText, color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                                     }
+                                                 }
+                                             }
+                                         },
+                                         contentScale = ContentScale.Crop
+                                     )
 
                                     // Overlay for Info (Bottom Right WhatsApp Style)
                                     Row(
@@ -929,7 +962,7 @@ fun ChatBubble(
                                     }
                                 }
                             } else if (msg.type == "voice" && !msg.fileUrl.isNullOrEmpty()) {
-                                // WhatsApp-like Voice Player
+                                // WhatsApp-inspired Voice Player UI
                                 val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL
                                 val fullUrl = remember(msg.fileUrl) {
                                     if (msg.fileUrl!!.startsWith("http")) msg.fileUrl!! else "$baseUrl${msg.fileUrl}"
@@ -937,41 +970,50 @@ fun ChatBubble(
                                 val isPlaying by audioPlayer.isPlaying.collectAsState()
                                 val progress by audioPlayer.progress.collectAsState()
                                 val currentUrl by audioPlayer.currentUrl.collectAsState()
-                                
                                 val isThisPlaying = isPlaying && currentUrl == fullUrl
 
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(Color.Black.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
-                                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                                        .padding(4.dp)
+                                        .background(Color.Black.copy(alpha = 0.03f), RoundedCornerShape(12.dp))
+                                        .padding(8.dp)
                                 ) {
-                                    IconButton(
-                                        onClick = { audioPlayer.play(fullUrl) },
-                                        modifier = Modifier.size(36.dp)
+                                    // Play/Pause Button with circular background
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = if (isMe) Color(0xFFDCF8C6) else Color(0xFFF0F0F0),
+                                        modifier = Modifier.size(40.dp).clickable { 
+                                            if (isThisPlaying) audioPlayer.pause() else audioPlayer.play(fullUrl)
+                                        },
+                                        shadowElevation = 1.dp
                                     ) {
                                         Icon(
                                             if (isThisPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                                            contentDescription = "Play",
-                                            tint = if (isMe) Color(0xFF6200EE) else Color(0xFFC2185B)
+                                            contentDescription = null,
+                                            tint = if (isMe) Color(0xFF008069) else Color(0xFF6200EE),
+                                            modifier = Modifier.padding(8.dp).fillMaxSize()
                                         )
                                     }
-                                    
-                                    // Waveform placeholder / Seekbar
-                                    LinearProgressIndicator(
-                                        progress = if (isThisPlaying) progress else 0f,
-                                        modifier = Modifier.weight(1f).height(4.dp).padding(horizontal = 8.dp),
-                                        color = if (isMe) Color(0xFF6200EE) else Color(0xFFC2185B),
-                                        trackColor = Color.LightGray.copy(alpha = 0.5f)
-                                    )
-                                    
-                                    Icon(
-                                        Icons.Default.Mic,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = Color.Gray
-                                    )
+
+                                    Spacer(Modifier.width(8.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        // Mock Waveform / Progress Slider
+                                        LinearProgressIndicator(
+                                            progress = if (isThisPlaying) progress else 0f,
+                                            modifier = Modifier.fillMaxWidth().height(4.dp),
+                                            color = if (isMe) Color(0xFF008069) else Color(0xFF6200EE),
+                                            trackColor = Color.LightGray.copy(alpha = 0.3f)
+                                        )
+                                        Spacer(Modifier.height(4.dp))
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text("0:00", fontSize = 10.sp, color = Color.Gray)
+                                            Spacer(Modifier.weight(1f))
+                                            Icon(Icons.Default.Mic, null, modifier = Modifier.size(12.dp), tint = Color(0xFF2196F3))
+                                        }
+                                    }
                                 }
                             } else if (msg.type == "file" && !msg.fileUrl.isNullOrEmpty()) {
                                 Row(
@@ -1000,12 +1042,20 @@ fun ChatBubble(
                                 }
                             }
 
-                            if (!displayText.isNullOrEmpty()) {
+                            val isMediaMessage = msg.type != "text"
+                            val isDefaultMediaText = when(msg.type) {
+                                "image" -> displayText == "📷 Photo" || displayText == "Sent an image"
+                                "voice" -> displayText == "🎤 Voice message" || displayText == "Voice message"
+                                "file" -> displayText == "📄 File" || (msg.fileName != null && displayText == msg.fileName)
+                                else -> false
+                            }
+
+                            if (!displayText.isNullOrEmpty() && (!isMediaMessage || !isDefaultMediaText)) {
                                 Text(
                                     text = displayText,
                                     fontSize = 16.sp,
                                     color = Color.Black,
-                                    modifier = Modifier.padding(top = if (msg.type != "text") 4.dp else 0.dp)
+                                    modifier = Modifier.padding(top = if (isMediaMessage) 4.dp else 0.dp)
                                 )
                             }
 
@@ -1049,6 +1099,20 @@ fun ChatBubble(
                         showMenu = false
                     },
                     leadingIcon = { Icon(Icons.Default.Reply, null) }
+                )
+                DropdownMenuItem(
+                    text = { Text("Forward / Share") },
+                    onClick = {
+                        val shareIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            val shareContent = msg.text.takeIf { it.isNotBlank() } ?: msg.fileUrl ?: ""
+                            putExtra(Intent.EXTRA_TEXT, shareContent)
+                            type = "text/plain"
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Share"))
+                        showMenu = false
+                    },
+                    leadingIcon = { Icon(Icons.Default.Share, null) }
                 )
             }
         }

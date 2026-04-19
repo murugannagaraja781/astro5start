@@ -45,6 +45,12 @@ class ChatAudioPlayer {
             prepareAsync()
         }
     }
+    fun pause() {
+        if (mediaPlayer?.isPlaying == true) {
+            mediaPlayer?.pause()
+            _isPlaying.value = false
+        }
+    }
 
     fun stop() {
         mediaPlayer?.stop()
