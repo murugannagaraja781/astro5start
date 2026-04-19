@@ -167,7 +167,19 @@ class ChatActivity : ComponentActivity() {
             }
             // Ensure socket is initialized and connected
             com.astro5star.app.data.remote.SocketManager.init()
-            com.astro5star.app.data.remote.SocketManager.ensureConnection()
+            val myId = com.astro5star.app.data.local.TokenManager(this).getUserSession()?.userId
+            if (myId != null) {
+                com.astro5star.app.data.remote.SocketManager.registerUser(myId) { success ->
+                    runOnUiThread {
+                        if (success) Toast.makeText(this, "Socket Registered", Toast.LENGTH_SHORT).show()
+                        else Toast.makeText(this, "Socket Reg Failed", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            
+            android.util.Log.d("ChatActivity", "Chat Init: From=$myId, To=$toUserId, Session=$sessionId")
+            Toast.makeText(this, "Chat Ready: $toUserId", Toast.LENGTH_SHORT).show()
+            
             window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
             handleIntent(intent)
 
@@ -271,7 +283,10 @@ class ChatActivity : ComponentActivity() {
                         remainingTime = remainingTime,
                         remainingSeconds = remainingSeconds,
                         clientBirthData = clientBirthData,
-                        onPickImage = { imagePickerLauncher.launch("image/*") },
+                        onPickImage = { 
+                            Toast.makeText(this, "Opening Gallery...", Toast.LENGTH_SHORT).show()
+                            imagePickerLauncher.launch("image/*") 
+                        },
                         onPickFile = { filePickerLauncher.launch("*/*") },
                         summaryData = showSummaryData,
                         audioPlayer = audioPlayer,
@@ -407,10 +422,12 @@ class ChatActivity : ComponentActivity() {
             remainingTime = String.format("%02d:%02d", remMins, remSecs)
         }
 
-        // Ensure Audio Progress Updates
-        LaunchedEffect(Unit) {
-            audioPlayer.updateProgress()
+        viewModel.messages.observe(this) { msg ->
+            if (msg != null) {
+                Toast.makeText(this, "Message Received: ${msg.type}", Toast.LENGTH_SHORT).show()
+            }
         }
+
 
         viewModel.uploadResult.observe(this) { result ->
             if (result != null) {
@@ -920,13 +937,12 @@ fun ChatBubble(
                                              }
                                          },
                                          error = {
-                                             // Fallback for failed load
-                                             Box(Modifier.fillMaxSize().background(Color.DarkGray.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
+                                             // High-visibility Error for debugging "img show aga la"
+                                             Box(Modifier.fillMaxSize().background(Color(0xFFFFEBEE)), contentAlignment = Alignment.Center) {
                                                  Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                     Icon(androidx.compose.material.icons.Icons.Default.CloudDownload, "Download", tint = Color.White, modifier = Modifier.size(48.dp))
-                                                     if (fileSizeText.isNotEmpty()) {
-                                                         Text(fileSizeText, color = Color.White, style = MaterialTheme.typography.labelSmall)
-                                                     }
+                                                     Icon(androidx.compose.material.icons.Icons.Default.Error, "Error", tint = Color.Red, modifier = Modifier.size(40.dp))
+                                                     Text("Image Load Failed", color = Color.Red, style = MaterialTheme.typography.labelMedium)
+                                                     Text(fullUrl.takeLast(20), color = Color.Red.copy(alpha=0.6f), style = MaterialTheme.typography.labelSmall)
                                                  }
                                              }
                                          },
@@ -985,7 +1001,7 @@ fun ChatBubble(
                                         shape = CircleShape,
                                         color = if (isMe) Color(0xFFDCF8C6) else Color(0xFFF0F0F0),
                                         modifier = Modifier.size(40.dp).clickable { 
-                                            if (isThisPlaying) audioPlayer.pause() else audioPlayer.play(fullUrl)
+                                            audioPlayer.play(fullUrl)
                                         },
                                         shadowElevation = 1.dp
                                     ) {

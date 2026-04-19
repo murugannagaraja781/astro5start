@@ -30,19 +30,34 @@ class ChatAudioPlayer {
             return
         }
 
-        stop()
-        _currentUrl.value = url
-        mediaPlayer = MediaPlayer().apply {
-            setDataSource(url)
-            setOnPreparedListener {
-                start()
-                _isPlaying.value = true
+        try {
+            stop()
+            _currentUrl.value = url
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(url)
+                setOnPreparedListener {
+                    start()
+                    _isPlaying.value = true
+                    android.util.Log.d("ChatAudioPlayer", "Playback started: $url")
+                }
+                setOnCompletionListener {
+                    _isPlaying.value = false
+                    _progress.value = 0f
+                    _currentUrl.value = null
+                    android.util.Log.d("ChatAudioPlayer", "Playback completed")
+                }
+                setOnErrorListener { mp, what, extra ->
+                    android.util.Log.e("ChatAudioPlayer", "Playback ERROR: what=$what, extra=$extra URL=$url")
+                    _isPlaying.value = false
+                    _currentUrl.value = null
+                    true
+                }
+                prepareAsync()
             }
-            setOnCompletionListener {
-                _isPlaying.value = false
-                _progress.value = 0f
-            }
-            prepareAsync()
+        } catch (e: Exception) {
+            android.util.Log.e("ChatAudioPlayer", "Play failed: ${e.message}", e)
+            _isPlaying.value = false
+            _currentUrl.value = null
         }
     }
     fun pause() {

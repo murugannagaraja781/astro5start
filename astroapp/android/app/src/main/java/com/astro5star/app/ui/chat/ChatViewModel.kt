@@ -238,6 +238,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
             // Save to DB
             // Immediately update UI and DB
+            android.util.Log.d("ChatViewModel", "Incoming Msg: $msgId Type=$type URL=$fileUrl Content=$content")
+            
             val msg = ChatMessage(
                 id = msgId, 
                 text = text, 
