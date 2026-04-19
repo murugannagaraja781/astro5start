@@ -318,7 +318,7 @@ class ChatActivity : ComponentActivity() {
         }
     }
 
-    private var showSummaryData by mutableStateOf<com.astro5star.app.data.repository.SessionSummary?>(null)
+    private var showSummaryData by mutableStateOf<com.astro5star.app.ui.chat.SessionSummary?>(null)
 
     private fun setupObservers() {
         viewModel.sessionSummary.observe(this) { summary ->
@@ -490,7 +490,7 @@ fun ChatScreen(
     clientBirthData: JSONObject? = null,
     onPickImage: () -> Unit,
     onPickFile: () -> Unit,
-    summaryData: com.astro5star.app.data.repository.SessionSummary? = null,
+    summaryData: com.astro5star.app.ui.chat.SessionSummary? = null,
     onDismissSummary: () -> Unit
 ) {
     val messages by viewModel.history.observeAsState(emptyList())
@@ -606,8 +606,11 @@ fun ChatScreen(
     ) { padding ->
         // Summary Dialog Integration
         if (summaryData != null) {
-            ModernSummaryDialog(
-                summary = summaryData, 
+            ChatModernSummaryDialog(
+                duration = summaryData.duration,
+                earned = summaryData.earned,
+                deducted = summaryData.deducted,
+                reason = summaryData.reason,
                 isAstrologer = isAstrologer,
                 onDismiss = onDismissSummary
             )
@@ -993,3 +996,95 @@ fun ChatInputBar(
         }
     }
 }
+
+@Composable
+fun ChatModernSummaryDialog(
+    duration: Int,
+    earned: Double,
+    deducted: Double,
+    reason: String,
+    isAstrologer: Boolean,
+    onDismiss: () -> Unit
+) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = {}) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = Color.White,
+            shadowElevation = 16.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header Icon
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFF004D40),
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = "Success",
+                        tint = Color.White,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    "Chat Completed",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = Color(0xFF333333)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    if (reason == "no_answer") "Chat status: Not Answered" else "Session summary details",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+
+                if (reason != "no_answer") {
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Duration", fontSize = 12.sp, color = Color.Gray)
+                            val mins = duration / 60
+                            val secs = duration % 60
+                            Text(String.format("%02d:%02d", mins, secs), fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color(0xFF333333))
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(if (isAstrologer) "Earned" else "Deducted", fontSize = 12.sp, color = Color.Gray)
+                            Text(
+                                "₹${String.format("%.2f", if (isAstrologer) earned else deducted)}", 
+                                fontSize = 18.sp, 
+                                fontWeight = FontWeight.Black, 
+                                color = Color(0xFF4CAF50)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC9A227))
+                ) {
+                    Text("GO BACK HOME", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                }
+            }
+        }
+    }
+}
+
