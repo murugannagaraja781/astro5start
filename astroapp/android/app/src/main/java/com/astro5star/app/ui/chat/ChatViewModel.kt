@@ -192,13 +192,24 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun uploadMedia(filePart: okhttp3.MultipartBody.Part) {
         viewModelScope.launch {
             try {
+                android.util.Log.d("ChatViewModel", "uploadMedia: Requesting repository...")
                 val response = repository.uploadChatMedia(filePart)
                 if (response.isSuccessful) {
-                    _uploadResult.postValue(JSONObject(response.body().toString()))
+                    val rawBody = response.body()?.toString()
+                    android.util.Log.d("ChatViewModel", "Upload SUCCESS: $rawBody")
+                    if (!rawBody.isNullOrEmpty()) {
+                        _uploadResult.postValue(JSONObject(rawBody))
+                    } else {
+                        android.util.Log.e("ChatViewModel", "Upload success but body is null")
+                        _uploadResult.postValue(null)
+                    }
                 } else {
+                    val errorBody = response.errorBody()?.string()
+                    android.util.Log.e("ChatViewModel", "Upload FAILED: Code=${response.code()}, Error=$errorBody")
                     _uploadResult.postValue(null)
                 }
             } catch (e: Exception) {
+                android.util.Log.e("ChatViewModel", "Upload EXCEPTION: ${e.message}")
                 e.printStackTrace()
                 _uploadResult.postValue(null)
             }

@@ -648,16 +648,25 @@ const uploadRecording = async (req, res) => {
 
 const uploadChatMedia = async (req, res) => {
     try {
-        if (!req.file) return res.status(400).json({ ok: false, error: 'No file uploaded' });
+        console.log(`[Upload] Chat media request received. File: ${req.file ? req.file.originalname : 'NONE'}`);
+        if (!req.file) {
+            console.error('[Upload] Request failed: No file provided');
+            return res.status(400).json({ ok: false, error: 'No file uploaded' });
+        }
 
         const fileUrl = `/uploads/${req.file.filename}`;
+        const formattedUrl = formatImageUrl(fileUrl, 'ChatMedia');
+        
+        console.log(`[Upload] File saved successfully. Internal: ${fileUrl}, Public: ${formattedUrl}`);
+
         res.json({
             ok: true,
-            fileUrl: formatImageUrl(fileUrl, 'ChatMedia'),
+            fileUrl: formattedUrl,
             fileName: req.file.originalname,
-            fileType: req.file.mimetype.split('/')[0] // 'image', 'video', 'application' etc.
+            fileType: req.file.mimetype.split('/')[0] 
         });
     } catch (err) {
+        console.error('[Upload] Error processing chat media:', err.message);
         res.status(500).json({ ok: false, error: err.message });
     }
 };

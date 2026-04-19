@@ -109,15 +109,18 @@ class ChatActivity : ComponentActivity() {
     }
 
     private fun handleMediaUpload(uri: android.net.Uri) {
+        android.util.Log.d("ChatActivity", "handleMediaUpload: URI=$uri")
         val file = com.astro5star.app.utils.FileUtils.getFileFromUri(this, uri)
         if (file != null) {
+            android.util.Log.d("ChatActivity", "File obtained: Name=${file.name}, Size=${file.length()}")
             val mediaType = (contentResolver.getType(uri) ?: "application/octet-stream").toMediaTypeOrNull()
             val requestFile = file.asRequestBody(mediaType)
             val body = okhttp3.MultipartBody.Part.createFormData("file", file.name, requestFile)
-            Toast.makeText(this, "Uploading media...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Uploading image to astro server...", Toast.LENGTH_SHORT).show()
             viewModel.uploadMedia(body)
         } else {
-            Toast.makeText(this, "Failed to get file", Toast.LENGTH_SHORT).show()
+            android.util.Log.e("ChatActivity", "Failed to resolve file from URI")
+            Toast.makeText(this, "Failed to get file from device", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -318,7 +321,7 @@ class ChatActivity : ComponentActivity() {
         }
     }
 
-    private var showSummaryData by mutableStateOf<com.astro5star.app.ui.chat.SessionSummary?>(null)
+    private var showSummaryData: SessionSummary? by mutableStateOf(null)
 
     private fun setupObservers() {
         viewModel.sessionSummary.observe(this) { summary ->
@@ -351,10 +354,13 @@ class ChatActivity : ComponentActivity() {
         }
 
         viewModel.uploadResult.observe(this) { result ->
+            android.util.Log.d("ChatActivity", "Upload Result Received: $result")
             if (result != null) {
                 val fileUrl = result.optString("fileUrl")
                 val fileName = result.optString("fileName")
                 val fileType = result.optString("fileType")
+
+                android.util.Log.d("ChatActivity", "Media Info: URL=$fileUrl, Type=$fileType")
 
                 if (!fileUrl.isNullOrEmpty() && toUserId != null && sessionId != null) {
                     val isImage = fileType.contains("image", ignoreCase = true) || 
@@ -376,8 +382,12 @@ class ChatActivity : ComponentActivity() {
                         })
                     }
                     viewModel.sendMessage(payload)
+                    android.util.Log.d("ChatActivity", "Image message payload sent via socket")
                     SoundManager.playSentSound()
                     viewModel.clearUploadResult()
+                } else {
+                    android.util.Log.e("ChatActivity", "Upload failed: fileUrl is empty or target lost")
+                    Toast.makeText(this, "Upload failed - try again", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -490,7 +500,7 @@ fun ChatScreen(
     clientBirthData: JSONObject? = null,
     onPickImage: () -> Unit,
     onPickFile: () -> Unit,
-    summaryData: com.astro5star.app.ui.chat.SessionSummary? = null,
+    summaryData: SessionSummary? = null,
     onDismissSummary: () -> Unit
 ) {
     val messages by viewModel.history.observeAsState(emptyList())
@@ -785,21 +795,9 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                                     }
                                 }
 
-                                // Robust Image Loading with Logging
-                                AsyncImage(
-                                    model = coil.request.ImageRequest.Builder(context)
-                                        .data(fullUrl)
-                                        .crossfade(true)
-                                        .placeholder(android.R.drawable.ic_menu_gallery)
-                                        .error(android.R.drawable.stat_notify_error)
-                                        .listener(
-                                            onStart = { android.util.Log.d("ImageLoader", "Loading Start: $fullUrl") },
-                                            onSuccess = { _, _ -> android.util.Log.d("ImageLoader", "Loading Success: $fullUrl") },
-                                            onError = { _, result -> 
-                                                android.util.Log.e("ImageLoader", "Loading Failed: $fullUrl, Error: ${result.throwable.message}")
-                                            }
-                                        )
-                                        .build(),
+                                // WhatsApp-like modern image loading with loading spinner
+                                SubcomposeAsyncImage(
+                                    model = fullUrl,
                                     contentDescription = "Image",
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -812,6 +810,14 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                                             }
                                             context.startActivity(intent)
                                         },
+                                    loading = {
+                                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            CircularProgressIndicator(modifier = Modifier.size(32.dp), strokeWidth = 2.dp, color = Color(0xFF004D40))
+                                        }
+                                    },
+                                    error = {
+                                         Icon(Icons.Default.BrokenImage, "Error", tint = Color.Gray, modifier = Modifier.size(48.dp).align(Alignment.Center))
+                                    },
                                     contentScale = ContentScale.FillWidth
                                 )
                             } else if (msg.type == "file" && !msg.fileUrl.isNullOrEmpty()) {
