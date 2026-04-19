@@ -332,6 +332,7 @@ class IncomingCallActivity : ComponentActivity() {
     private fun onCallAccepted() {
         Log.d(TAG, "Call accepted: $callId")
         stopRingtoneAndVibration()
+        clearAllCallNotifications()
         handler.removeCallbacks(timeoutRunnable)
 
         // --- STABILITY FIX: Emit answer-session immediately for better responsiveness ---

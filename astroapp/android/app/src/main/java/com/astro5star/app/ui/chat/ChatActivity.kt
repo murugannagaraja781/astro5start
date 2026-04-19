@@ -133,7 +133,18 @@ class ChatActivity : ComponentActivity() {
             // --- GLOBAL STATE FIX: Mark chat as active to prevent incoming calls during session ---
             com.astro5star.app.utils.CallState.isCallActive = true
             com.astro5star.app.utils.CallState.currentSessionId = sessionId
-            setContent {
+            try {
+            // Clear any lingering notifications that might overlap the UI
+            val notificationManager = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            notificationManager.cancel(9999) // CALL_NOTIFICATION_ID
+            notificationManager.cancel(1001) // Foreground Service ID
+            notificationManager.cancel(1002) // GENERIC_NOTIFICATION_ID
+            // Also attempt to cancel by callerId hash if provided
+            toUserId?.let { notificationManager.cancel(it.hashCode()) }
+            notificationManager.cancelAll() // Safeguard: clear everything for this app
+        } catch (e: Exception) { e.printStackTrace() }
+
+        setContent {
                 CosmicAppTheme {
                     ChatScreen(
                         viewModel = viewModel,

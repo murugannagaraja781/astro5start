@@ -129,6 +129,7 @@ class CallActivity : ComponentActivity() {
     private var showReviewDialog by mutableStateOf(false)
     private var callSummaryMessage by mutableStateOf("")
     private var isReviewSubmitting by mutableStateOf(false)
+    private var showCallSummaryData by mutableStateOf<JSONObject?>(null)
 
     private var isWebRTCInitialized by mutableStateOf(false)
     private var isReady by mutableStateOf(false)
@@ -338,6 +339,8 @@ class CallActivity : ComponentActivity() {
                         isReviewSubmitting = isReviewSubmitting,
                         onSubmitReview = { rating, comment -> submitReview(rating, comment) },
                         onSkipReview = { finish() },
+                        showSummaryData = showCallSummaryData,
+                        onDismissSummary = { finish() },
                         showMatchSummary = showMatchSummary,
                         matchSummaryData = matchSummaryData,
                         onCloseMatchSummary = { showMatchSummary = false },
@@ -1896,27 +1899,42 @@ fun CallScreen(
     callSummary: String = "",
     isReviewSubmitting: Boolean = false,
     onSubmitReview: (Int, String) -> Unit = { _, _ -> },
-    onSkipReview: () -> Unit = {}
+    onSkipReview: () -> Unit = {},
+    showSummaryData: JSONObject? = null,
+    onDismissSummary: () -> Unit = {}
 ) {
-    if (showReviewDialog) {
-        ReviewDialog(
-            summary = callSummary,
-            isSubmitting = isReviewSubmitting,
-            onSubmit = onSubmitReview,
-            onSkip = onSkipReview
-        )
-    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (showSummaryData != null) {
+            CallSummaryModernCard(
+                duration = showSummaryData.optInt("duration"),
+                earned = showSummaryData.optDouble("earned"),
+                deducted = showSummaryData.optDouble("deducted"),
+                reason = showSummaryData.optString("reason"),
+                isAstrologer = role == "astrologer",
+                onDismiss = onDismissSummary
+            )
+        }
 
-    if (showMatchSummary && matchSummaryData != null) {
-        MatchSummaryDialog(
-            data = matchSummaryData,
-            onClose = onCloseMatchSummary,
-            onViewFull = onViewFullMatch
-        )
-    }
+        if (showReviewDialog) {
+            ReviewDialog(
+                summary = callSummary,
+                isSubmitting = isReviewSubmitting,
+                onSubmit = onSubmitReview,
+                onSkip = onSkipReview
+            )
+        }
 
-    if (showConnectedOverlay) {
-        ConnectionOverlay(partnerName)
+        if (showMatchSummary && matchSummaryData != null) {
+            MatchSummaryDialog(
+                data = matchSummaryData,
+                onClose = onCloseMatchSummary,
+                onViewFull = onViewFullMatch
+            )
+        }
+
+        if (showConnectedOverlay) {
+            ConnectionOverlay(partnerName)
+        }
     }
 
     Box(
@@ -2360,6 +2378,97 @@ fun MatchSummaryDialog(data: JSONObject, onClose: () -> Unit, onViewFull: () -> 
 
                 TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
                     Text("மூடுக (Close)", color = Color.Gray, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CallSummaryModernCard(
+    duration: Int,
+    earned: Double,
+    deducted: Double,
+    reason: String,
+    isAstrologer: Boolean,
+    onDismiss: () -> Unit
+) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = {}) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = Color.White,
+            shadowElevation = 16.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header Icon
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFF004D40),
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = "Success",
+                        tint = Color.White,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    "Call Completed",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = Color(0xFF333333)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    if (reason == "no_answer") "Call status: Not Answered" else "Session summary details",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+
+                if (reason != "no_answer") {
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Duration", fontSize = 12.sp, color = Color.Gray)
+                            val mins = duration / 60
+                            val secs = duration % 60
+                            Text(String.format("%02d:%02d", mins, secs), fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color(0xFF333333))
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(if (isAstrologer) "Earned" else "Deducted", fontSize = 12.sp, color = Color.Gray)
+                            Text(
+                                "₹${String.format("%.2f", if (isAstrologer) earned else deducted)}", 
+                                fontSize = 18.sp, 
+                                fontWeight = FontWeight.Black, 
+                                color = Color(0xFF4CAF50)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC9A227))
+                ) {
+                    Text("GO BACK HOME", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 }
             }
         }

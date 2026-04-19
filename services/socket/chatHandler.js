@@ -14,9 +14,8 @@ async function sendChatMessagePush(toUserId, fromUserId, messageText, sessionId,
         const fromUser = await User.findOne({ userId: fromUserId });
 
         if (toUser && toUser.fcmToken) {
-            // If recipient is an astrologer, check if they are available
-            if (toUser.role === 'astrologer' && !toUser.isAvailable) {
-                console.log(`[Chat Push] Skipping push for astrologer ${toUserId} as they are unavailable.`);
+            if (toUser.role === 'astrologer' && !toUser.fcmToken) {
+                console.log(`[Chat Push] Skipping push for astrologer ${toUserId} as they have no FCM token.`);
                 return;
             }
             const payload = {
