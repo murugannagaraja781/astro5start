@@ -43,6 +43,7 @@ import com.astro5star.app.utils.SoundManager
 import org.json.JSONObject
 import java.util.UUID
 import coil.compose.SubcomposeAsyncImage
+import coil.compose.AsyncImage
 import androidx.compose.ui.draw.clip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.layout.ContentScale
@@ -227,6 +228,24 @@ class ChatActivity : ComponentActivity() {
             timerHandler.post(timerRunnable)
 
             // Listen for client birth data updates during session
+            com.astro5star.app.data.remote.SocketManager.getSocket()?.on("chat-message") { args ->
+                if (args != null && args.isNotEmpty()) {
+                    val data = args[0] as? JSONObject
+                    android.util.Log.d("ChatActivity", "Incoming Message received: $data")
+                    val updatedData = data?.optJSONObject("birthData")
+                    if (updatedData != null) {
+                        runOnUiThread {
+                            clientBirthData = updatedData
+                            val myRole = TokenManager(this@ChatActivity).getUserSession()?.role
+                            if (myRole == "client") {
+                                Toast.makeText(this@ChatActivity, "Astrologer updated your birth details", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(this@ChatActivity, "Client updated their birth details", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }
+            }
             com.astro5star.app.data.remote.SocketManager.getSocket()?.on("client-birth-chart") { args ->
                 if (args != null && args.isNotEmpty()) {
                     val data = args[0] as? JSONObject
@@ -334,14 +353,19 @@ class ChatActivity : ComponentActivity() {
                 val fileType = result.optString("fileType")
 
                 if (!fileUrl.isNullOrEmpty() && toUserId != null && sessionId != null) {
+                    val isImage = fileType.contains("image", ignoreCase = true) || 
+                                 fileUrl.endsWith(".jpg", true) || 
+                                 fileUrl.endsWith(".png", true) || 
+                                 fileUrl.endsWith(".jpeg", true)
+
                     val payload = JSONObject().apply {
                         put("toUserId", toUserId)
                         put("sessionId", sessionId)
                         put("messageId", UUID.randomUUID().toString())
                         put("timestamp", System.currentTimeMillis())
                         put("content", JSONObject().apply {
-                            put("text", "")
-                            put("type", if (fileType.contains("image")) "image" else "file")
+                            put("text", if (isImage) "📷 Photo" else "📄 File")
+                            put("type", if (isImage) "image" else "file")
                             put("fileUrl", fileUrl)
                             put("fileName", fileName)
                             put("fileType", fileType)
@@ -725,22 +749,23 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                                 }
                             }
                             if (msg.type == "image" && !msg.fileUrl.isNullOrEmpty()) {
+                                val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL
                                 val fullUrl = remember(msg.fileUrl) {
-                                    var url = msg.fileUrl ?: ""
-                                    // Brute-force: Replace old domain with IP if found
-                                    if (url.contains("astro5star.com")) {
-                                        url = url.replace("https://astro5star.com", com.astro5star.app.utils.Constants.SERVER_URL)
-                                            .replace("http://astro5star.com", com.astro5star.app.utils.Constants.SERVER_URL)
+                                    var fUrl = msg.fileUrl ?: ""
+                                    if (fUrl.contains("astro5star.com")) {
+                                        fUrl = fUrl.replace("https://astro5star.com", baseUrl)
+                                            .replace("http://astro5star.com", baseUrl)
                                     }
                                     
                                     when {
-                                        url.startsWith("http") -> url
-                                        url.startsWith("/") -> "${com.astro5star.app.utils.Constants.SERVER_URL}$url"
-                                        else -> "${com.astro5star.app.utils.Constants.SERVER_URL}/uploads/$url"
+                                        fUrl.startsWith("http") -> fUrl
+                                        fUrl.startsWith("/") -> "$baseUrl$fUrl"
+                                        fUrl.contains("uploads/") -> "$baseUrl/$fUrl"
+                                        else -> "$baseUrl/uploads/$fUrl"
                                     }
                                 }
 
-                                SubcomposeAsyncImage(
+                                AsyncImage(
                                     model = fullUrl,
                                     contentDescription = "Image",
                                     modifier = Modifier
@@ -754,24 +779,10 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                                             context.startActivity(intent)
                                         },
                                     contentScale = ContentScale.FillWidth,
-                                    loading = {
-                                        Box(modifier = Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
-                                            CircularProgressIndicator(modifier = Modifier.size(30.dp), strokeWidth = 2.dp)
-                                        }
-                                    },
-                                    error = {
-                                        Column(
-                                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.Center
-                                        ) {
-                                            Icon(Icons.Default.Warning, null, tint = Color.Gray, modifier = Modifier.size(24.dp))
-                                            Text("Image not available", fontSize = 11.sp, color = Color.Gray)
-                                            // Debug: Show a snippet of the URL if it fails
-                                            if (fullUrl.length > 5) {
-                                                Text(fullUrl.takeLast(15), fontSize = 8.sp, color = Color.LightGray)
-                                            }
-                                        }
+                                    placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
+                                    error = painterResource(id = android.R.drawable.stat_notify_error),
+                                    onError = { 
+                                        android.util.Log.e("ChatBubble", "Image Load Failed for URL: $fullUrl")
                                     }
                                 )
                             } else if (msg.type == "file" && !msg.fileUrl.isNullOrEmpty()) {

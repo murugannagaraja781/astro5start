@@ -18,6 +18,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.astro5star.app.ui.theme.CosmicAppTheme
+import android.app.DownloadManager
+import android.content.Context
+import android.net.Uri
+import android.os.Environment
+import android.widget.Toast
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.foundation.layout.Row
 
 class FullScreenImageActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,16 +44,44 @@ class FullScreenImageActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit
                     )
-                    IconButton(
-                        onClick = { finish() },
+                    
+                    Row(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(16.dp)
                     ) {
-                        Icon(Icons.Default.Close, "Close", tint = Color.White)
+                        IconButton(
+                            onClick = { downloadImage(imageUrl) }
+                        ) {
+                            Icon(Icons.Default.Download, "Download", tint = Color.White)
+                        }
+                        IconButton(
+                            onClick = { finish() }
+                        ) {
+                            Icon(Icons.Default.Close, "Close", tint = Color.White)
+                        }
                     }
                 }
             }
+        }
+    }
+
+    private fun downloadImage(url: String) {
+        try {
+            if (url.isEmpty()) return
+            val request = DownloadManager.Request(Uri.parse(url))
+                .setTitle("Astro5 Media")
+                .setDescription("Downloading image from chat")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "astro5_${System.currentTimeMillis()}.jpg")
+                .setAllowedOverMetered(true)
+                .setAllowedOverRoaming(true)
+
+            val downloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            downloadManager.enqueue(request)
+            Toast.makeText(this, "Downloading...", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 }
