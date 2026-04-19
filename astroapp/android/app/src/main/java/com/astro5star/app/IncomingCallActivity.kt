@@ -354,7 +354,10 @@ class IncomingCallActivity : ComponentActivity() {
 
         val intent: Intent
         val finalType = callType.lowercase()
-        if (finalType == "chat") {
+        android.util.Log.e("IncomingCallActivity", "Processing Accept: Type=$finalType, Session=$callId")
+        android.widget.Toast.makeText(this, "Accepting $finalType Session", android.widget.Toast.LENGTH_SHORT).show()
+
+        if (finalType.contains("chat")) {
             intent = Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 putExtra("sessionId", callId)

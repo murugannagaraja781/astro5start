@@ -8,7 +8,7 @@ const User = require('../../models/User');
 const ChatMessage = require('../../models/ChatMessage');
 const { sendFcmV1Push } = require('../fcmService');
 
-async function sendChatMessagePush(toUserId, fromUserId, messageText, sessionId, messageId) {
+async function sendChatMessagePush(toUserId, fromUserId, messageText, sessionId, messageId, mediaData = {}) {
     try {
         const toUser = await User.findOne({ userId: toUserId });
         const fromUser = await User.findOne({ userId: fromUserId });
@@ -25,7 +25,13 @@ async function sendChatMessagePush(toUserId, fromUserId, messageText, sessionId,
                 callerId: fromUserId,
                 text: (messageText || 'New message').substring(0, 200),
                 messageId: messageId || Date.now().toString(),
-                timestamp: Date.now().toString()
+                timestamp: Date.now().toString(),
+                // Extra media meta
+                messageType: mediaData.type || 'text',
+                fileUrl: mediaData.fileUrl || '',
+                fileType: mediaData.fileType || '',
+                fileName: mediaData.fileName || '',
+                fileSize: String(mediaData.fileSize || 0)
             };
 
             await sendFcmV1Push(toUser.fcmToken, payload, null);
@@ -77,9 +83,10 @@ const handleChat = (socket, io) => {
 
             let pushText = content.text;
             if (content.type === 'image') pushText = '📷 Sent an image';
+            else if (content.type === 'voice') pushText = '🎤 Voice message';
             else if (content.type === 'file') pushText = '📄 Sent a file';
 
-            sendChatMessagePush(toUserId, fromUserId, pushText || 'New message', sessionId, mId);
+            sendChatMessagePush(toUserId, fromUserId, pushText || 'New message', sessionId, mId, content);
         } catch (err) { console.error('chat-message error', err); }
     });
 

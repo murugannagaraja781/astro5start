@@ -159,22 +159,27 @@ class FCMService : FirebaseMessagingService() {
                 }
                 "INCOMING_CALL" -> handleIncomingCall(data)
                 "INCOMING_CHAT" -> {
-                    val callerName = data["callerName"] ?: "Unknown"
-                    val callerId = data["callerId"] ?: ""
-                    val sessionId = data["sessionId"] ?: ""
+                    val callerName = data["callerName"] ?: data["userName"] ?: data["name"] ?: "Unknown"
+                    val callerId = data["callerId"] ?: data["fromUserId"] ?: data["senderId"] ?: ""
+                    val sessionId = data["sessionId"] ?: data["callId"] ?: ""
                     handleIncomingChat(callerName, callerId, sessionId)
                 }
                 "CHAT_MESSAGE" -> {
                     val text = data["text"] ?: "New message"
-                    val senderName = data["callerName"] ?: "Astrologer"
-                    val senderId = data["callerId"] ?: "unknown"
-                    val sessionId = data["sessionId"] ?: ""
+                    val senderName = data["callerName"] ?: data["userName"] ?: data["name"] ?: "Astrologer"
+                    val senderId = data["callerId"] ?: data["fromUserId"] ?: data["senderId"] ?: "unknown"
+                    val sessionId = data["sessionId"] ?: data["callId"] ?: ""
                     val messageId = data["messageId"] ?: System.currentTimeMillis().toString()
 
                     // Save to Room DB directly
                     serviceScope.launch {
                         try {
                             val db = AppDatabase.getDatabase(this@FCMService)
+                            val type = data["messageType"] ?: data["fileType"] ?: "text"
+                            val fileUrl = data["fileUrl"] ?: data["imageUrl"] ?: data["audioUrl"] ?: ""
+                            val fileName = data["fileName"] ?: ""
+                            val fileSize = data["fileSize"]?.toLongOrNull() ?: 0L
+
                             val entity = ChatMessageEntity(
                                 messageId = messageId,
                                 sessionId = sessionId,
@@ -182,7 +187,11 @@ class FCMService : FirebaseMessagingService() {
                                 senderId = senderId,
                                 timestamp = System.currentTimeMillis(),
                                 status = "delivered",
-                                isSentByMe = false
+                                isSentByMe = false,
+                                type = type,
+                                fileUrl = fileUrl,
+                                fileName = fileName,
+                                fileSize = fileSize
                             )
                             db.chatDao().insertMessage(entity)
                             Log.d(TAG, "Saved background message to Room: $messageId")

@@ -160,6 +160,7 @@ class ChatActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Toast.makeText(this, "Opening Chat Box...", Toast.LENGTH_SHORT).show()
         try {
             voiceRecorder = com.astro5star.app.utils.VoiceRecorder(this)
             lifecycleScope.launchWhenResumed {
@@ -177,11 +178,11 @@ class ChatActivity : ComponentActivity() {
                 }
             }
             
-            android.util.Log.d("ChatActivity", "Chat Init: From=$myId, To=$toUserId, Session=$sessionId")
-            Toast.makeText(this, "Chat Ready: $toUserId", Toast.LENGTH_SHORT).show()
-            
             window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
             handleIntent(intent)
+            
+            android.util.Log.d("ChatActivity", "Chat Init: From=$myId, To=$toUserId, Session=$sessionId")
+            Toast.makeText(this, "Chat Ready: $toUserId", Toast.LENGTH_SHORT).show()
 
             // --- GLOBAL STATE FIX: Mark chat as active to prevent incoming calls during session ---
             com.astro5star.app.utils.CallState.isCallActive = true
@@ -366,27 +367,43 @@ class ChatActivity : ComponentActivity() {
     private var pendingAccept = false
 
     private fun handleIntent(intent: Intent?) {
-        toUserId = intent?.getStringExtra("toUserId")
-        sessionId = intent?.getStringExtra("sessionId")
-        val birthDataStr = intent?.getStringExtra("birthData")
-        if (!birthDataStr.isNullOrEmpty()) {
-             try {
-                val obj = JSONObject(birthDataStr)
-                if (obj.length() > 0) clientBirthData = obj
-             } catch (e: Exception) { e.printStackTrace() }
+        android.util.Log.e("ChatActivity", "=== HANDLE INTENT ===")
+        intent?.extras?.let { bundle ->
+            for (key in bundle.keySet()) {
+                android.util.Log.e("ChatActivity", "Intent Extra: $key -> ${bundle.get(key)}")
+            }
         }
-        if (sessionId == null) {
-            finish()
-            return
-        }
-        val isNewRequest = intent?.getBooleanExtra("isNewRequest", false) == true
-        if (isNewRequest && sessionId != null && toUserId != null) {
-            SoundManager.playAcceptSound()
-            pendingAccept = true // Will emit in onResume after socket registration
-        }
-        if (sessionId != null) {
-              viewModel.loadHistory(sessionId!!)
-              viewModel.joinSessionSafe(sessionId!!)
+
+        intent?.let {
+            val sId = it.getStringExtra("sessionId") ?: it.getStringExtra("callId")
+            sessionId = if (sId.isNullOrEmpty()) null else sId
+            
+            val uId = it.getStringExtra("toUserId") ?: it.getStringExtra("partnerId") ?: it.getStringExtra("callerId") ?: it.getStringExtra("fromUserId")
+            toUserId = if (uId.isNullOrEmpty()) null else uId
+            
+            val birthDataStr = it.getStringExtra("birthData")
+            if (!birthDataStr.isNullOrEmpty()) {
+                try {
+                    val obj = JSONObject(birthDataStr)
+                    if (obj.length() > 0) clientBirthData = obj
+                } catch (e: Exception) { e.printStackTrace() }
+            }
+
+            android.util.Log.e("ChatActivity", "Resolved Decision: Session=$sessionId, ToUser=$toUserId")
+            Toast.makeText(this, "Accepting Session: $sessionId", Toast.LENGTH_LONG).show()
+
+            if (sessionId == null) {
+                android.util.Log.e("ChatActivity", "CRITICAL ERROR: SessionId is NULL or EMPTY!")
+            } else {
+                viewModel.loadHistory(sessionId!!)
+                viewModel.joinSessionSafe(sessionId!!)
+            }
+
+            val isNewRequest = it.getBooleanExtra("isNewRequest", false)
+            if (isNewRequest && sessionId != null && toUserId != null) {
+                SoundManager.playAcceptSound()
+                pendingAccept = true 
+            }
         }
     }
 
