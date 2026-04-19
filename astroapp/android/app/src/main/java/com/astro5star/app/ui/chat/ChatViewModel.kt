@@ -237,6 +237,30 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             val fileName = content?.optString("fileName") ?: data.optString("fileName")
 
             // Save to DB
+            // Immediately update UI and DB
+            val msg = ChatMessage(
+                id = msgId, 
+                text = text, 
+                isSent = false, 
+                timestamp = timestamp,
+                type = type,
+                fileUrl = if (fileUrl.isNullOrEmpty()) null else fileUrl,
+                fileType = if (fileType.isNullOrEmpty()) null else fileType,
+                fileName = if (fileName.isNullOrEmpty()) null else fileName
+            )
+            
+            _messages.postValue(msg) // Trigger individual message observer
+            
+            // Also append to history list immediately if possible
+            val currentHistory = _history.value ?: emptyList()
+            if (!currentHistory.any { it.id == msgId }) {
+                _history.postValue(currentHistory + msg)
+            }
+
+            android.util.Log.d("ChatViewModel", "Incoming Msg Added to UI: $msgId Type=$type URL=$fileUrl")
+            com.astro5star.app.utils.SoundManager.playReceiveSound()
+
+            // Save to DB in background
             viewModelScope.launch(Dispatchers.IO) {
                 try {
                     val entity = ChatMessageEntity(
@@ -254,26 +278,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     )
                     repository.saveMessage(entity)
 
-                    // IMPORTANT: Emit read status back to sender for double tick
+                    // Emit read status
                     if (msgId.isNotEmpty() && senderId.isNotEmpty() && sessionId.isNotEmpty()) {
                         repository.markRead(msgId, senderId, sessionId)
                     }
                 } catch (e: Exception) { e.printStackTrace() }
             }
-
-
-            val msg = ChatMessage(
-                id = msgId, 
-                text = text, 
-                isSent = false, 
-                timestamp = System.currentTimeMillis(),
-                type = type,
-                fileUrl = if (fileUrl.isEmpty()) null else fileUrl,
-                fileType = if (fileType.isEmpty()) null else fileType,
-                fileName = if (fileName.isEmpty()) null else fileName
-            )
-            _messages.postValue(msg)
-            com.astro5star.app.utils.SoundManager.playReceiveSound()
         }
 
         repository.listenMessageStatus { data ->

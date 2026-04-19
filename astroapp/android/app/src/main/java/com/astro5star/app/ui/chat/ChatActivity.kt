@@ -781,7 +781,6 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                                 val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL
                                 val fullUrl = remember(msg.fileUrl) {
                                     var fUrl = msg.fileUrl ?: ""
-                                    // Fix old domain if still present in DB
                                     if (fUrl.contains("astro5star.com")) {
                                         fUrl = fUrl.replace("https://astro5star.com", baseUrl)
                                             .replace("http://astro5star.com", baseUrl)
@@ -794,6 +793,8 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                                         else -> "$baseUrl/uploads/$fUrl"
                                     }
                                 }
+
+                                android.util.Log.d("ChatActivity", "Rendering Image: $fullUrl")
 
                                 // WhatsApp-like modern image loading with loading spinner
                                 SubcomposeAsyncImage(
