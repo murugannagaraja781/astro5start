@@ -53,32 +53,23 @@ async function getCachedFcmToken() {
         console.error('[FCM] Error getting access token:', e.message);
         return null;
     }
-}
-
-async function sendFcmV1Push(fcmToken, data, notification) {
+}async function sendFcmV1Push(fcmToken, data, notification) {
     console.log(`[FCM v1] sendFcmV1Push triggered. Token: ${fcmToken ? fcmToken.substring(0, 10) + '...' : 'NULL'}`);
     if (!admin.apps.length) {
-
-        return await sendFcmLegacyPush(fcmToken, data, notification);
+        console.error('[FCM v1] Admin SDK not initialized. Cannot send push.');
+        return { success: false, error: 'Admin SDK not initialized' };
     }
 
     try {
-        // FCM v1 requires all values in the 'data' object to be strings. (v2 Fix)
+        // FCM v1 requires all values in the 'data' object to be strings.
         const stringifiedData = {};
         if (data) {
             Object.keys(data).forEach(key => {
                 const val = data[key];
-                // Check for nested objects (rare but can happen)
                 if (typeof val === 'object' && val !== null) {
                     stringifiedData[key] = JSON.stringify(val);
                 } else {
                     stringifiedData[key] = (val !== null && val !== undefined) ? String(val) : "";
-                }
-                
-                // Final validation before sending
-                if (typeof stringifiedData[key] !== 'string') {
-                    console.warn(`[FCM Data Fix] Key ${key} is still not a string:`, typeof stringifiedData[key]);
-                    stringifiedData[key] = String(stringifiedData[key]);
                 }
             });
         }
@@ -89,7 +80,7 @@ async function sendFcmV1Push(fcmToken, data, notification) {
             data: stringifiedData,
             android: {
                 priority: 'high',
-                ttl: 0, // Deliver immediately or fail (Best for real-time calls)
+                ttl: 0, 
             },
             apns: {
                 headers: {
@@ -109,74 +100,16 @@ async function sendFcmV1Push(fcmToken, data, notification) {
                 title: String(notification.title || ""),
                 body: String(notification.body || "")
             };
-            if (notification.image) {
-                messagePayload.notification.image = String(notification.image);
-                messagePayload.android.notification = { image: String(notification.image) };
-            }
         }
 
-        // console.log('[FCM v1] Sending to SDK:', JSON.stringify(messagePayload, null, 2));
         const response = await admin.messaging().send(messagePayload);
         console.log(`[FCM v1] Successfully sent message to token ${fcmToken.substring(0, 10)}... Result:`, response);
         return { success: true, messageId: response };
     } catch (err) {
         console.error(`[FCM v1] Error sending to token: ${fcmToken ? fcmToken.substring(0, 15) : 'NULL'}... error: ${err.message}`);
-        // If it still says 'data must only contain string values', we log the keys
-        if (err.message.includes('data must only contain string values')) {
-             console.error('[FCM Data Keys]:', Object.keys(stringifiedData).join(', '));
-             console.error('[FCM Data Values Types]:', Object.values(stringifiedData).map(v => typeof v).join(', '));
-        }
-        return await sendFcmLegacyPush(fcmToken, data, notification);
-    }
-}
-
-async function sendFcmLegacyPush(fcmToken, data, notification) {
-    const serverKey = process.env.FCM_SERVER_KEY;
-    if (!serverKey) return { success: false, error: 'No FCM server key for legacy push' };
-
-    try {
-        const payload = {
-            to: fcmToken,
-            priority: 'high',
-            data: {
-                ...data,
-                ...(notification ? {
-                    title: notification.title,
-                    body: notification.body,
-                    image: notification.image
-                } : {})
-            }
-        };
-
-        if (notification) {
-            payload.notification = {
-                title: notification.title,
-                body: notification.body,
-                image: notification.image
-            };
-        }
-
-        const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `key=${serverKey}`
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-        if (result.message_id || (result.success && result.success > 0)) {
-            console.log('[FCM Legacy] Success:', result.message_id || result.results[0].message_id);
-            return { success: true };
-        } else {
-            console.error('[FCM Legacy] Failed:', result);
-            return { success: false, error: 'Legacy Push failed' };
-        }
-    } catch (err) {
-        console.error('[FCM Legacy] Error:', err.message);
         return { success: false, error: err.message };
     }
+}
 }
 
 module.exports = { initFcmAuth, sendFcmV1Push };

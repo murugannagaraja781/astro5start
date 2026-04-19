@@ -40,16 +40,21 @@ const handleChat = (socket, io) => {
         try {
             const { toUserId, sessionId, content, timestamp, messageId } = data || {};
             const fromUserId = socketToUser.get(socket.id);
-            if (!fromUserId || !toUserId || !content || !messageId) return;
+            if (!fromUserId || !toUserId || !content) {
+                console.warn('[Chat] Missing required fields for message:', { fromUserId, toUserId, hasContent: !!content });
+                return;
+            }
+
+            const mId = messageId || require('crypto').randomUUID();
 
             socket.emit('message-status', {
-                messageId,
+                messageId: mId,
                 status: 'sent',
             });
 
             // Prepare save object
             const saveObj = {
-                messageId,
+                messageId: mId,
                 sessionId,
                 fromUserId,
                 toUserId,
@@ -68,14 +73,14 @@ const handleChat = (socket, io) => {
                 content,
                 sessionId: sessionId || null,
                 timestamp: timestamp || Date.now(),
-                messageId,
+                messageId: mId,
             });
 
             let pushText = content.text;
             if (content.type === 'image') pushText = '📷 Sent an image';
             else if (content.type === 'file') pushText = '📄 Sent a file';
 
-            sendChatMessagePush(toUserId, fromUserId, pushText || 'New message', sessionId, messageId);
+            sendChatMessagePush(toUserId, fromUserId, pushText || 'New message', sessionId, mId);
         } catch (err) { console.error('chat-message error', err); }
     });
 
