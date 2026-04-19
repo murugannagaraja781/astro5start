@@ -749,9 +749,11 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                                 }
                             }
                             if (msg.type == "image" && !msg.fileUrl.isNullOrEmpty()) {
+                                val context = androidx.compose.ui.platform.LocalContext.current
                                 val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL
                                 val fullUrl = remember(msg.fileUrl) {
                                     var fUrl = msg.fileUrl ?: ""
+                                    // Fix old domain if still present in DB
                                     if (fUrl.contains("astro5star.com")) {
                                         fUrl = fUrl.replace("https://astro5star.com", baseUrl)
                                             .replace("http://astro5star.com", baseUrl)
@@ -765,8 +767,21 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                                     }
                                 }
 
+                                // Robust Image Loading with Logging
                                 AsyncImage(
-                                    model = fullUrl,
+                                    model = coil.request.ImageRequest.Builder(context)
+                                        .data(fullUrl)
+                                        .crossfade(true)
+                                        .placeholder(android.R.drawable.ic_menu_gallery)
+                                        .error(android.R.drawable.stat_notify_error)
+                                        .listener(
+                                            onStart = { android.util.Log.d("ImageLoader", "Loading Start: $fullUrl") },
+                                            onSuccess = { _, _ -> android.util.Log.d("ImageLoader", "Loading Success: $fullUrl") },
+                                            onError = { _, result -> 
+                                                android.util.Log.e("ImageLoader", "Loading Failed: $fullUrl, Error: ${result.throwable.message}")
+                                            }
+                                        )
+                                        .build(),
                                     contentDescription = "Image",
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -774,16 +789,12 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, onReply: () -> Unit) {
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(Color.Gray.copy(alpha = 0.05f))
                                         .clickable {
-                                            val intent = Intent(context, com.astro5star.app.ui.chat.FullScreenImageActivity::class.java)
-                                            intent.putExtra("imageUrl", fullUrl)
+                                            val intent = Intent(context, com.astro5star.app.ui.chat.FullScreenImageActivity::class.java).apply {
+                                                putExtra("imageUrl", fullUrl)
+                                            }
                                             context.startActivity(intent)
                                         },
-                                    contentScale = ContentScale.FillWidth,
-                                    placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
-                                    error = painterResource(id = android.R.drawable.stat_notify_error),
-                                    onError = { 
-                                        android.util.Log.e("ChatBubble", "Image Load Failed for URL: $fullUrl")
-                                    }
+                                    contentScale = ContentScale.FillWidth
                                 )
                             } else if (msg.type == "file" && !msg.fileUrl.isNullOrEmpty()) {
                                 Row(

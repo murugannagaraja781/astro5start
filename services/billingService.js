@@ -228,24 +228,11 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
                 { returnDocument: 'after' }
             );
 
-            if (!updatedClient) return forceEndSession(sessionId, 'insufficient_funds', io);
-            client.walletBalance = updatedClient.walletBalance;
-            client.superWalletBalance = updatedClient.superWalletBalance;
-        }
-
-            // ATOMIC UPDATE: No more race conditions
-            const updatedClient = await User.findOneAndUpdate(
-                { userId: client.userId, walletBalance: { $gte: mainDeduct } },
-                { $inc: { walletBalance: -mainDeduct, superWalletBalance: -superDeduct } },
-                { returnDocument: 'after' }
-            );
-
             if (!updatedClient) {
                 console.warn(`[Billing] Potential double-charge or insufficient funds during atomic update sid=${sessionId}`);
                 return forceEndSession(sessionId, 'insufficient_funds', io);
             }
             
-            // Use updated balance for next steps
             client.walletBalance = updatedClient.walletBalance;
             client.superWalletBalance = updatedClient.superWalletBalance;
 

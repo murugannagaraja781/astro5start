@@ -211,16 +211,19 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startListeners() {
         repository.listenIncoming { data ->
-            val content = data.optJSONObject("content") ?: JSONObject()
-            val text = content.optString("text", "")
+            val content = data.optJSONObject("content")
+            
+            // Resilience: Handle both flat and nested structures
             val msgId = data.optString("messageId")
             val sessionId = data.optString("sessionId")
             val senderId = data.optString("fromUserId")
-            
-            val type = content.optString("type", "text")
-            val fileUrl = content.optString("fileUrl", "")
-            val fileType = content.optString("fileType", "")
-            val fileName = content.optString("fileName", "")
+            val timestamp = data.optLong("timestamp", System.currentTimeMillis())
+
+            val text = content?.optString("text") ?: data.optString("text", "")
+            val type = content?.optString("type") ?: data.optString("type", "text")
+            val fileUrl = content?.optString("fileUrl") ?: data.optString("fileUrl")
+            val fileType = content?.optString("fileType") ?: data.optString("fileType")
+            val fileName = content?.optString("fileName") ?: data.optString("fileName")
 
             // Save to DB
             viewModelScope.launch(Dispatchers.IO) {
@@ -230,13 +233,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         sessionId = sessionId,
                         text = text,
                         senderId = senderId,
-                        timestamp = System.currentTimeMillis(),
+                        timestamp = timestamp,
                         status = "read",
                         isSentByMe = false,
                         type = type,
-                        fileUrl = if (fileUrl.isEmpty()) null else fileUrl,
-                        fileType = if (fileType.isEmpty()) null else fileType,
-                        fileName = if (fileName.isEmpty()) null else fileName
+                        fileUrl = if (fileUrl.isNullOrEmpty()) null else fileUrl,
+                        fileType = if (fileType.isNullOrEmpty()) null else fileType,
+                        fileName = if (fileName.isNullOrEmpty()) null else fileName
                     )
                     repository.saveMessage(entity)
 
