@@ -76,8 +76,9 @@
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Performance</span>
             </div>
             <div class="sidebar-item group" onclick="showTab('referral')" id="menu-referral">
-                <div class="sidebar-icon bg-orange-50 text-orange-500 group-hover:bg-orange-500 group-hover:text-white"><i class="fas fa-gift"></i></div>
-                <span class="sidebar-text">Referral Engine</span>
+                <div class="sidebar-icon bg-orange-50 text-orange-500 group-hover:bg-orange-500 group-hover:text-white">
+                    <i class="fas fa-gift"></i></div>
+                <span class="sidebar-text">Referral</span>
             </div>
             <div class="sidebar-item group" onclick="showTab('ledger')" id="menu-ledger">
                 <i class="fas fa-receipt text-lg lg:w-5 text-center"></i>
@@ -558,13 +559,16 @@
                                     class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
                                     Duration
                                 </th>
-                                <th class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                <th
+                                    class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
                                     Total Paid
                                 </th>
-                                <th class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                <th
+                                    class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
                                     Astro Profit
                                 </th>
-                                <th class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                <th
+                                    class="px-6 py-4 text-[0.7rem] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
                                     Admin Margin
                                 </th>
                             </tr>
@@ -766,10 +770,12 @@
                             class="fas fa-arrow-left"></i></button>
                     <div>
                         <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Recharge Pack Manager</h1>
-                        <p class="text-slate-500 font-medium">Configure wallet recharge options, promotional bonuses, and app display labels.</p>
+                        <p class="text-slate-500 font-medium">Configure wallet recharge options, promotional bonuses,
+                            and app display labels.</p>
                     </div>
                 </div>
-                <button onclick="addRechargePackRow()" class="px-6 py-3 bg-brand-green text-white rounded-2xl font-black text-xs uppercase hover:bg-deep-green transition-all flex items-center gap-2 shadow-lg shadow-emerald-100">
+                <button onclick="addRechargePackRow()"
+                    class="px-6 py-3 bg-brand-green text-white rounded-2xl font-black text-xs uppercase hover:bg-deep-green transition-all flex items-center gap-2 shadow-lg shadow-emerald-100">
                     <i class="fas fa-plus"></i> Create New Offer Box
                 </button>
             </header>
@@ -777,12 +783,16 @@
             <div class="grid grid-cols-1 gap-8">
                 <!-- Info Alert -->
                 <div class="bg-indigo-50 border border-indigo-100 p-6 rounded-[2rem] flex items-start gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-indigo-600 shadow-sm shrink-0">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-indigo-600 shadow-sm shrink-0">
                         <i class="fas fa-info-circle text-xl"></i>
                     </div>
                     <div>
-                        <h4 class="text-indigo-900 font-black text-sm uppercase tracking-wider mb-1">Live Synchronization</h4>
-                        <p class="text-indigo-700/80 text-xs font-bold leading-relaxed">Changes saved here are instantly broadcasted to all active mobile users. The "Bonus %" is credited to the user's Super Wallet as cashback after a successful payment.</p>
+                        <h4 class="text-indigo-900 font-black text-sm uppercase tracking-wider mb-1">Live
+                            Synchronization</h4>
+                        <p class="text-indigo-700/80 text-xs font-bold leading-relaxed">Changes saved here are instantly
+                            broadcasted to all active mobile users. The "Bonus %" is credited to the user's Super Wallet
+                            as cashback after a successful payment.</p>
                     </div>
                 </div>
 
@@ -791,7 +801,8 @@
                         <div class="overflow-x-auto">
                             <table class="w-full text-left">
                                 <thead>
-                                    <tr class="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-50">
+                                    <tr
+                                        class="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-50">
                                         <th class="pb-6 px-4">Pay Amount (₹)</th>
                                         <th class="pb-6 px-4">Bonus / Cashback (%)</th>
                                         <th class="pb-6 px-4">Box UI Label (e.g. "Get 10% Extra")</th>
@@ -806,17 +817,22 @@
                         </div>
 
                         <div id="no-packs-msg" class="hidden py-20 text-center">
-                            <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                            <div
+                                class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
                                 <i class="fas fa-box-open text-3xl"></i>
                             </div>
-                            <p class="text-slate-400 font-bold">No active recharge packs. Click "Create New Offer Box" to start.</p>
+                            <p class="text-slate-400 font-bold">No active recharge packs. Click "Create New Offer Box"
+                                to start.</p>
                         </div>
 
                         <div class="mt-12 pt-8 border-t border-slate-100 flex items-center justify-between">
-                            <div class="flex items-center gap-2 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
+                            <div
+                                class="flex items-center gap-2 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
                                 <i class="fas fa-shield-halved text-emerald-400"></i> Encrypted Deployment Active
                             </div>
-                            <button class="px-12 py-5 bg-brand-green text-white font-black rounded-[1.5rem] shadow-2xl shadow-emerald-200 hover:bg-deep-green hover:-translate-y-1 transition-all uppercase tracking-widest text-sm flex items-center gap-3" onclick="saveRechargeSettings()">
+                            <button
+                                class="px-12 py-5 bg-brand-green text-white font-black rounded-[1.5rem] shadow-2xl shadow-emerald-200 hover:bg-deep-green hover:-translate-y-1 transition-all uppercase tracking-widest text-sm flex items-center gap-3"
+                                onclick="saveRechargeSettings()">
                                 <i class="fas fa-broadcast-tower animate-pulse"></i> Deploy to Production App
                             </button>
                         </div>
@@ -847,32 +863,39 @@
                     <p class="text-slate-500 font-medium">Real-time error tracking and performance warnings</p>
                 </div>
                 <div class="flex items-center gap-3">
-                    <select id="log-level-filter" onchange="fetchSystemLogs()" class="bg-white border border-slate-200 rounded-xl px-4 py-2 font-bold text-xs uppercase cursor-pointer outline-none shadow-sm text-slate-700">
+                    <select id="log-level-filter" onchange="fetchSystemLogs()"
+                        class="bg-white border border-slate-200 rounded-xl px-4 py-2 font-bold text-xs uppercase cursor-pointer outline-none shadow-sm text-slate-700">
                         <option value="all">All Logs</option>
                         <option value="error">Errors Only</option>
                         <option value="warn">Warnings</option>
                         <option value="info">Info</option>
                     </select>
-                    <button onclick="clearSystemLogs()" class="bg-red-50 text-red-600 border border-red-100 px-5 py-2 rounded-xl text-xs font-black hover:bg-red-600 hover:text-white transition-all">
+                    <button onclick="clearSystemLogs()"
+                        class="bg-red-50 text-red-600 border border-red-100 px-5 py-2 rounded-xl text-xs font-black hover:bg-red-600 hover:text-white transition-all">
                         <i class="fas fa-trash-can mr-2"></i> Clear Logs
                     </button>
-                    <button onclick="fetchSystemLogs()" class="bg-emerald-50 text-brand-green border border-emerald-100 px-5 py-2 rounded-xl text-xs font-black hover:bg-brand-green hover:text-white transition-all">
+                    <button onclick="fetchSystemLogs()"
+                        class="bg-emerald-50 text-brand-green border border-emerald-100 px-5 py-2 rounded-xl text-xs font-black hover:bg-brand-green hover:text-white transition-all">
                         <i class="fas fa-sync-alt mr-2"></i> Refresh
                     </button>
                 </div>
             </header>
 
-            <div class="bg-slate-900 rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden flex flex-col min-h-[600px] font-mono">
+            <div
+                class="bg-slate-900 rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden flex flex-col min-h-[600px] font-mono">
                 <div class="flex items-center gap-2 px-6 py-3 bg-slate-800/50 border-b border-slate-800">
                     <div class="flex gap-1.5">
                         <div class="w-3 h-3 rounded-full bg-red-500/50"></div>
                         <div class="w-3 h-3 rounded-full bg-amber-500/50"></div>
                         <div class="w-3 h-3 rounded-full bg-emerald-500/50"></div>
                     </div>
-                    <span class="text-[0.6rem] font-black tracking-widest text-slate-500 uppercase ml-4">Terminal Production v1.0.4</span>
+                    <span class="text-[0.6rem] font-black tracking-widest text-slate-500 uppercase ml-4">Terminal
+                        Production v1.0.4</span>
                 </div>
-                <div id="logs-container" class="flex-1 p-6 overflow-y-auto max-h-[70vh] space-y-3 text-[11px] leading-relaxed custom-scrollbar text-slate-300">
-                    <div class="text-slate-500 italic py-10 text-center font-sans tracking-wide">Syncing with server nodes...</div>
+                <div id="logs-container"
+                    class="flex-1 p-6 overflow-y-auto max-h-[70vh] space-y-3 text-[11px] leading-relaxed custom-scrollbar text-slate-300">
+                    <div class="text-slate-500 italic py-10 text-center font-sans tracking-wide">Syncing with server
+                        nodes...</div>
                 </div>
             </div>
         </section>
@@ -884,9 +907,10 @@
                     <h1 class="text-3xl lg:text-4xl font-extrabold tracking-tight text-deep-green">Astro Wallets</h1>
                     <p class="text-slate-500 font-medium">Manage astrologer balances and financial settlements</p>
                 </div>
-                <div class="flex items-center gap-4 bg-white p-2 rounded-[2rem] border border-emerald-50 shadow-sm grow max-w-sm">
+                <div
+                    class="flex items-center gap-4 bg-white p-2 rounded-[2rem] border border-emerald-50 shadow-sm grow max-w-sm">
                     <i class="fas fa-search text-slate-300 ml-4"></i>
-                    <input type="text" id="wallet-astro-search" placeholder="Search name or phone..." 
+                    <input type="text" id="wallet-astro-search" placeholder="Search name or phone..."
                         class="w-full bg-transparent border-0 focus:ring-0 font-bold text-sm"
                         oninput="fetchAllUsers(1)">
                 </div>
@@ -894,27 +918,45 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 <!-- Wallet Stats -->
-                <div class="lg:col-span-1 bg-white p-8 rounded-[2.5rem] border border-emerald-100 shadow-premium relative overflow-hidden group">
-                    <div class="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Cumulative Liability</div>
+                <div
+                    class="lg:col-span-1 bg-white p-8 rounded-[2.5rem] border border-emerald-100 shadow-premium relative overflow-hidden group">
+                    <div class="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Cumulative
+                        Liability</div>
                     <div class="text-4xl font-black text-slate-800 tracking-tighter flex items-baseline gap-1">
                         <span class="text-lg font-bold text-slate-400">₹</span>
                         <span id="total-astro-wallet-sum" class="tabular-nums">0</span>
                     </div>
-                    <p class="text-[9px] font-bold text-slate-400 mt-4 uppercase tracking-widest">Total balance held by all astrologers</p>
+                    <p class="text-[9px] font-bold text-slate-400 mt-4 uppercase tracking-widest">Total balance held by
+                        all astrologers</p>
                 </div>
 
-                <div class="lg:col-span-3 bg-white rounded-[2.5rem] border border-slate-100 shadow-premium overflow-hidden">
+                <div
+                    class="lg:col-span-3 bg-white rounded-[2.5rem] border border-slate-100 shadow-premium overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
                             <thead>
                                 <tr class="bg-slate-50/50">
-                                    <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Astrologer</th>
-                                    <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Contact</th>
-                                    <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Joined Date</th>
-                                    <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Sessions</th>
-                                    <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Wallet Balance</th>
-                                    <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Total Earnings</th>
-                                    <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Actions</th>
+                                    <th
+                                        class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                        Astrologer</th>
+                                    <th
+                                        class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                        Contact</th>
+                                    <th
+                                        class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                        Joined Date</th>
+                                    <th
+                                        class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                        Sessions</th>
+                                    <th
+                                        class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                        Wallet Balance</th>
+                                    <th
+                                        class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                        Total Earnings</th>
+                                    <th
+                                        class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">
+                                        Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="astro-wallets-table-body" class="divide-y divide-slate-50">
@@ -1039,36 +1081,50 @@
                 <div>
                     <h2 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight flex items-center gap-4">
                         பரிந்துரை அமைப்பு (Referral System)
-                        <span class="text-[10px] bg-orange-100 text-orange-600 px-3 py-1 rounded-full uppercase tracking-widest font-black">Live Config</span>
+                        <span
+                            class="text-[10px] bg-orange-100 text-orange-600 px-3 py-1 rounded-full uppercase tracking-widest font-black">Live
+                            Config</span>
                     </h2>
-                    <p class="text-slate-500 font-bold mt-2 flex items-center gap-2"><i class="fas fa-info-circle text-orange-400"></i> புதிய பயனர்கள் மற்றும் பரிந்துரை செய்பவர்களுக்கான போனஸை இங்கே மாற்றலாம்.</p>
+                    <p class="text-slate-500 font-bold mt-2 flex items-center gap-2"><i
+                            class="fas fa-info-circle text-orange-400"></i> புதிய பயனர்கள் மற்றும் பரிந்துரை
+                        செய்பவர்களுக்கான போனஸை இங்கே மாற்றலாம்.</p>
                 </div>
-                <button onclick="saveReferralSettings()" class="w-full lg:w-auto bg-emerald-800 text-black font-black px-10 py-5 rounded-[2.5rem] shadow-premium hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-3">
+                <button onclick="saveReferralSettings()"
+                    class="w-full lg:w-auto bg-emerald-800 text-black font-black px-10 py-5 rounded-[2.5rem] shadow-premium hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-3">
                     சேமி (Save Settings) <i class="fas fa-save"></i>
                 </button>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
                 <div class="bg-white p-8 rounded-[2.5rem] border border-emerald-50 shadow-premium relative group">
-                    <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">சாதாரண போனஸ் (Standard Signup Bonus)</div>
+                    <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">சாதாரண போனஸ்
+                        (Standard Signup Bonus)</div>
                     <div class="relative">
-                        <input type="number" id="ref-bonus-standard" class="w-full bg-slate-50 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-black text-2xl text-slate-800" value="108">
+                        <input type="number" id="ref-bonus-standard"
+                            class="w-full bg-slate-50 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-black text-2xl text-slate-800"
+                            value="108">
                         <span class="absolute right-6 top-5 text-slate-300 font-bold text-xl">₹</span>
                     </div>
                 </div>
 
                 <div class="bg-white p-8 rounded-[2.5rem] border border-emerald-50 shadow-premium relative group">
-                    <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">பரிந்துரை போனஸ் (Referral Signup Bonus)</div>
+                    <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">பரிந்துரை போனஸ்
+                        (Referral Signup Bonus)</div>
                     <div class="relative">
-                        <input type="number" id="ref-bonus-referral" class="w-full bg-slate-50 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-black text-2xl text-slate-800" value="188">
+                        <input type="number" id="ref-bonus-referral"
+                            class="w-full bg-slate-50 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-black text-2xl text-slate-800"
+                            value="188">
                         <span class="absolute right-6 top-5 text-slate-300 font-bold text-xl">₹</span>
                     </div>
                 </div>
 
                 <div class="bg-white p-8 rounded-[2.5rem] border border-emerald-50 shadow-premium relative group">
-                    <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">உங்களுக்கு கிடைக்கும் பரிசு (Referrer Reward)</div>
+                    <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">உங்களுக்கு
+                        கிடைக்கும் பரிசு (Referrer Reward)</div>
                     <div class="relative">
-                        <input type="number" id="ref-reward" class="w-full bg-slate-50 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-black text-2xl text-slate-800" value="81">
+                        <input type="number" id="ref-reward"
+                            class="w-full bg-slate-50 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-black text-2xl text-slate-800"
+                            value="81">
                         <span class="absolute right-6 top-5 text-slate-300 font-bold text-xl">₹</span>
                     </div>
                 </div>
@@ -1076,89 +1132,134 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
                 <div class="bg-white p-8 rounded-[2.5rem] border border-slate-50 shadow-premium">
-                    <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 ml-2">App Share Link (Play Store)</div>
+                    <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 ml-2">App Share
+                        Link (Play Store)</div>
                     <div class="flex gap-4">
-                        <input type="text" id="ref-app-url" class="flex-1 bg-slate-50 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-bold text-slate-600 text-sm" placeholder="https://play.google.com/">
-                        <button onclick="copyCurrentUrl()" class="px-6 bg-slate-100 text-slate-500 rounded-2xl hover:bg-slate-200 transition-all"><i class="fas fa-copy"></i></button>
+                        <input type="text" id="ref-app-url"
+                            class="flex-1 bg-slate-50 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-bold text-slate-600 text-sm"
+                            placeholder="https://play.google.com/">
+                        <button onclick="copyCurrentUrl()"
+                            class="px-6 bg-slate-100 text-slate-500 rounded-2xl hover:bg-slate-200 transition-all"><i
+                                class="fas fa-copy"></i></button>
                     </div>
                 </div>
 
                 <div class="bg-white p-8 rounded-[2.5rem] border border-blue-50 shadow-premium">
-                    <div class="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-4 ml-2">Global Free Call Duration (Mins)</div>
+                    <div class="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-4 ml-2">Global Free
+                        Call Duration (Mins)</div>
                     <div class="flex gap-4">
-                        <input type="number" id="global-free-mins" class="flex-1 bg-blue-50/30 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-blue-500 focus:ring-0 font-black text-2xl text-slate-800" value="3">
-                        <span class="bg-blue-100/50 px-6 py-5 rounded-2xl text-blue-600 font-black flex items-center">MINS</span>
+                        <input type="number" id="global-free-mins"
+                            class="flex-1 bg-blue-50/30 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-blue-500 focus:ring-0 font-black text-2xl text-slate-800"
+                            value="3">
+                        <span
+                            class="bg-blue-100/50 px-6 py-5 rounded-2xl text-blue-600 font-black flex items-center">MINS</span>
                     </div>
-                    <p class="text-[9px] text-slate-400 mt-4 italic font-bold">First N minutes of every call will be free for all users.</p>
+                    <p class="text-[9px] text-slate-400 mt-4 italic font-bold">First N minutes of every call will be
+                        free for all users.</p>
                 </div>
             </div>
 
             <div class="bg-white p-8 rounded-[2.5rem] border border-emerald-50 shadow-premium mb-10">
-                <div class="text-[10px] font-black uppercase tracking-widest text-brand-green mb-4 ml-2">Admin Support Contact (WhatsApp Number)</div>
+                <div class="text-[10px] font-black uppercase tracking-widest text-brand-green mb-4 ml-2">Admin Support
+                    Contact (WhatsApp Number)</div>
                 <div class="flex gap-4">
-                    <input type="text" id="admin-support-contact" class="flex-1 bg-emerald-50/30 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-bold text-slate-600 text-sm" placeholder="+919876543210">
-                    <span class="bg-brand-green/10 px-6 py-5 rounded-2xl text-brand-green font-black flex items-center"><i class="fab fa-whatsapp"></i></span>
+                    <input type="text" id="admin-support-contact"
+                        class="flex-1 bg-emerald-50/30 px-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:ring-0 font-bold text-slate-600 text-sm"
+                        placeholder="+919876543210">
+                    <span
+                        class="bg-brand-green/10 px-6 py-5 rounded-2xl text-brand-green font-black flex items-center"><i
+                            class="fab fa-whatsapp"></i></span>
                 </div>
             </div>
 
             <!-- Referral UI Text Section -->
             <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-premium">
                 <h3 class="text-xl font-bold text-slate-800 mb-8 border-b pb-4">Referral Dialog UI Text</h3>
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
                     <!-- Tamil Config -->
                     <div class="space-y-6">
                         <div class="flex items-center gap-2 mb-2">
-                             <span class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-black text-xs">TA</span>
-                             <span class="font-black text-xs uppercase tracking-widest text-slate-400">Tamil Labels</span>
+                            <span
+                                class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-black text-xs">TA</span>
+                            <span class="font-black text-xs uppercase tracking-widest text-slate-400">Tamil
+                                Labels</span>
                         </div>
                         <div>
                             <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Main Title</label>
-                            <input type="text" id="ref-ui-title-ta" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-orange-400 focus:ring-0 font-bold text-slate-700" placeholder="🎁 பரிசு வெல்லுங்கள்!">
+                            <input type="text" id="ref-ui-title-ta"
+                                class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-orange-400 focus:ring-0 font-bold text-slate-700"
+                                placeholder="🎁 பரிசு வெல்லுங்கள்!">
                         </div>
                         <div>
                             <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Subtitle</label>
-                            <input type="text" id="ref-ui-subtitle-ta" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-orange-400 focus:ring-0 font-bold text-slate-700" placeholder="நண்பர்களை அழைத்து வாலட் பணத்தை அள்ளுங்கள்">
+                            <input type="text" id="ref-ui-subtitle-ta"
+                                class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-orange-400 focus:ring-0 font-bold text-slate-700"
+                                placeholder="நண்பர்களை அழைத்து வாலட் பணத்தை அள்ளுங்கள்">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Step 1 (Instruction)</label>
-                            <input type="text" id="ref-ui-step1-ta" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-orange-400 focus:ring-0 font-bold text-slate-700" placeholder="உங்கள் Referral Code-ஐ நண்பர்களுக்கு பகிருங்கள்.">
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Step 1
+                                (Instruction)</label>
+                            <input type="text" id="ref-ui-step1-ta"
+                                class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-orange-400 focus:ring-0 font-bold text-slate-700"
+                                placeholder="உங்கள் Referral Code-ஐ நண்பர்களுக்கு பகிருங்கள்.">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Step 2 (Reward Message)</label>
-                            <input type="text" id="ref-ui-step2-ta" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-orange-400 focus:ring-0 font-bold text-slate-700" placeholder="உங்கள் நண்பர் இணைந்தவுடன் உங்களுக்கு ₹81 போனஸ் கிடைக்கும்!">
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Step 2 (Reward
+                                Message)</label>
+                            <input type="text" id="ref-ui-step2-ta"
+                                class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-orange-400 focus:ring-0 font-bold text-slate-700"
+                                placeholder="உங்கள் நண்பர் இணைந்தவுடன் உங்களுக்கு ₹81 போனஸ் கிடைக்கும்!">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">WhatsApp Share Message</label>
-                            <textarea id="ref-ui-wa-ta" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-orange-400 focus:ring-0 font-bold text-slate-700 h-24" placeholder="Join Astro 5 Star..."></textarea>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">WhatsApp Share
+                                Message</label>
+                            <textarea id="ref-ui-wa-ta"
+                                class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-orange-400 focus:ring-0 font-bold text-slate-700 h-24"
+                                placeholder="Join Astro 5 Star..."></textarea>
                         </div>
                     </div>
 
                     <!-- English Config -->
                     <div class="space-y-6">
                         <div class="flex items-center gap-2 mb-2">
-                             <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-black text-xs">EN</span>
-                             <span class="font-black text-xs uppercase tracking-widest text-slate-400">English Labels</span>
+                            <span
+                                class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-black text-xs">EN</span>
+                            <span class="font-black text-xs uppercase tracking-widest text-slate-400">English
+                                Labels</span>
                         </div>
                         <div>
                             <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Main Title</label>
-                            <input type="text" id="ref-ui-title-en" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-blue-400 focus:ring-0 font-bold text-slate-700" placeholder="🎁 Win Rewards!">
+                            <input type="text" id="ref-ui-title-en"
+                                class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-blue-400 focus:ring-0 font-bold text-slate-700"
+                                placeholder="🎁 Win Rewards!">
                         </div>
                         <div>
                             <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Subtitle</label>
-                            <input type="text" id="ref-ui-subtitle-en" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-blue-400 focus:ring-0 font-bold text-slate-700" placeholder="Invite friends and fill your wallet">
+                            <input type="text" id="ref-ui-subtitle-en"
+                                class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-blue-400 focus:ring-0 font-bold text-slate-700"
+                                placeholder="Invite friends and fill your wallet">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Step 1 (Instruction)</label>
-                            <input type="text" id="ref-ui-step1-en" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-blue-400 focus:ring-0 font-bold text-slate-700" placeholder="Share your Referral Code with friends.">
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Step 1
+                                (Instruction)</label>
+                            <input type="text" id="ref-ui-step1-en"
+                                class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-blue-400 focus:ring-0 font-bold text-slate-700"
+                                placeholder="Share your Referral Code with friends.">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Step 2 (Reward Message)</label>
-                            <input type="text" id="ref-ui-step2-en" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-blue-400 focus:ring-0 font-bold text-slate-700" placeholder="Get ₹81 bonus when your friend joins!">
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Step 2 (Reward
+                                Message)</label>
+                            <input type="text" id="ref-ui-step2-en"
+                                class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-blue-400 focus:ring-0 font-bold text-slate-700"
+                                placeholder="Get ₹81 bonus when your friend joins!">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">WhatsApp Share Message</label>
-                            <textarea id="ref-ui-wa-en" class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-blue-400 focus:ring-0 font-bold text-slate-700 h-24" placeholder="Join Astro 5 Star..."></textarea>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">WhatsApp Share
+                                Message</label>
+                            <textarea id="ref-ui-wa-en"
+                                class="w-full bg-slate-50 px-6 py-4 rounded-xl border-2 border-transparent focus:border-blue-400 focus:ring-0 font-bold text-slate-700 h-24"
+                                placeholder="Join Astro 5 Star..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -1304,10 +1405,14 @@
                                     <tr class="bg-slate-50/50">
                                         <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Date</th>
                                         <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Client</th>
-                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Duration</th>
-                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Total Paid</th>
-                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Astro Profit</th>
-                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400 text-right">Admin Margin</th>
+                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Duration
+                                        </th>
+                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Total Paid
+                                        </th>
+                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400">Astro
+                                            Profit</th>
+                                        <th class="px-6 py-4 text-[9px] font-black uppercase text-slate-400 text-right">
+                                            Admin Margin</th>
                                     </tr>
                                 </thead>
                                 <tbody id="perf-sessions-body" class="divide-y divide-slate-50">
@@ -1327,17 +1432,19 @@
         class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-1 lg:p-2 transition-all duration-300 hidden">
         <div
             class="bg-white w-full max-w-[95vw] lg:max-w-7xl rounded-[1.2rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300 max-h-[96vh] flex flex-col border border-white/20">
-            
+
             <!-- Micro-Header -->
-            <header
-                class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+            <header class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
                 <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-lg">
+                    <div
+                        class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-lg">
                         <i class="fas fa-user-gear text-sm"></i>
                     </div>
                     <div>
-                        <h3 class="text-xs font-black text-slate-800 tracking-tight leading-tight uppercase">Control Center</h3>
-                        <p class="text-[7px] font-bold text-emerald-600 uppercase tracking-[0.2em] opacity-80">Dense administrative Grid</p>
+                        <h3 class="text-xs font-black text-slate-800 tracking-tight leading-tight uppercase">Control
+                            Center</h3>
+                        <p class="text-[7px] font-bold text-emerald-600 uppercase tracking-[0.2em] opacity-80">Dense
+                            administrative Grid</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -1354,184 +1461,254 @@
 
                     <div class="space-y-3">
                         <!-- Identity Banner: Compact -->
-                        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 bg-emerald-950 p-4 rounded-[1.5rem] border border-emerald-800 shadow-xl relative overflow-hidden">
-                            <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -mr-16 -mt-16"></div>
-                            
+                        <div
+                            class="grid grid-cols-1 lg:grid-cols-4 gap-4 bg-emerald-950 p-4 rounded-[1.5rem] border border-emerald-800 shadow-xl relative overflow-hidden">
+                            <div
+                                class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -mr-16 -mt-16">
+                            </div>
+
                             <div class="flex items-center gap-4 lg:col-span-3 relative z-10">
                                 <div class="relative shrink-0">
-                                    <img id="edit-user-preview" src="" class="w-16 h-16 rounded-xl object-cover ring-2 ring-emerald-500/30 shadow-lg">
-                                    <button type="button" onclick="triggerEditPhotoUpload()" class="absolute -bottom-1 -right-1 w-7 h-7 bg-white text-emerald-900 rounded-lg flex items-center justify-center shadow-lg hover:scale-110 transition-all border border-emerald-900">
+                                    <img id="edit-user-preview" src=""
+                                        class="w-16 h-16 rounded-xl object-cover ring-2 ring-emerald-500/30 shadow-lg">
+                                    <button type="button" onclick="triggerEditPhotoUpload()"
+                                        class="absolute -bottom-1 -right-1 w-7 h-7 bg-white text-emerald-900 rounded-lg flex items-center justify-center shadow-lg hover:scale-110 transition-all border border-emerald-900">
                                         <i class="fas fa-camera text-[10px]"></i>
                                     </button>
                                 </div>
                                 <div class="space-y-1 flex-1">
-                                    <label class="text-[8px] font-black uppercase text-emerald-400 tracking-[0.2em]">Display Name</label>
-                                    <input type="text" id="edit-user-name" class="w-full bg-white/5 text-white px-3 py-2 rounded-xl border-white/10 focus:ring-2 focus:ring-emerald-500/20 font-black text-sm shadow-inner placeholder:text-white/20">
+                                    <label
+                                        class="text-[8px] font-black uppercase text-emerald-400 tracking-[0.2em]">Display
+                                        Name</label>
+                                    <input type="text" id="edit-user-name"
+                                        class="w-full bg-white/5 text-white px-3 py-2 rounded-xl border-white/10 focus:ring-2 focus:ring-emerald-500/20 font-black text-sm shadow-inner placeholder:text-white/20">
                                 </div>
                             </div>
 
-                            <div class="bg-white/5 backdrop-blur-xl p-3 rounded-xl border border-white/10 flex flex-col justify-center relative z-10">
-                                <label class="text-[8px] font-black uppercase text-emerald-400 tracking-widest mb-1">Adj Wallet</label>
+                            <div
+                                class="bg-white/5 backdrop-blur-xl p-3 rounded-xl border border-white/10 flex flex-col justify-center relative z-10">
+                                <label class="text-[8px] font-black uppercase text-emerald-400 tracking-widest mb-1">Adj
+                                    Wallet</label>
                                 <div class="flex items-center gap-2">
                                     <span class="text-emerald-500 font-black text-lg">₹</span>
-                                    <input type="number" id="edit-user-wallet-adj" class="w-full bg-transparent text-white font-black text-2xl outline-none border-none p-0 focus:ring-0" placeholder="0">
+                                    <input type="number" id="edit-user-wallet-adj"
+                                        class="w-full bg-transparent text-white font-black text-2xl outline-none border-none p-0 focus:ring-0"
+                                        placeholder="0">
                                 </div>
                             </div>
                         </div>
 
                         <!-- 5-COLUMN ASTROGRID: Micro Style -->
                         <div id="edit-astro-fields" class="hidden space-y-3">
-                            
+
                             <div class="bg-emerald-600 p-2.5 rounded-xl shadow-md border border-emerald-500">
                                 <label class="flex items-center gap-3 cursor-pointer group">
                                     <div class="relative inline-flex items-center cursor-pointer scale-75">
                                         <input type="checkbox" id="edit-user-verified" class="sr-only peer">
-                                        <div class="w-11 h-6 bg-emerald-900/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-white/20"></div>
+                                        <div
+                                            class="w-11 h-6 bg-emerald-900/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-white/20">
+                                        </div>
                                     </div>
                                     <div class="flex flex-col">
-                                        <span class="font-black text-white text-[9px] uppercase tracking-wider">Verification Status</span>
+                                        <span
+                                            class="font-black text-white text-[9px] uppercase tracking-wider">Verification
+                                            Status</span>
                                     </div>
                                 </label>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2.5">
-                                
+
                                 <!-- Col 1: Financial Rates -->
                                 <div class="space-y-2">
-                                    <button type="button" onclick="toggleAstroSection(0)" class="w-full text-left bg-white p-2.5 rounded-xl border border-emerald-100 hover:border-emerald-500 transition-all group">
+                                    <button type="button" onclick="toggleAstroSection(0)"
+                                        class="w-full text-left bg-white p-2.5 rounded-xl border border-emerald-100 hover:border-emerald-500 transition-all group">
                                         <div class="flex items-center justify-between">
-                                            <h6 class="text-[8px] font-black uppercase tracking-wider text-emerald-900">1. Rates</h6>
-                                            <i class="fas fa-chevron-down text-[8px] text-emerald-300" id="chevron-0"></i>
+                                            <h6 class="text-[8px] font-black uppercase tracking-wider text-emerald-900">
+                                                1. Rates</h6>
+                                            <i class="fas fa-chevron-down text-[8px] text-emerald-300"
+                                                id="chevron-0"></i>
                                         </div>
                                     </button>
-                                    <div id="section-0" class="hidden bg-white p-2.5 rounded-xl border border-slate-200 space-y-2">
+                                    <div id="section-0"
+                                        class="hidden bg-white p-2.5 rounded-xl border border-slate-200 space-y-2">
                                         <div class="space-y-0.5">
                                             <label class="text-[7px] font-black text-slate-400 uppercase">Legacy</label>
-                                            <input type="number" id="edit-user-price" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-black">
+                                            <input type="number" id="edit-user-price"
+                                                class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-black">
                                         </div>
                                         <div class="space-y-0.5">
                                             <label class="text-[7px] font-black text-slate-400 uppercase">Chat</label>
-                                            <input type="number" id="edit-user-chat-price" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-black">
+                                            <input type="number" id="edit-user-chat-price"
+                                                class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-black">
                                         </div>
                                         <div class="space-y-0.5">
-                                            <label class="text-[7px] font-black text-slate-400 uppercase">Audio/Vid</label>
+                                            <label
+                                                class="text-[7px] font-black text-slate-400 uppercase">Audio/Vid</label>
                                             <div class="grid grid-cols-2 gap-1">
-                                                <input type="number" id="edit-user-audio-price" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-black text-emerald-600">
-                                                <input type="number" id="edit-user-video-price" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-black text-emerald-600">
+                                                <input type="number" id="edit-user-audio-price"
+                                                    class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-black text-emerald-600">
+                                                <input type="number" id="edit-user-video-price"
+                                                    class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-black text-emerald-600">
                                             </div>
                                         </div>
                                         <div class="p-2 bg-emerald-900 rounded-lg space-y-1">
                                             <div class="flex justify-between items-center">
-                                                <label class="text-[6px] font-black text-emerald-400 uppercase">Unlimited</label>
-                                                <input type="checkbox" id="edit-user-unlimited-enabled" class="w-2.5 h-2.5 rounded text-emerald-400">
+                                                <label
+                                                    class="text-[6px] font-black text-emerald-400 uppercase">Unlimited</label>
+                                                <input type="checkbox" id="edit-user-unlimited-enabled"
+                                                    class="w-2.5 h-2.5 rounded text-emerald-400">
                                             </div>
-                                            <input type="number" id="edit-user-unlimited-price" class="w-full bg-transparent text-white font-black text-xs outline-none border-none p-0 focus:ring-0">
+                                            <input type="number" id="edit-user-unlimited-price"
+                                                class="w-full bg-transparent text-white font-black text-xs outline-none border-none p-0 focus:ring-0">
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Col 2: Official Bio -->
                                 <div class="space-y-2">
-                                    <button type="button" onclick="toggleAstroSection(1)" class="w-full text-left bg-white p-2.5 rounded-xl border border-emerald-100 hover:border-emerald-500 transition-all group">
+                                    <button type="button" onclick="toggleAstroSection(1)"
+                                        class="w-full text-left bg-white p-2.5 rounded-xl border border-emerald-100 hover:border-emerald-500 transition-all group">
                                         <div class="flex items-center justify-between">
-                                            <h6 class="text-[8px] font-black uppercase tracking-wider text-emerald-900">2. Official Bio</h6>
-                                            <i class="fas fa-chevron-down text-[8px] text-emerald-300" id="chevron-1"></i>
+                                            <h6 class="text-[8px] font-black uppercase tracking-wider text-emerald-900">
+                                                2. Official Bio</h6>
+                                            <i class="fas fa-chevron-down text-[8px] text-emerald-300"
+                                                id="chevron-1"></i>
                                         </div>
                                     </button>
-                                    <div id="section-1" class="hidden bg-white p-2.5 rounded-xl border border-slate-200 space-y-2">
+                                    <div id="section-1"
+                                        class="hidden bg-white p-2.5 rounded-xl border border-slate-200 space-y-2">
                                         <div class="space-y-0.5">
-                                            <label class="text-[7px] font-black text-slate-400 uppercase">Real Name</label>
-                                            <input type="text" id="edit-user-real-name" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-bold">
+                                            <label class="text-[7px] font-black text-slate-400 uppercase">Real
+                                                Name</label>
+                                            <input type="text" id="edit-user-real-name"
+                                                class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-bold">
                                         </div>
                                         <div class="space-y-0.5">
                                             <label class="text-[7px] font-black text-slate-400 uppercase">Email</label>
-                                            <input type="email" id="edit-user-email" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-bold">
+                                            <input type="email" id="edit-user-email"
+                                                class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-bold">
                                         </div>
                                         <div class="space-y-0.5">
-                                            <label class="text-[7px] font-black text-slate-400 uppercase">Exp (Yrs)</label>
-                                            <input type="number" id="edit-user-exp" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-black">
+                                            <label class="text-[7px] font-black text-slate-400 uppercase">Exp
+                                                (Yrs)</label>
+                                            <input type="number" id="edit-user-exp"
+                                                class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-black">
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Col 3: Expertise -->
                                 <div class="space-y-2">
-                                    <button type="button" onclick="toggleAstroSection(2)" class="w-full text-left bg-white p-2.5 rounded-xl border border-emerald-100 hover:border-emerald-500 transition-all group">
+                                    <button type="button" onclick="toggleAstroSection(2)"
+                                        class="w-full text-left bg-white p-2.5 rounded-xl border border-emerald-100 hover:border-emerald-500 transition-all group">
                                         <div class="flex items-center justify-between">
-                                            <h6 class="text-[8px] font-black uppercase tracking-wider text-emerald-900">3. Expertise</h6>
-                                            <i class="fas fa-chevron-down text-[8px] text-emerald-300" id="chevron-2"></i>
+                                            <h6 class="text-[8px] font-black uppercase tracking-wider text-emerald-900">
+                                                3. Expertise</h6>
+                                            <i class="fas fa-chevron-down text-[8px] text-emerald-300"
+                                                id="chevron-2"></i>
                                         </div>
                                     </button>
-                                    <div id="section-2" class="hidden bg-white p-2.5 rounded-xl border border-slate-200 space-y-2">
+                                    <div id="section-2"
+                                        class="hidden bg-white p-2.5 rounded-xl border border-slate-200 space-y-2">
                                         <div class="space-y-0.5">
-                                            <label class="text-[7px] font-black text-slate-400 uppercase">Specialty</label>
-                                            <input type="text" id="edit-user-skills" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-bold">
+                                            <label
+                                                class="text-[7px] font-black text-slate-400 uppercase">Specialty</label>
+                                            <input type="text" id="edit-user-skills"
+                                                class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-bold">
                                         </div>
                                         <div class="space-y-0.5">
                                             <label class="text-[7px] font-black text-slate-400 uppercase">Langs</label>
-                                            <input type="text" id="edit-user-languages" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-bold">
+                                            <input type="text" id="edit-user-languages"
+                                                class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-bold">
                                         </div>
                                         <div class="space-y-0.5">
-                                            <label class="text-[7px] font-black text-slate-400 uppercase">Bio Summary</label>
-                                            <textarea id="edit-user-bio" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[9px] font-bold h-16 custom-scrollbar"></textarea>
+                                            <label class="text-[7px] font-black text-slate-400 uppercase">Bio
+                                                Summary</label>
+                                            <textarea id="edit-user-bio"
+                                                class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[9px] font-bold h-16 custom-scrollbar"></textarea>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Col 4: Contact -->
                                 <div class="space-y-2">
-                                    <button type="button" onclick="toggleAstroSection(3)" class="w-full text-left bg-white p-2.5 rounded-xl border border-emerald-100 hover:border-emerald-500 transition-all group">
+                                    <button type="button" onclick="toggleAstroSection(3)"
+                                        class="w-full text-left bg-white p-2.5 rounded-xl border border-emerald-100 hover:border-emerald-500 transition-all group">
                                         <div class="flex items-center justify-between">
-                                            <h6 class="text-[8px] font-black uppercase tracking-wider text-emerald-900">4. Contact</h6>
-                                            <i class="fas fa-chevron-down text-[8px] text-emerald-300" id="chevron-3"></i>
+                                            <h6 class="text-[8px] font-black uppercase tracking-wider text-emerald-900">
+                                                4. Contact</h6>
+                                            <i class="fas fa-chevron-down text-[8px] text-emerald-300"
+                                                id="chevron-3"></i>
                                         </div>
                                     </button>
-                                    <div id="section-3" class="hidden bg-white p-2.5 rounded-xl border border-slate-200 space-y-2">
+                                    <div id="section-3"
+                                        class="hidden bg-white p-2.5 rounded-xl border border-slate-200 space-y-2">
                                         <div class="space-y-0.5">
                                             <label class="text-[7px] font-black text-slate-400 uppercase">WA Num</label>
-                                            <input type="text" id="edit-user-whatsapp" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-black text-emerald-700">
+                                            <input type="text" id="edit-user-whatsapp"
+                                                class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-black text-emerald-700">
                                         </div>
                                         <div class="space-y-0.5 text-center">
-                                            <label class="text-[7px] font-black text-slate-400 uppercase">Work Address</label>
-                                            <textarea id="edit-user-address" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[9px] font-bold h-16 custom-scrollbar"></textarea>
+                                            <label class="text-[7px] font-black text-slate-400 uppercase">Work
+                                                Address</label>
+                                            <textarea id="edit-user-address"
+                                                class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[9px] font-bold h-16 custom-scrollbar"></textarea>
                                         </div>
                                         <div class="space-y-0.5">
-                                            <label class="text-[7px] font-black text-slate-400 uppercase">Alt Phone</label>
-                                            <input type="text" id="edit-user-phone2" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-bold">
+                                            <label class="text-[7px] font-black text-slate-400 uppercase">Alt
+                                                Phone</label>
+                                            <input type="text" id="edit-user-phone2"
+                                                class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[10px] font-bold">
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Col 5: Banking -->
                                 <div class="space-y-2">
-                                    <button type="button" onclick="toggleAstroSection(4)" class="w-full text-left bg-white p-2.5 rounded-xl border border-emerald-100 hover:border-emerald-500 transition-all group">
+                                    <button type="button" onclick="toggleAstroSection(4)"
+                                        class="w-full text-left bg-white p-2.5 rounded-xl border border-emerald-100 hover:border-emerald-500 transition-all group">
                                         <div class="flex items-center justify-between">
-                                            <h6 class="text-[8px] font-black uppercase tracking-wider text-emerald-900">5. Banking</h6>
-                                            <i class="fas fa-chevron-down text-[8px] text-emerald-300" id="chevron-4"></i>
+                                            <h6 class="text-[8px] font-black uppercase tracking-wider text-emerald-900">
+                                                5. Banking</h6>
+                                            <i class="fas fa-chevron-down text-[8px] text-emerald-300"
+                                                id="chevron-4"></i>
                                         </div>
                                     </button>
-                                    <div id="section-4" class="hidden bg-white p-2.5 rounded-xl border border-slate-200 space-y-2">
+                                    <div id="section-4"
+                                        class="hidden bg-white p-2.5 rounded-xl border border-slate-200 space-y-2">
                                         <div class="grid grid-cols-1 gap-1.5">
                                             <div class="grid grid-cols-2 gap-1.5">
                                                 <div class="space-y-0.5">
-                                                    <label class="text-[6px] font-black text-slate-400 uppercase">UPI ID</label>
-                                                    <input type="text" id="edit-user-upi-id" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[9px] font-black">
+                                                    <label class="text-[6px] font-black text-slate-400 uppercase">UPI
+                                                        ID</label>
+                                                    <input type="text" id="edit-user-upi-id"
+                                                        class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[9px] font-black">
                                                 </div>
                                                 <div class="space-y-0.5">
-                                                    <label class="text-[6px] font-black text-slate-400 uppercase">UPI Number</label>
-                                                    <input type="text" id="edit-user-upi-num" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[9px] font-black">
+                                                    <label class="text-[6px] font-black text-slate-400 uppercase">UPI
+                                                        Number</label>
+                                                    <input type="text" id="edit-user-upi-num"
+                                                        class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[9px] font-black">
                                                 </div>
                                             </div>
                                             <div class="space-y-0.5">
-                                                <label class="text-[6px] font-black text-slate-400 uppercase">Aadhar/PAN</label>
+                                                <label
+                                                    class="text-[6px] font-black text-slate-400 uppercase">Aadhar/PAN</label>
                                                 <div class="grid grid-cols-2 gap-1">
-                                                    <input type="text" id="edit-user-aadhar" class="w-full bg-slate-50 px-1.5 py-1 rounded-lg border-0 text-[8px] font-black" placeholder="Aadhar">
-                                                    <input type="text" id="edit-user-pan" class="w-full bg-slate-50 px-1.5 py-1 rounded-lg border-0 text-[8px] font-black uppercase" placeholder="PAN">
+                                                    <input type="text" id="edit-user-aadhar"
+                                                        class="w-full bg-slate-50 px-1.5 py-1 rounded-lg border-0 text-[8px] font-black"
+                                                        placeholder="Aadhar">
+                                                    <input type="text" id="edit-user-pan"
+                                                        class="w-full bg-slate-50 px-1.5 py-1 rounded-lg border-0 text-[8px] font-black uppercase"
+                                                        placeholder="PAN">
                                                 </div>
                                             </div>
                                             <div class="space-y-0.5">
-                                                <label class="text-[6px] font-black text-slate-400 uppercase">Bank Meta</label>
-                                                <textarea id="edit-user-bank" class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[8px] font-bold h-10 custom-scrollbar"></textarea>
+                                                <label class="text-[6px] font-black text-slate-400 uppercase">Bank
+                                                    Meta</label>
+                                                <textarea id="edit-user-bank"
+                                                    class="w-full bg-slate-50 px-2 py-1 rounded-lg border-0 text-[8px] font-bold h-10 custom-scrollbar"></textarea>
                                             </div>
                                         </div>
                                     </div>
@@ -1544,16 +1721,21 @@
             </div>
 
             <!-- Micro-Footer -->
-            <footer class="px-3 py-2 border-t border-slate-100 shrink-0 bg-white shadow-2xl z-20 flex justify-between items-center">
+            <footer
+                class="px-3 py-2 border-t border-slate-100 shrink-0 bg-white shadow-2xl z-20 flex justify-between items-center">
                 <div class="hidden sm:flex flex-col">
-                    <span class="text-[6px] font-black text-slate-400 uppercase tracking-widest leading-none">Admin Authority</span>
+                    <span class="text-[6px] font-black text-slate-400 uppercase tracking-widest leading-none">Admin
+                        Authority</span>
                     <span class="text-[8px] font-bold text-emerald-600 mt-1">Ready for production sync</span>
                 </div>
                 <div class="flex gap-4">
-                    <button type="button" onclick="closeModal('modal-edit-user')" 
-                        class="px-8 py-2 bg-red-500 text-white font-black rounded-xl text-[10px] uppercase shadow-lg shadow-red-100 hover:bg-black transition-all active:scale-95">மூடு (Close)</button>
-                    <button type="button" onclick="document.getElementById('edit-user-form').dispatchEvent(new Event('submit'))" 
-                        class="px-10 py-2 bg-emerald-800 text-black font-black rounded-xl shadow-xl shadow-emerald-100 text-[10px] uppercase hover:bg-emerald-900 transition-all active:scale-95">சேமி (Update Profile)</button>
+                    <button type="button" onclick="closeModal('modal-edit-user')"
+                        class="px-8 py-2 bg-red-500 text-white font-black rounded-xl text-[10px] uppercase shadow-lg shadow-red-100 hover:bg-black transition-all active:scale-95">மூடு
+                        (Close)</button>
+                    <button type="button"
+                        onclick="document.getElementById('edit-user-form').dispatchEvent(new Event('submit'))"
+                        class="px-10 py-2 bg-emerald-800 text-black font-black rounded-xl shadow-xl shadow-emerald-100 text-[10px] uppercase hover:bg-emerald-900 transition-all active:scale-95">சேமி
+                        (Update Profile)</button>
                 </div>
             </footer>
         </div>
@@ -1586,32 +1768,41 @@
     <!-- Wallet Adjustment Modal -->
     <div id="modal-adj-wallet"
         class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4 transition-all duration-300 hidden">
-        <div class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300 border border-emerald-50">
+        <div
+            class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300 border border-emerald-50">
             <header class="p-8 border-b border-slate-50 text-center relative">
-                <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-brand-green text-2xl mx-auto mb-4 shadow-sm">
+                <div
+                    class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-brand-green text-2xl mx-auto mb-4 shadow-sm">
                     <i class="fas fa-wallet"></i>
                 </div>
                 <h3 class="text-xl font-black text-deep-green">Adjust Astro Funds</h3>
-                <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Manual Liquidity Injection</p>
-                <button onclick="closeModal('modal-adj-wallet')" class="absolute top-6 right-6 text-slate-300 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+                <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Manual Liquidity
+                    Injection</p>
+                <button onclick="closeModal('modal-adj-wallet')"
+                    class="absolute top-6 right-6 text-slate-300 hover:text-red-500 transition-colors"><i
+                        class="fas fa-times"></i></button>
             </header>
             <div class="p-8 space-y-6">
                 <input type="hidden" id="adj-wallet-user-id">
                 <div class="space-y-4">
                     <div class="flex items-center justify-between px-2">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Balance</span>
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current
+                            Balance</span>
                         <span id="adj-wallet-current" class="text-sm font-black text-slate-800">₹0</span>
                     </div>
-                    
+
                     <div class="relative group">
-                        <div class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xl group-focus-within:text-brand-green transition-colors">₹</div>
+                        <div
+                            class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xl group-focus-within:text-brand-green transition-colors">
+                            ₹</div>
                         <input type="number" id="adj-wallet-amount" placeholder="Amount (e.g. 500 or -200)"
                             class="w-full bg-slate-50 pl-12 pr-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:bg-white focus:ring-0 font-black text-2xl text-slate-800 transition-all shadow-inner">
                     </div>
-                    
+
                     <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3">
                         <i class="fas fa-info-circle text-blue-500 mt-0.5"></i>
-                        <p class="text-[9px] font-bold text-blue-700 leading-relaxed uppercase tracking-wider">Positive values add to balance. Negative values deduct. Updates are real-time.</p>
+                        <p class="text-[9px] font-bold text-blue-700 leading-relaxed uppercase tracking-wider">Positive
+                            values add to balance. Negative values deduct. Updates are real-time.</p>
                     </div>
                 </div>
 
@@ -1621,7 +1812,8 @@
                     Commit Transaction
                 </button>
                 <button onclick="closeModal('modal-adj-wallet')"
-                    class="w-full text-slate-400 font-bold text-[10px] uppercase tracking-widest hover:text-slate-600 transition-colors">Abort Adjustment</button>
+                    class="w-full text-slate-400 font-bold text-[10px] uppercase tracking-widest hover:text-slate-600 transition-colors">Abort
+                    Adjustment</button>
             </div>
         </div>
     </div>
@@ -2065,7 +2257,7 @@
         function renderAstroWallets() {
             const searchTerm = document.getElementById('wallet-astro-search')?.value.toLowerCase() || '';
             const astros = usersCache.filter(u => u.role === 'astrologer');
-            
+
             let filtered = astros;
             if (searchTerm) {
                 filtered = astros.filter(u => u.name.toLowerCase().includes(searchTerm) || u.phone.includes(searchTerm));
@@ -2105,11 +2297,11 @@
                         </td>
                         <td class="px-8 py-5 text-right">
                             <div class="flex items-center justify-end gap-2">
-                                <button onclick="openEditWallet('${u.userId}', ${balance}, 'add')" 
+                                <button onclick="openEditWallet('${u.userId}', ${balance}, 'add')"
                                     class="px-4 py-2 rounded-xl bg-emerald-50 text-brand-green font-black text-[10px] uppercase shadow-sm hover:bg-brand-green hover:text-white transition-all active:scale-95 flex items-center gap-2">
                                     <i class="fas fa-plus"></i> Add
                                 </button>
-                                <button onclick="openEditWallet('${u.userId}', ${balance}, 'deduct')" 
+                                <button onclick="openEditWallet('${u.userId}', ${balance}, 'deduct')"
                                     class="px-4 py-2 rounded-xl bg-red-50 text-red-600 font-black text-[10px] uppercase shadow-sm hover:bg-red-600 hover:text-white transition-all active:scale-95 flex items-center gap-2">
                                     <i class="fas fa-minus"></i> Reduce
                                 </button>
@@ -2131,7 +2323,7 @@
             document.getElementById('adj-wallet-user-id').dataset.type = type;
             document.getElementById('adj-wallet-current').innerText = '₹' + Math.max(0, current).toFixed(2);
             document.getElementById('adj-wallet-amount').value = '';
-            
+
             const title = type === 'add' ? `Add ${roleLabel} Funds` : `Reduce ${roleLabel} Funds`;
             const btnText = type === 'add' ? 'Add Funds Now' : 'Deduct Funds Now';
             const icon = type === 'add' ? 'fa-plus' : 'fa-minus';
@@ -2141,7 +2333,7 @@
             document.querySelector('#modal-adj-wallet h3').innerText = title;
             document.querySelector('#modal-adj-wallet .w-16 i').className = `fas ${icon}`;
             document.querySelector('#modal-adj-wallet .w-16').className = `w-16 h-16 ${type === 'add' ? 'bg-emerald-50 text-brand-green' : 'bg-red-50 text-red-500'} rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4 shadow-sm`;
-            
+
             const submitBtn = document.querySelector('#modal-adj-wallet button[onclick="submitWalletAdjustment()"]');
             submitBtn.innerText = btnText;
             submitBtn.className = `w-full ${bgColor} text-white font-black py-5 rounded-2xl shadow-xl hover:opacity-90 transition-all uppercase tracking-widest text-xs`;
@@ -2155,9 +2347,9 @@
             const userId = document.getElementById('adj-wallet-user-id').value;
             const type = document.getElementById('adj-wallet-user-id').dataset.type;
             let amount = parseFloat(document.getElementById('adj-wallet-amount').value);
-            
+
             if (isNaN(amount) || amount <= 0) return alert('Please enter a valid amount');
-            
+
             if (type === 'deduct') amount = -amount;
 
             const btn = event.target;
@@ -2225,10 +2417,10 @@
         function fetchAllUsers(page = 1, overrideLimit = null) {
             currentUserPage = page;
             const search = (
-                document.getElementById('user-search')?.value || 
-                document.getElementById('client-search')?.value || 
-                document.getElementById('astrologer-search')?.value || 
-                document.getElementById('wallet-astro-search')?.value || 
+                document.getElementById('user-search')?.value ||
+                document.getElementById('client-search')?.value ||
+                document.getElementById('astrologer-search')?.value ||
+                document.getElementById('wallet-astro-search')?.value ||
                 ''
             );
             const isOnlineFilter = onlineOnlyFilter && activeTab === 'astrologers';
@@ -2376,7 +2568,7 @@
         function renderAstrologers() {
             const searchTerm = document.getElementById('astrologer-search')?.value.toLowerCase() || '';
             let filteredAstros = usersCache.filter(u => u.role === 'astrologer');
-            
+
             if (searchTerm) {
                 filteredAstros = filteredAstros.filter(u => u.name.toLowerCase().includes(searchTerm) || u.phone.includes(searchTerm));
             }
@@ -3055,7 +3247,7 @@
             try {
                 const res = await fetch(url, {
                     method,
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'x-admin-key': ADMIN_SECRET_KEY
                     },
@@ -3081,14 +3273,14 @@
         function editBanner(id) {
             const b = bannersCache.find(x => x._id === id);
             if (!b) return;
-            
+
             editingBannerId = id;
             document.getElementById('banner-title').value = b.title || '';
             document.getElementById('banner-subtitle').value = b.subtitle || '';
             document.getElementById('banner-image').value = b.imageUrl || '';
             document.getElementById('banner-order').value = b.order || 0;
             document.getElementById('banner-offer').value = b.offerPercentage || 0;
-            
+
             if (b.expiryDate) {
                 const d = new Date(b.expiryDate);
                 document.getElementById('banner-expiry').value = d.toISOString().split('T')[0];
@@ -3124,18 +3316,18 @@
             document.getElementById('banner-form').reset();
             document.getElementById('banner-preview').classList.add('hidden');
             document.getElementById('banner-preview-container').classList.remove('border-solid', 'border-brand-green');
-            
+
             const submitBtn = document.querySelector('#banner-form button[type="submit"]');
             submitBtn.innerHTML = 'Launch Campaign <i class="fas fa-arrow-right"></i>';
             submitBtn.classList.replace('bg-emerald-600', 'bg-brand-green');
-            
+
             const cancelBtn = document.getElementById('btn-cancel-banner-edit');
             if (cancelBtn) cancelBtn.remove();
         }
 
         async function deleteBanner(id) {
             if (confirm('Erase this visual asset?')) {
-                await fetch('/api/admin/banners/' + id, { 
+                await fetch('/api/admin/banners/' + id, {
                     method: 'DELETE',
                     headers: { 'x-admin-key': ADMIN_SECRET_KEY }
                 });
@@ -3165,32 +3357,32 @@
                 document.getElementById('edit-user-video-price').value = u.videoPrice || 0;
                 document.getElementById('edit-user-unlimited-price').value = u.unlimitedPrice || 0;
                 document.getElementById('edit-user-unlimited-enabled').checked = u.unlimitedOfferEnabled || false;
-                
+
                 document.getElementById('edit-user-real-name').value = u.realName || '';
                 document.getElementById('edit-user-email').value = u.email || '';
                 document.getElementById('edit-user-exp').value = u.experience || u.astrologyExperience || 0;
                 document.getElementById('edit-user-skills').value = (u.skills || []).join(', ');
                 document.getElementById('edit-user-languages').value = (u.languages || []).join(', ');
                 document.getElementById('edit-user-bio').value = u.bio || u.profession || '';
-                
+
                 document.getElementById('edit-user-whatsapp').value = u.whatsAppNumber || '';
                 document.getElementById('edit-user-phone2').value = u.cellNumber2 || '';
                 document.getElementById('edit-user-address').value = u.address || '';
-                
+
                 document.getElementById('edit-user-upi-id').value = u.upiId || '';
                 document.getElementById('edit-user-upi-num').value = u.upiNumber || '';
                 document.getElementById('edit-user-bank').value = u.bankDetails || '';
                 document.getElementById('edit-user-aadhar').value = u.aadharNumber || '';
                 document.getElementById('edit-user-pan').value = u.panNumber || '';
-                
+
                 document.getElementById('edit-user-verified').checked = u.isVerified || false;
 
                 // User Request: Reset section toggles - show titles first
-                for(let i=0; i<5; i++) {
+                for (let i = 0; i < 5; i++) {
                     const sec = document.getElementById(`section-${i}`);
                     const chev = document.getElementById(`chevron-${i}`);
-                    if(sec) sec.classList.add('hidden');
-                    if(chev) chev.style.transform = 'rotate(0deg)';
+                    if (sec) sec.classList.add('hidden');
+                    if (chev) chev.style.transform = 'rotate(0deg)';
                 }
             }
             document.getElementById('modal-edit-user').classList.remove('hidden');
@@ -3200,21 +3392,21 @@
         function toggleAstroSection(index) {
             const section = document.getElementById(`section-${index}`);
             const chevron = document.getElementById(`chevron-${index}`);
-            if(!section) return;
+            if (!section) return;
 
             const isExpanding = section.classList.contains('hidden');
 
             // Accordion Mode: Close all other sections
-            for(let i=0; i<5; i++) {
+            for (let i = 0; i < 5; i++) {
                 const s = document.getElementById(`section-${i}`);
                 const c = document.getElementById(`chevron-${i}`);
-                if(s) s.classList.add('hidden');
-                if(c) c.style.transform = 'rotate(0deg)';
+                if (s) s.classList.add('hidden');
+                if (c) c.style.transform = 'rotate(0deg)';
             }
 
             if (isExpanding) {
                 section.classList.remove('hidden');
-                if(chevron) chevron.style.transform = 'rotate(180deg)';
+                if (chevron) chevron.style.transform = 'rotate(180deg)';
             }
         }
 
@@ -3234,7 +3426,7 @@
                 updates.videoPrice = parseFloat(document.getElementById('edit-user-video-price').value);
                 updates.unlimitedPrice = parseFloat(document.getElementById('edit-user-unlimited-price').value);
                 updates.unlimitedOfferEnabled = document.getElementById('edit-user-unlimited-enabled').checked;
-                
+
                 updates.realName = document.getElementById('edit-user-real-name').value;
                 updates.email = document.getElementById('edit-user-email').value;
                 updates.experience = parseInt(document.getElementById('edit-user-exp').value);
@@ -3242,17 +3434,17 @@
                 updates.languages = document.getElementById('edit-user-languages').value.split(',').map(s => s.trim()).filter(s => s);
                 updates.bio = document.getElementById('edit-user-bio').value;
                 updates.profession = updates.bio;
-                
+
                 updates.whatsAppNumber = document.getElementById('edit-user-whatsapp').value;
                 updates.cellNumber2 = document.getElementById('edit-user-phone2').value;
                 updates.address = document.getElementById('edit-user-address').value;
-                
+
                 updates.upiId = document.getElementById('edit-user-upi-id').value;
                 updates.upiNumber = document.getElementById('edit-user-upi-num').value;
                 updates.bankDetails = document.getElementById('edit-user-bank').value;
                 updates.aadharNumber = document.getElementById('edit-user-aadhar').value;
                 updates.panNumber = document.getElementById('edit-user-pan').value;
-                
+
                 updates.isVerified = document.getElementById('edit-user-verified').checked;
             }
 
@@ -3773,7 +3965,7 @@
                         const timeStr = date.toLocaleString('en-IN', { hour12: false });
                         const levelClass = log.level === 'error' ? 'text-red-400' : (log.level === 'warn' ? 'text-amber-300' : 'text-blue-300');
                         const levelIcon = log.level === 'error' ? '🔴' : (log.level === 'warn' ? '🟡' : '🔵');
-                        
+
                         return `
                             <div class="group border-b border-white/5 pb-3 last:border-0 hover:bg-white/5 p-2 rounded-lg transition-all">
                                 <div class="flex gap-4 items-start">
@@ -3830,7 +4022,7 @@
                 APP_BASE_URL: document.getElementById('ref-app-url').value,
                 FREE_CALL_DURATION: parseInt(document.getElementById('global-free-mins').value),
                 SUPPORT_CONTACT: document.getElementById('admin-support-contact').value,
-                
+
                 REFERRAL_TITLE_TA: document.getElementById('ref-ui-title-ta').value,
                 REFERRAL_TITLE_EN: document.getElementById('ref-ui-title-en').value,
                 REFERRAL_SUBTITLE_TA: document.getElementById('ref-ui-subtitle-ta').value,
@@ -3846,16 +4038,16 @@
             try {
                 const res = await fetch('/api/admin/referral-settings', {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
-                        'x-admin-key': ADMIN_SECRET_KEY 
+                        'x-admin-key': ADMIN_SECRET_KEY
                     },
                     body: JSON.stringify(config)
                 });
                 const data = await res.json();
                 if (data.ok) {
                     alert('வெற்றி! அமைப்புகள் வெற்றிகரமாக சேமிக்கப்பட்டன. (Success: Settings Deployed)');
-                    location.reload(); 
+                    location.reload();
                 } else {
                     alert('பிழை: சேமிக்க முடியவில்லை. (Error: ' + data.message + ')');
                 }
@@ -3886,17 +4078,17 @@
                 const res = await fetch('/api/admin/recharge-settings', {
                     headers: { 'x-admin-key': ADMIN_SECRET_KEY }
                 }).then(r => r.json());
-                
+
                 const tbody = document.getElementById('recharge-packs-body');
                 tbody.innerHTML = '';
-                
+
                 const packs = res.data || res.packs || [];
                 if (packs.length > 0) {
                     packs.forEach(p => addRechargePackRow(p));
                 } else {
                     checkNoPacks();
                 }
-            } catch (e) { 
+            } catch (e) {
                 console.error(e);
                 alert('Error loading recharge settings from server');
             }
@@ -3907,7 +4099,7 @@
             const row = document.createElement('tr');
             row.className = 'hover:bg-slate-50/50 transition-colors border-b border-slate-50/50 rp-row group';
             const displayPercentage = data.percentage || data.offerPercentage || 0;
-            
+
             row.innerHTML = `
                 <td class="py-6 px-4">
                     <div class="relative">
@@ -3972,7 +4164,7 @@
             try {
                 const res = await fetch('/api/admin/recharge-settings', {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'x-admin-key': ADMIN_SECRET_KEY
                     },
@@ -3986,11 +4178,12 @@
                 } else {
                     alert('ERROR: Failed to save settings to server. Check API logs.');
                 }
-            } catch (e) { 
+            } catch (e) {
                 console.error(e);
                 alert('CRITICAL ERROR: Could not connect to the server. Please check your internet.');
             }
         }
     </script>
 </body>
+
 </html>
