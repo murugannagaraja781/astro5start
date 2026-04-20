@@ -54,14 +54,15 @@ async function getCachedFcmToken() {
         return null;
     }
 }async function sendFcmV1Push(fcmToken, data, notification) {
-    console.log(`[FCM v1] sendFcmV1Push triggered. Token: ${fcmToken ? fcmToken.substring(0, 10) + '...' : 'NULL'}`);
+    if (!fcmToken) return { success: false, error: 'No token' };
+    console.log(`[FCM v1] sendFcmV1Push triggered. Token: ${fcmToken.substring(0, 10)}...`);
+    
     if (!admin.apps.length) {
         console.error('[FCM v1] Admin SDK not initialized. Cannot send push.');
         return { success: false, error: 'Admin SDK not initialized' };
     }
 
     try {
-        // FCM v1 requires all values in the 'data' object to be strings.
         const stringifiedData = {};
         if (data) {
             Object.keys(data).forEach(key => {
@@ -78,20 +79,10 @@ async function getCachedFcmToken() {
         const messagePayload = {
             token: fcmToken,
             data: stringifiedData,
-            android: {
-                priority: 'high',
-                ttl: 0, 
-            },
+            android: { priority: 'high', ttl: 0 },
             apns: {
-                headers: {
-                    'apns-priority': '10',
-                    'apns-push-type': 'alert'
-                },
-                payload: {
-                    aps: {
-                        contentAvailable: true,
-                    }
-                }
+                headers: { 'apns-priority': '10', 'apns-push-type': 'alert' },
+                payload: { aps: { contentAvailable: true } }
             }
         };
 
@@ -106,22 +97,20 @@ async function getCachedFcmToken() {
         console.log(`[FCM v1] Successfully sent message to token ${fcmToken.substring(0, 10)}... Result:`, response);
         return { success: true, messageId: response };
     } catch (err) {
-        console.error(`[FCM v1] Error sending to token: ${fcmToken ? fcmToken.substring(0, 15) : 'NULL'}... error: ${err.message}`);
-        
-        // If token is invalid or not found, clear it from the database to stop future errors
-        const errorMsg = err.message.toLowerCase();
-        const errorCode = err.code || "";
-        
-        if (errorMsg.includes('not found') || 
-            errorMsg.includes('unregistered') || 
-            errorMsg.includes('not-registered') || 
-            errorMsg.includes('requested entity was not found') ||
-            errorCode === 'messaging/registration-token-not-registered') {
-            
+        const errorMsg = (err.message || "").toLowerCase();
+        const isStaleToken = errorMsg.includes('not found') || 
+                            errorMsg.includes('unregistered') || 
+                            errorMsg.includes('not-registered') || 
+                            errorMsg.includes('requested entity was not found');
+
+        if (isStaleToken) {
+            console.log(`[FCM v1] Stale token (${fcmToken.substring(0, 10)}...). Reason: ${err.message}`);
+            // Auto-clear from DB
             const User = require('../models/User');
             User.updateOne({ fcmToken }, { $set: { fcmToken: '' } })
-                .then(() => console.log(`[FCM v1] Cleared invalid fcmToken from DB for token starting with: ${fcmToken.substring(0, 10)}...`))
-                .catch(e => console.error(`[FCM v1] Failed to clear token from DB:`, e.message));
+                .catch(e => console.error(`[FCM v1] Error clearing token:`, e.message));
+        } else {
+            console.error(`[FCM v1] Push Dispatch Error: ${err.message}`);
         }
 
         return { success: false, error: err.message };
