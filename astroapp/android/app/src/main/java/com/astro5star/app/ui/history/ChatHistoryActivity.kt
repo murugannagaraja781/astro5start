@@ -23,16 +23,29 @@ import androidx.compose.ui.unit.sp
 import com.astro5star.app.data.api.ApiClient
 import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.ui.theme.CosmicAppTheme
+import androidx.compose.runtime.collectAsState
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import kotlinx.coroutines.launch
+import coil.compose.AsyncImage
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import android.content.Intent
+import androidx.compose.material.icons.filled.*
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Mic
 
 data class HistoryMessage(
     val id: String,
     val text: String,
     val fromUserId: String,
     val timestamp: Long,
-    val isMe: Boolean
+    val isMe: Boolean,
+    val type: String = "text",
+    val fileUrl: String? = null,
+    val fileName: String? = null
 )
 
 class ChatHistoryActivity : ComponentActivity() {
@@ -49,12 +62,18 @@ class ChatHistoryActivity : ComponentActivity() {
             return
         }
 
+        val audioPlayer = com.astro5star.app.utils.ChatAudioPlayer()
+        
         setContent {
             CosmicAppTheme {
                 ChatHistoryScreen(
                     sessionId = sessionId,
                     partnerName = partnerName,
-                    onBack = { finish() }
+                    onBack = { 
+                        audioPlayer.stop()
+                        finish() 
+                    },
+                    audioPlayer = audioPlayer
                 )
             }
         }
@@ -66,7 +85,8 @@ class ChatHistoryActivity : ComponentActivity() {
 fun ChatHistoryScreen(
     sessionId: String,
     partnerName: String,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    audioPlayer: com.astro5star.app.utils.ChatAudioPlayer
 ) {
     val scope = rememberCoroutineScope()
     var messages by remember { mutableStateOf<List<HistoryMessage>>(emptyList()) }
@@ -88,10 +108,13 @@ fun ChatHistoryScreen(
                         list.add(
                             HistoryMessage(
                                 id = obj.get("_id").asString,
-                                text = obj.get("text").asString,
+                                text = if (obj.has("text")) obj.get("text").asString else "",
                                 fromUserId = obj.get("fromUserId").asString,
                                 timestamp = if (obj.has("timestamp")) obj.get("timestamp").asLong else 0L,
-                                isMe = obj.get("fromUserId").asString == myUserId
+                                isMe = obj.get("fromUserId").asString == myUserId,
+                                type = if (obj.has("type")) obj.get("type").asString else "text",
+                                fileUrl = if (obj.has("fileUrl")) obj.get("fileUrl").asString else null,
+                                fileName = if (obj.has("fileName")) obj.get("fileName").asString else null
                             )
                         )
                     }
@@ -139,7 +162,7 @@ fun ChatHistoryScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(messages) { msg ->
-                        HistoryBubble(msg)
+                        HistoryBubble(msg, audioPlayer)
                     }
                 }
             }
@@ -148,9 +171,10 @@ fun ChatHistoryScreen(
 }
 
 @Composable
-fun HistoryBubble(msg: HistoryMessage) {
+fun HistoryBubble(msg: HistoryMessage, audioPlayer: com.astro5star.app.utils.ChatAudioPlayer) {
     val align = if (msg.isMe) Alignment.End else Alignment.Start
     val bubbleColor = if (msg.isMe) Color(0xFFE1BEE7) else Color(0xFFFFD1DC)
+    val context = androidx.compose.ui.platform.LocalContext.current
     
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -163,7 +187,65 @@ fun HistoryBubble(msg: HistoryMessage) {
             modifier = Modifier.widthIn(max = 280.dp)
         ) {
             Column(modifier = Modifier.padding(8.dp)) {
-                Text(msg.text, fontSize = 16.sp, color = Color.Black)
+                
+                // --- MEDIA SUPPORT ---
+                if (msg.type == "image" && !msg.fileUrl.isNullOrEmpty()) {
+                    val baseUrl = "http://159.89.167.222:3000"
+                    val fullUrl = if (msg.fileUrl.startsWith("http")) msg.fileUrl else "$baseUrl${if (msg.fileUrl.startsWith("/")) "" else "/"}${msg.fileUrl}"
+                    
+                    AsyncImage(
+                        model = fullUrl,
+                        contentDescription = "History Image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                val intent = Intent(context, com.astro5star.app.ui.chat.FullScreenImageActivity::class.java)
+                                intent.putExtra("imageUrl", fullUrl)
+                                context.startActivity(intent)
+                            },
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(Modifier.height(4.dp))
+                } else if (msg.type == "voice" && !msg.fileUrl.isNullOrEmpty()) {
+                    val baseUrl = "http://159.89.167.222:3000"
+                    val fullUrl = if (msg.fileUrl.startsWith("http")) msg.fileUrl else "$baseUrl${if (msg.fileUrl.startsWith("/")) "" else "/"}${msg.fileUrl}"
+                    
+                    val isPlaying by audioPlayer.isPlaying.collectAsState()
+                    val currentUrl by audioPlayer.currentUrl.collectAsState()
+                    val isThisPlaying = isPlaying && currentUrl == fullUrl
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp)
+                            .background(Color.Black.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                            .padding(8.dp)
+                            .clickable {
+                                audioPlayer.play(fullUrl)
+                            }
+                    ) {
+                        Icon(
+                            if (isThisPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                            contentDescription = "Play/Pause",
+                            tint = Color(0xFF6200EE),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (isThisPlaying) "Playing..." else "Voice Message",
+                            fontSize = 14.sp,
+                            color = Color.Black
+                        )
+                    }
+                }
+
+                if (msg.text.isNotEmpty() && (msg.type == "text" || msg.text != "📷 Photo" && msg.text != "🎤 Voice message")) {
+                    Text(msg.text, fontSize = 16.sp, color = Color.Black)
+                }
+                
                 if (msg.timestamp > 0) {
                     val timeFormat = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
                     val timeStr = timeFormat.format(java.util.Date(msg.timestamp))

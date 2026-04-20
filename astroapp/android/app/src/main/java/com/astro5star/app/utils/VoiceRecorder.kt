@@ -12,7 +12,7 @@ class VoiceRecorder(private val context: Context) {
 
     fun startRecording(): File? {
         try {
-            val file = File(context.cacheDir, "voice_msg_${System.currentTimeMillis()}.mp3")
+            val file = File(context.cacheDir, "voice_msg_${System.currentTimeMillis()}.m4a")
             currentOutputFile = file
 
             mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

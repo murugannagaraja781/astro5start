@@ -110,8 +110,9 @@ class ChatActivity : ComponentActivity() {
         uri?.let { handleMediaUpload(it) }
     }
 
-    private val permissionLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { isGranted ->
-        if (!isGranted) Toast.makeText(this, "Microphone permission required for voice messages", Toast.LENGTH_SHORT).show()
+    private val multiPermissionLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()) { map ->
+        val allGranted = map.values.all { it }
+        if (!allGranted) Toast.makeText(this, "Permissions required to access/share media", Toast.LENGTH_SHORT).show()
     }
 
     private lateinit var voiceRecorder: com.astro5star.app.utils.VoiceRecorder
@@ -295,27 +296,40 @@ class ChatActivity : ComponentActivity() {
                         remainingSeconds = remainingSeconds,
                         clientBirthData = clientBirthData,
                         onPickImage = {
-                            val permission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                                android.Manifest.permission.READ_MEDIA_IMAGES
+                            val permissions = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES, android.Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+                            } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES)
                             } else {
-                                android.Manifest.permission.READ_EXTERNAL_STORAGE
+                                arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
                             }
-                            if (androidx.core.content.ContextCompat.checkSelfPermission(this, permission) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            
+                            val allGranted = permissions.all { 
+                                androidx.core.content.ContextCompat.checkSelfPermission(this, it) == android.content.pm.PackageManager.PERMISSION_GRANTED 
+                            }
+
+                            if (allGranted) {
                                 imagePickerLauncher.launch("image/*")
                             } else {
-                                permissionLauncher.launch(permission)
+                                multiPermissionLauncher.launch(permissions)
                             }
                         },
                         onPickFile = {
-                            val permission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                                android.Manifest.permission.READ_MEDIA_IMAGES
+                            val permissions = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES, android.Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+                            } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES)
                             } else {
-                                android.Manifest.permission.READ_EXTERNAL_STORAGE
+                                arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
                             }
-                            if (androidx.core.content.ContextCompat.checkSelfPermission(this, permission) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            
+                            val allGranted = permissions.all { 
+                                androidx.core.content.ContextCompat.checkSelfPermission(this, it) == android.content.pm.PackageManager.PERMISSION_GRANTED 
+                            }
+                            if (allGranted) {
                                 filePickerLauncher.launch("*/*")
                             } else {
-                                permissionLauncher.launch(permission)
+                                multiPermissionLauncher.launch(permissions)
                             }
                         },
                         summaryData = showSummaryData,
@@ -327,7 +341,7 @@ class ChatActivity : ComponentActivity() {
                                 recordingTimer?.postDelayed(recordingRunnable, 1000)
                                 voiceRecorder.startRecording()
                             } else {
-                                permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                multiPermissionLauncher.launch(arrayOf(android.Manifest.permission.RECORD_AUDIO))
                             }
                         },
                         onStopRecording = {
@@ -1223,53 +1237,70 @@ fun ChatInputBar(
                 modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 8.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onPickImage) {
-                    Icon(Icons.Default.Image, "Pick Image", tint = Color(0xFF6200EE))
-                }
-                IconButton(onClick = onPickFile) {
-                    Icon(Icons.Default.AttachFile, "Pick File", tint = Color(0xFF6200EE))
-                }
-                
-                if (onViewChart != null) {
-                    val isReady = clientBirthData != null
-                    IconButton(onClick = onViewChart) {
-                        if (isReady) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_chart),
-                                contentDescription = "Chart",
-                                tint = Color(0xFF4CAF50)
-                            )
-                        } else {
-                            Icon(Icons.Default.Refresh, "Pending", tint = Color.Gray)
+                if (isRecording) {
+                    // WhatsApp-like full-width recording bar
+                    Icon(Icons.Default.Mic, "Recording", tint = Color.Red, modifier = Modifier.padding(horizontal = 12.dp))
+                    Text(
+                        text = "Recording Voice... $recordingTime",
+                        modifier = Modifier.weight(1f),
+                        color = Color.Red,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                    Text(
+                        "Slide to cancel",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                } else {
+                    IconButton(onClick = onPickImage) {
+                        Icon(Icons.Default.Image, "Pick Image", tint = Color(0xFF6200EE))
+                    }
+                    IconButton(onClick = onPickFile) {
+                        Icon(Icons.Default.AttachFile, "Pick File", tint = Color(0xFF6200EE))
+                    }
+                    
+                    if (onViewChart != null) {
+                        val isReady = clientBirthData != null
+                        IconButton(onClick = onViewChart) {
+                            if (isReady) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_chart),
+                                    contentDescription = "Chart",
+                                    tint = Color(0xFF4CAF50)
+                                )
+                            } else {
+                                Icon(Icons.Default.Refresh, "Pending", tint = Color.Gray)
+                            }
                         }
                     }
-                }
-                
-                OutlinedTextField(
-                    value = if (isRecording) "Recording... $recordingTime" else text,
-                    onValueChange = onTextChange,
-                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
-                    enabled = !isRecording,
-                    shape = RoundedCornerShape(24.dp),
-                    placeholder = { Text("Type a message", fontSize = 14.sp) },
-                    maxLines = 4,
-                    colors = TextFieldDefaults.colors(
-                       focusedContainerColor = Color(0xFFF0F0F0),
-                       unfocusedContainerColor = Color(0xFFF0F0F0),
-                       focusedIndicatorColor = Color.Transparent,
-                       unfocusedIndicatorColor = Color.Transparent
+                    
+                    OutlinedTextField(
+                        value = text,
+                        onValueChange = onTextChange,
+                        modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        placeholder = { Text("Type a message", fontSize = 14.sp) },
+                        maxLines = 4,
+                        colors = TextFieldDefaults.colors(
+                           focusedContainerColor = Color(0xFFF0F0F0),
+                           unfocusedContainerColor = Color(0xFFF0F0F0),
+                           focusedIndicatorColor = Color.Transparent,
+                           unfocusedIndicatorColor = Color.Transparent
+                        )
                     )
-                )
+                }
 
-                if (text.isNotBlank()) {
+                if (text.isNotBlank() && !isRecording) {
                     IconButton(onClick = onSend) {
                         Icon(Icons.Default.Send, "Send", tint = Color(0xFF6200EE))
                     }
                 } else {
-                    // Record Button with PointerInput for Hold-to-Record
+                    // Record Button with PointerInput
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(if (isRecording) 56.dp else 48.dp)
                             .clip(CircleShape)
                             .background(if (isRecording) Color.Red else Color(0xFF6200EE))
                             .pointerInput(Unit) {
@@ -1289,7 +1320,8 @@ fun ChatInputBar(
                         Icon(
                             if (isRecording) Icons.Default.Mic else Icons.Default.MicNone,
                             "Record",
-                            tint = Color.White
+                            tint = Color.White,
+                            modifier = Modifier.size(if (isRecording) 28.dp else 24.dp)
                         )
                     }
                 }
