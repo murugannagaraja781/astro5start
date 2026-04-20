@@ -124,6 +124,9 @@ class ChatActivity : ComponentActivity() {
     private lateinit var voiceRecorder: com.astro5star.app.utils.VoiceRecorder
     private var recordingTimer: android.os.Handler? = null
     private var recordingSeconds by mutableStateOf(0)
+    private val recordingTime by derivedStateOf {
+        String.format("%02d:%02d", recordingSeconds / 60, recordingSeconds % 60)
+    }
     private val recordingRunnable = object : Runnable {
         override fun run() {
             recordingSeconds++
@@ -343,6 +346,7 @@ class ChatActivity : ComponentActivity() {
                         onStartRecording = {
                             if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
                                 recordingSeconds = 0
+                                recordingTimer?.removeCallbacks(recordingRunnable)
                                 recordingTimer = android.os.Handler(android.os.Looper.getMainLooper())
                                 recordingTimer?.postDelayed(recordingRunnable, 1000)
                                 voiceRecorder.startRecording()
@@ -360,7 +364,7 @@ class ChatActivity : ComponentActivity() {
                                 Toast.makeText(this, "Recording failed", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        recordingTime = String.format("%02d:%02d", recordingSeconds / 60, recordingSeconds % 60),
+                        recordingTime = recordingTime,
                         onDismissSummary = { finishSessionAndNavigate() }
                     )
                 }

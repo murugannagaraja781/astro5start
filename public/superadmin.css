@@ -120,14 +120,15 @@ body {
 
 /* Premium Sidebar Active State */
 .nav-item.active {
-    background: rgba(255, 255, 255, 0.1) !important;
-    color: white !important;
-    box-shadow: inset 4px 0 0 var(--accent-green) !important;
+    background: white !important;
+    color: var(--deep-green) !important;
+    font-weight: 800 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
 }
 
 .nav-item.active i {
-    color: var(--accent-green);
-    filter: drop-shadow(0 0 8px var(--accent-green));
+    color: var(--brand-green) !important;
+    filter: none !important;
 }
 
 /* Floating Animation for Badges */

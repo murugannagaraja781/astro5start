@@ -317,39 +317,56 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             startOfWeek.setDate(today.getDate() - today.getDay());
             startOfWeek.setHours(0, 0, 0, 0);
 
-            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const startOfWeekTs = startOfWeek.getTime();
+            const startOfMonthTs = startOfMonth.getTime();
 
             const astros = await User.find({ role: 'astrologer' }).select('userId name phone image totalEarnings createdAt');
 
             // Aggregate session data
             const sessionStats = await Session.aggregate([
-                { $match: { status: 'ended', totalEarned: { $gt: 0 } } },
+                { $match: { status: 'ended' } },
                 {
                     $group: {
                         _id: '$astrologerId',
-                        totalEarned: { $sum: '$totalEarned' },
+                        totalEarned: { $sum: { $ifNull: ['$totalEarned', 0] } },
                         totalSessions: { $sum: 1 },
-                        totalDuration: { $sum: '$duration' }
+                        totalDuration: { $sum: { $ifNull: ['$duration', 0] } }
                     }
                 }
             ]);
 
             const monthlyStats = await Session.aggregate([
-                { $match: { status: 'ended', createdAt: { $gte: startOfMonth }, totalEarned: { $gt: 0 } } },
+                { 
+                    $match: { 
+                        status: 'ended', 
+                        $or: [
+                            { createdAt: { $gte: startOfMonth } },
+                            { startTime: { $gte: startOfMonthTs } }
+                        ]
+                    } 
+                },
                 {
                     $group: {
                         _id: '$astrologerId',
-                        earned: { $sum: '$totalEarned' }
+                        earned: { $sum: { $ifNull: ['$totalEarned', 0] } }
                     }
                 }
             ]);
 
             const weeklyStats = await Session.aggregate([
-                { $match: { status: 'ended', createdAt: { $gte: startOfWeek }, totalEarned: { $gt: 0 } } },
+                { 
+                    $match: { 
+                        status: 'ended', 
+                        $or: [
+                            { createdAt: { $gte: startOfWeek } },
+                            { startTime: { $gte: startOfWeekTs } }
+                        ]
+                    } 
+                },
                 {
                     $group: {
                         _id: '$astrologerId',
-                        earned: { $sum: '$totalEarned' }
+                        earned: { $sum: { $ifNull: ['$totalEarned', 0] } }
                     }
                 }
             ]);
@@ -368,9 +385,10 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                     totalEarnings: s.totalEarned,
                     totalSessions: s.totalSessions,
                     totalDuration: s.totalDuration,
+                    avgDuration: s.totalSessions > 0 ? (s.totalDuration / s.totalSessions) : 0,
                     monthlyEarnings: monthMap[a.userId]?.earned || 0,
                     weeklyEarnings: weekMap[a.userId]?.earned || 0,
-                    joinedAt: a.createdAt
+                    joinedAt: a.createdAt || (s.totalSessions > 0 ? new Date(s.totalDuration) : null) // Fallback for very old astros
                 };
             }).sort((a, b) => b.totalEarnings - a.totalEarnings);
 
@@ -386,7 +404,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
         try {
             const { userId } = data;
             const sessions = await Session.find({ astrologerId: userId, status: 'ended' })
-                .sort({ endTime: -1 })
+                .sort({ endTime: -1, startTime: -1 })
                 .limit(100);
 
             // Populate client names and add formatted financial details

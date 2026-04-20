@@ -9,6 +9,7 @@ const ChatMessageSchema = new mongoose.Schema({
     fileUrl: String,
     fileType: String, // image, video, document
     fileName: String,
+    duration: String, // Added to persist voice message length
     type: { type: String, default: 'text' }, // text, system, image, file
     timestamp: { type: Number, default: Date.now }
 }, { timestamps: true });

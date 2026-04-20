@@ -68,6 +68,7 @@ const handleChat = (socket, io) => {
                 fileUrl: content.fileUrl,
                 fileType: content.fileType,
                 fileName: content.fileName,
+                duration: content.duration,
                 timestamp: timestamp || Date.now()
             };
 

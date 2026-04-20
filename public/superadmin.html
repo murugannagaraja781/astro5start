@@ -75,11 +75,13 @@
                 <i class="fas fa-chart-line text-lg lg:w-5 text-center"></i>
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Performance</span>
             </div>
-            <div class="sidebar-item group" onclick="showTab('referral')" id="menu-referral">
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="referral" onclick="showTab('referral')" id="menu-referral">
                 <i class="fas fa-gift text-lg lg:w-5 text-center text-orange-500 group-hover:text-white"></i>
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Referral</span>
             </div>
-            <div class="sidebar-item group" onclick="showTab('ledger')" id="menu-ledger">
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="ledger" onclick="showTab('ledger')" id="menu-ledger">
                 <i class="fas fa-receipt text-lg lg:w-5 text-center"></i>
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">History</span>
             </div>
@@ -2654,7 +2656,7 @@
                     </td>
                     <td class="px-6 py-4">
                         <div class="text-sm font-black text-brand-green">₹${Math.max(0, u.walletBalance || 0).toFixed(2)}</div>
-                        <div class="text-[8px] text-slate-400 font-black uppercase tracking-widest">Available Balance</div>
+                        <div class="text-[8px] text-slate-400 font-black uppercase tracking-widest">Main • Bonus: ₹${(u.superWalletBalance || 0).toFixed(1)}</div>
                     </td>
                     <td class="px-6 py-4">
                         <div class="text-xs font-black text-slate-700">${u.orderCount || 0} Sessions</div>
