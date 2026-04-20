@@ -45,7 +45,8 @@ data class HistoryMessage(
     val isMe: Boolean,
     val type: String = "text",
     val fileUrl: String? = null,
-    val fileName: String? = null
+    val fileName: String? = null,
+    val duration: String? = null
 )
 
 class ChatHistoryActivity : ComponentActivity() {
@@ -114,7 +115,8 @@ fun ChatHistoryScreen(
                                 isMe = obj.get("fromUserId").asString == myUserId,
                                 type = if (obj.has("type")) obj.get("type").asString else "text",
                                 fileUrl = if (obj.has("fileUrl")) obj.get("fileUrl").asString else null,
-                                fileName = if (obj.has("fileName")) obj.get("fileName").asString else null
+                                fileName = if (obj.has("fileName")) obj.get("fileName").asString else null,
+                                duration = if (obj.has("duration")) obj.get("duration").asString else null
                             )
                         )
                     }
@@ -234,11 +236,20 @@ fun HistoryBubble(msg: HistoryMessage, audioPlayer: com.astro5star.app.utils.Cha
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text(
-                            if (isThisPlaying) "Playing..." else "Voice Message",
-                            fontSize = 14.sp,
-                            color = Color.Black
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                if (isThisPlaying) "Playing..." else "Voice Message",
+                                fontSize = 14.sp,
+                                color = Color.Black
+                            )
+                            if (!msg.duration.isNullOrEmpty()) {
+                                Text(
+                                    msg.duration,
+                                    fontSize = 10.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
                     }
                 }
 

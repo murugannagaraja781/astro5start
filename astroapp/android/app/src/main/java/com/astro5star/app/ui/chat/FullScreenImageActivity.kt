@@ -24,7 +24,16 @@ import android.net.Uri
 import android.os.Environment
 import android.widget.Toast
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.foundation.layout.Row
+import androidx.core.content.FileProvider
+import java.io.File
+import android.content.Intent
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.URL
 
 class FullScreenImageActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,6 +72,11 @@ class FullScreenImageActivity : ComponentActivity() {
                             Icon(Icons.Default.Download, "Download", tint = Color.White)
                         }
                         IconButton(
+                            onClick = { shareImage(imageUrl) }
+                        ) {
+                            Icon(Icons.Default.Share, "Share", tint = Color.White)
+                        }
+                        IconButton(
                             onClick = { finish() }
                         ) {
                             Icon(Icons.Default.Close, "Close", tint = Color.White)
@@ -89,6 +103,45 @@ class FullScreenImageActivity : ComponentActivity() {
             Toast.makeText(this, "Downloading...", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun shareImage(imageUrl: String) {
+        if (imageUrl.isEmpty()) return
+        Toast.makeText(this, "Preparing to share...", Toast.LENGTH_SHORT).show()
+        
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val url = URL(imageUrl)
+                val connection = url.openConnection()
+                connection.connect()
+                val inputStream = connection.getInputStream()
+                
+                val fileName = "share_image_${System.currentTimeMillis()}.jpg"
+                val file = File(cacheDir, fileName)
+                val outputStream = file.outputStream()
+                
+                inputStream.use { input ->
+                    outputStream.use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    val uri = FileProvider.getUriForFile(this@FullScreenImageActivity, "${packageName}.fileprovider", file)
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "image/jpeg"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    val chooser = Intent.createChooser(intent, "Share Image")
+                    startActivity(chooser)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@FullScreenImageActivity, "Share failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 }

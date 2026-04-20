@@ -196,9 +196,14 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             const user = await User.findOne({ userId });
             if (!user) return cb?.({ ok: false, error: 'User not found' });
 
+            const incData = { walletBalance: numericAmount };
+            if (user.role === 'astrologer') {
+                incData.totalEarnings = numericAmount;
+            }
+
             const updatedUser = await User.findOneAndUpdate(
                 { userId }, 
-                { $inc: { walletBalance: numericAmount, totalEarnings: numericAmount } },
+                { $inc: incData },
                 { new: true }
             );
 

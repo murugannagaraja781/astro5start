@@ -57,6 +57,11 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.URL
+import java.io.File
 
 data class ChatMessage(
     val id: String,
@@ -68,7 +73,8 @@ data class ChatMessage(
     val fileUrl: String? = null,
     val fileType: String? = null,
     val fileName: String? = null,
-    val fileSize: Long? = null
+    val fileSize: Long? = null,
+    val duration: String? = null
 )
 
 class ChatActivity : ComponentActivity() {
@@ -539,6 +545,9 @@ class ChatActivity : ComponentActivity() {
                             put("fileName", fileName)
                             put("fileType", fileType)
                             put("fileSize", fileSize)
+                            if (type == "voice") {
+                                put("duration", String.format("%02d:%02d", recordingSeconds / 60, recordingSeconds % 60))
+                            }
                         })
                     }
                     viewModel.sendMessage(payload)
@@ -638,6 +647,51 @@ class ChatActivity : ComponentActivity() {
         audioPlayer.stop()
         timerHandler.removeCallbacks(timerRunnable)
         viewModel.stopListeners()
+    }
+
+    private fun shareMedia(msg: ChatMessage) {
+        val fileUrl = msg.fileUrl ?: return
+        val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL
+        val fullUrl = if (fileUrl.startsWith("http")) fileUrl else {
+            val separator = if (baseUrl.endsWith("/") || fileUrl.startsWith("/")) "" else "/"
+            "$baseUrl$separator$fileUrl"
+        }
+        
+        Toast.makeText(this, "Preparing to share...", Toast.LENGTH_SHORT).show()
+        
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val url = URL(fullUrl)
+                val connection = url.openConnection()
+                connection.connect()
+                val inputStream = connection.getInputStream()
+                
+                val extension = if (msg.type == "image") "jpg" else "m4a"
+                val fileName = "share_media_${System.currentTimeMillis()}.$extension"
+                val file = File(cacheDir, fileName)
+                val outputStream = file.outputStream()
+                
+                inputStream.use { input ->
+                    outputStream.use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    val uri = androidx.core.content.FileProvider.getUriForFile(this@ChatActivity, "${packageName}.fileprovider", file)
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = if (msg.type == "image") "image/jpeg" else "audio/mp4"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    startActivity(Intent.createChooser(intent, "Share ${msg.type.replaceFirstChar { it.uppercase() }}"))
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@ChatActivity, "Share failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 }
 
@@ -1087,8 +1141,10 @@ fun ChatBubble(
                                         )
                                         Spacer(Modifier.height(4.dp))
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            val durationText = remember(msg.fileUrl) { "0:15" } // Placeholder
-                                            Text(durationText, fontSize = 10.sp, color = Color.Gray)
+                                            val voiceDuration = msg.duration
+                                            if (!voiceDuration.isNullOrEmpty()) {
+                                                Text(voiceDuration, fontSize = 10.sp, color = Color.Gray)
+                                            }
                                             Spacer(Modifier.weight(1f))
                                             Icon(Icons.Default.Mic, null, modifier = Modifier.size(12.dp), tint = Color(0xFF2196F3))
                                         }
@@ -1179,6 +1235,16 @@ fun ChatBubble(
                     },
                     leadingIcon = { Icon(Icons.Default.Reply, null) }
                 )
+                if (msg.type != "text" && !msg.fileUrl.isNullOrEmpty()) {
+                    DropdownMenuItem(
+                        text = { Text("Share") },
+                        onClick = {
+                            (context as? ChatActivity)?.let { it.javaClass.getDeclaredMethod("shareMedia", ChatMessage::class.java).apply { isAccessible = true }.invoke(it, msg) }
+                            showMenu = false
+                        },
+                        leadingIcon = { Icon(Icons.Default.Share, null) }
+                    )
+                }
             }
         }
     }

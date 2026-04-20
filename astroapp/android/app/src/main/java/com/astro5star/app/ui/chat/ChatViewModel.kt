@@ -70,6 +70,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 val fileUrl = content.optString("fileUrl", "")
                 val fileType = content.optString("fileType", "")
                 val fileName = content.optString("fileName", "")
+                val duration = content.optString("duration", "")
                 
                 val sessionId = data.optString("sessionId")
                 val senderId = com.astro5star.app.data.local.TokenManager(getApplication()).getUserSession()?.userId ?: ""
@@ -85,7 +86,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     type = type,
                     fileUrl = if (fileUrl.isEmpty()) null else fileUrl,
                     fileType = if (fileType.isEmpty()) null else fileType,
-                    fileName = if (fileName.isEmpty()) null else fileName
+                    fileName = if (fileName.isEmpty()) null else fileName,
+                    duration = if (duration.isEmpty()) null else duration
                 )
                 repository.saveMessage(entity)
             } catch (e: Exception) { e.printStackTrace() }
@@ -235,6 +237,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             val fileUrl = content?.optString("fileUrl") ?: data.optString("fileUrl")
             val fileType = content?.optString("fileType") ?: data.optString("fileType")
             val fileName = content?.optString("fileName") ?: data.optString("fileName")
+            val duration = content?.optString("duration") ?: data.optString("duration")
 
             // Save to DB
             // Immediately update UI and DB
@@ -249,7 +252,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 fileUrl = if (fileUrl.isNullOrEmpty()) null else fileUrl,
                 fileType = if (fileType.isNullOrEmpty()) null else fileType,
                 fileName = if (fileName.isNullOrEmpty()) null else fileName,
-                fileSize = content?.optLong("fileSize") ?: data.optLong("fileSize", 0L).let { if(it==0L) null else it }
+                fileSize = content?.optLong("fileSize") ?: data.optLong("fileSize", 0L).let { if(it==0L) null else it },
+                duration = if (duration.isNullOrEmpty()) null else duration
             )
             
             _messages.postValue(msg) // Trigger individual message observer
@@ -278,7 +282,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         fileUrl = if (fileUrl.isNullOrEmpty()) null else fileUrl,
                         fileType = if (fileType.isNullOrEmpty()) null else fileType,
                         fileName = if (fileName.isNullOrEmpty()) null else fileName,
-                        fileSize = content?.optLong("fileSize") ?: data.optLong("fileSize", 0L).let { if(it==0L) null else it }
+                        fileSize = content?.optLong("fileSize") ?: data.optLong("fileSize", 0L).let { if(it==0L) null else it },
+                        duration = if (duration.isNullOrEmpty()) null else duration
                     )
                     repository.saveMessage(entity)
 
@@ -374,7 +379,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         fileUrl = entity.fileUrl,
                         fileType = entity.fileType,
                         fileName = entity.fileName,
-                        fileSize = entity.fileSize
+                        fileSize = entity.fileSize,
+                        duration = entity.duration
                     )
                 }
                 _history.postValue(uiMessages)
