@@ -173,7 +173,9 @@ class ChatActivity : ComponentActivity() {
         super.onStart()
         viewModel.startListeners()
         if (sessionId != null) {
-            viewModel.joinSessionSafe(sessionId!!)
+            sessionId?.let {
+                viewModel.joinSessionSafe(it)
+            }
         }
     }
 
@@ -237,7 +239,7 @@ class ChatActivity : ComponentActivity() {
                         },
                         onViewChart = {
                             if (clientBirthData != null) {
-                                val hasPartner = clientBirthData!!.has("partner") && clientBirthData!!.optJSONObject("partner") != null
+                                val hasPartner = clientBirthData?.let { it.has("partner") && it.optJSONObject("partner") != null } ?: false
                                 if (!hasPartner) {
                                     val intent = Intent(this, com.astro5star.app.ui.chart.VipChartActivity::class.java)
                                     intent.putExtra("birthData", clientBirthData.toString())
@@ -260,7 +262,7 @@ class ChatActivity : ComponentActivity() {
                                                     startActivity(intent)
                                                 }
                                                 1 -> {
-                                                    val partnerObj = clientBirthData!!.optJSONObject("partner")
+                                                    val partnerObj = clientBirthData?.optJSONObject("partner")
                                                     if (partnerObj != null) {
                                                         val partnerBirthData = JSONObject().apply {
                                                             put("name", partnerObj.optString("name", "Partner"))
@@ -454,9 +456,10 @@ class ChatActivity : ComponentActivity() {
 
             if (sessionId == null) {
                 android.util.Log.e("ChatActivity", "CRITICAL ERROR: SessionId is NULL or EMPTY!")
+                Toast.makeText(this, "Session error", Toast.LENGTH_SHORT).show()
             } else {
-                viewModel.loadHistory(sessionId!!)
-                viewModel.joinSessionSafe(sessionId!!)
+                viewModel.loadHistory(sessionId ?: "")
+                viewModel.joinSessionSafe(sessionId ?: "")
             }
 
             val isNewRequest = it.getBooleanExtra("isNewRequest", false)
@@ -597,7 +600,7 @@ class ChatActivity : ComponentActivity() {
         android.util.Log.d("ChatActivity", "endChat clicked. SessionId: $sessionId")
         if (sessionId != null) {
             Toast.makeText(this, "Ending Chat...", Toast.LENGTH_SHORT).show()
-            viewModel.endSession(sessionId!!)
+            sessionId?.let { viewModel.endSession(it) }
             
             // Fallback: If server is slow to respond, finish locally after 5 seconds
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
@@ -627,7 +630,9 @@ class ChatActivity : ComponentActivity() {
                 // Socket registered - now emit pending accept if any
                 if (pendingAccept && sessionId != null && toUserId != null) {
                     pendingAccept = false
-                    viewModel.acceptSession(sessionId!!, toUserId!!)
+                if (sessionId != null && toUserId != null) {
+                    viewModel.acceptSession(sessionId ?: "", toUserId ?: "")
+                }
                     android.util.Log.d("ChatActivity", "Emitted acceptSession after socket registration")
                 }
             }
@@ -809,10 +814,10 @@ fun ChatScreen(
                 onSend = {
                     if (inputText.isNotBlank() && toUserId != null && sessionId != null) {
                          var finalText = inputText
-                         if (replyingTo != null) {
-                             // Prepend Reply Quote
-                             val snippet = replyingTo!!.text.take(50).replace("\n", " ")
-                             finalText = "> Replying to: $snippet\n$inputText"
+                         replyingTo?.let { reply ->
+                              // Prepend Reply Quote
+                              val snippet = (reply.text ?: "").take(50).replace("\n", " ")
+                              finalText = "> Replying to: $snippet\n$inputText"
                          }
 
                          val payload = JSONObject().apply {
@@ -1016,10 +1021,11 @@ fun ChatBubble(
                              if (msg.type == "image" && !msg.fileUrl.isNullOrEmpty()) {
                                 val context = androidx.compose.ui.platform.LocalContext.current
                                 val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL
-                                val fullUrl = remember(msg.fileUrl) {
-                                    if (msg.fileUrl!!.startsWith("http")) msg.fileUrl!! else {
-                                        val separator = if (baseUrl.endsWith("/") || msg.fileUrl!!.startsWith("/")) "" else "/"
-                                        "$baseUrl$separator${msg.fileUrl}"
+                                val fUrl = msg.fileUrl ?: ""
+                                val fullUrl = remember(fUrl) {
+                                    if (fUrl.startsWith("http")) fUrl else {
+                                        val separator = if (baseUrl.endsWith("/") || fUrl.startsWith("/")) "" else "/"
+                                        "$baseUrl$separator$fUrl"
                                     }
                                 }
 
@@ -1099,9 +1105,10 @@ fun ChatBubble(
                             } else if (msg.type == "voice" && !msg.fileUrl.isNullOrEmpty()) {
                                 // WhatsApp-inspired Voice Player UI
                                 val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL
-                                val fullUrl = if (msg.fileUrl!!.startsWith("http")) msg.fileUrl!! else {
-                                    val separator = if (baseUrl.endsWith("/") || msg.fileUrl!!.startsWith("/")) "" else "/"
-                                    "$baseUrl$separator${msg.fileUrl}"
+                                val fUrl = msg.fileUrl ?: ""
+                                val fullUrl = if (fUrl.startsWith("http")) fUrl else {
+                                    val separator = if (baseUrl.endsWith("/") || fUrl.startsWith("/")) "" else "/"
+                                    "$baseUrl$separator$fUrl"
                                 }
                                 val isPlaying by audioPlayer.isPlaying.collectAsState()
                                 val progress by audioPlayer.progress.collectAsState()
@@ -1225,7 +1232,7 @@ fun ChatBubble(
                 DropdownMenuItem(
                     text = { Text("Copy Text") },
                     onClick = {
-                        clipboardManager.setText(AnnotatedString(msg.text))
+                        clipboardManager.setText(AnnotatedString(msg.text ?: ""))
                         Toast.makeText(context, "Text Copied", Toast.LENGTH_SHORT).show()
                         showMenu = false
                     },
@@ -1297,7 +1304,7 @@ fun ChatInputBar(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                   Text("Replying to: ${replyingTo.text.take(30)}...", fontSize = 12.sp, color = Color.Gray)
+                   Text("Replying to: ${replyingTo.text?.take(30) ?: ""}...", fontSize = 12.sp, color = Color.Gray)
                    IconButton(onClick = onCancelReply, modifier = Modifier.size(24.dp)) {
                        Icon(Icons.Default.Close, "Cancel", tint = Color.Gray)
                    }
@@ -1407,6 +1414,7 @@ fun ChatModernSummaryDialog(
     deducted: Double,
     reason: String,
     isAstrologer: Boolean,
+    clientBirthData: JSONObject? = null,
     onDismiss: () -> Unit
 ) {
     androidx.compose.ui.window.Dialog(onDismissRequest = {}) {
@@ -1476,6 +1484,25 @@ fun ChatModernSummaryDialog(
                     }
                 }
 
+                val hasPartner = clientBirthData?.let { data: JSONObject -> data.has("partner") && data.optJSONObject("partner") != null } ?: false
+                var showBirthData by remember { mutableStateOf(false) }
+
+                if (hasPartner) {
+                    Button(
+                        onClick = { showBirthData = true },
+                        modifier = Modifier.padding(top = 8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE91E63))
+                    ) {
+                        Text("Partner Details", color = Color.White)
+                    }
+                }
+
+                if (showBirthData) {
+                    clientBirthData?.optJSONObject("partner")?.let { partnerObj: JSONObject ->
+                        BirthDataDialog(partnerObj) { showBirthData = false }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Button(
@@ -1488,6 +1515,49 @@ fun ChatModernSummaryDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun BirthDataDialog(data: JSONObject, onDismiss: () -> Unit) {
+     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+         Card(
+             modifier = Modifier.fillMaxWidth().padding(16.dp),
+             shape = RoundedCornerShape(16.dp),
+             colors = CardDefaults.cardColors(containerColor = Color.White)
+         ) {
+             Column(Modifier.padding(20.dp)) {
+                 Text("Partner Details", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFFC9A227))
+                 Spacer(Modifier.height(16.dp))
+                 
+                 val name = data.optString("name", "Unknown")
+                 val dob = "${data.optInt("day")}-${data.optInt("month")}-${data.optInt("year")}"
+                 val tob = "${data.optInt("hour")}:${data.optInt("minute")}"
+                 val place = data.optString("city", "Unknown")
+                 
+                 DetailRow("Name", name)
+                 DetailRow("DOB", dob)
+                 DetailRow("TOB", tob)
+                 DetailRow("Place", place)
+                 
+                 Spacer(Modifier.height(24.dp))
+                 Button(
+                     onClick = onDismiss,
+                     modifier = Modifier.fillMaxWidth(),
+                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC9A227))
+                 ) {
+                     Text("CLOSE")
+                 }
+             }
+         }
+     }
+}
+
+@Composable
+fun DetailRow(label: String, value: String) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text(label, modifier = Modifier.weight(1f), color = Color.Gray, fontSize = 14.sp)
+        Text(value, modifier = Modifier.weight(2f), fontWeight = FontWeight.Medium, fontSize = 14.sp)
     }
 }
 

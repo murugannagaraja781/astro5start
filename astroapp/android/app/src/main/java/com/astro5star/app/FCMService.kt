@@ -251,18 +251,16 @@ class FCMService : FirebaseMessagingService() {
                     notificationManager.notify(astrologerId.hashCode(), notificationBuilder.build())
                 }
                 "WALLET_DEBIT" -> {
-                    // Removed SoundManager call as per user request to silence wallet notifications
-                    showGenericNotification(data["title"] ?: "Wallet Updated", data["body"] ?: "Amount deducted", data)
+                    showGenericNotification(data["title"] ?: "Wallet Updated", data["body"] ?: "Amount deducted", data, true)
                 }
                 "WALLET_CREDIT" -> {
-                    // Removed SoundManager call as per user request to silence wallet notifications
-                    showGenericNotification(data["title"] ?: "Earnings Updated", data["body"] ?: "Amount credited", data)
+                    showGenericNotification(data["title"] ?: "Earnings Updated", data["body"] ?: "Amount credited", data, true)
                 }
                 else -> {
                     // Handle generic data messages or unknown types by showing a simple notification
                     val title = data["title"] ?: message.notification?.title ?: "Astro5Star"
                     val body = data["body"] ?: message.notification?.body ?: "New Message"
-                    showGenericNotification(title, body, data)
+                    showGenericNotification(title, body, data, true)
                 }
             }
         }
@@ -277,7 +275,7 @@ class FCMService : FirebaseMessagingService() {
         }
     }
 
-    private fun showGenericNotification(title: String, body: String, data: Map<String, String>? = null) {
+    private fun showGenericNotification(title: String, body: String, data: Map<String, String>? = null, isSilent: Boolean = false) {
         val intent = if (data != null && data.containsKey("astrologerId")) {
             Intent(this, com.astro5star.app.ui.home.HomeActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -293,11 +291,14 @@ class FCMService : FirebaseMessagingService() {
             this, System.currentTimeMillis().toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(this, CHAT_CHANNEL_ID)
+        val channelId = if (isSilent) SILENT_CHANNEL_ID else CHAT_CHANNEL_ID
+        val priority = if (isSilent) NotificationCompat.PRIORITY_LOW else NotificationCompat.PRIORITY_DEFAULT
+
+        val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(body)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(priority)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()

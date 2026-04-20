@@ -63,8 +63,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // Save to local DB first (optimistic)
-                val msgId = data.getString("messageId")
-                val content = data.getJSONObject("content")
+                val msgId = data.optString("messageId", java.util.UUID.randomUUID().toString())
+                val content = data.optJSONObject("content") ?: return@launch
                 val text = content.optString("text", "")
                 val type = content.optString("type", "text")
                 val fileUrl = content.optString("fileUrl", "")
@@ -90,9 +90,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     duration = if (duration.isEmpty()) null else duration
                 )
                 repository.saveMessage(entity)
-            } catch (e: Exception) { e.printStackTrace() }
-
-            repository.sendMessage(data)
+                
+                // Move sending inside try-catch for better resilience
+                repository.sendMessage(data)
+            } catch (e: Exception) { 
+                android.util.Log.e("ChatViewModel", "sendMessage Error: ${e.message}")
+                e.printStackTrace()
+            }
         }
     }
 

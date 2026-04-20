@@ -218,17 +218,16 @@ const initSocket = (io) => {
             // Grace period for active sessions
             const sessionId = userActiveSession.get(userId);
             if (sessionId) {
-                const { SESSION_GRACE_PERIOD, sessionDisconnectTimeouts } = require('./sharedState');
-                const sessionService = require('./sessionService');
-                
-                const timeoutId = setTimeout(async () => {
+                const { sessionDisconnectTimeouts } = require('./sharedState');
+                const timeout = setTimeout(async () => {
                     console.log(`[Session] Grace period expired for ${userId} in session ${sessionId}`);
-                    sessionDisconnectTimeouts.delete(userId);
-                    await sessionService.endSessionRecord(sessionId, 'disconnect_timeout', io, broadcastAstroUpdate);
-                }, SESSION_GRACE_PERIOD);
+                    const { endSessionRecord } = require('./sessionService');
+                    const { io } = require('./sharedState');
+                    await endSessionRecord(sessionId, 'timeout_disconnect', io);
+                }, 30000); // 30s grace period for reconnection
                 
-                sessionDisconnectTimeouts.set(userId, timeoutId);
-                console.log(`[Session] User ${userId} disconnected. Grace period (10s) started.`);
+                sessionDisconnectTimeouts.set(userId, timeout);
+                console.log(`[Session] User ${userId} disconnected. Grace period (30s) started.`);
             }
         });
 

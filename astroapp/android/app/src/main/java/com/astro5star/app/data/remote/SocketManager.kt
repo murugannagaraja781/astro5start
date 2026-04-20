@@ -73,18 +73,23 @@ object SocketManager {
         }
 
         socket?.emit("register", data, Ack { args ->
-            val success = if (args != null && args.isNotEmpty()) {
-                val response = args[0] as? JSONObject
-                response?.optBoolean("ok") == true
-            } else {
-                false
+            try {
+                val success = if (args != null && args.isNotEmpty()) {
+                    val response = args[0] as? JSONObject
+                    response?.optBoolean("ok") == true
+                } else {
+                    false
+                }
+                isRegistered = success
+                if (success) {
+                    startHeartbeat()
+                }
+                Log.d(TAG, "User registered: $userId, success=$success")
+                callback?.invoke(success)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                callback?.invoke(false)
             }
-            isRegistered = success
-            if (success) {
-                startHeartbeat()
-            }
-            Log.d(TAG, "User registered: $userId, success=$success")
-            callback?.invoke(success)
         })
     }
 
@@ -124,9 +129,14 @@ object SocketManager {
             }
         }
         socket?.emit("request-session", payload, Ack { args ->
-            if (args != null && args.isNotEmpty()) {
-                callback?.invoke(args[0] as? JSONObject)
-            } else {
+            try {
+                if (args != null && args.isNotEmpty()) {
+                    callback?.invoke(args[0] as? JSONObject)
+                } else {
+                    callback?.invoke(null)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
                 callback?.invoke(null)
             }
         })
@@ -187,19 +197,24 @@ object SocketManager {
             put("sessionId", sessionId)
         }
         socket?.emit("get-history", payload, Ack { args ->
-             val list = mutableListOf<JSONObject>()
-             if (args != null && args.isNotEmpty()) {
-                 val response = args[0] as? JSONObject
-                 if (response?.optBoolean("ok") == true) {
-                     val msgs = response.optJSONArray("messages")
-                     if (msgs != null) {
-                        for (i in 0 until msgs.length()) {
-                            list.add(msgs.getJSONObject(i))
-                        }
+            try {
+                 val list = mutableListOf<JSONObject>()
+                 if (args != null && args.isNotEmpty()) {
+                     val response = args[0] as? JSONObject
+                     if (response?.optBoolean("ok") == true) {
+                         val msgs = response.optJSONArray("messages")
+                         if (msgs != null) {
+                            for (i in 0 until msgs.length()) {
+                                list.add(msgs.getJSONObject(i))
+                            }
+                         }
                      }
                  }
-             }
-             callback(list)
+                 callback(list)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                callback(emptyList())
+            }
         })
     }
 
@@ -334,9 +349,14 @@ object SocketManager {
 
     fun updateProfile(updates: JSONObject, callback: ((JSONObject?) -> Unit)? = null) {
         socket?.emit("update-profile", updates, Ack { args ->
-            if (args != null && args.isNotEmpty()) {
-                callback?.invoke(args[0] as? JSONObject)
-            } else {
+            try {
+                if (args != null && args.isNotEmpty()) {
+                    callback?.invoke(args[0] as? JSONObject)
+                } else {
+                    callback?.invoke(null)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
                 callback?.invoke(null)
             }
         })
@@ -344,9 +364,14 @@ object SocketManager {
 
     fun submitAstroRegistration(data: JSONObject, callback: ((JSONObject?) -> Unit)? = null) {
         socket?.emit("submit-astro-registration", data, Ack { args ->
-            if (args != null && args.isNotEmpty()) {
-                callback?.invoke(args[0] as? JSONObject)
-            } else {
+            try {
+                if (args != null && args.isNotEmpty()) {
+                    callback?.invoke(args[0] as? JSONObject)
+                } else {
+                    callback?.invoke(null)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
                 callback?.invoke(null)
             }
         })
@@ -357,9 +382,14 @@ object SocketManager {
             put("amount", amount)
         }
         socket?.emit("request-withdrawal", payload, Ack { args ->
-            if (args != null && args.isNotEmpty()) {
-                callback?.invoke(args[0] as? JSONObject)
-            } else {
+            try {
+                if (args != null && args.isNotEmpty()) {
+                    callback?.invoke(args[0] as? JSONObject)
+                } else {
+                    callback?.invoke(null)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
                 callback?.invoke(null)
             }
         })
@@ -367,19 +397,24 @@ object SocketManager {
 
     fun getMyWithdrawals(callback: ((List<JSONObject>) -> Unit)) {
         socket?.emit("get-my-withdrawals", null, Ack { args ->
-            val list = mutableListOf<JSONObject>()
-            if (args != null && args.isNotEmpty()) {
-                val response = args[0] as? JSONObject
-                if (response?.optBoolean("ok") == true) {
-                    val arr = response.optJSONArray("withdrawals")
-                    if (arr != null) {
-                        for (i in 0 until arr.length()) {
-                            list.add(arr.getJSONObject(i))
+            try {
+                val list = mutableListOf<JSONObject>()
+                if (args != null && args.isNotEmpty()) {
+                    val response = args[0] as? JSONObject
+                    if (response?.optBoolean("ok") == true) {
+                        val arr = response.optJSONArray("withdrawals")
+                        if (arr != null) {
+                            for (i in 0 until arr.length()) {
+                                list.add(arr.getJSONObject(i))
+                            }
                         }
                     }
                 }
+                callback(list)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                callback(emptyList())
             }
-            callback(list)
         })
     }
 
