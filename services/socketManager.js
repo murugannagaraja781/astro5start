@@ -108,6 +108,13 @@ const initSocket = (io) => {
                     return;
                 }
 
+                const currentMappedUser = socketToUser.get(socket.id);
+                if (currentMappedUser === userId) {
+                    // Already registered on this socket, just return success
+                    if (typeof cb === 'function') cb({ ok: true });
+                    return;
+                }
+
                 const user = await User.findOne({ userId });
                 if (!user) {
                     if (typeof cb === 'function') cb({ ok: false, error: 'User not found' });
@@ -221,7 +228,7 @@ const initSocket = (io) => {
                 }, SESSION_GRACE_PERIOD);
                 
                 sessionDisconnectTimeouts.set(userId, timeoutId);
-                console.log(`[Session] User ${userId} disconnected. Grace period (60s) started.`);
+                console.log(`[Session] User ${userId} disconnected. Grace period (10s) started.`);
             }
         });
 

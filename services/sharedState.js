@@ -108,7 +108,7 @@ async function updateSlabRates(newRates) {
         await GlobalSettings.findOneAndUpdate(
             { key: 'SLAB_RATES' },
             { value: SLAB_RATES },
-            { upsert: true }
+            { upsert: true, returnDocument: 'after' }
         );
         return true;
     } catch (e) {
@@ -124,7 +124,7 @@ async function updateReferralConfig(newConfig) {
         await GlobalSettings.findOneAndUpdate(
             { key: 'REFERRAL_CONFIG' },
             { value: REFERRAL_CONFIG },
-            { upsert: true }
+            { upsert: true, returnDocument: 'after' }
         );
         return true;
     } catch (e) {
@@ -145,7 +145,7 @@ async function loadRechargePacks() {
             await GlobalSettings.findOneAndUpdate(
                 { key: 'RECHARGE_PACKS' },
                 { value: RECHARGE_PACKS },
-                { upsert: true }
+                { upsert: true, returnDocument: 'after' }
             );
         }
     } catch (e) {
