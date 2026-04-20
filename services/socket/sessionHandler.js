@@ -189,9 +189,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     callerImage,
                     priority: 'high',        // Direct data priority
                     timestamp: Date.now().toString(),
-                    birthData: JSON.stringify(birthData || {}),
-                    title: '📞 Incoming Call',
-                    body: `${callerDisplayName} is calling you`
+                    birthData: JSON.stringify(birthData || {})
                 };
 
                 sendFcmV1Push(toUser.fcmToken, fcmData, null)

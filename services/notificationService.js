@@ -21,18 +21,15 @@ const notifyFollowersOfOnlineStatus = async (astrologerId) => {
         for (const follower of followers) {
             // 1. Send Push
             if (follower.fcmToken) {
-                const notification = {
-                    title: "🌟 ஜோதிடர் ஆன்லைனில் உள்ளார்!",
-                    body: `உங்களுக்குப் பிடித்தமான ஜோதிடர் ${astrologer.name} இப்போது ஆன்லைனில் உங்கள் அழைப்பிற்காகக் காத்திருக்கிறார். உடனே அவரிடம் ஆலோசனை பெறவும்!`,
-                    image: astroImg
-                };
                 const data = { 
                     type: 'ASTRO_ONLINE', 
                     astrologerId: astrologer.userId, 
                     astrologerName: astrologer.name,
-                    image: astroImg
+                    image: astroImg,
+                    title: "🌟 ஜோதிடர் ஆன்லைனில் உள்ளார்!",
+                    body: `உங்களுக்குப் பிடித்தமான ஜோதிடர் ${astrologer.name} இப்போது ஆன்லைனில் உங்கள் அழைப்பிற்காகக் காத்திருக்கிறார். உடனே அவரிடம் ஆலோசனை பெறவும்!`
                 };
-                sendFcmV1Push(follower.fcmToken, data, notification).catch(() => {});
+                sendFcmV1Push(follower.fcmToken, data, null).catch(() => {});
             }
 
             // 2. Send SMS
@@ -69,13 +66,14 @@ const notifyWaitlistUsers = async (astrologerId) => {
         for (const client of clients) {
             // 1. Send Push
             if (client.fcmToken) {
-                const notification = {
+                const data = { 
+                    type: 'ASTRO_AVAILABLE', 
+                    astrologerId: astrologer.userId, 
+                    image: astroImg,
                     title: "🔔 ஜோதிடர் முன்பதிவு!",
-                    body: `ஜோதிடர் ${astrologer.name} இப்போது ஆன்லைனில் வந்துள்ளார். ஏற்கனவே காத்திருப்புப் பட்டியலில் இருக்கும் நீங்கள், உடனே அவரிடம் ஆலோசனை பெறலாம்!`,
-                    image: astroImg
+                    body: `ஜோதிடர் ${astrologer.name} இப்போது ஆன்லைனில் வந்துள்ளார். ஏற்கனவே காத்திருப்புப் பட்டியலில் இருக்கும் நீங்கள், உடனே அவரிடம் ஆலோசனை பெறலாம்!`
                 };
-                const data = { type: 'ASTRO_AVAILABLE', astrologerId: astrologer.userId, image: astroImg };
-                sendFcmV1Push(client.fcmToken, data, notification).catch(e => {});
+                sendFcmV1Push(client.fcmToken, data, null).catch(e => {});
             }
 
             // 2. Send SMS
