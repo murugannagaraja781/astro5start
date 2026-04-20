@@ -188,26 +188,36 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
         if (!await checkAdmin(socket.id)) return cb?.({ ok: false, error: 'Unauthorized' });
         try {
             const { userId, amount } = data;
+            const numericAmount = parseFloat(amount);
+            console.log(`[Admin Wallet] Request for ${userId}: ${numericAmount}`);
+            
+            if (isNaN(numericAmount)) return cb?.({ ok: false, error: 'Invalid Amount' });
+
             const user = await User.findOne({ userId });
             if (!user) return cb?.({ ok: false, error: 'User not found' });
 
-            await User.updateOne({ userId }, { $inc: { walletBalance: parseFloat(amount) } });
-            const updatedUser = await User.findOne({ userId });
+            const updatedUser = await User.findOneAndUpdate(
+                { userId }, 
+                { $inc: { walletBalance: numericAmount, totalEarnings: numericAmount } },
+                { new: true }
+            );
+
+            console.log(`[Admin Wallet] Success for ${user.name}. New Bal: ${updatedUser.walletBalance}, New Earn: ${updatedUser.totalEarnings}`);
 
             // Notify user
             const targetSid = userSockets.get(user.userId);
             if (targetSid) {
-                io.to(targetSid).emit('wallet-update', { balance: user.walletBalance });
+                io.to(targetSid).emit('wallet-update', { balance: updatedUser.walletBalance });
                 io.to(targetSid).emit('notification', {
                     title: 'Wallet Updated',
-                    body: `Admin adjusted your wallet by ₹${amount}. New balance: ₹${user.walletBalance}`
+                    body: `Admin adjusted your wallet by ₹${amount}. New balance: ₹${updatedUser.walletBalance.toFixed(2)}`
                 });
             }
 
             broadcastAdminUpdate();
             cb?.({ ok: true });
         } catch (e) {
-            console.error(e);
+            console.error('[Admin Wallet Error]', e);
             cb?.({ ok: false, error: 'Wallet sync failed' });
         }
     });
