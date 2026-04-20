@@ -204,7 +204,7 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             const updatedUser = await User.findOneAndUpdate(
                 { userId }, 
                 { $inc: incData },
-                { new: true }
+                { returnDocument: 'after' }
             );
 
             console.log(`[Admin Wallet] Success for ${user.name}. New Bal: ${updatedUser.walletBalance}, New Earn: ${updatedUser.totalEarnings}`);

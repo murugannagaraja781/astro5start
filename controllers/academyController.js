@@ -29,7 +29,7 @@ const createVideo = async (req, res) => {
 
 const updateVideo = async (req, res) => {
     try {
-        const video = await AcademyVideo.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const video = await AcademyVideo.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' });
         res.json({ ok: true, video });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });

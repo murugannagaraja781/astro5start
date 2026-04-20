@@ -58,7 +58,7 @@ const createBanner = async (req, res) => {
 
 const updateBanner = async (req, res) => {
     try {
-        const banner = await Banner.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const banner = await Banner.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' });
         res.json({ ok: true, banner });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });

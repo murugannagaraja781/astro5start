@@ -107,6 +107,16 @@ async function getCachedFcmToken() {
         return { success: true, messageId: response };
     } catch (err) {
         console.error(`[FCM v1] Error sending to token: ${fcmToken ? fcmToken.substring(0, 15) : 'NULL'}... error: ${err.message}`);
+        
+        // If token is invalid or not found, clear it from the database to stop future errors
+        const errorMsg = err.message.toLowerCase();
+        if (errorMsg.includes('not found') || errorMsg.includes('unregistered') || errorMsg.includes('not-registered')) {
+            const User = require('../models/User');
+            User.updateOne({ fcmToken }, { $set: { fcmToken: '' } })
+                .then(() => console.log(`[FCM v1] Cleared invalid fcmToken from DB for ${fcmToken.substring(0, 10)}...`))
+                .catch(e => console.error(`[FCM v1] Failed to clear token from DB:`, e.message));
+        }
+
         return { success: false, error: err.message };
     }
 }
