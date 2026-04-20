@@ -2096,10 +2096,16 @@
                             <div class="text-xs font-black text-indigo-600">₹${(u.totalEarnings || 0).toFixed(0)}</div>
                         </td>
                         <td class="px-8 py-5 text-right">
-                            <button onclick="openEditWallet('${u.userId}', ${balance})" 
-                                class="px-5 py-2 rounded-xl bg-emerald-50 text-brand-green font-black text-[10px] uppercase shadow-sm hover:bg-brand-green hover:text-white transition-all active:scale-95 flex items-center gap-2 ml-auto">
-                                <i class="fas fa-plus-minus text-[8px]"></i> Adjust Balance
-                            </button>
+                            <div class="flex items-center justify-end gap-2">
+                                <button onclick="openEditWallet('${u.userId}', ${balance}, 'add')" 
+                                    class="px-4 py-2 rounded-xl bg-emerald-50 text-brand-green font-black text-[10px] uppercase shadow-sm hover:bg-brand-green hover:text-white transition-all active:scale-95 flex items-center gap-2">
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
+                                <button onclick="openEditWallet('${u.userId}', ${balance}, 'deduct')" 
+                                    class="px-4 py-2 rounded-xl bg-red-50 text-red-600 font-black text-[10px] uppercase shadow-sm hover:bg-red-600 hover:text-white transition-all active:scale-95 flex items-center gap-2">
+                                    <i class="fas fa-minus"></i> Reduce
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -2108,10 +2114,26 @@
             document.getElementById('total-astro-wallet-sum').innerText = totalWalletSum.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
         }
 
-        function openEditWallet(userId, current) {
+        function openEditWallet(userId, current, type) {
             document.getElementById('adj-wallet-user-id').value = userId;
+            document.getElementById('adj-wallet-user-id').dataset.type = type;
             document.getElementById('adj-wallet-current').innerText = '₹' + current.toFixed(2);
             document.getElementById('adj-wallet-amount').value = '';
+            
+            const title = type === 'add' ? 'Add Astro Funds' : 'Reduce Astro Funds';
+            const btnText = type === 'add' ? 'Add Funds Now' : 'Deduct Funds Now';
+            const icon = type === 'add' ? 'fa-plus' : 'fa-minus';
+            const color = type === 'add' ? 'text-brand-green' : 'text-red-500';
+            const bgColor = type === 'add' ? 'bg-brand-green' : 'bg-red-600';
+
+            document.querySelector('#modal-adj-wallet h3').innerText = title;
+            document.querySelector('#modal-adj-wallet .w-16 i').className = `fas ${icon}`;
+            document.querySelector('#modal-adj-wallet .w-16').className = `w-16 h-16 ${type === 'add' ? 'bg-emerald-50 text-brand-green' : 'bg-red-50 text-red-500'} rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4 shadow-sm`;
+            
+            const submitBtn = document.querySelector('#modal-adj-wallet button[onclick="submitWalletAdjustment()"]');
+            submitBtn.innerText = btnText;
+            submitBtn.className = `w-full ${bgColor} text-white font-black py-5 rounded-2xl shadow-xl hover:opacity-90 transition-all uppercase tracking-widest text-xs`;
+
             document.getElementById('modal-adj-wallet').classList.remove('hidden');
             document.body.classList.add('modal-active');
             setTimeout(() => document.getElementById('adj-wallet-amount').focus(), 100);
@@ -2119,25 +2141,27 @@
 
         function submitWalletAdjustment() {
             const userId = document.getElementById('adj-wallet-user-id').value;
-            const amount = parseFloat(document.getElementById('adj-wallet-amount').value);
+            const type = document.getElementById('adj-wallet-user-id').dataset.type;
+            let amount = parseFloat(document.getElementById('adj-wallet-amount').value);
             
-            if (isNaN(amount) || amount === 0) return alert('Invalid Adjustment Amount');
+            if (isNaN(amount) || amount <= 0) return alert('Please enter a valid amount');
+            
+            if (type === 'deduct') amount = -amount;
 
             const btn = event.target;
             const oldText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Syncing...';
 
             socket.emit('admin-add-wallet', { userId, amount }, (res) => {
                 btn.disabled = false;
                 btn.innerHTML = oldText;
                 if (res.ok) {
-                    showToast(`Wallet Adjusted: ₹${amount > 0 ? '+' : ''}${amount}`, 'success');
+                    showToast(type === 'add' ? `₹${Math.abs(amount)} added to wallet` : `₹${Math.abs(amount)} deducted from wallet`, 'success');
                     closeModal('modal-adj-wallet');
                     refreshData();
-                    if (activeTab === 'astro-wallets') renderAstroWallets();
                 } else {
-                    alert('Adjustment Error: ' + (res.error || 'System Node Failure'));
+                    alert('Error: ' + (res.error || 'Operation Failed'));
                 }
             });
         }
