@@ -910,6 +910,8 @@
                                 <tr class="bg-slate-50/50">
                                     <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Astrologer</th>
                                     <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Contact</th>
+                                    <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Joined Date</th>
+                                    <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Sessions</th>
                                     <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Wallet Balance</th>
                                     <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Total Earnings</th>
                                     <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Actions</th>
@@ -2088,6 +2090,12 @@
                         </td>
                         <td class="px-8 py-5">
                             <div class="text-xs font-bold text-slate-600">${u.phone}</div>
+                        </td>
+                        <td class="px-8 py-5">
+                            <div class="text-[10px] font-bold text-slate-500">${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '---'}</div>
+                        </td>
+                        <td class="px-8 py-5 text-center">
+                            <div class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 font-black text-xs">${u.totalCallCount || u.totalSessions || 0}</div>
                         </td>
                         <td class="px-8 py-5">
                             <div class="text-sm font-black text-brand-green tabular-nums">₹${balance.toFixed(2)}</div>
