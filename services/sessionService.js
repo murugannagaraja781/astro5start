@@ -115,6 +115,27 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
             if (s.astrologerId) io.to(s.astrologerId).emit('session-ended', payload);
         }
 
+        // USER REQUEST: Show final debit amount summary as a notification
+        if (s.totalDeducted > 0 && s.clientId) {
+            (async () => {
+                try {
+                    const client = await User.findOne({ userId: s.clientId });
+                    if (client && client.fcmToken) {
+                        const { sendFcmV1Push } = require('./fcmService');
+                        sendFcmV1Push(client.fcmToken, 
+                            { type: 'SESSION_SUMMARY_DEBIT', amount: s.totalDeducted }, 
+                            { 
+                                title: 'Session Completed', 
+                                body: `₹${s.totalDeducted.toFixed(2)} deducted for the session.` 
+                            }
+                        ).catch(() => {});
+                    }
+                } catch (e) {
+                    console.error('[SessionEndPush] Error:', e.message);
+                }
+            })();
+        }
+
         activeSessions.delete(sessionId);
         if (s.users) {
             s.users.forEach((u) => {

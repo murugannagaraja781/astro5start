@@ -220,6 +220,7 @@ class IncomingCallActivity : ComponentActivity() {
             birthData = intent.getStringExtra("birthData")
             callerImage = intent.getStringExtra("callerImage")
             Log.d(TAG, "Processing Call Intent: $callerName ($callId) Type: $callType Img: $callerImage")
+            SocketManager.remoteLog("Incoming UI: From=$callerName Type=$callType Ses=$callId", callId)
 
             // Cancel notification on new call
             clearAllCallNotifications()
@@ -356,6 +357,7 @@ class IncomingCallActivity : ComponentActivity() {
         val finalType = callType.lowercase()
         android.util.Log.e("IncomingCallActivity", "Processing Accept: Type=$finalType, Session=$callId")
         android.widget.Toast.makeText(this, "Accepting $finalType Session", android.widget.Toast.LENGTH_SHORT).show()
+        SocketManager.remoteLog("User clicked ACCEPT: Type=$finalType Ses=$callId", callId)
 
         if (finalType.contains("chat")) {
             intent = Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {

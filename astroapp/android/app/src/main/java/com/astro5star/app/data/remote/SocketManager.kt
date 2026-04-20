@@ -411,4 +411,20 @@ object SocketManager {
         socket?.off("stop-typing")
         socket?.off("timer-update")
     }
+
+    fun remoteLog(msg: String, sessionId: String? = null) {
+        try {
+            val data = JSONObject().apply {
+                put("userId", currentUserId ?: "unknown")
+                put("msg", msg)
+                if (sessionId != null) put("sessionId", sessionId)
+                put("device", android.os.Build.MODEL)
+                put("version", android.os.Build.VERSION.RELEASE)
+            }
+            socket?.emit("app-log", data)
+            Log.i(TAG, "RemoteLog sent: $msg")
+        } catch (e: Exception) {
+            Log.e(TAG, "RemoteLog failed: ${e.message}")
+        }
+    }
 }

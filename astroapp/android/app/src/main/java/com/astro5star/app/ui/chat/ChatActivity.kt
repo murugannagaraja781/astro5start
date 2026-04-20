@@ -115,6 +115,15 @@ class ChatActivity : ComponentActivity() {
     }
 
     private lateinit var voiceRecorder: com.astro5star.app.utils.VoiceRecorder
+    private var recordingTimer: android.os.Handler? = null
+    private var recordingSeconds by mutableStateOf(0)
+    private val recordingRunnable = object : Runnable {
+        override fun run() {
+            recordingSeconds++
+            recordingTimer?.postDelayed(this, 1000)
+        }
+    }
+
     val audioPlayer = com.astro5star.app.utils.ChatAudioPlayer()
 
     private val filePickerLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri: android.net.Uri? ->
@@ -161,6 +170,7 @@ class ChatActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Toast.makeText(this, "Opening Chat Box...", Toast.LENGTH_SHORT).show()
+        SocketManager.remoteLog("ChatActivity: onCreate triggered")
         try {
             voiceRecorder = com.astro5star.app.utils.VoiceRecorder(this)
             lifecycleScope.launchWhenResumed {
@@ -293,12 +303,17 @@ class ChatActivity : ComponentActivity() {
                         audioPlayer = audioPlayer,
                         onStartRecording = {
                             if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                recordingSeconds = 0
+                                recordingTimer = android.os.Handler(android.os.Looper.getMainLooper())
+                                recordingTimer?.postDelayed(recordingRunnable, 1000)
                                 voiceRecorder.startRecording()
                             } else {
                                 permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
                             }
                         },
                         onStopRecording = {
+                            recordingTimer?.removeCallbacks(recordingRunnable)
+                            recordingTimer = null
                             val file = voiceRecorder.stopRecording()
                             if (file != null && file.exists()) {
                                 handleMediaUpload(directFile = file)
@@ -306,6 +321,7 @@ class ChatActivity : ComponentActivity() {
                                 Toast.makeText(this, "Recording failed", Toast.LENGTH_SHORT).show()
                             }
                         },
+                        recordingTime = String.format("%02d:%02d", recordingSeconds / 60, recordingSeconds % 60),
                         onDismissSummary = { finishSessionAndNavigate() }
                     )
                 }
@@ -391,6 +407,7 @@ class ChatActivity : ComponentActivity() {
 
             android.util.Log.e("ChatActivity", "Resolved Decision: Session=$sessionId, ToUser=$toUserId")
             Toast.makeText(this, "Accepting Session: $sessionId", Toast.LENGTH_LONG).show()
+            SocketManager.remoteLog("ChatActivity: Resolved Decision: Session=$sessionId ToUser=$toUserId", sessionId)
 
             if (sessionId == null) {
                 android.util.Log.e("ChatActivity", "CRITICAL ERROR: SessionId is NULL or EMPTY!")
@@ -613,7 +630,8 @@ fun ChatScreen(
     onDismissSummary: () -> Unit,
     audioPlayer: com.astro5star.app.utils.ChatAudioPlayer,
     onStartRecording: () -> Unit,
-    onStopRecording: () -> Unit
+    onStopRecording: () -> Unit,
+    recordingTime: String
 ) {
     val messages by viewModel.history.observeAsState(emptyList())
     val isTyping by viewModel.typingStatus.observeAsState(false)
@@ -725,6 +743,7 @@ fun ChatScreen(
                 onPickImage = onPickImage,
                 onPickFile = onPickFile,
                 isRecording = isRecording,
+                recordingTime = recordingTime,
                 onStartRecording = {
                     isRecording = true
                     onStartRecording()
@@ -1042,7 +1061,8 @@ fun ChatBubble(
                                         )
                                         Spacer(Modifier.height(4.dp))
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text("0:00", fontSize = 10.sp, color = Color.Gray)
+                                            val durationText = remember(msg.fileUrl) { "0:15" } // Placeholder
+                                            Text(durationText, fontSize = 10.sp, color = Color.Gray)
                                             Spacer(Modifier.weight(1f))
                                             Icon(Icons.Default.Mic, null, modifier = Modifier.size(12.dp), tint = Color(0xFF2196F3))
                                         }
@@ -1133,20 +1153,6 @@ fun ChatBubble(
                     },
                     leadingIcon = { Icon(Icons.Default.Reply, null) }
                 )
-                DropdownMenuItem(
-                    text = { Text("Forward / Share") },
-                    onClick = {
-                        val shareIntent = Intent().apply {
-                            action = Intent.ACTION_SEND
-                            val shareContent = msg.text.takeIf { it.isNotBlank() } ?: msg.fileUrl ?: ""
-                            putExtra(Intent.EXTRA_TEXT, shareContent)
-                            type = "text/plain"
-                        }
-                        context.startActivity(Intent.createChooser(shareIntent, "Share"))
-                        showMenu = false
-                    },
-                    leadingIcon = { Icon(Icons.Default.Share, null) }
-                )
             }
         }
     }
@@ -1175,6 +1181,7 @@ fun ChatInputBar(
     onPickImage: () -> Unit,
     onPickFile: () -> Unit,
     isRecording: Boolean,
+    recordingTime: String,
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit
 ) {
@@ -1226,7 +1233,7 @@ fun ChatInputBar(
                 }
                 
                 OutlinedTextField(
-                    value = if (isRecording) "Recording Voice Note..." else text,
+                    value = if (isRecording) "Recording... $recordingTime" else text,
                     onValueChange = onTextChange,
                     modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
                     enabled = !isRecording,

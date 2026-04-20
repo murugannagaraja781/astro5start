@@ -292,14 +292,8 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
             });
         }
 
-        // USER REQUEST: Silent notifications for wallet updates. 
-        // Using types that don't trigger SoundManager's custom pips in Android.
-        if (totalToClientDeduct > 0 && client.fcmToken) {
-            sendFcmV1Push(client.fcmToken, { type: 'WALLET_DEBIT_SILENT', amount: totalToClientDeduct }, { title: 'Wallet Updated', body: `₹${totalToClientDeduct.toFixed(2)} deducted for session.` }).catch(() => {});
-        }
-        if (astroAmount > 0 && astro.fcmToken) {
-            sendFcmV1Push(astro.fcmToken, { type: 'WALLET_CREDIT_SILENT', amount: astroAmount }, { title: 'Earnings Updated', body: `₹${astroAmount.toFixed(2)} credited to your wallet.` }).catch(() => {});
-        }
+        // Real-time socket updates for balance are handled below.
+        // Minute-by-minute push notifications are disabled per user request to avoid noise.
 
 
     } catch (err) {

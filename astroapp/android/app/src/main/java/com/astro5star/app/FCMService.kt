@@ -53,6 +53,8 @@ class FCMService : FirebaseMessagingService() {
         private const val CHAT_CHANNEL_NAME = "Chat Messages"
         private const val CALL_NOTIFICATION_ID = 9999
         private const val GENERIC_NOTIFICATION_ID = 1002
+        private const val SILENT_CHANNEL_ID = "silent_notifications_v1"
+        private const val SILENT_CHANNEL_NAME = "General Notifications (Silent)"
     }
 
     // Coroutine scope for async operations within service lifecycle
@@ -221,7 +223,7 @@ class FCMService : FirebaseMessagingService() {
                         this, System.currentTimeMillis().toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                     )
                     
-                    val notificationBuilder = NotificationCompat.Builder(this, CHAT_CHANNEL_ID)
+                    val notificationBuilder = NotificationCompat.Builder(this, SILENT_CHANNEL_ID)
                         .setSmallIcon(R.mipmap.ic_launcher)
                         .setContentTitle(title)
                         .setContentText(body)
@@ -475,6 +477,18 @@ class FCMService : FirebaseMessagingService() {
                     .build())
             }
             notificationManager.createNotificationChannel(chatChannel)
+
+            val silentChannel = NotificationChannel(
+                SILENT_CHANNEL_ID,
+                SILENT_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "General non-essential notifications"
+                enableVibration(false)
+                enableLights(false)
+                setSound(null, null)
+            }
+            notificationManager.createNotificationChannel(silentChannel)
 
             Log.d(TAG, "Notification channels created")
         }
