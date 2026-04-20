@@ -1,9 +1,12 @@
+require('dotenv').config();
 const mongoose = require('mongoose');
 const Session = require('../models/Session');
 
 async function check() {
     try {
-        await mongoose.connect('mongodb://127.0.0.1:27017/astrofive');
+        const MONGO_URI = process.env.MONGODB_URI;
+        if (!MONGO_URI) throw new Error('MONGODB_URI not found in .env');
+        await mongoose.connect(MONGO_URI);
         const total = await Session.countDocuments();
         const ended = await Session.countDocuments({status: 'ended'});
         const earned = await Session.countDocuments({status: 'ended', totalEarned: { $gt: 0 }});
