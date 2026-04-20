@@ -2098,10 +2098,10 @@
                             <div class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 font-black text-xs">${u.totalCallCount || u.totalSessions || 0}</div>
                         </td>
                         <td class="px-8 py-5">
-                            <div class="text-sm font-black text-brand-green tabular-nums">₹${balance.toFixed(2)}</div>
+                            <div class="text-sm font-black text-brand-green tabular-nums">₹${Math.max(0, balance).toFixed(2)}</div>
                         </td>
                         <td class="px-8 py-5">
-                            <div class="text-xs font-black text-indigo-600">₹${(u.totalEarnings || 0).toFixed(0)}</div>
+                            <div class="text-xs font-black text-indigo-600">₹${Math.max(0, u.totalEarnings || 0).toFixed(0)}</div>
                         </td>
                         <td class="px-8 py-5 text-right">
                             <div class="flex items-center justify-end gap-2">
