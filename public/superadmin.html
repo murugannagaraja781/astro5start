@@ -312,7 +312,7 @@
             <header class="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div class="flex items-center gap-4">
                     <button onclick="showTab('dashboard')"
-                        class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-slate-400 hover:text-brand-green transition-all shadow-sm"><i
+                        class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-black hover:text-brand-green transition-all shadow-sm"><i
                             class="fas fa-arrow-left"></i></button>
                     <div>
                         <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Astrologer Network</h1>
@@ -344,7 +344,7 @@
                         </button>
                     </div>
                     <button id="online-filter-btn" onclick="toggleOnlineFilter()"
-                        class="px-4 py-2.5 rounded-xl bg-white border border-emerald-100 text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-sm flex items-center gap-2">
+                        class="px-4 py-2.5 rounded-xl bg-white border border-emerald-100 text-black font-black text-[10px] uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-sm flex items-center gap-2">
                         <i class="fas fa-power-off"></i> Online Only
                     </button>
                     <div
@@ -402,7 +402,7 @@
         <section id="tab-users" class="tab-content hidden animate-up space-y-6">
             <header class="flex items-center gap-4">
                 <button onclick="showTab('dashboard')"
-                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-slate-400 hover:text-brand-green transition-all shadow-sm"><i
+                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-black hover:text-brand-green transition-all shadow-sm"><i
                         class="fas fa-arrow-left"></i></button>
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Client Management</h1>
@@ -416,7 +416,7 @@
                         oninput="fetchAllUsers()">
                 </div>
                 <button onclick="toggleRecentRechargeFilter()" id="recent-recharge-btn"
-                    class="bg-white border border-emerald-100 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-brand-green transition-all shadow-sm">
+                    class="bg-white border border-emerald-100 px-4 py-2.5 rounded-xl text-xs font-bold text-black hover:text-brand-green transition-all shadow-sm">
                     <i class="fas fa-filter mr-2"></i> Recent Recharge
                 </button>
             </header>
@@ -449,7 +449,7 @@
         <section id="tab-withdrawals" class="tab-content hidden animate-up space-y-6">
             <header class="flex items-center gap-4">
                 <button onclick="showTab('dashboard')"
-                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-slate-400 hover:text-brand-green transition-all shadow-sm"><i
+                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-black hover:text-brand-green transition-all shadow-sm"><i
                         class="fas fa-arrow-left"></i></button>
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Payout Processing</h1>
@@ -579,13 +579,13 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <button onclick="changeLedgerPage(-1)" id="ledger-prev-btn"
-                            class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-brand-green disabled:opacity-30 disabled:pointer-events-none transition-all shadow-sm">
+                            class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-black hover:text-brand-green disabled:opacity-30 disabled:pointer-events-none transition-all shadow-sm">
                             <i class="fas fa-chevron-left text-xs"></i>
                         </button>
                         <span class="text-[0.7rem] font-black text-slate-600 px-3 tracking-widest uppercase">Page <span
                                 id="ledger-current-page">1</span> / <span id="ledger-total-pages">1</span></span>
                         <button onclick="changeLedgerPage(1)" id="ledger-next-btn"
-                            class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-brand-green disabled:opacity-30 disabled:pointer-events-none transition-all shadow-sm">
+                            class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-black hover:text-brand-green disabled:opacity-30 disabled:pointer-events-none transition-all shadow-sm">
                             <i class="fas fa-chevron-right text-xs"></i>
                         </button>
                     </div>
@@ -597,7 +597,7 @@
         <section id="tab-slabs" class="tab-content hidden animate-up space-y-6">
             <header class="flex items-center gap-4">
                 <button onclick="showTab('dashboard')"
-                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-slate-400 hover:text-brand-green transition-all shadow-sm"><i
+                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-black hover:text-brand-green transition-all shadow-sm"><i
                         class="fas fa-arrow-left"></i></button>
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Revenue Structure</h1>
@@ -661,7 +661,7 @@
         <section id="tab-academy" class="tab-content hidden animate-up space-y-6">
             <header class="flex items-center gap-4">
                 <button onclick="showTab('dashboard')"
-                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-slate-400 hover:text-brand-green transition-all shadow-sm"><i
+                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-black hover:text-brand-green transition-all shadow-sm"><i
                         class="fas fa-arrow-left"></i></button>
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Astro Academy</h1>
@@ -692,7 +692,7 @@
         <section id="tab-offers" class="tab-content hidden animate-up space-y-6">
             <header class="flex items-center gap-4">
                 <button onclick="showTab('dashboard')"
-                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-slate-400 hover:text-brand-green transition-all shadow-sm"><i
+                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-black hover:text-brand-green transition-all shadow-sm"><i
                         class="fas fa-arrow-left"></i></button>
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">FCM Broadcast Center</h1>
@@ -762,7 +762,7 @@
             <header class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-4">
                     <button onclick="showTab('dashboard')"
-                        class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-slate-400 hover:text-brand-green transition-all shadow-sm"><i
+                        class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-black hover:text-brand-green transition-all shadow-sm"><i
                             class="fas fa-arrow-left"></i></button>
                     <div>
                         <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Recharge Pack Manager</h1>
@@ -932,7 +932,7 @@
         <section id="tab-banner" class="tab-content hidden animate-up space-y-6">
             <header class="flex items-center gap-4">
                 <button onclick="showTab('dashboard')"
-                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-slate-400 hover:text-brand-green transition-all shadow-sm"><i
+                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-black hover:text-brand-green transition-all shadow-sm"><i
                         class="fas fa-arrow-left"></i></button>
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">App Real Estate</h1>
@@ -1169,7 +1169,7 @@
         <section id="tab-notifications" class="tab-content hidden animate-up space-y-8">
             <header class="flex items-center gap-4">
                 <button onclick="showTab('dashboard')"
-                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-slate-400 hover:text-brand-green transition-all shadow-sm"><i
+                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-black hover:text-brand-green transition-all shadow-sm"><i
                         class="fas fa-arrow-left"></i></button>
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Notifications</h1>
@@ -1208,7 +1208,7 @@
         <section id="tab-reviews" class="tab-content hidden animate-up space-y-8">
             <header class="flex items-center gap-4">
                 <button onclick="showTab('dashboard')"
-                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-slate-400 hover:text-brand-green transition-all shadow-sm"><i
+                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-black hover:text-brand-green transition-all shadow-sm"><i
                         class="fas fa-arrow-left"></i></button>
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Customer Reviews</h1>
@@ -2129,7 +2129,7 @@
 
             document.getElementById('adj-wallet-user-id').value = userId;
             document.getElementById('adj-wallet-user-id').dataset.type = type;
-            document.getElementById('adj-wallet-current').innerText = '₹' + current.toFixed(2);
+            document.getElementById('adj-wallet-current').innerText = '₹' + Math.max(0, current).toFixed(2);
             document.getElementById('adj-wallet-amount').value = '';
             
             const title = type === 'add' ? `Add ${roleLabel} Funds` : `Reduce ${roleLabel} Funds`;
@@ -2435,8 +2435,8 @@
                         <div class="flex justify-end gap-1.5">
                             <button class="w-7 h-7 rounded-lg ${isBusy ? 'bg-red-500 text-white' : 'bg-emerald-50 text-brand-green'} hover:bg-emerald-500 hover:text-white transition-all active:scale-90" onclick="openViewAstro('${u.userId}')"><i class="fas fa-eye text-[10px]"></i></button>
                             ${isOnline ? `<button class="w-7 h-7 rounded-lg bg-orange-50 text-orange-500 hover:bg-orange-500 hover:text-white transition-all active:scale-90" onclick="forceOffline('${u.userId}')" title="Force Offline"><i class="fas fa-power-off text-[10px]"></i></button>` : ''}
-                            <button class="w-7 h-7 rounded-lg bg-slate-50 text-slate-400 hover:text-brand-green hover:bg-emerald-50 transition-all active:scale-90" onclick="openEditUser('${u.userId}')"><i class="fas fa-edit text-[10px]"></i></button>
-                            <button class="w-7 h-7 rounded-lg bg-slate-50 text-slate-400 hover:text-red-500 transition-all active:scale-90" onclick="handleDeleteUser('${u.userId}')"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                            <button class="w-7 h-7 rounded-lg bg-slate-50 text-black hover:text-brand-green hover:bg-emerald-50 transition-all active:scale-90" onclick="openEditUser('${u.userId}')"><i class="fas fa-edit text-[10px]"></i></button>
+                            <button class="w-7 h-7 rounded-lg bg-slate-50 text-black hover:text-red-500 transition-all active:scale-90" onclick="handleDeleteUser('${u.userId}')"><i class="fas fa-trash-alt text-[10px]"></i></button>
                         </div>
                     </td>
                 </tr>
@@ -2473,7 +2473,7 @@
                         <div class="flex justify-end gap-1.5 flex-wrap">
                             <button class="w-16 h-8 rounded-lg bg-emerald-50 text-brand-green font-black text-[9px] uppercase hover:bg-brand-green hover:text-white transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95" onclick="openEditWallet('${u.userId}', ${u.walletBalance || 0}, 'add')" title="Add Funds"><i class="fas fa-plus"></i> Add</button>
                             <button class="w-16 h-8 rounded-lg bg-red-50 text-red-500 font-black text-[9px] uppercase hover:bg-red-500 hover:text-white transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95" onclick="openEditWallet('${u.userId}', ${u.walletBalance || 0}, 'deduct')" title="Reduce Funds"><i class="fas fa-minus"></i> Reduce</button>
-                            <button class="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 hover:bg-slate-200 transition-all flex items-center justify-center active:scale-95" onclick="openEditUser('${u.userId}')" title="Edit Profile"><i class="fas fa-edit text-xs"></i></button>
+                            <button class="w-8 h-8 rounded-lg bg-slate-50 text-black hover:bg-slate-200 transition-all flex items-center justify-center active:scale-95" onclick="openEditUser('${u.userId}')" title="Edit Profile"><i class="fas fa-edit text-xs"></i></button>
                             <button class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-500 hover:bg-indigo-500 hover:text-white transition-all shadow-sm flex items-center justify-center active:scale-95" onclick="openUserHistory('${u.userId}')" title="Transaction History"><i class="fas fa-history text-xs"></i></button>
                             <button class="w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-sm flex items-center justify-center active:scale-95" onclick="handleDeleteUser('${u.userId}')" title="Delete User"><i class="fas fa-trash-alt text-xs"></i></button>
                         </div>
@@ -2538,9 +2538,9 @@
                     <div class="mt-4 flex gap-2 border-t border-slate-50 pt-4 overflow-x-auto scrollbar-hide">
                         <button class="flex-shrink-0 ${isBusy ? 'bg-red-500 text-white' : 'bg-emerald-50 text-brand-green'} p-2 rounded-xl hover:bg-brand-green hover:text-white transition-all" onclick="openViewAstro('${u.userId}')" title="View Full Details"><i class="fas fa-eye text-[0.7rem] lg:text-xs"></i></button>
                         ${isAstro && isOnline ? `<button class="flex-shrink-0 bg-orange-50 text-orange-500 p-2 rounded-xl hover:bg-orange-500 hover:text-white transition-all" onclick="forceOffline('${u.userId}')" title="Force Offline"><i class="fas fa-power-off text-[0.7rem] lg:text-xs"></i></button>` : ''}
-                        <button class="flex-1 min-w-[60px] ${isBusy ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'} font-bold py-2 rounded-xl transition-colors text-[0.65rem] lg:text-xs" onclick="openEditUser('${u.userId}')">Edit</button>
-                        <button class="flex-shrink-0 bg-slate-50 text-slate-400 p-2 rounded-xl hover:bg-emerald-50 hover:text-brand-green transition-all" onclick="openRoleModal('${u.userId}', '${u.role}')"><i class="fas fa-shield text-[0.7rem] lg:text-xs"></i></button>
-                        <button class="flex-shrink-0 bg-slate-50 text-slate-400 p-2 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all" onclick="handleDeleteUser('${u.userId}')"><i class="fas fa-trash-alt text-[0.7rem] lg:text-xs"></i></button>
+                        <button class="flex-1 min-w-[60px] ${isBusy ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-slate-50 text-black hover:bg-slate-100'} font-bold py-2 rounded-xl transition-colors text-[0.65rem] lg:text-xs" onclick="openEditUser('${u.userId}')">Edit</button>
+                        <button class="flex-shrink-0 bg-slate-50 text-black p-2 rounded-xl hover:bg-emerald-50 hover:text-brand-green transition-all" onclick="openRoleModal('${u.userId}', '${u.role}')"><i class="fas fa-shield text-[0.7rem] lg:text-xs"></i></button>
+                        <button class="flex-shrink-0 bg-slate-50 text-black p-2 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all" onclick="handleDeleteUser('${u.userId}')"><i class="fas fa-trash-alt text-[0.7rem] lg:text-xs"></i></button>
                         <button class="flex-shrink-0 p-2 rounded-xl transition-all ${u.isBanned ? 'bg-red-50 text-red-500 hover:bg-emerald-50 hover:text-brand-green' : 'bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500'}" onclick="toggleBan('${u.userId}', ${!u.isBanned})">
                             <i class="fas ${u.isBanned ? 'fa-unlock' : 'fa-ban'} text-[0.7rem] lg:text-xs"></i>
                         </button>
