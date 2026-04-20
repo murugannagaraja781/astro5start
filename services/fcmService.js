@@ -110,10 +110,17 @@ async function getCachedFcmToken() {
         
         // If token is invalid or not found, clear it from the database to stop future errors
         const errorMsg = err.message.toLowerCase();
-        if (errorMsg.includes('not found') || errorMsg.includes('unregistered') || errorMsg.includes('not-registered')) {
+        const errorCode = err.code || "";
+        
+        if (errorMsg.includes('not found') || 
+            errorMsg.includes('unregistered') || 
+            errorMsg.includes('not-registered') || 
+            errorMsg.includes('requested entity was not found') ||
+            errorCode === 'messaging/registration-token-not-registered') {
+            
             const User = require('../models/User');
             User.updateOne({ fcmToken }, { $set: { fcmToken: '' } })
-                .then(() => console.log(`[FCM v1] Cleared invalid fcmToken from DB for ${fcmToken.substring(0, 10)}...`))
+                .then(() => console.log(`[FCM v1] Cleared invalid fcmToken from DB for token starting with: ${fcmToken.substring(0, 10)}...`))
                 .catch(e => console.error(`[FCM v1] Failed to clear token from DB:`, e.message));
         }
 
