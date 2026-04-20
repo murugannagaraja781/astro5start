@@ -78,14 +78,17 @@ class ChatAudioPlayer {
 
     suspend fun updateProgress() {
         while (true) {
-            if (_isPlaying.value && mediaPlayer != null) {
+            val player = mediaPlayer
+            if (_isPlaying.value && player != null) {
                 try {
-                    val pos = mediaPlayer!!.currentPosition.toFloat()
-                    val dur = mediaPlayer!!.duration.toFloat()
+                    val pos = player.currentPosition.toFloat()
+                    val dur = player.duration.toFloat()
                     if (dur > 0) {
                         _progress.value = pos / dur
                     }
-                } catch (e: Exception) {}
+                } catch (e: Exception) {
+                    // Log potentially but don't crash
+                }
             }
             delay(100)
         }

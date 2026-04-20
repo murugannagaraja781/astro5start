@@ -653,7 +653,7 @@ class ChatActivity : ComponentActivity() {
         viewModel.stopListeners()
     }
 
-    private fun shareMedia(msg: ChatMessage) {
+    internal fun shareMedia(msg: ChatMessage) {
         val fileUrl = msg.fileUrl ?: return
         val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL
         val fullUrl = if (fileUrl.startsWith("http")) fileUrl else {
@@ -1243,7 +1243,7 @@ fun ChatBubble(
                     DropdownMenuItem(
                         text = { Text("Share") },
                         onClick = {
-                            (context as? ChatActivity)?.let { it.javaClass.getDeclaredMethod("shareMedia", ChatMessage::class.java).apply { isAccessible = true }.invoke(it, msg) }
+                            (context as? ChatActivity)?.shareMedia(msg)
                             showMenu = false
                         },
                         leadingIcon = { Icon(Icons.Default.Share, null) }
