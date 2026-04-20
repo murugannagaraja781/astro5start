@@ -313,9 +313,14 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
         if (!await checkAdmin(socket.id)) return cb?.({ ok: false });
         try {
             const today = new Date();
+            
+            // Start of Week (Sunday)
             const startOfWeek = new Date(today);
             startOfWeek.setDate(today.getDate() - today.getDay());
             startOfWeek.setHours(0, 0, 0, 0);
+
+            // Start of Month
+            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
 
             const startOfWeekTs = startOfWeek.getTime();
             const startOfMonthTs = startOfMonth.getTime();

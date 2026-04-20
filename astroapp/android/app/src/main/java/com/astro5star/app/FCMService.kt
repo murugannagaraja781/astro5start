@@ -375,11 +375,10 @@ class FCMService : FirebaseMessagingService() {
         
         val notification = NotificationCompat.Builder(this, CALL_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_call)
-            .setContentTitle("📞 Incoming Call")
-            .setContentText("$callerName is calling you...")
-            .setPriority(NotificationCompat.PRIORITY_MAX)
+            // Removed Title and Text to prevent top-level banner/heads-up
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_CALL)
-            .setFullScreenIntent(pendingIntent, true)  // THE KEY!
+            .setFullScreenIntent(pendingIntent, true)  // Still required for screen-wake/lockscreen launch
             .setAutoCancel(true)
             .setOngoing(true)
             .setSound(soundUri)
@@ -442,11 +441,11 @@ class FCMService : FirebaseMessagingService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = getSystemService(NotificationManager::class.java)
 
-            // 1. Call Channel (Highest Importance - Required for pop-ups)
+            // 1. Call Channel (Default Importance - prevents heads-up popups while keeping full-screen capability)
             val callChannel = NotificationChannel(
                 CALL_CHANNEL_ID,
                 CALL_CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_MAX
+                NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = "Notifications for incoming calls"
                 enableVibration(true)
@@ -513,7 +512,7 @@ class FCMService : FirebaseMessagingService() {
             .setSmallIcon(android.R.drawable.ic_menu_agenda)
             .setContentTitle("New Chat Request")
             .setContentText("$callerName wants to chat")
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT) // Prevent heads-up banner
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)

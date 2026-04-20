@@ -105,14 +105,13 @@ class CallForegroundService : Service() {
             this, 0, notificationIntent, pendingIntentFlags
         )
 
-        // Build notification
+        // Build notification - Lowest priority to stay out of the status bar banner
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Incoming Call")
-            .setContentText("$callerName is calling...")
+            // Title/Text removed to prevent OS banner
             .setSmallIcon(android.R.drawable.ic_menu_call)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_CALL)
-            .setFullScreenIntent(pendingIntent, true)
+            .setFullScreenIntent(pendingIntent, false) // False here as Activity already handled it
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setAutoCancel(false)
@@ -245,11 +244,11 @@ class CallForegroundService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH
+                NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "Shows notification during incoming calls"
                 setBypassDnd(true)  // Bypass Do Not Disturb
-                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                lockscreenVisibility = Notification.VISIBILITY_SECRET // Drawer only
             }
 
             val manager = getSystemService(NotificationManager::class.java)
