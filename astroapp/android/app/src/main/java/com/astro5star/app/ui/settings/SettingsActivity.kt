@@ -189,7 +189,7 @@ fun ThemeSelectionScreen(onBack: () -> Unit) {
 
             // 4. Power Management (Reliability)
             Spacer(modifier = Modifier.height(8.dp))
-            Divider(color = Color.Gray.copy(alpha = 0.3f))
+            HorizontalDivider(color = Color.Gray.copy(alpha = 0.3f))
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(

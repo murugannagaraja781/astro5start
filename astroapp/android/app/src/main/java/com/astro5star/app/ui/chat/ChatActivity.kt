@@ -294,11 +294,30 @@ class ChatActivity : ComponentActivity() {
                         remainingTime = remainingTime,
                         remainingSeconds = remainingSeconds,
                         clientBirthData = clientBirthData,
-                        onPickImage = { 
-                            Toast.makeText(this, "Opening Gallery...", Toast.LENGTH_SHORT).show()
-                            imagePickerLauncher.launch("image/*") 
+                        onPickImage = {
+                            val permission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                android.Manifest.permission.READ_MEDIA_IMAGES
+                            } else {
+                                android.Manifest.permission.READ_EXTERNAL_STORAGE
+                            }
+                            if (androidx.core.content.ContextCompat.checkSelfPermission(this, permission) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                imagePickerLauncher.launch("image/*")
+                            } else {
+                                permissionLauncher.launch(permission)
+                            }
                         },
-                        onPickFile = { filePickerLauncher.launch("*/*") },
+                        onPickFile = {
+                            val permission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                android.Manifest.permission.READ_MEDIA_IMAGES
+                            } else {
+                                android.Manifest.permission.READ_EXTERNAL_STORAGE
+                            }
+                            if (androidx.core.content.ContextCompat.checkSelfPermission(this, permission) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                filePickerLauncher.launch("*/*")
+                            } else {
+                                permissionLauncher.launch(permission)
+                            }
+                        },
                         summaryData = showSummaryData,
                         audioPlayer = audioPlayer,
                         onStartRecording = {
@@ -926,17 +945,9 @@ fun ChatBubble(
                                 val context = androidx.compose.ui.platform.LocalContext.current
                                 val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL
                                 val fullUrl = remember(msg.fileUrl) {
-                                    var fUrl = msg.fileUrl ?: ""
-                                    if (fUrl.contains("astro5star.com")) {
-                                        fUrl = fUrl.replace("https://astro5star.com", baseUrl)
-                                            .replace("http://astro5star.com", baseUrl)
-                                    }
-                                    
-                                    when {
-                                        fUrl.startsWith("http") -> fUrl
-                                        fUrl.startsWith("/") -> "$baseUrl$fUrl"
-                                        fUrl.contains("uploads/") -> "$baseUrl/$fUrl"
-                                        else -> "$baseUrl/uploads/$fUrl"
+                                    if (msg.fileUrl!!.startsWith("http")) msg.fileUrl!! else {
+                                        val separator = if (baseUrl.endsWith("/") || msg.fileUrl!!.startsWith("/")) "" else "/"
+                                        "$baseUrl$separator${msg.fileUrl}"
                                     }
                                 }
 
@@ -1016,8 +1027,9 @@ fun ChatBubble(
                             } else if (msg.type == "voice" && !msg.fileUrl.isNullOrEmpty()) {
                                 // WhatsApp-inspired Voice Player UI
                                 val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL
-                                val fullUrl = remember(msg.fileUrl) {
-                                    if (msg.fileUrl!!.startsWith("http")) msg.fileUrl!! else "$baseUrl${msg.fileUrl}"
+                                val fullUrl = if (msg.fileUrl!!.startsWith("http")) msg.fileUrl!! else {
+                                    val separator = if (baseUrl.endsWith("/") || msg.fileUrl!!.startsWith("/")) "" else "/"
+                                    "$baseUrl$separator${msg.fileUrl}"
                                 }
                                 val isPlaying by audioPlayer.isPlaying.collectAsState()
                                 val progress by audioPlayer.progress.collectAsState()
@@ -1195,8 +1207,9 @@ fun ChatInputBar(
     ) {
         Column {
             if (replyingTo != null) {
+                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
                 Row(
-                    Modifier.fillMaxWidth().background(Color(0xFFEEEEEE)).padding(8.dp),
+                    Modifier.fillMaxWidth().background(Color.Gray.copy(alpha = 0.05f)).padding(8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {

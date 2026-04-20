@@ -16,8 +16,8 @@ android {
         applicationId = "com.astro5star.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 35
-        versionName = "5.0.35"
+        versionCode = 36
+        versionName = "5.0.36"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

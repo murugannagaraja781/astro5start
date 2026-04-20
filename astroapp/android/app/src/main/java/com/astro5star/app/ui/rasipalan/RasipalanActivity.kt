@@ -209,7 +209,7 @@ fun PremiumRasipalanCard(item: RasipalanItem) {
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Divider(color = GoldAccent.copy(alpha = 0.3f), thickness = 0.5.dp)
+                HorizontalDivider(color = GoldAccent.copy(alpha = 0.3f), thickness = 0.5.dp)
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // 3 Status Indicators

@@ -109,6 +109,11 @@
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Recharge Info</span>
             </div>
             <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="astro-wallets" onclick="showTab('astro-wallets')">
+                <i class="fas fa-hand-holding-dollar text-lg lg:w-5 text-center"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Astro Wallets</span>
+            </div>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
                 data-tab="server-logs" onclick="showTab('server-logs')">
                 <i class="fas fa-terminal text-lg lg:w-5 text-center"></i>
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Server Logs</span>
@@ -1527,6 +1532,49 @@
         </div>
     </div>
 
+    <!-- Wallet Adjustment Modal -->
+    <div id="modal-adj-wallet"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4 transition-all duration-300 hidden">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300 border border-emerald-50">
+            <header class="p-8 border-b border-slate-50 text-center relative">
+                <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-brand-green text-2xl mx-auto mb-4 shadow-sm">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <h3 class="text-xl font-black text-deep-green">Adjust Astro Funds</h3>
+                <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Manual Liquidity Injection</p>
+                <button onclick="closeModal('modal-adj-wallet')" class="absolute top-6 right-6 text-slate-300 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+            </header>
+            <div class="p-8 space-y-6">
+                <input type="hidden" id="adj-wallet-user-id">
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between px-2">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Balance</span>
+                        <span id="adj-wallet-current" class="text-sm font-black text-slate-800">₹0</span>
+                    </div>
+                    
+                    <div class="relative group">
+                        <div class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xl group-focus-within:text-brand-green transition-colors">₹</div>
+                        <input type="number" id="adj-wallet-amount" placeholder="Amount (e.g. 500 or -200)"
+                            class="w-full bg-slate-50 pl-12 pr-6 py-5 rounded-2xl border-2 border-transparent focus:border-brand-green focus:bg-white focus:ring-0 font-black text-2xl text-slate-800 transition-all shadow-inner">
+                    </div>
+                    
+                    <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3">
+                        <i class="fas fa-info-circle text-blue-500 mt-0.5"></i>
+                        <p class="text-[9px] font-bold text-blue-700 leading-relaxed uppercase tracking-wider">Positive values add to balance. Negative values deduct. Updates are real-time.</p>
+                    </div>
+                </div>
+
+                <button
+                    class="w-full bg-brand-green text-white font-black py-5 rounded-2xl shadow-xl shadow-emerald-100 hover:bg-deep-green transition-all uppercase tracking-widest text-xs"
+                    onclick="submitWalletAdjustment()">
+                    Commit Transaction
+                </button>
+                <button onclick="closeModal('modal-adj-wallet')"
+                    class="w-full text-slate-400 font-bold text-[10px] uppercase tracking-widest hover:text-slate-600 transition-colors">Abort Adjustment</button>
+            </div>
+        </div>
+    </div>
+
     <!-- View Astrologer Details Modal -->
     <div id="modal-view-astro"
         class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-2 lg:p-4 transition-all duration-300 hidden">
@@ -1916,6 +1964,7 @@
             if (activeTab === 'reviews') fetchActiveReviews();
             if (activeTab === 'referral') loadReferralSettings();
             if (activeTab === 'recharge-settings') fetchRechargeSettings();
+            if (activeTab === 'astro-wallets') renderAstroWallets();
             // Also refresh badges
             socket.emit('admin-get-pending-photos', (res) => {
                 const badge = document.getElementById('photo-pending-badge');
@@ -1959,7 +2008,91 @@
             if (id === 'banner') fetchBanners();
             if (id === 'server-logs') fetchSystemLogs();
             if (id === 'recharge-settings') fetchRechargeSettings();
+            if (id === 'astro-wallets') renderAstroWallets();
         }
+
+        function renderAstroWallets() {
+            const searchTerm = document.getElementById('wallet-astro-search')?.value.toLowerCase() || '';
+            const astros = usersCache.filter(u => u.role === 'astrologer');
+            
+            let filtered = astros;
+            if (searchTerm) {
+                filtered = astros.filter(u => u.name.toLowerCase().includes(searchTerm) || u.phone.includes(searchTerm));
+            }
+
+            const tbody = document.getElementById('astro-wallets-table-body');
+            let totalWalletSum = 0;
+
+            tbody.innerHTML = filtered.map(u => {
+                const balance = u.walletBalance || 0;
+                totalWalletSum += balance;
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-8 py-5">
+                            <div class="flex items-center gap-4">
+                                <img src="${getProfileImage(u.image, u.name)}" class="w-10 h-10 rounded-xl object-cover ring-2 ring-emerald-50 bg-white">
+                                <div>
+                                    <div class="font-black text-slate-800 text-sm leading-tight">${u.name}</div>
+                                    <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">${u.userId.slice(-6)}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-8 py-5">
+                            <div class="text-xs font-bold text-slate-600">${u.phone}</div>
+                        </td>
+                        <td class="px-8 py-5">
+                            <div class="text-sm font-black text-brand-green tabular-nums">₹${balance.toFixed(2)}</div>
+                        </td>
+                        <td class="px-8 py-5">
+                            <div class="text-xs font-black text-indigo-600">₹${(u.totalEarnings || 0).toFixed(0)}</div>
+                        </td>
+                        <td class="px-8 py-5 text-right">
+                            <button onclick="openEditWallet('${u.userId}', ${balance})" 
+                                class="px-5 py-2 rounded-xl bg-emerald-50 text-brand-green font-black text-[10px] uppercase shadow-sm hover:bg-brand-green hover:text-white transition-all active:scale-95 flex items-center gap-2 ml-auto">
+                                <i class="fas fa-plus-minus text-[8px]"></i> Adjust Balance
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('total-astro-wallet-sum').innerText = totalWalletSum.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+
+        function openEditWallet(userId, current) {
+            document.getElementById('adj-wallet-user-id').value = userId;
+            document.getElementById('adj-wallet-current').innerText = '₹' + current.toFixed(2);
+            document.getElementById('adj-wallet-amount').value = '';
+            document.getElementById('modal-adj-wallet').classList.remove('hidden');
+            document.body.classList.add('modal-active');
+            setTimeout(() => document.getElementById('adj-wallet-amount').focus(), 100);
+        }
+
+        function submitWalletAdjustment() {
+            const userId = document.getElementById('adj-wallet-user-id').value;
+            const amount = parseFloat(document.getElementById('adj-wallet-amount').value);
+            
+            if (isNaN(amount) || amount === 0) return alert('Invalid Adjustment Amount');
+
+            const btn = event.target;
+            const oldText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+
+            socket.emit('admin-add-wallet', { userId, amount }, (res) => {
+                btn.disabled = false;
+                btn.innerHTML = oldText;
+                if (res.ok) {
+                    showToast(`Wallet Adjusted: ₹${amount > 0 ? '+' : ''}${amount}`, 'success');
+                    closeModal('modal-adj-wallet');
+                    refreshData();
+                    if (activeTab === 'astro-wallets') renderAstroWallets();
+                } else {
+                    alert('Adjustment Error: ' + (res.error || 'System Node Failure'));
+                }
+            });
+        }
+
 
         function fetchNotifications() {
             toggleLoader(true, 'tab-notifications');
@@ -2036,6 +2169,8 @@
                             clientTable.innerHTML = usersCache.map(u => renderClientRow(u)).join('');
                         }
                         renderPagination('user-pagination', res.totalPages, res.currentPage, fetchAllUsers);
+                    } else if (activeTab === 'astro-wallets') {
+                        renderAstroWallets();
                     }
                 }
             });

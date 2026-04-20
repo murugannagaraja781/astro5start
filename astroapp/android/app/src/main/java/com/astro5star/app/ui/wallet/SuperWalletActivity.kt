@@ -217,7 +217,7 @@ fun SuperWalletScreen(
                         val gst = (selectedAmount * 0.18).toInt()
                         Text("+₹$gst", color = Color.Gray, fontWeight = FontWeight.SemiBold)
                     }
-                    Divider(Modifier.padding(vertical = 12.dp), color = Color(0xFFEEEEEE))
+                    HorizontalDivider(Modifier.padding(vertical = 12.dp), color = Color(0xFFEEEEEE))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         val gst = (selectedAmount * 0.18).toInt()
                         val totalPayable = selectedAmount + gst

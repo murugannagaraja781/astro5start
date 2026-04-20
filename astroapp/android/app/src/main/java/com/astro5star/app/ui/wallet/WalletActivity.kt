@@ -335,6 +335,7 @@ fun WalletScreen(
                             fontSize = 12.sp,
                             color = Color.Black.copy(alpha = 0.7f)
                         )
+                        HorizontalDivider(color = astroBlack.copy(alpha = 0.1f))
                     }
                 }
             }
