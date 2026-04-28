@@ -10,6 +10,7 @@ const Session = require('../models/Session');
 const User = require('../models/User');
 const PairMonth = require('../models/PairMonth');
 const fs = require('fs');
+const { formatImageUrl } = require('../utils/formatImage');
 
 async function sendCancelCallPush(toUserId, sessionId) {
     try {
@@ -52,6 +53,13 @@ async function handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpd
             });
 
             if (broadcastAstroUpdate) broadcastAstroUpdate();
+
+            const sId = userSockets.get(toUserId);
+            if (sId && io) {
+                const formattedUser = astro.toObject ? astro.toObject() : astro;
+                formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
+                io.to(sId).emit('my-profile-updated', formattedUser);
+            }
 
             const reasonMsg = `🚨 Missed Call: Astrologer ${astro.name} (${astro.phone}) did not attend the call. Automatically marked OFFLINE.`;
 
