@@ -9,6 +9,7 @@ const {
 } = require('./sharedState');
 const User = require('../models/User');
 const Session = require('../models/Session');
+const Notification = require('../models/Notification');
 const { formatImageUrl } = require('../utils/formatImage');
 const { handleUserConnection } = require('./sessionService');
 
@@ -89,7 +90,6 @@ const broadcastReviewUpdate = async (review) => {
 const broadcastAdminUpdate = async () => {
     if (!ioInstance) return;
     try {
-        const Notification = require('../models/Notification');
         const unreadCount = await Notification.countDocuments({ isRead: false });
         ioInstance.to('admin-room').emit('admin-refresh', { unreadCount });
         console.log(`[Admin] Broadcasting refresh signal to all admins. Unread: ${unreadCount}`);

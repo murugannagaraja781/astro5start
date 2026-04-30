@@ -3245,41 +3245,6 @@
             });
         }
 
-        async function fetchNotifications() {
-            try {
-                const res = await fetch('/api/admin/notifications').then(r => r.json());
-                if (res.ok) {
-                    const list = document.getElementById('notifications-list');
-                    if (res.notifications.length === 0) {
-                        list.innerHTML = '<tr><td colspan="4" class="px-8 py-12 text-center text-slate-400 font-medium italic">All notifications cleared.</td></tr>';
-                        return;
-                    }
-                    list.innerHTML = res.notifications.map(n => `
-                        <tr class="border-b border-slate-50 hover:bg-slate-50/30 transition-colors">
-                            <td class="px-8 py-5">
-                                <div class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-tighter">${new Date(n.createdAt).toLocaleString()}</div>
-                            </td>
-                            <td class="px-8 py-5">
-                                <div class="font-black text-red-600">${n.astrologerName || 'Unknown'}</div>
-                                <div class="text-[0.6rem] text-slate-400">UID: ${n.astrologerId?.slice(-10).toUpperCase() || 'N/A'}</div>
-                            </td>
-                            <td class="px-8 py-5">
-                                <div class="text-sm font-semibold text-slate-700">${n.message}</div>
-                            </td>
-                            <td class="px-8 py-5 text-center">
-                                <button class="bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-lg text-[0.6rem] font-black uppercase hover:bg-indigo-100" onclick="alert('Notification tracked internally.')">Log Activity</button>
-                            </td>
-                        </tr>
-                    `).join('');
-
-                    const badge = document.getElementById('notif-badge');
-                    if (badge) {
-                        badge.innerText = res.notifications.length;
-                        badge.classList.toggle('hidden', res.notifications.length === 0);
-                    }
-                }
-            } catch (e) { console.error('Failed to sync notifications', e); }
-        }
 
         function processWithdrawal(id, action) {
             if (!confirm(`Are you sure you want to ${action} this ledger entry?`)) return;

@@ -9,6 +9,7 @@ const ChatMessage = require('../models/ChatMessage');
 const CallRequest = require('../models/CallRequest');
 const { sendMsg91 } = require('../services/otpService');
 const { otpStore } = require('../services/sharedState');
+const Notification = require('../models/Notification');
 
 const getUserProfile = async (req, res) => {
     try {
@@ -453,10 +454,10 @@ const updateUserProfile = async (req, res) => {
 
 const getNotifications = async (req, res) => {
     try {
-        const Notification = require('../models/Notification');
         const notifications = await Notification.find({}).sort({ createdAt: -1 }).limit(100);
         res.json({ ok: true, notifications });
     } catch (err) {
+        console.error('[API] getNotifications Error:', err);
         res.status(500).json({ ok: false, error: err.message });
     }
 };
