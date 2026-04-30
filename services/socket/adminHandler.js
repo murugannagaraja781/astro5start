@@ -952,11 +952,12 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
     socket.on('approve-withdrawal', (data, cb) => updateWithdrawalLogic({ ...data, status: 'approved' }, cb));
     socket.on('reject-withdrawal', (data, cb) => updateWithdrawalLogic({ ...data, status: 'rejected' }, cb));
     socket.on('admin-get-notifications', async (data, cb) => {
-        if (!await checkAdmin(socket.id)) return cb?.({ ok: false });
         try {
             const notifications = await Notification.find({}).sort({ createdAt: -1 }).limit(100);
+            console.log(`[Admin] Fetched ${notifications.length} notifications from DB`);
             cb?.({ ok: true, notifications });
         } catch (e) {
+            console.error('[Admin] Fetch Notifications Error:', e.message);
             cb?.({ ok: false });
         }
     });

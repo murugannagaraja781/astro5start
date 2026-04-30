@@ -2379,6 +2379,7 @@
         function fetchNotifications() {
             toggleLoader(true, 'tab-notifications');
             socket.emit('admin-get-notifications', {}, (res) => {
+                console.log('[Notifications Debug] Response:', res);
                 toggleLoader(false, 'tab-notifications');
                 if (res.ok) {
                     const list = document.getElementById('notifications-list');
