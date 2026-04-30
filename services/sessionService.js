@@ -146,6 +146,44 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
             })();
         }
 
+        // USER REQUEST: Save system notifications for critical session ends
+        if (endReason === 'rejected' || endReason === 'insufficient_funds' || endReason === 'no_answer') {
+            (async () => {
+                try {
+                    const astro = await User.findOne({ userId: s.astrologerId });
+                    const reasonMap = {
+                        'rejected': 'Astrologer Rejected Call',
+                        'insufficient_funds': 'Call Ended: Insufficient Funds',
+                        'no_answer': 'Astrologer Missed Call'
+                    };
+                    const typeMap = {
+                        'rejected': 'missed_call',
+                        'insufficient_funds': 'general',
+                        'no_answer': 'missed_call'
+                    };
+
+                    const Notification = require('../models/Notification');
+                    await Notification.create({
+                        type: typeMap[endReason] || 'general',
+                        title: reasonMap[endReason] || 'Session Alert',
+                        message: `Session ${sessionId} ended: ${endReason}. Astrologer: ${astro?.name || 'Unknown'}`,
+                        astrologerId: s.astrologerId,
+                        astrologerName: astro?.name || 'Unknown',
+                        details: { sessionId, endReason }
+                    });
+
+                    if (io) {
+                        io.to('admin-room').emit('admin-notification', {
+                            type: typeMap[endReason] || 'general',
+                            text: `${reasonMap[endReason]}: ${astro?.name || 'System'}`
+                        });
+                    }
+                } catch (e) {
+                    console.error('[SessionService] Notification save failed:', e.message);
+                }
+            })();
+        }
+
         activeSessions.delete(sessionId);
         if (s.users) {
             s.users.forEach((u) => {
