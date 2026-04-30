@@ -2378,19 +2378,48 @@
                 toggleLoader(false, 'tab-notifications');
                 if (res.ok) {
                     const list = document.getElementById('notifications-list');
-                    list.innerHTML = res.notifications.map(n => `
-                        <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50">
-                            <td class="px-8 py-5">
-                                <div class="font-bold text-slate-800 text-[10px] whitespace-nowrap">${new Date(n.createdAt).toLocaleDateString()}</div>
-                                <div class="text-[0.6rem] font-black text-slate-400 font-mono tracking-tighter">${new Date(n.createdAt).toLocaleTimeString()}</div>
-                            </td>
-                            <td class="px-8 py-5 font-bold text-slate-700 text-xs">${n.astrologerName || 'System'}</td>
-                            <td class="px-8 py-5 font-medium text-slate-600 text-xs">${n.message}</td>
-                            <td class="px-8 py-5 text-center">
-                                <span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase">${n.type || 'Alert'}</span>
-                            </td>
-                        </tr>
-                    `).join('');
+                    list.innerHTML = res.notifications.map(n => {
+                        const isMissed = n.type === 'missed_call';
+                        const isPayout = n.type === 'payout_request';
+                        
+                        let typeClass = 'bg-emerald-50 text-emerald-600';
+                        let icon = '<i class="fas fa-bell mr-2 opacity-50 text-[10px]"></i>';
+                        let textClass = 'text-slate-700';
+                        let subTextClass = 'text-slate-600';
+
+                        if (isMissed) {
+                            typeClass = 'bg-red-50 text-red-600 border border-red-100';
+                            icon = '<i class="fas fa-phone-slash mr-2 text-red-500 animate-pulse text-[10px]"></i>';
+                            textClass = 'text-red-700 font-black';
+                            subTextClass = 'text-red-600 font-bold';
+                        } else if (isPayout) {
+                            typeClass = 'bg-amber-50 text-amber-600 border border-amber-100';
+                            icon = '<i class="fas fa-wallet mr-2 text-amber-500 text-[10px]"></i>';
+                        }
+                        
+                        return `
+                            <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50">
+                                <td class="px-8 py-5">
+                                    <div class="font-bold text-slate-800 text-[10px] whitespace-nowrap">${new Date(n.createdAt).toLocaleDateString()}</div>
+                                    <div class="text-[0.6rem] font-black text-slate-400 font-mono tracking-tighter">${new Date(n.createdAt).toLocaleTimeString()}</div>
+                                </td>
+                                <td class="px-8 py-5 ${textClass} text-xs">
+                                    <div class="flex items-center">
+                                        ${icon}
+                                        <span>${n.astrologerName || 'System Alert'}</span>
+                                    </div>
+                                </td>
+                                <td class="px-8 py-5 ${subTextClass} text-xs leading-relaxed">
+                                    ${n.message}
+                                </td>
+                                <td class="px-8 py-5 text-right">
+                                    <span class="${typeClass} px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-[0.15em] shadow-sm">
+                                        ${n.type?.replace('_', ' ') || 'Alert'}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
                 }
             });
         }
