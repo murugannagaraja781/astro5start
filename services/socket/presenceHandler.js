@@ -269,30 +269,26 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
         try {
             const user = await User.findOne({ userId });
             if (user) {
-                // Set ALL statuses to offline
-                user.isOnline = false;
-                user.isChatOnline = false;
-                user.isAudioOnline = false;
-                user.isVideoOnline = false;
-                user.isAvailable = false;
-                user.isBusy = false;
-                user.fcmToken = ''; // Use empty string to clear the token and prevent further notifications
-                await User.updateOne({ userId }, {
-                    $set: {
-                        isOnline: false,
-                        isChatOnline: false,
-                        isAudioOnline: false,
-                        isVideoOnline: false,
-                        isAvailable: false,
-                        isBusy: false,
-                        fcmToken: ''
-                    }
-                });
-
-                if (user.role === 'astrologer') {
-                    broadcastAstroUpdate();
+                if (user.role !== 'astrologer') {
+                    // Clients still go offline on logout
+                    await User.updateOne({ userId }, {
+                        $set: {
+                            isOnline: false,
+                            isChatOnline: false,
+                            isAudioOnline: false,
+                            isVideoOnline: false,
+                            isAvailable: false,
+                            isBusy: false,
+                            fcmToken: ''
+                        }
+                    });
+                    console.log(`[Presence] Client ${user.name} logged out and set OFFLINE.`);
+                } else {
+                    // Astrologers stay online as per user request!
+                    // We only clear the socket mapping, but keep isOnline etc.
+                    // We also keep FCM token so they can receive calls while "logged out"
+                    console.log(`[Presence] Astrologer ${user.name} logged out but remains ONLINE as per policy.`);
                 }
-                console.log(`[Presence] User ${user.name} (${user.userId}) logged out - chat/call/video ALL set OFFLINE, FCM token cleared`);
             }
 
             // Clean up all in-memory maps to prevent stale state

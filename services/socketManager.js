@@ -189,37 +189,7 @@ const initSocket = (io) => {
 
             if (userSockets.get(userId) === socket.id) {
                 userSockets.delete(userId);
-
-                const user = await User.findOne({ userId });
-                if (user && user.role === 'astrologer') {
-                    // ASTROLOGER GRACE PERIOD: Wait 5 minutes before marking offline
-                    console.log(`[Presence] ${user.name} socket disconnected. Grace period (5m) starting...`);
-                    
-                    const timeoutId = setTimeout(async () => {
-                        try {
-                            const stillOffline = !userSockets.has(userId);
-                            if (stillOffline) {
-                                await User.updateOne({ userId }, { 
-                                    $set: { 
-                                        isOnline: false, 
-                                        isChatOnline: false, 
-                                        isAudioOnline: false, 
-                                        isVideoOnline: false,
-                                        isAvailable: false 
-                                    } 
-                                });
-                                console.log(`[Presence] Grace period expired for ${user.name}. Marked OFFLine.`);
-                                broadcastAstroUpdate();
-                            }
-                        } catch (e) {
-                            console.error('[Presence] Timeout error:', e);
-                        } finally {
-                            offlineTimeouts.delete(userId);
-                        }
-                    }, OFFLINE_GRACE_PERIOD);
-
-                    offlineTimeouts.set(userId, timeoutId);
-                }
+                console.log(`[Presence] Socket mapping removed for ${userId}. Astrologer status remains unchanged as per policy.`);
             }
 
             // Grace period for active sessions
