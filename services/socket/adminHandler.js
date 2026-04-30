@@ -962,6 +962,17 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
         }
     });
 
+    socket.on('admin-clear-notifications', async (data, cb) => {
+        try {
+            await Notification.deleteMany({});
+            console.log(`[Admin] All notifications cleared from DB`);
+            cb?.({ ok: true });
+        } catch (e) {
+            console.error('[Admin] Clear Notifications Error:', e.message);
+            cb?.({ ok: false });
+        }
+    });
+
     socket.on('admin-broadcast-refresh', ({ type }) => {
         console.log(`[Admin] Global Refresh requested for: ${type}`);
         if (type === 'banners') {

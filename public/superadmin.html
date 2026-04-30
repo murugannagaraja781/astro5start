@@ -1273,7 +1273,7 @@
                     <button onclick="showTab('dashboard')"
                         class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-black hover:text-brand-green transition-all shadow-sm"><i
                             class="fas fa-arrow-left"></i></button>
-                    <div>
+                    <div class="flex items-center gap-4">
                         <div class="flex items-center gap-3">
                             <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Notifications</h1>
                             <span id="notif-count-badge" class="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-red-200 hidden">0</span>
@@ -1281,6 +1281,11 @@
                         <p class="text-slate-500 font-medium">Missed call alerts and system notifications.</p>
                     </div>
                 </div>
+                <button onclick="clearNotifications()" 
+                    class="bg-red-50 hover:bg-red-100 text-red-600 px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border border-red-100">
+                    <i class="fas fa-trash-alt"></i>
+                    Clear All
+                </button>
             </header>
 
             <div class="bg-white rounded-[2.5rem] shadow-premium border border-slate-100 overflow-hidden">
@@ -2170,6 +2175,15 @@
             });
         });
 
+        function createToastContainer() {
+            const div = document.createElement('div');
+            div.id = 'toast-container';
+            div.className = 'fixed top-8 right-8 z-[9999] flex flex-col gap-3 max-h-[80vh] overflow-y-auto custom-scrollbar pointer-events-none';
+            document.body.appendChild(div);
+            return div;
+        }
+
+        // Modified showToast to handle pointer events
         function showToast(msg, type = 'info') {
             const container = document.getElementById('toast-container') || createToastContainer();
             const toast = document.createElement('div');
@@ -2179,22 +2193,16 @@
                 error: 'bg-red-600',
                 warning: 'bg-amber-600'
             };
-            toast.className = `${colors[type]} text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-slide-in-right max-w-sm`;
+            toast.className = `${colors[type]} text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-slide-in-right max-w-sm pointer-events-auto mb-2`;
+            toast.style.border = '1px solid rgba(255,255,255,0.1)';
             toast.innerHTML = `
                 <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : type === 'success' ? 'fa-check-circle' : 'fa-bell'} text-xl"></i>
                 <div class="flex-1 font-black text-[11px] uppercase tracking-wider leading-tight">${msg}</div>
-                <button onclick="this.parentElement.remove()" class="opacity-50 hover:opacity-100">&times;</button>
+                <button onclick="this.parentElement.remove()" class="opacity-50 hover:opacity-100 p-1">&times;</button>
             `;
-            container.appendChild(toast);
+            // Insert new toast at the top
+            container.prepend(toast);
             setTimeout(() => { if (toast.parentElement) toast.remove(); }, 8000);
-        }
-
-        function createToastContainer() {
-            const div = document.createElement('div');
-            div.id = 'toast-container';
-            div.className = 'fixed bottom-8 right-8 z-[9999] flex flex-col gap-3';
-            document.body.appendChild(div);
-            return div;
         }
 
         function refreshData() {
@@ -2434,6 +2442,19 @@
                             </tr>
                         `;
                     }).join('');
+                }
+            });
+        }
+
+        function clearNotifications() {
+            if (!confirm('Are you sure you want to clear all notifications? This cannot be undone.')) return;
+            
+            socket.emit('admin-clear-notifications', {}, (res) => {
+                if (res.ok) {
+                    showToast('Notifications cleared successfully', 'success');
+                    fetchNotifications();
+                } else {
+                    showToast('Failed to clear notifications', 'error');
                 }
             });
         }
