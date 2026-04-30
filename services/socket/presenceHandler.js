@@ -269,26 +269,23 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
         try {
             const user = await User.findOne({ userId });
             if (user) {
-                if (user.role !== 'astrologer') {
-                    // Clients still go offline on logout
-                    await User.updateOne({ userId }, {
-                        $set: {
-                            isOnline: false,
-                            isChatOnline: false,
-                            isAudioOnline: false,
-                            isVideoOnline: false,
-                            isAvailable: false,
-                            isBusy: false,
-                            fcmToken: ''
-                        }
-                    });
-                    console.log(`[Presence] Client ${user.name} logged out and set OFFLINE.`);
-                } else {
-                    // Astrologers stay online as per user request!
-                    // We only clear the socket mapping, but keep isOnline etc.
-                    // We also keep FCM token so they can receive calls while "logged out"
-                    console.log(`[Presence] Astrologer ${user.name} logged out but remains ONLINE as per policy.`);
+                // Set ALL statuses to offline on manual logout
+                await User.updateOne({ userId }, {
+                    $set: {
+                        isOnline: false,
+                        isChatOnline: false,
+                        isAudioOnline: false,
+                        isVideoOnline: false,
+                        isAvailable: false,
+                        isBusy: false,
+                        fcmToken: '' // Clear token on manual logout
+                    }
+                });
+
+                if (user.role === 'astrologer') {
+                    broadcastAstroUpdate();
                 }
+                console.log(`[Presence] ${user.role} ${user.name} (${user.userId}) logged out - set OFFLINE, FCM token cleared`);
             }
 
             // Clean up all in-memory maps to prevent stale state
