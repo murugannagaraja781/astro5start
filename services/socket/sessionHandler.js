@@ -65,8 +65,8 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
             const sessionId = crypto.randomUUID();
 
-            let clientId = null;
-            let astrologerId = null;
+            let clientId = fromUserId;
+            let astrologerId = toUserId;
 
             if (fromUser && fromUser.role === 'client' && toUser && toUser.role === 'astrologer') {
                 clientId = fromUserId;
@@ -74,12 +74,43 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             } else if (fromUser && fromUser.role === 'astrologer' && toUser && toUser.role === 'client') {
                 clientId = toUserId;
                 astrologerId = fromUserId;
-            } else if (toUser && toUser.role === 'astrologer') {
-                astrologerId = toUserId;
-                clientId = fromUserId;
-            } else {
-                clientId = fromUserId;
-                astrologerId = toUserId;
+            }
+
+            // CRITICAL: BALANCE CHECK
+            // If the payer is the client, ensure they have enough funds.
+            const client = (clientId === fromUserId) ? fromUser : toUser;
+            const astro = (astrologerId === fromUserId) ? fromUser : toUser;
+
+            if (client && astro) {
+                let pricePerMin = 10;
+                const isUnlimited = type === 'unlimited';
+                
+                if (isUnlimited) {
+                    if (offerType === 'silver') pricePerMin = 350;
+                    else if (offerType === 'gold') pricePerMin = 500;
+                    else if (offerType === 'diamond') pricePerMin = 700;
+                    else pricePerMin = 200;
+                } else {
+                    if (type === 'chat') pricePerMin = astro.chatPrice || 10;
+                    else if (type === 'audio') pricePerMin = astro.audioPrice || 20;
+                    else if (type === 'video') pricePerMin = astro.videoPrice || 30;
+                    else pricePerMin = parseInt(astro.price) || 10;
+                }
+
+                const totalBalance = (client.walletBalance || 0) + (client.superWalletBalance || 0);
+                const isFirstCall = !client.isFirstCallDone;
+
+                // Rule: If not first call, must have at least pricePerMin
+                // If it IS first call, they have 3 mins free anyway, so we allow it.
+                if (!isFirstCall && totalBalance < pricePerMin) {
+                    const errorMsg = isUnlimited ? `Insufficient funds for this plan (Needs ₹${pricePerMin})` : `Insufficient balance. Please recharge to call (Needs ₹${pricePerMin})`;
+                    if (typeof cb === "function") return cb({ ok: false, error: errorMsg });
+                }
+                
+                // For Unlimited, they MUST have the full amount regardless of first call status
+                if (isUnlimited && totalBalance < pricePerMin) {
+                    if (typeof cb === "function") return cb({ ok: false, error: `Insufficient funds for ${offerType || 'unlimited'} plan (Needs ₹${pricePerMin})` });
+                }
             }
 
             let unlimitedDuration = 0;

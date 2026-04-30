@@ -52,7 +52,7 @@ async function tickSessions(io) {
                     }
                     const startMin = (session.lastBilledMinute || 0) + 1;
                     for (let m = startMin; m <= clientBillableMin; m++) {
-                        if (!activeSessions.has(sessionId)) break;
+                        if (!activeSessions.has(sessionId) || session.isEnded) break;
                         await processBillingCharge(sessionId, m, 'client_full_charge', io);
                     }
                     session.lastBilledMinute = clientBillableMin;
@@ -73,7 +73,7 @@ async function tickSessions(io) {
                 if (astroBillableMinutes > (session.lastMaturedMinute || 0)) {
                     const startMin = (session.lastMaturedMinute || 0) + 1;
                     for (let m = startMin; m <= astroBillableMinutes; m++) {
-                        if (!activeSessions.has(sessionId)) break;
+                        if (!activeSessions.has(sessionId) || session.isEnded) break;
                         await processBillingCharge(sessionId, m, 'astro_share_payout', io);
                     }
                     session.lastMaturedMinute = astroBillableMinutes;
