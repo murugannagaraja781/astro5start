@@ -78,7 +78,7 @@ async function handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpd
                 }
             });
 
-            if (io) io.to('superadmin').emit('admin-notification', {
+            if (io) io.to('admin-room').emit('admin-notification', {
                 text: reasonMsg,
                 type: 'missed_call',
                 astroId: toUserId,

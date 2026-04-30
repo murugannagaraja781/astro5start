@@ -391,6 +391,28 @@ const registerAstrologer = async (req, res) => {
             await user.save();
         }
 
+        // Notify Admin of new registration
+        try {
+            const Notification = require('../models/Notification');
+            await Notification.create({
+                type: 'registration',
+                title: 'New Astrologer Registration',
+                message: `A new astrologer registration has been submitted by ${user.name} (${user.phone}).`,
+                astrologerId: user.userId,
+                astrologerName: user.name,
+                details: { phone: user.phone, skills: updates.skills }
+            });
+
+            if (global.io) {
+                global.io.to('admin-room').emit('admin-notification', {
+                    type: 'registration',
+                    text: `New Registration Request from ${user.name}`
+                });
+            }
+        } catch (e) {
+            console.error('[Registration] Notification failed:', e.message);
+        }
+
         res.json({ ok: true, message: 'Registration submitted for approval' });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
@@ -543,12 +565,19 @@ const uploadProfilePic = async (req, res) => {
                 } 
             });
             
-            // Notify Admin
+            // Save notification for admin
             try {
-                const { broadcastAdminUpdate } = require('../services/socketManager');
-                broadcastAdminUpdate();
+                const Notification = require('../models/Notification');
+                await Notification.create({
+                    type: 'photo_request',
+                    title: 'New Photo Approval Request',
+                    message: `Astrologer ${user.name} (${user.phone}) has uploaded a new profile photo for approval.`,
+                    astrologerId: user.userId,
+                    astrologerName: user.name,
+                    details: { phone: user.phone, imageUrl }
+                });
             } catch (e) {
-                console.warn('[Upload] Admin broadcast skipped:', e.message);
+                console.error('[Upload] Notification save failed:', e.message);
             }
 
             // Emit toast notification to admin-room if io exists

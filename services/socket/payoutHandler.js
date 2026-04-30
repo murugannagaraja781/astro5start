@@ -31,6 +31,28 @@ const handlePayout = (socket, io) => {
                 status: 'pending'
             });
 
+            // Notify Admin of new withdrawal request
+            try {
+                const Notification = require('../../models/Notification');
+                await Notification.create({
+                    type: 'payout_request',
+                    title: 'New Withdrawal Request',
+                    message: `Astrologer ${user.name} (${user.phone}) has requested a withdrawal of ₹${amount}.`,
+                    astrologerId: user.userId,
+                    astrologerName: user.name,
+                    details: { phone: user.phone, amount }
+                });
+
+                if (io) {
+                    io.to('admin-room').emit('admin-notification', {
+                        type: 'withdrawal_request',
+                        text: `New Payout Request: ₹${amount} from ${user.name}`
+                    });
+                }
+            } catch (e) {
+                console.error('[Payout] Notification failed:', e.message);
+            }
+
             console.log(`[Payout] Withdrawal requested by ${user.name}: ₹${amount}. Balance deducted.`);
             
             // Emit wallet update to the astrologer
