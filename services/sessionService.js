@@ -35,20 +35,22 @@ async function handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpd
     try {
         const astro = await User.findOne({ userId: toUserId });
         if (astro && astro.role === 'astrologer') {
-            if (sessionType === 'chat') astro.isChatOnline = false;
-            else if (sessionType === 'audio') astro.isAudioOnline = false;
-            else if (sessionType === 'video') astro.isVideoOnline = false;
-
-            astro.isOnline = !!(astro.isChatOnline || astro.isAudioOnline || astro.isVideoOnline);
-            astro.isAvailable = astro.isOnline && !astro.isBusy;
+            // Force fully offline across all services if any call is missed
+            astro.isChatOnline = false;
+            astro.isAudioOnline = false;
+            astro.isVideoOnline = false;
+            astro.isOnline = false;
+            astro.isAvailable = false;
+            astro.isBusy = false; // Also reset busy state just in case
             
             await User.updateOne({ userId: toUserId }, {
                 $set: {
-                    isChatOnline: astro.isChatOnline,
-                    isAudioOnline: astro.isAudioOnline,
-                    isVideoOnline: astro.isVideoOnline,
-                    isOnline: astro.isOnline,
-                    isAvailable: astro.isAvailable
+                    isChatOnline: false,
+                    isAudioOnline: false,
+                    isVideoOnline: false,
+                    isOnline: false,
+                    isAvailable: false,
+                    isBusy: false
                 }
             });
 

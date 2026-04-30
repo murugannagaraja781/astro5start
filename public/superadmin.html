@@ -1288,29 +1288,15 @@
                 </button>
             </header>
 
-            <div class="bg-white rounded-[2.5rem] shadow-premium border border-slate-100 overflow-hidden">
-                <div class="overflow-y-auto max-h-[600px] custom-scrollbar">
-                    <table class="w-full text-left table-auto">
-                        <thead class="sticky top-0 z-10 bg-white/90 backdrop-blur-md">
-                            <tr class="border-b border-slate-100">
-                                <th
-                                    class="px-8 py-5 text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">
-                                    Time</th>
-                                <th
-                                    class="px-8 py-5 text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">
-                                    Astrologer</th>
-                                <th
-                                    class="px-8 py-5 text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">
-                                    Alert Message</th>
-                                <th
-                                    class="px-8 py-5 text-[0.65rem] font-black text-slate-400 uppercase tracking-widest text-right">
-                                    Type</th>
-                            </tr>
-                        </thead>
-                        <tbody id="notifications-list">
-                            <!-- Populated dynamically -->
-                        </tbody>
-                    </table>
+            <div class="bg-slate-50/50 rounded-[2.5rem] border border-slate-100 p-2 overflow-hidden">
+                <div id="notifications-container" class="overflow-y-auto max-h-[700px] custom-scrollbar p-4 space-y-4">
+                    <div id="notifications-list" class="grid grid-cols-1 gap-4">
+                        <!-- Populated dynamically as cards -->
+                        <div class="flex flex-col items-center justify-center py-20 text-slate-300">
+                            <i class="fas fa-bell-slash text-5xl mb-4 opacity-20"></i>
+                            <p class="font-black text-xs uppercase tracking-widest">No notifications yet</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -2403,43 +2389,64 @@
                     list.innerHTML = res.notifications.map(n => {
                         const isMissed = n.type === 'missed_call';
                         const isPayout = n.type === 'payout_request';
+                        const isReg = n.type === 'registration';
                         
-                        let typeClass = 'bg-emerald-50 text-emerald-600';
-                        let icon = '<i class="fas fa-bell mr-2 opacity-50 text-[10px]"></i>';
-                        let textClass = 'text-slate-700';
-                        let subTextClass = 'text-slate-600';
+                        let accentColor = 'border-emerald-500';
+                        let typeBg = 'bg-emerald-50 text-emerald-600';
+                        let icon = '<i class="fas fa-bell"></i>';
+                        let textColor = 'text-slate-800';
 
                         if (isMissed) {
-                            typeClass = 'bg-red-50 text-red-600 border border-red-100';
-                            icon = '<i class="fas fa-phone-slash mr-2 text-red-500 animate-pulse text-[10px]"></i>';
-                            textClass = 'text-red-700 font-black';
-                            subTextClass = 'text-red-600 font-bold';
+                            accentColor = 'border-red-500';
+                            typeBg = 'bg-red-50 text-red-600';
+                            icon = '<i class="fas fa-phone-slash"></i>';
+                            textColor = 'text-red-700';
                         } else if (isPayout) {
-                            typeClass = 'bg-amber-50 text-amber-600 border border-amber-100';
-                            icon = '<i class="fas fa-wallet mr-2 text-amber-500 text-[10px]"></i>';
+                            accentColor = 'border-amber-500';
+                            typeBg = 'bg-amber-50 text-amber-600';
+                            icon = '<i class="fas fa-wallet"></i>';
+                        } else if (isReg) {
+                            accentColor = 'border-blue-500';
+                            typeBg = 'bg-blue-50 text-blue-600';
+                            icon = '<i class="fas fa-user-plus"></i>';
                         }
                         
                         return `
-                            <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50">
-                                <td class="px-8 py-5">
-                                    <div class="font-bold text-slate-800 text-[10px] whitespace-nowrap">${new Date(n.createdAt).toLocaleDateString()}</div>
-                                    <div class="text-[0.6rem] font-black text-slate-400 font-mono tracking-tighter">${new Date(n.createdAt).toLocaleTimeString()}</div>
-                                </td>
-                                <td class="px-8 py-5 ${textClass} text-xs">
-                                    <div class="flex items-center">
-                                        ${icon}
-                                        <span>${n.astrologerName || 'System Alert'}</span>
+                            <div class="bg-white rounded-3xl p-6 border-l-[6px] ${accentColor} shadow-sm hover:shadow-md transition-all">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <span class="w-8 h-8 rounded-xl ${typeBg.split(' ')[0]} flex items-center justify-center text-xs">
+                                                ${icon}
+                                            </span>
+                                            <h4 class="font-black text-slate-800 text-sm uppercase tracking-tight">
+                                                ${n.astrologerName || 'System Alert'}
+                                            </h4>
+                                            <span class="${typeBg} px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest">
+                                                ${n.type?.replace('_', ' ') || 'Alert'}
+                                            </span>
+                                        </div>
+                                        <p class="${textColor} text-xs font-bold leading-relaxed mb-4">
+                                            ${n.message}
+                                        </p>
+                                        <div class="flex items-center gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                            <span class="flex items-center gap-1.5">
+                                                <i class="far fa-calendar-alt"></i>
+                                                ${new Date(n.createdAt).toLocaleDateString()}
+                                            </span>
+                                            <span class="flex items-center gap-1.5">
+                                                <i class="far fa-clock"></i>
+                                                ${new Date(n.createdAt).toLocaleTimeString()}
+                                            </span>
+                                        </div>
                                     </div>
-                                </td>
-                                <td class="px-8 py-5 ${subTextClass} text-xs leading-relaxed">
-                                    ${n.message}
-                                </td>
-                                <td class="px-8 py-5 text-right">
-                                    <span class="${typeClass} px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-[0.15em] shadow-sm">
-                                        ${n.type?.replace('_', ' ') || 'Alert'}
-                                    </span>
-                                </td>
-                            </tr>
+                                    <div class="text-right">
+                                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-slate-200 hover:text-red-500 transition-colors p-2">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         `;
                     }).join('');
                 }
