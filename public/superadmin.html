@@ -1268,6 +1268,7 @@
         </section>
 
         <!-- Notifications Tab -->
+        <section id="tab-notifications" class="tab-content hidden animate-up space-y-8">
             <header class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-4">
                     <button onclick="showTab('dashboard')"
@@ -2133,6 +2134,9 @@
                 else {
                     refreshData();
                     showTab('dashboard'); // Set initial active state
+                    socket.emit('admin-get-unread-notifications-count', (res) => {
+                        if (res.ok) updateNotifBadge(res.count);
+                    });
                 }
             });
 
@@ -2146,11 +2150,17 @@
                     showToast(payload.text, 'info');
                 }
                 refreshData();
+                socket.emit('admin-get-unread-notifications-count', (res) => {
+                    if (res.ok) updateNotifBadge(res.count);
+                });
             });
 
             // Real-Time Synchronization Listeners
-            socket.on('admin-refresh', () => {
-                console.log('⚡ Real-time Refresh Signal Received');
+            socket.on('admin-refresh', (data) => {
+                console.log('⚡ Real-time Refresh Signal Received', data);
+                if (data && typeof data.unreadCount !== 'undefined') {
+                    updateNotifBadge(data.unreadCount);
+                }
                 refreshData();
             });
 
@@ -2241,7 +2251,10 @@
             if (id === 'withdrawals') fetchWithdrawals();
             if (id === 'reviews') fetchActiveReviews();
             if (id === 'requests') fetchPendingRequests();
-            if (id === 'notifications') fetchNotifications();
+            if (id === 'notifications') {
+                fetchNotifications();
+                markNotificationsRead();
+            }
             if (id === 'users' || id === 'astrologers' || id === 'astro-wallets') fetchAllUsers(1);
             if (id === 'slabs') loadSlabRates();
             if (id === 'academy') fetchAcademyVideos();
@@ -2377,42 +2390,45 @@
                 toggleLoader(false, 'tab-notifications');
                 if (res.ok) {
                     const list = document.getElementById('notifications-list');
-                    const badge = document.getElementById('notif-count-badge');
-                    
-                    if (res.notifications && res.notifications.length > 0) {
-                        badge.innerText = res.notifications.length;
-                        badge.classList.remove('hidden');
-                    } else {
-                        badge.classList.add('hidden');
-                    }
+                    updateNotifBadge(res.notifications.filter(n => !n.isRead).length);
 
                     list.innerHTML = res.notifications.map(n => {
-                        const isMissed = n.type === 'missed_call';
+                        const isMissed = n.type === 'miss_call' || n.type === 'missed_call';
                         const isPayout = n.type === 'payout_request';
                         const isReg = n.type === 'registration';
+                        const isPhoto = n.type === 'photo_request';
                         
                         let accentColor = 'border-emerald-500';
                         let typeBg = 'bg-emerald-50 text-emerald-600';
                         let icon = '<i class="fas fa-bell"></i>';
                         let textColor = 'text-slate-800';
+                        let actionBtn = '';
 
                         if (isMissed) {
                             accentColor = 'border-red-500';
                             typeBg = 'bg-red-50 text-red-600';
                             icon = '<i class="fas fa-phone-slash"></i>';
                             textColor = 'text-red-700';
+                            actionBtn = `<button onclick="showTab('ledger')" class="mt-3 px-4 py-1.5 bg-red-100 text-red-700 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-red-200 transition-all">View Ledger</button>`;
                         } else if (isPayout) {
                             accentColor = 'border-amber-500';
                             typeBg = 'bg-amber-50 text-amber-600';
                             icon = '<i class="fas fa-wallet"></i>';
+                            actionBtn = `<button onclick="showTab('payouts')" class="mt-3 px-4 py-1.5 bg-amber-100 text-amber-700 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-amber-200 transition-all">Go to Payouts</button>`;
                         } else if (isReg) {
                             accentColor = 'border-blue-500';
                             typeBg = 'bg-blue-50 text-blue-600';
                             icon = '<i class="fas fa-user-plus"></i>';
+                            actionBtn = `<button onclick="showTab('requests')" class="mt-3 px-4 py-1.5 bg-blue-100 text-blue-700 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-blue-200 transition-all">Review Requests</button>`;
+                        } else if (isPhoto) {
+                            accentColor = 'border-purple-500';
+                            typeBg = 'bg-purple-50 text-purple-600';
+                            icon = '<i class="fas fa-camera"></i>';
+                            actionBtn = `<button onclick="showTab('photos')" class="mt-3 px-4 py-1.5 bg-purple-100 text-purple-700 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-purple-200 transition-all">Approve Photos</button>`;
                         }
                         
                         return `
-                            <div class="bg-white rounded-3xl p-6 border-l-[6px] ${accentColor} shadow-sm hover:shadow-md transition-all">
+                            <div class="bg-white rounded-3xl p-6 border-l-[6px] ${accentColor} shadow-sm hover:shadow-md transition-all ${n.isRead ? 'opacity-60' : 'ring-2 ring-emerald-500/10'}">
                                 <div class="flex items-start justify-between gap-4">
                                     <div class="flex-1">
                                         <div class="flex items-center gap-3 mb-2">
@@ -2425,11 +2441,13 @@
                                             <span class="${typeBg} px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest">
                                                 ${n.type?.replace('_', ' ') || 'Alert'}
                                             </span>
+                                            ${!n.isRead ? '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>' : ''}
                                         </div>
-                                        <p class="${textColor} text-xs font-bold leading-relaxed mb-4">
+                                        <p class="${textColor} text-xs font-bold leading-relaxed mb-1">
                                             ${n.message}
                                         </p>
-                                        <div class="flex items-center gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                        ${actionBtn}
+                                        <div class="mt-4 flex items-center gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                             <span class="flex items-center gap-1.5">
                                                 <i class="far fa-calendar-alt"></i>
                                                 ${new Date(n.createdAt).toLocaleDateString()}
@@ -2441,7 +2459,7 @@
                                         </div>
                                     </div>
                                     <div class="text-right">
-                                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-slate-200 hover:text-red-500 transition-colors p-2">
+                                        <button onclick="deleteNotification('${n._id}', this)" class="text-slate-200 hover:text-red-500 transition-colors p-2">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </div>
@@ -2464,6 +2482,40 @@
                     showToast('Failed to clear notifications', 'error');
                 }
             });
+        }
+
+        function markNotificationsRead() {
+            socket.emit('admin-mark-notifications-read', { all: true }, (res) => {
+                if (res.ok) {
+                    // Update local badge immediately
+                    updateNotifBadge(0);
+                }
+            });
+        }
+
+        function updateNotifBadge(count) {
+            const badgeSidebar = document.getElementById('notif-badge');
+            const badgeTab = document.getElementById('notif-count-badge');
+            
+            if (count > 0) {
+                if (badgeSidebar) {
+                    badgeSidebar.innerText = count;
+                    badgeSidebar.classList.remove('hidden');
+                }
+                if (badgeTab) {
+                    badgeTab.innerText = count;
+                    badgeTab.classList.remove('hidden');
+                }
+            } else {
+                if (badgeSidebar) badgeSidebar.classList.add('hidden');
+                if (badgeTab) badgeTab.classList.add('hidden');
+            }
+        }
+
+        function deleteNotification(id, btn) {
+            // Since we don't have a single delete event, we just remove it from UI
+            // In a full implementation, we'd add a 'admin-delete-notification' event
+            btn.closest('.bg-white').remove();
         }
 
         function fetchStats() {

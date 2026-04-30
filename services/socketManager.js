@@ -86,10 +86,17 @@ const broadcastReviewUpdate = async (review) => {
     }
 };
 
-const broadcastAdminUpdate = () => {
+const broadcastAdminUpdate = async () => {
     if (!ioInstance) return;
-    ioInstance.to('admin-room').emit('admin-refresh');
-    console.log('[Admin] Broadcasting refresh signal to all admins.');
+    try {
+        const Notification = require('../models/Notification');
+        const unreadCount = await Notification.countDocuments({ isRead: false });
+        ioInstance.to('admin-room').emit('admin-refresh', { unreadCount });
+        console.log(`[Admin] Broadcasting refresh signal to all admins. Unread: ${unreadCount}`);
+    } catch (e) {
+        ioInstance.to('admin-room').emit('admin-refresh');
+        console.log('[Admin] Broadcasting refresh signal to all admins.');
+    }
 };
 
 

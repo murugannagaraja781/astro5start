@@ -966,9 +966,34 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
         try {
             await Notification.deleteMany({});
             console.log(`[Admin] All notifications cleared from DB`);
+            broadcastAdminUpdate();
             cb?.({ ok: true });
         } catch (e) {
             console.error('[Admin] Clear Notifications Error:', e.message);
+            cb?.({ ok: false });
+        }
+    });
+
+    socket.on('admin-get-unread-notifications-count', async (cb) => {
+        try {
+            const count = await Notification.countDocuments({ isRead: false });
+            cb?.({ ok: true, count });
+        } catch (e) {
+            cb?.({ ok: false });
+        }
+    });
+
+    socket.on('admin-mark-notifications-read', async (data, cb) => {
+        try {
+            const { id, all = false } = data || {};
+            if (all) {
+                await Notification.updateMany({ isRead: false }, { $set: { isRead: true } });
+            } else if (id) {
+                await Notification.updateOne({ _id: id }, { $set: { isRead: true } });
+            }
+            broadcastAdminUpdate();
+            cb?.({ ok: true });
+        } catch (e) {
             cb?.({ ok: false });
         }
     });
