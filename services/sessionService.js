@@ -204,7 +204,7 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
                 const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
                 const waitingCount = await Appointment.countDocuments({ 
                     astrologerId: s.astrologerId, 
-                    status: 'waiting',
+                    status: { $in: ['waiting', 'notified'] },
                     requestedAt: { $gt: twoHoursAgo }
                 });
 

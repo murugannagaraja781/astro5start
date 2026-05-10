@@ -151,13 +151,13 @@ const initSocket = (io) => {
                     console.log(`[Session] User ${userId} reconnected. Session grace period cleared.`);
                 }
 
+                // Safety: Reset busy status if no active session is tracked (for everyone)
+                if (!userActiveSession.has(userId)) {
+                    user.isBusy = false;
+                    updateFields.isBusy = false;
+                }
+
                 if (user.role === 'astrologer') {
-                    // Safety: Reset busy status if no active session is tracked
-                    if (!userActiveSession.has(userId)) {
-                        user.isBusy = false;
-                        updateFields.isBusy = false;
-                        console.log(`[Presence] Safety reset: ${user.name} marked NOT busy on registration (no active session).`);
-                    }
 
                     // RESTORE status from disconnected grace period
                     if (offlineTimeouts.has(userId)) {
