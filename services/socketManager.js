@@ -152,6 +152,13 @@ const initSocket = (io) => {
                 }
 
                 if (user.role === 'astrologer') {
+                    // Safety: Reset busy status if no active session is tracked
+                    if (!userActiveSession.has(userId)) {
+                        user.isBusy = false;
+                        updateFields.isBusy = false;
+                        console.log(`[Presence] Safety reset: ${user.name} marked NOT busy on registration (no active session).`);
+                    }
+
                     // RESTORE status from disconnected grace period
                     if (offlineTimeouts.has(userId)) {
                         clearTimeout(offlineTimeouts.get(userId));

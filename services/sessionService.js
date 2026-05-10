@@ -201,7 +201,12 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
             try {
                 // Check if anyone is waiting for this astrologer
                 const Appointment = require('../models/Appointment');
-                const waitingCount = await Appointment.countDocuments({ astrologerId: s.astrologerId, status: 'waiting' });
+                const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+                const waitingCount = await Appointment.countDocuments({ 
+                    astrologerId: s.astrologerId, 
+                    status: 'waiting',
+                    requestedAt: { $gt: twoHoursAgo }
+                });
 
                 if (waitingCount > 0) {
                     // There are people waiting! Keep the astrologer 'Busy' so others can't jump the line
@@ -573,5 +578,6 @@ module.exports = {
     sendCancelCallPush,
     cancelCall,
     getOtherUserIdFromSession,
-    initPairMonth
+    initPairMonth,
+    userActiveSession
 };

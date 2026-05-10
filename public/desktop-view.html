@@ -4427,8 +4427,8 @@
         // Refresh wallet
         state.socket.emit('get-wallet', { userId: state.me.userId });
 
-        // Re-register to restore status (for astrologers)
-        if (state.me.role === 'astrologer') {
+        // Re-register to restore status and mapping
+        if (state.me && state.me.userId) {
           socket.emit('register', { name: state.me.name, phone: state.me.phone, userId: state.me.userId }, (ack) => {
             if (ack && ack.ok) {
               console.log('[Presence] Re-registered after returning to app');

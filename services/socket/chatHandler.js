@@ -46,7 +46,7 @@ const handleChat = (socket, io) => {
             const { toUserId, sessionId, content, timestamp, messageId } = data || {};
             const fromUserId = socketToUser.get(socket.id);
             if (!fromUserId || !toUserId || !content) {
-                console.warn('[Chat] Missing required fields for message:', { fromUserId, toUserId, hasContent: !!content });
+                console.warn(`[Chat] Message ignored. From:${fromUserId}, To:${toUserId}, Socket:${socket.id}. User may need to re-register.`);
                 return;
             }
 
