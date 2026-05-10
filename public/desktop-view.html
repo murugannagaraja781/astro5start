@@ -4648,7 +4648,7 @@
         state.me = res;
         saveSession(res);
 
-        socket.emit('register', { name: res.name, phone: phone }, (ack) => {
+        socket.emit('register', { name: res.name, phone: phone, userId: res.userId }, (ack) => {
           // Send FCM token to server for push notifications
           const fcmToken = localStorage.getItem('fcmToken');
           if (fcmToken) {
@@ -6198,7 +6198,9 @@
       }
 
       if (state.me && state.me.role === 'astrologer') {
-        socket.emit('toggle-status', { online: true, type: 'online' });
+        socket.emit('toggle-status', { online: true, type: 'chat' });
+        socket.emit('toggle-status', { online: true, type: 'audio' });
+        socket.emit('toggle-status', { online: true, type: 'video' });
       }
       stopTimer();
       if (state.peer) { state.peer.destroy(); state.peer = null; }
@@ -6295,11 +6297,11 @@
 
         // Emit delivered immediately
         if (d.messageId) {
-          socket.emit('message-delivered', { toUserId: d.fromUserId, messageId: d.messageId });
+          socket.emit('message-status', { toUserId: d.fromUserId, messageId: d.messageId, status: 'delivered' });
 
           // Simulate Read after 1s (or if window focused)
           setTimeout(() => {
-            socket.emit('message-read', { toUserId: d.fromUserId, messageId: d.messageId });
+            socket.emit('message-status', { toUserId: d.fromUserId, messageId: d.messageId, status: 'read' });
           }, 1000);
         }
 

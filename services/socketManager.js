@@ -160,6 +160,18 @@ const initSocket = (io) => {
                     }
 
                     // Ensure they are marked 'available' if online
+                    // NEW: If all services are false, enable them by default on register for a better UX
+                    if (!user.isChatOnline && !user.isAudioOnline && !user.isVideoOnline) {
+                        user.isOnline = true;
+                        user.isChatOnline = true;
+                        user.isAudioOnline = true;
+                        user.isVideoOnline = true;
+                        updateFields.isOnline = true;
+                        updateFields.isChatOnline = true;
+                        updateFields.isAudioOnline = true;
+                        updateFields.isVideoOnline = true;
+                    }
+
                     if (user.isOnline) {
                         user.isAvailable = !user.isBusy;
                         updateFields.isAvailable = user.isAvailable;

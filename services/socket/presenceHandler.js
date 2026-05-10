@@ -29,6 +29,11 @@ const handlePresence = (socket, io, broadcastAstroUpdate) => {
             if (data.type === 'audio') update.isAudioOnline = !!data.online;
             if (data.type === 'video') update.isVideoOnline = !!data.online;
             if (data.type === 'unlimited') update.unlimitedOfferEnabled = !!data.online;
+            if (data.type === 'online') {
+                update.isChatOnline = !!data.online;
+                update.isAudioOnline = !!data.online;
+                update.isVideoOnline = !!data.online;
+            }
 
             let user = await User.findOne({ userId });
             if (!user || user.role !== 'astrologer') return;
