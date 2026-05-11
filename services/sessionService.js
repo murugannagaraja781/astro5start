@@ -433,7 +433,8 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
         
         // Final sanity check for memory-based sessions too
         const dbStatusCheck = await Session.findOne({ sessionId }).select('status').lean();
-        if (dbStatusCheck && dbStatusCheck.status !== 'requested' && !accept === false) {
+        if (dbStatusCheck && dbStatusCheck.status !== 'requested' && accept === true) {
+             console.log(`[Session] Accept rejected for ${sessionId}: Status is ${dbStatusCheck.status}`);
              return { ok: false, error: `Call already ${dbStatusCheck.status}` };
         }
 

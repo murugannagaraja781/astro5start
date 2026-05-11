@@ -80,14 +80,26 @@ fun CosmicAppTheme(
         )
     }
 
+    private fun findActivity(context: android.content.Context): Activity? {
+        var ctx = context
+        while (ctx is android.content.ContextWrapper) {
+            if (ctx is Activity) return ctx
+            ctx = ctx.baseContext
+        }
+        return null
+    }
+
     // Side Effect for System Bars
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as Activity).window
-            // enableEdgeToEdge() in activity handles basic bar visibility.
-            // We only need to ensure the system bar icons are appropriately colored (dark/light).
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = true
+            val activity = findActivity(view.context)
+            val window = activity?.window
+            if (window != null) {
+                // enableEdgeToEdge() in activity handles basic bar visibility.
+                // We only need to ensure the system bar icons are appropriately colored (dark/light).
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+                WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = true
+            }
         }
     }
 

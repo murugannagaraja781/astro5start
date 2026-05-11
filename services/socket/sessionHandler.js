@@ -240,22 +240,27 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
     });
 
     socket.on('answer-session', async (data, cb) => {
-        const { sessionId, accept, type, userId } = data || {};
-        const astrologerId = userId || socketToUser.get(socket.id);
+        try {
+            const { sessionId, accept, type, userId } = data || {};
+            const astrologerId = userId || socketToUser.get(socket.id);
 
-        if (!astrologerId || !sessionId) {
-            console.error('[Session] answer-session: Missing astrologerId or sessionId', { astrologerId, sessionId });
-            if (typeof cb === "function") cb({ ok: false, error: 'Authorization error' });
-            return;
+            if (!astrologerId || !sessionId) {
+                console.error('[Session] answer-session: Missing astrologerId or sessionId', { astrologerId, sessionId, socketId: socket.id });
+                if (typeof cb === "function") cb({ ok: false, error: 'Authorization error' });
+                return;
+            }
+
+            console.log(`[Session] User ${astrologerId} answering ${sessionId}: Accept=${accept} Type=${type}`);
+
+            // Join the session room for signaling and events
+            socket.join(sessionId);
+
+            const result = await sessionService.acceptSession(sessionId, astrologerId, accept, type, io, broadcastAstroUpdate);
+            if (typeof cb === "function") cb(result);
+        } catch (err) {
+            console.error('[Session] answer-session Error:', err);
+            if (typeof cb === "function") cb({ ok: false, error: 'Internal server error' });
         }
-
-        console.log(`[Session] User ${astrologerId} answering ${sessionId}: Accept=${accept}`);
-
-        // Join the session room for signaling and events
-        socket.join(sessionId);
-
-        const result = await sessionService.acceptSession(sessionId, astrologerId, accept, type, io, broadcastAstroUpdate);
-        if (typeof cb === "function") cb(result);
     });
 
     socket.on('answer-session-native', async (data, cb) => {
