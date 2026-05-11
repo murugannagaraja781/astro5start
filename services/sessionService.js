@@ -489,6 +489,16 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
             if (broadcastAstroUpdate) broadcastAstroUpdate();
             await tryStartBilling(sessionId, io);
 
+            // Safety Cleanup: If session doesn't actually start billing in 60s, reset isBusy
+            setTimeout(async () => {
+                const s = sessions.get(sessionId);
+                if (s && !s.actualBillingStart && s.isAnswered) {
+                    console.log(`[Safety] Session ${sessionId} stuck in connecting. Resetting busy status for ${astrologerId}.`);
+                    await User.updateOne({ userId: astrologerId }, { isBusy: false }).catch(e => {});
+                    if (broadcastAstroUpdate) broadcastAstroUpdate();
+                }
+            }, 60000);
+
             return { ok: true, counterpartId: fromUserId };
         } else {
             if (io) {
