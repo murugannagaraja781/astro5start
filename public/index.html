@@ -4187,28 +4187,23 @@
         // Function to start call after socket is ready and user is registered
         const startCallWhenReady = () => {
           console.log('[API Accept] Starting call with session:', apiAcceptedCall);
-
-          // Make sure state.session is set correctly
-          state.session = {
-            id: apiAcceptedCall,
-            partnerId: apiFromUserId,
-            type: callType
-          };
+          
+          if (typeof initSession === 'function') {
+            initSession(apiAcceptedCall, apiFromUserId, callType, false, null);
+            window.history.replaceState({}, document.title, '/');
+          } else {
+            console.error('[API Accept] initSession not found!');
+            // Fallback
+            state.session = { id: apiAcceptedCall, partnerId: apiFromUserId, type: callType };
+            if (sSes) sSes.classList.remove('hidden');
+            if (document.getElementById('staticHeader')) document.getElementById('staticHeader').style.display = 'none';
+          }
 
           // Start WebRTC (astrologer side - not initiator)
           if (callType !== 'chat') {
             console.log('[API Accept] Starting WebRTC as responder');
             startWebRTC(false);
           }
-
-          // Show session UI
-          if (sSes) sSes.classList.remove('hidden');
-          if (document.getElementById('staticHeader')) document.getElementById('staticHeader').style.display = 'none';
-
-          // Notify server we connected
-          socket.emit('session-connect', { sessionId: apiAcceptedCall });
-
-          window.history.replaceState({}, document.title, '/');
         };
 
         // Function to register user and then start call
@@ -5838,12 +5833,30 @@
 
     // Session Management
     function initSession(sid, pid, type, isInit, birthData) {
-      document.getElementById('messagesList').innerHTML = '';
-      hideAllScreens();
-      if (document.getElementById('staticHeader')) document.getElementById('staticHeader').style.display = 'none';
+      try {
+        console.log('[Session] Initializing session:', sid, 'Type:', type, 'Partner:', pid);
+        
+        const mList = document.getElementById('messagesList');
+        if (mList) mList.innerHTML = '';
+        
+        if (typeof hideAllScreens === 'function') hideAllScreens();
+        if (document.getElementById('staticHeader')) document.getElementById('staticHeader').style.display = 'none';
 
-      state.session = { id: sid, partnerId: pid, type };
-      sSes.classList.remove('hidden');
+        state.session = { id: sid, partnerId: pid, type };
+        
+        if (sSes) {
+          sSes.classList.remove('hidden');
+          console.log('[Session] Screen-session shown');
+        } else {
+          console.error('[Session] Global sSes is null, trying direct lookup');
+          const s = document.getElementById('screen-session');
+          if (s) {
+            s.classList.remove('hidden');
+            console.log('[Session] Screen-session shown via direct lookup');
+          } else {
+            console.error('[Session] CRITICAL: screen-session element not found in DOM!');
+          }
+        }
 
       if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'FULLSCREEN', enable: true }));
       if (window.Android && window.Android.setFullscreen) window.Android.setFullscreen(true);
@@ -5965,6 +5978,10 @@
       }
 
       if (!isInit && type !== 'chat') startWebRTC(false);
+      } catch (err) {
+        console.error('[Session] CRITICAL ERROR in initSession:', err);
+        alert('Failed to start session UI. Please refresh.');
+      }
     }
 
     // WebRTC Logic

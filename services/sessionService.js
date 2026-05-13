@@ -491,7 +491,7 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
 
             // Safety Cleanup: If session doesn't actually start billing in 60s, reset isBusy
             setTimeout(async () => {
-                const s = sessions.get(sessionId);
+                const s = activeSessions.get(sessionId);
                 if (s && !s.actualBillingStart && s.isAnswered) {
                     console.log(`[Safety] Session ${sessionId} stuck in connecting. Resetting busy status for ${astrologerId}.`);
                     await User.updateOne({ userId: astrologerId }, { isBusy: false }).catch(e => {});

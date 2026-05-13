@@ -4324,28 +4324,24 @@
         // Function to start call after socket is ready and user is registered
         const startCallWhenReady = () => {
           console.log('[API Accept] Starting call with session:', apiAcceptedCall);
-
-          // Make sure state.session is set correctly
-          state.session = {
-            id: apiAcceptedCall,
-            partnerId: apiFromUserId,
-            type: callType
-          };
+          
+          if (typeof initSession === 'function') {
+            initSession(apiAcceptedCall, apiFromUserId, callType, false, null);
+            window.history.replaceState({}, document.title, '/');
+          } else {
+            console.error('[API Accept] initSession not found!');
+            // Fallback
+            state.session = { id: apiAcceptedCall, partnerId: apiFromUserId, type: callType };
+            const sSesFallback = document.getElementById('screen-session');
+            if (sSesFallback) sSesFallback.classList.remove('hidden');
+            if (document.getElementById('staticHeader')) document.getElementById('staticHeader').style.display = 'none';
+          }
 
           // Start WebRTC (astrologer side - not initiator)
           if (callType !== 'chat') {
             console.log('[API Accept] Starting WebRTC as responder');
             startWebRTC(false);
           }
-
-          // Show session UI
-          const sSes = document.getElementById('sSession');
-          if (sSes) sSes.classList.remove('hidden');
-
-          // Notify server we connected
-          socket.emit('session-connect', { sessionId: apiAcceptedCall });
-
-          window.history.replaceState({}, document.title, '/');
         };
 
         // Function to register user and then start call
@@ -5880,21 +5876,45 @@
 
     // Session Management
     function initSession(sid, pid, type, isInit, birthData) {
-      document.getElementById('messagesList').innerHTML = '';
+      try {
+        console.log('[Session] Initializing session:', sid, 'Type:', type, 'Partner:', pid);
+        
+        // Ensure sSes is defined
+        if (!sSes) {
+          console.error('[Session] Global sSes is null, trying to find by ID');
+          window.sSes = document.getElementById('screen-session');
+        }
 
-      state.session = { id: sid, partnerId: pid, type };
-      sSes.classList.remove('hidden');
+        const mList = document.getElementById('messagesList');
+        if (mList) mList.innerHTML = '';
+        
+        if (typeof hideAllScreens === 'function') hideAllScreens();
+        if (document.getElementById('staticHeader')) document.getElementById('staticHeader').style.display = 'none';
 
-      // Trigger Billing Start on Server
-      socket.emit('session-connect', { sessionId: sid });
+        state.session = { id: sid, partnerId: pid, type };
+        
+        if (sSes) {
+          sSes.classList.remove('hidden');
+          console.log('[Session] Screen-session shown');
+        } else {
+          console.error('[Session] screen-session element not found!');
+          const s = document.getElementById('screen-session');
+          if (s) {
+            s.classList.remove('hidden');
+            console.log('[Session] Screen-session shown via direct lookup');
+          }
+        }
 
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'KEEP_AWAKE', enable: true }));
-      }
+        // Trigger Billing Start on Server
+        socket.emit('session-connect', { sessionId: sid });
 
-      if (birthData) {
-        window.receivedBirthData = birthData;
-      }
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'KEEP_AWAKE', enable: true }));
+        }
+
+        if (birthData) {
+          window.receivedBirthData = birthData;
+        }
 
       if (state.me && state.me.role === 'astrologer') {
         const dScore = document.getElementById('dailyScore');
@@ -6001,6 +6021,10 @@
       }
 
       if (!isInit && type !== 'chat') startWebRTC(false);
+      } catch (err) {
+        console.error('[Session] CRITICAL ERROR in initSession:', err);
+        alert('Failed to start session. Please refresh.');
+      }
     }
 
     // WebRTC Logic
