@@ -333,6 +333,7 @@ async function tryStartBilling(sessionId, io) {
 
             const billingPayload = { 
                 startTime: billingStart,
+                elapsedSeconds: activeSession.elapsedBillableSeconds || 0,
                 availableMinutes: availableMinutes,
                 clientBalance: (client?.walletBalance || 0) + (client?.superWalletBalance || 0),
                 ratePerMinute: finalPrice

@@ -5805,15 +5805,26 @@
     });
 
     // Timer Logic
-    let timerInt = null;
-    let timerSec = 0;
+    let sessionBaseTime = null;
 
-    function startTimer() {
-      if (timerInt) return;
-      timerSec = 0;
+    function startTimer(serverStartTime, elapsedSeconds) {
+      if (timerInt) clearInterval(timerInt);
+      
+      if (typeof elapsedSeconds !== 'undefined') {
+        // Most accurate: Sync with server's elapsed time
+        sessionBaseTime = Date.now() - (elapsedSeconds * 1000);
+      } else if (serverStartTime) {
+        // Fallback: Use server's start timestamp (might have clock skew)
+        sessionBaseTime = serverStartTime;
+      } else if (!sessionBaseTime) {
+        // Initial start on client side
+        sessionBaseTime = Date.now();
+      }
+      
       updateTimerDisplay();
       timerInt = setInterval(() => {
-        timerSec++;
+        const now = Date.now();
+        timerSec = Math.floor((now - sessionBaseTime) / 1000);
         updateTimerDisplay();
       }, 1000);
     }
@@ -5823,12 +5834,18 @@
         clearInterval(timerInt);
         timerInt = null;
       }
+      sessionBaseTime = null;
+      timerSec = 0;
     }
 
     function updateTimerDisplay() {
-      const m = Math.floor(timerSec / 60).toString().padStart(2, '0');
-      const s = (timerSec % 60).toString().padStart(2, '0');
-      document.getElementById('sessionTimer').innerHTML = `${m}:${s} <span style="font-size:0.8rem; opacity:0.8;"></span>`;
+      const displaySec = Math.max(0, timerSec);
+      const m = Math.floor(displaySec / 60).toString().padStart(2, '0');
+      const s = (displaySec % 60).toString().padStart(2, '0');
+      const timerEl = document.getElementById('sessionTimer');
+      if (timerEl) {
+        timerEl.innerHTML = `${m}:${s} <span style="font-size:0.8rem; opacity:0.8;"></span>`;
+      }
     }
 
     // Session Management
@@ -5939,7 +5956,7 @@
       const recInd = document.getElementById('recIndicator');
       const timer = document.getElementById('sessionTimer');
 
-      timer.innerText = '00:00';
+      if (timer) timer.innerText = '00:00';
       timerSec = 0;
 
       if (type === 'chat') {
@@ -6142,6 +6159,11 @@
       if (state.session && d.sessionId === state.session.id && state.peer) {
         state.peer.signal(d.signal);
       }
+    });
+
+    socket.on('billing-started', (data) => {
+      console.log('[Billing] Syncing timer. Server Start:', data.startTime, 'Elapsed:', data.elapsedSeconds);
+      startTimer(data.startTime, data.elapsedSeconds);
     });
 
     // End Session
