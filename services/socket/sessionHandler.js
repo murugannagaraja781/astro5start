@@ -354,9 +354,19 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
     socket.on('session-connect', async (data) => {
         try {
-            const { sessionId } = data || {};
-            const userId = socketToUser.get(socket.id);
-            if (!userId || !sessionId) return;
+            const { sessionId, userId: payloadUserId } = data || {};
+            const userId = payloadUserId || socketToUser.get(socket.id);
+            
+            if (!userId || !sessionId) {
+                console.warn(`[Session] Connect rejected: userId=${userId}, sessionId=${sessionId}`);
+                return;
+            }
+
+            // Persistence: Ensure socketToUser is updated if payloadUserId was provided
+            if (payloadUserId && !socketToUser.has(socket.id)) {
+                socketToUser.set(socket.id, payloadUserId);
+                userSockets.set(payloadUserId, socket.id);
+            }
 
             // Ensure socket is in the session room
             socket.join(sessionId);

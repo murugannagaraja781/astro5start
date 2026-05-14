@@ -417,9 +417,9 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
             if (dbSession) {
                 if (dbSession.status !== 'requested') {
                     if (dbSession.status === 'active' && accept === true) {
-                        return { ok: true, counterpartId: dbSession.clientId === astrologerId ? dbSession.fromUserId : dbSession.clientId };
+                        return { ok: true, counterpartId: dbSession.astrologerId === astrologerId ? dbSession.clientId : dbSession.astrologerId };
                     }
-                    return { ok: false, error: `Call already ${dbSession.status}` };
+                    return { ok: false, error: 'Call already ' + dbSession.status };
                 }
                 session = {
                     sessionId: dbSession.sessionId,

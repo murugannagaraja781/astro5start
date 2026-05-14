@@ -548,8 +548,20 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
             // Build ledger query with filters
             let match = { ...statsMatch };
             if (search) {
+                // PERFORMANCE OPTIMIZATION: If search is a User ID, find all related session IDs first
+                // This allows us to filter the Ledger (which doesn't store user IDs) by user.
+                const relatedSessions = await require('../../models/Session').find({
+                    $or: [
+                        { clientId: search },
+                        { astrologerId: search }
+                    ]
+                }).select('sessionId').lean();
+                
+                const sessionIdsFromUser = relatedSessions.map(s => s.sessionId);
+
                 match.$or = [
                     { sessionId: { $regex: search, $options: 'i' } },
+                    { sessionId: { $in: sessionIdsFromUser } },
                     { reason: { $regex: search, $options: 'i' } }
                 ];
             }
