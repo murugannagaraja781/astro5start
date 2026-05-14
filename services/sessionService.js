@@ -416,6 +416,9 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
             const dbSession = await Session.findOne({ sessionId });
             if (dbSession) {
                 if (dbSession.status !== 'requested') {
+                    if (dbSession.status === 'active' && accept === true) {
+                        return { ok: true, counterpartId: dbSession.clientId === astrologerId ? dbSession.fromUserId : dbSession.clientId };
+                    }
                     return { ok: false, error: `Call already ${dbSession.status}` };
                 }
                 session = {
@@ -435,6 +438,21 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
         // Final sanity check for memory-based sessions too
         const dbStatusCheck = await Session.findOne({ sessionId }).select('status').lean();
         if (dbStatusCheck && dbStatusCheck.status !== 'requested' && accept === true) {
+             if (dbStatusCheck.status === 'active') {
+                 console.log(`[Session] Accept received for already active session ${sessionId}. Returning success for idempotency.`);
+                 const fromUserId = session.users.find(u => u !== astrologerId);
+                 
+                 // Even if already active, re-emit answered event to ensure client state is synced
+                 if (io && astrologerId) {
+                     io.to(astrologerId).emit('session-answered', { 
+                         sessionId, 
+                         fromUserId: fromUserId, 
+                         accept: true,
+                         status: 'active'
+                     });
+                 }
+                 return { ok: true, counterpartId: fromUserId };
+             }
              console.log(`[Session] Accept rejected for ${sessionId}: Status is ${dbStatusCheck.status}`);
              return { ok: false, error: `Call already ${dbStatusCheck.status}` };
         }
