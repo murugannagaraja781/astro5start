@@ -705,9 +705,22 @@ const uploadChatMedia = async (req, res) => {
 const getSessionStatus = async (req, res) => {
     try {
         const { sessionId } = req.params;
-        const session = await Session.findOne({ sessionId }).select('status type clientId astrologerId').lean();
+        const session = await Session.findOne({ sessionId }).select('status type clientId astrologerId updatedAt').lean();
         if (!session) return res.json({ ok: false, status: 'not_found' });
-        res.json({ ok: true, status: session.status, type: session.type });
+
+        let status = session.status;
+        // LIVE APP WORKAROUND: If the session just became 'active' in the last 15 seconds, 
+        // we still return 'requested' to the mobile client. 
+        // This prevents the Android IncomingCallActivity from auto-dismissing (Ghost Call logic) 
+        // before the user has a chance to interact with it.
+        if (status === 'active') {
+            const timeSinceUpdate = Date.now() - new Date(session.updatedAt).getTime();
+            if (timeSinceUpdate < 15000) { // 15 second grace period
+                status = 'requested';
+            }
+        }
+
+        res.json({ ok: true, status, type: session.type });
     } catch (e) {
         res.status(500).json({ ok: false, error: 'Server error' });
     }
