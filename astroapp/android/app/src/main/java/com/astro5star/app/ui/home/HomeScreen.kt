@@ -158,56 +158,60 @@ fun BannerSection(banners: List<Banner>, onBannerClick: (Banner) -> Unit) {
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    // 2. Gradient Overlay for Readability
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(Color.Black.copy(alpha = 0.8f), Color.Transparent)
+                    // 2. Gradient Overlay for Readability (Only if content is shown)
+                    if (banner.showContent) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(Color.Black.copy(alpha = 0.5f), Color.Transparent)
+                                    )
                                 )
-                            )
-                    )
+                        )
+                    }
 
                     // 3. Content Text
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .padding(24.dp)
-                            .fillMaxWidth(0.7f) // Limit width so text doesn't span full image
-                    ) {
-                        if (!banner.title.isNullOrEmpty()) {
-                            Text(
-                                text = banner.title,
-                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color.White,
-                                lineHeight = 30.sp
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                        }
+                    if (banner.showContent) {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .padding(24.dp)
+                                .fillMaxWidth(0.7f) // Limit width so text doesn't span full image
+                        ) {
+                            if (!banner.title.isNullOrEmpty()) {
+                                Text(
+                                    text = banner.title,
+                                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White,
+                                    lineHeight = 30.sp
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                            }
 
-                        if (!banner.subtitle.isNullOrEmpty()) {
-                            Text(
-                                text = banner.subtitle,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha=0.9f)
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                        }
+                            if (!banner.subtitle.isNullOrEmpty()) {
+                                Text(
+                                    text = banner.subtitle,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White.copy(alpha = 0.9f)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
 
-                        // CTA Pill
-                        if (!banner.ctaText.isNullOrEmpty()) {
-                             Box(
-                                 modifier = Modifier
-                                     .background(PeacockGreen, RoundedCornerShape(50))
-                                     .padding(horizontal = 16.dp, vertical = 8.dp)
-                             ) {
-                                 Text(
-                                     text = banner.ctaText,
-                                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                     color = RoyalMidnightBlue
-                                 )
-                             }
+                            // CTA Pill
+                            if (!banner.ctaText.isNullOrEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(PeacockGreen, RoundedCornerShape(50))
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = banner.ctaText,
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = RoyalMidnightBlue
+                                    )
+                                }
+                            }
                         }
                     }
 
@@ -381,9 +385,7 @@ fun HomeScreen(
     var historySessions by remember { mutableStateOf<List<SessionHistoryItem>>(emptyList()) }
     var isHistoryLoading by remember { mutableStateOf(false) }
 
-    // Reviews State
-    var reviews by remember { mutableStateOf<List<ReviewItem>>(emptyList()) }
-    var isReviewsLoading by remember { mutableStateOf(true) }
+
 
     // Fetch Config on load
     LaunchedEffect(Unit) {
@@ -452,54 +454,9 @@ fun HomeScreen(
             }
         }
 
-        // Fetch Reviews once on load
-        if (reviews.isEmpty()) {
-            try {
-                val res = ApiClient.api.getActiveReviews()
-                if (res.isSuccessful && res.body() != null) {
-                    val root = JSONObject(res.body().toString())
-                    val arr = root.optJSONArray("reviews")
-                    if (arr != null) {
-                        val list = mutableListOf<ReviewItem>()
-                        for (i in 0 until arr.length()) {
-                            val obj = arr.getJSONObject(i)
-                            list.add(ReviewItem(
-                                id = obj.optString("_id"),
-                                clientName = obj.optString("clientName"),
-                                comment = obj.optString("comment"),
-                                rating = obj.optInt("rating", 5),
-                                astrologerName = obj.optJSONObject("astrologerId")?.optString("name") ?: "",
-                                astrologerImage = obj.optJSONObject("astrologerId")?.optString("image") ?: "",
-                                astrologerUserId = obj.optJSONObject("astrologerId")?.optString("userId") ?: ""
-                            ))
-                        }
-                        reviews = list
-                    }
-                }
-            } catch (e: Exception) { e.printStackTrace() } finally {
-                isReviewsLoading = false
-            }
         }
     }
-
-    // Real-time Reviews Listener
-    LaunchedEffect(Unit) {
-        com.astro5star.app.data.remote.SocketManager.onNewReview { obj ->
-            val newReview = ReviewItem(
-                id = obj.optString("_id"),
-                clientName = obj.optString("clientName"),
-                comment = obj.optString("comment"),
-                rating = obj.optInt("rating", 5),
-                astrologerName = obj.optJSONObject("astrologerId")?.optString("name") ?: "",
-                astrologerImage = obj.optJSONObject("astrologerId")?.optString("image") ?: "",
-                astrologerUserId = obj.optJSONObject("astrologerId")?.optString("userId") ?: ""
-            )
-            // Update UI on main thread: Add to top of list and keep distinct
-            reviews = (listOf(newReview) + reviews).distinctBy { it.id }.take(50)
-        }
-    }
-
-
+    
     // Language State (Default Tamil)
     var isTamil by rememberSaveable { mutableStateOf(true) }
 
@@ -824,17 +781,26 @@ fun HomeScreen(
 
                     // 3. Rasi Grid Section (Only on Home)
                     if (selectedTab == 0) {
+                        item {
+                            Text(
+                                text = Localization.get("horoscope", isTamil),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White,
+                                modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)
+                            )
+                            RasiGridSection(onRasiClick)
+                        }
 
-                    item {
-                        LiveAstroCarouselSection(
-                            astrologers = astrologers,
-                            isLoading = isLoading,
-                            isTamil = isTamil,
-                            onAstroClick = { astro ->
-                                onAstroClick(astro)
-                            }
-                        )
-                    }
+                        item {
+                            LiveAstroCarouselSection(
+                                astrologers = astrologers,
+                                isLoading = isLoading,
+                                isTamil = isTamil,
+                                onAstroClick = { astro ->
+                                    onAstroClick(astro)
+                                }
+                            )
+                        }
                     }
 
 
@@ -1170,11 +1136,15 @@ fun HomeTopBar(
 
         Text(
             text = "Astro 5 Star",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 17.sp),
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.ExtraBold, 
+                fontSize = 20.sp,
+                letterSpacing = 0.5.sp
+            ),
             color = Color.White,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f).padding(horizontal = 2.dp)
+            modifier = Modifier.weight(1f).padding(horizontal = 4.dp)
         )
 
 
@@ -1337,27 +1307,14 @@ fun AstrologerCard(
         }
     }
 
-    // ONLINE ANIMATION (Pulse Border)
-    val infiniteTransition = rememberInfiniteTransition(label = "OnlinePulse")
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 1f, targetValue = if(astro.isOnline) 0.5f else 1f,
-        animationSpec = infiniteRepeatable(tween(1000), RepeatMode.Reverse), label = "Alpha"
-    )
-    val borderColor = when {
-        astro.isBusy -> Color.Red
-        astro.isOnline -> PeacockGreen.copy(alpha = alpha)
-        else -> Color.LightGray
-    }
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            // Added SHADOW
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .shadow(
-                elevation = if (astro.isOnline) 8.dp else 2.dp,
-                shape = RoundedCornerShape(16.dp),
-                spotColor = if (astro.isOnline) PeacockGreen else Color.Black
+                elevation = 4.dp,
+                shape = RoundedCornerShape(20.dp),
+                spotColor = Color.Black.copy(alpha = 0.1f)
             )
             .clickable {
                 val intent = Intent(context, com.astro5star.app.ui.profile.AstrologerProfileActivity::class.java).apply {
@@ -1378,18 +1335,17 @@ fun AstrologerCard(
                 }
                 context.startActivity(intent)
             },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), // Handled by shadow modifier
-        border = androidx.compose.foundation.BorderStroke(if(astro.isOnline) 2.dp else 0.5.dp, borderColor) // Green Border
+        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.3f))
     ) {
-        // ... (Content remains similar, simplified for replacement)
-        Row(
-            modifier = Modifier.padding(12.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.Top
-        ) {
-             // Left Column (Avatar)
-             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(80.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Top Row: Avatar and Basic Info
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
+                // Profile Image with Status and Verified Badge
                 Box(contentAlignment = Alignment.BottomEnd) {
                     val imageUrl = if (astro.image.startsWith("http")) astro.image
                                   else if (astro.image.isNotEmpty()) {
@@ -1402,9 +1358,9 @@ fun AstrologerCard(
                         contentDescription = "Astrologer Image",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(72.dp)
+                            .size(90.dp)
                             .clip(CircleShape)
-                            .border(2.dp, if(astro.isBusy) Color.Red else if(astro.isOnline) PeacockGreen else Color.LightGray, CircleShape),
+                            .border(2.5.dp, if(astro.isBusy) Color.Red else if(astro.isOnline) PeacockGreen else Color.LightGray, CircleShape),
                         error = painterResource(id = com.astro5star.app.R.drawable.app_logo),
                         placeholder = painterResource(id = com.astro5star.app.R.drawable.app_logo)
                     )
@@ -1414,105 +1370,211 @@ fun AstrologerCard(
                             contentDescription = "Verified",
                             tint = Color(0xFF2196F3),
                             modifier = Modifier
-                                .size(22.dp)
+                                .size(24.dp)
                                 .background(Color.White, CircleShape)
-                                .border(1.5.dp, Color.White, CircleShape)
+                                .border(2.dp, Color.White, CircleShape)
+                                .offset(x = (-2).dp, y = (-2).dp)
                         )
                     }
                 }
-                 Spacer(modifier = Modifier.height(8.dp))
-                 Row(verticalAlignment = Alignment.CenterVertically) {
-                     Text("${if(astro.rating > 0) astro.rating else 4.5}", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = Color.Black)
-                     Icon(Icons.Rounded.Star, null, tint = Color(0xFFFFD700), modifier = Modifier.size(12.dp))
-                 }
-                 Text("${if(astro.orders>0) astro.orders else 3908} Orders", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = Color.Gray)
-             }
 
-             Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
-             // Right Column
-             Column(modifier = Modifier.weight(1f)) {
-                 Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                     Text(astro.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Color.Black, maxLines = 1, modifier = Modifier.weight(1f))
-                     
-                     // LIKE BUTTON (Heart)
-                     IconButton(
-                         onClick = {
-                             val userId = tokenManager.getUserSession()?.userId ?: return@IconButton
-                             coroutineScope.launch {
-                                 try {
-                                     val req = JsonObject().apply {
-                                         addProperty("clientId", userId)
-                                         addProperty("astrologerId", astro.userId)
-                                     }
-                                     val res = ApiClient.api.toggleFavorite(req)
-                                     if (res.isSuccessful) {
-                                         val msg = res.body()?.get("message")?.asString ?: "Updated favorites"
-                                         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                         // Note: In a real app, we'd update the local list state here.
-                                     }
-                                 } catch (e: Exception) {
-                                     Toast.makeText(context, "Error updating favorite", Toast.LENGTH_SHORT).show()
-                                 }
-                             }
-                         },
-                         modifier = Modifier.size(32.dp).padding(0.dp)
-                     ) {
-                         Icon(
-                             imageVector = Icons.Rounded.FavoriteBorder,
-                             contentDescription = "Like",
-                             tint = Color.Red,
-                             modifier = Modifier.size(24.dp)
-                         )
-                     }
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = astro.name,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp),
+                            color = Color.Black,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        // Top Astrologer Badge
+                        Surface(
+                            color = Color(0xFFEDE7F6),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Rounded.Star, null, tint = Color(0xFF673AB7), modifier = Modifier.size(12.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Top Astrologer", style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF673AB7), fontWeight = FontWeight.Bold, fontSize = 9.sp))
+                            }
+                        }
+                    }
 
-                     Column(horizontalAlignment = Alignment.End) {
-                         Row(verticalAlignment = Alignment.CenterVertically) {
-                          val dp = when(selectedTab) { 1->astro.chatPrice; 2->astro.videoPrice; 3->astro.audioPrice; else->astro.chatPrice }
-                          Text("₹ $dp", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = PriceRed)
-                             Spacer(modifier = Modifier.width(4.dp))
-                              Text("${(dp*2).toInt()}/Min", style = MaterialTheme.typography.bodySmall.copy(textDecoration = TextDecoration.LineThrough, fontSize = 10.sp), color = Color.Gray)
-                         }
-                     }
-                 }
-                 Spacer(modifier = Modifier.height(6.dp))
-                 InfoRow(Icons.Filled.Bolt, if(astro.skills.isNotEmpty()) astro.skills.joinToString(", ") else "Vedic, Vastu")
-                 InfoRow(Icons.Filled.Translate, "Hindi, English, Tamil")
-                 InfoRow(Icons.Filled.Schedule, "Exp: ${if(astro.experience>0) astro.experience else 5} Years")
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                 Spacer(modifier = Modifier.height(12.dp))
+                    // Rating Row
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        repeat(5) {
+                            Icon(Icons.Rounded.Star, null, tint = Color(0xFFFFC107), modifier = Modifier.size(16.dp))
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "${if(astro.rating > 0) astro.rating else 4.8} (${if(astro.orders>0) astro.orders else 8942} Reviews)",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = Color.DarkGray
+                        )
+                    }
 
-                  Row(
-                      modifier = Modifier
-                          .fillMaxWidth()
-                          .padding(top = 8.dp),
-                      horizontalArrangement = Arrangement.End,
-                      verticalAlignment = Alignment.CenterVertically
-                  ) {
-                      // Show buttons for all services but disable if offline/busy
-                      if (showChat) {
-                          if (astro.isBusy && astro.isOnline) {
-                              AstrologerActionButton("Waitlist", Icons.Filled.Schedule, true, Color.Gray, { joinAstroQueue("chat") })
-                          } else {
-                              AstrologerActionButton("Chat", Icons.Rounded.Chat, astro.isChatOnline && !astro.isBusy, AquaBlue, { onChatClick(astro) })
-                          }
-                      }
-                      if (showVideo) {
-                          if (astro.isBusy && astro.isOnline) {
-                              // Optional: single waitlist button is enough, but can show for all
-                          } else {
-                              AstrologerActionButton("Video", Icons.Rounded.VideoCall, astro.isVideoOnline && !astro.isBusy, PriceRed, { onCallClick(astro, "Video") }, Modifier.padding(start=6.dp))
-                          }
-                      }
-                      if (showCall) {
-                          if (astro.isBusy && astro.isOnline && !showChat) {
-                              AstrologerActionButton("Waitlist", Icons.Filled.Schedule, true, Color.Gray, { joinAstroQueue("audio") })
-                          } else {
-                              AstrologerActionButton("Call", Icons.Rounded.Call, astro.isAudioOnline && !astro.isBusy, PeacockGreen, { onCallClick(astro, "Audio") }, Modifier.padding(start=6.dp))
-                          }
-                      }
-                  }
-             }
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Info Rows
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Bolt, null, tint = Color.DarkGray, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(if(astro.skills.isNotEmpty()) astro.skills.take(2).joinToString(", ") else "Vedic, Tarot", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                        
+                        Text("  |  ", color = Color.LightGray)
+                        
+                        Icon(Icons.Filled.Translate, null, tint = Color.DarkGray, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Tamil, Hindi, English", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                        
+                        Text("  |  ", color = Color.LightGray)
+                        
+                        Icon(Icons.Filled.Schedule, null, tint = Color.DarkGray, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("${if(astro.experience>0) astro.experience else 5} Yrs", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    }
+                }
+
+                // Price Section (Top Right)
+                Column(horizontalAlignment = Alignment.End) {
+                    Surface(
+                        color = Color(0xFFFFEBEE),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFFFFCDD2))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Rounded.FavoriteBorder, null, tint = Color.Red, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            val dp = when(selectedTab) { 1->astro.chatPrice; 2->astro.videoPrice; 3->astro.audioPrice; else->astro.chatPrice }
+                            Text("₹ $dp", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold), color = Color.Red)
+                            Text("/min", style = MaterialTheme.typography.labelSmall.copy(color = Color.Red, fontSize = 10.sp))
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(color = Color.LightGray.copy(alpha = 0.2f), thickness = 1.dp)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Unlimited Banner Section (Conditional)
+            if (astro.unlimitedOfferEnabled) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color(0xFF4527A0),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .background(Color.White.copy(alpha = 0.15f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Rounded.Star, null, tint = Color.White, modifier = Modifier.size(28.dp))
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Unlimited Horoscope (40 Min)", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Color.White)
+                            Text("Get in-depth guidance on love, career, health, wealth & more.", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.8f))
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Surface(
+                            color = Color.White,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("₹ ${if(astro.unlimitedPrice > 0) astro.unlimitedPrice.toInt() else 299}", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Color(0xFF4527A0))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(Icons.Default.ArrowForwardIos, null, tint = Color(0xFF4527A0), modifier = Modifier.size(10.dp))
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Action Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Chat Button
+                ServiceActionButton(
+                    label = "Chat",
+                    icon = Icons.Rounded.Chat,
+                    color = Color(0xFF2196F3),
+                    modifier = Modifier.weight(1f),
+                    enabled = astro.isChatOnline && !astro.isBusy,
+                    onClick = { onChatClick(astro) }
+                )
+                // Video Button
+                ServiceActionButton(
+                    label = "Video",
+                    icon = Icons.Rounded.VideoCall,
+                    color = Color(0xFFE91E63),
+                    modifier = Modifier.weight(1f),
+                    enabled = astro.isVideoOnline && !astro.isBusy,
+                    onClick = { onCallClick(astro, "Video") }
+                )
+                // Call Button
+                ServiceActionButton(
+                    label = "Call",
+                    icon = Icons.Rounded.Call,
+                    color = Color(0xFF4CAF50),
+                    modifier = Modifier.weight(1f),
+                    enabled = astro.isAudioOnline && !astro.isBusy,
+                    onClick = { onCallClick(astro, "Audio") }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ServiceActionButton(
+    label: String,
+    icon: ImageVector,
+    color: Color,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .height(55.dp)
+            .clickable(enabled = enabled) { onClick() },
+        color = color.copy(alpha = 0.05f),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.15f))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(label, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = color)
         }
     }
 }
@@ -1791,28 +1853,13 @@ fun RasiGridSection(onClick: (ComposeRasiItem) -> Unit) {
         ComposeRasiItem(12, "Pisces", com.astro5star.app.R.drawable.ic_rasi_pisces_premium_copy, PiscesIndigo)
     )
 
-    // User Request: "12 rasi contain have one box that box bf use that bg" (Customer Style)
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha=0.5f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    androidx.compose.foundation.lazy.LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(vertical = 16.dp, horizontal = 4.dp)) {
-            val rows = rasiItems.chunked(4)
-            for (rowItems in rows) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    for (item in rowItems) {
-                        RasiItemView(item, onClick)
-                    }
-                }
-            }
+        items(rasiItems) { item ->
+            RasiItemView(item, onClick)
         }
     }
 }
@@ -2019,164 +2066,52 @@ fun TopServicesSection() {
 
 @Composable
 fun ServiceItem(name: String, iconRes: Int, onClick: () -> Unit) {
-    // MARKETPLACE SHORTCUT STYLE: White, 12dp, Thin Red Outline
+    // PREMIUM STYLE: Glassmorphism effect with Gold Border
     Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = androidx.compose.foundation.BorderStroke(1.dp, colorResource(id = com.astro5star.app.R.color.marketplace_red)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.08f)
+        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFD700).copy(alpha = 0.3f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier
-            .size(width = 80.dp, height = 90.dp)
+            .size(width = 85.dp, height = 95.dp)
             .clickable { onClick() }
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(8.dp),
+            modifier = Modifier.fillMaxSize().padding(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Image(
-                painter = painterResource(id = iconRes),
-                contentDescription = null,
-                modifier = Modifier.size(40.dp) // Slightly larger for better visibility
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(Color.White.copy(alpha = 0.1f), CircleShape)
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = name,
                 style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
-                    lineHeight = 13.sp
+                    lineHeight = 12.sp
                 ),
-                color = Color.DarkGray
+                color = Color.White
             )
         }
     }
 }
 
-@Composable
-fun CustomerStoriesSection(reviews: List<ReviewItem>, isLoading: Boolean, currentUserId: String, currentRole: String, onReviewDeleted: (String) -> Unit = {}) {
-    if (isLoading && reviews.isEmpty()) return
 
-    Column(modifier = Modifier.padding(vertical = 16.dp)) {
-        Text(
-            text = "Customer Stories & Reviews",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            color = Color.Black,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-
-        if (reviews.isEmpty()) {
-            Box(Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                Text("Giving feedback soon...", color = Color.Gray, fontSize = 12.sp)
-            }
-        } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                reviews.forEach { item ->
-                    CustomerStoryCard(item, currentUserId, currentRole, onReviewDeleted)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun CustomerStoryCard(item: ReviewItem, currentUserId: String, currentRole: String, onReviewDeleted: (String) -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var isDeleting by remember { mutableStateOf(false) }
-
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha=0.2f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.width(280.dp)
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Client Avatar (Initial or Placeholder)
-                Box(
-                    modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFFF0FDF4)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(item.clientName.take(1).uppercase(), color = Color(0xFF059669), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(text = item.clientName, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold))
-                    Text(text = "Consulted: ${item.astrologerName}", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontSize = 9.sp)
-                }
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Delete for Astrologer/Admin
-                if (currentRole == "astrologer" && item.astrologerUserId == currentUserId) {
-                    IconButton(
-                        onClick = {
-                            androidx.appcompat.app.AlertDialog.Builder(context)
-                                .setTitle("Delete Review?")
-                                .setMessage("You can delete up to 3 reviews per month. Do you want to delete this one?")
-                                .setPositiveButton("Delete") { _, _ ->
-                                    scope.launch {
-                                        isDeleting = true
-                                        try {
-                                            val req = com.google.gson.JsonObject().apply {
-                                                addProperty("reviewId", item.id)
-                                                addProperty("astrologerId", currentUserId)
-                                            }
-                                            val res = ApiClient.api.deleteReviewByAstrologer(req)
-                                            if (res.isSuccessful) {
-                                                val body = res.body()
-                                                if (body?.get("ok")?.asBoolean == true) {
-                                                    Toast.makeText(context, "Review deleted", Toast.LENGTH_SHORT).show()
-                                                    onReviewDeleted(item.id)
-                                                } else {
-                                                    val error = body?.get("error")?.asString ?: "Failed to delete"
-                                                    Toast.makeText(context, error, Toast.LENGTH_LONG).show()
-                                                }
-                                            }
-                                        } catch (e: Exception) { e.printStackTrace() } finally {
-                                            isDeleting = false
-                                        }
-                                    }
-                                }
-                                .setNegativeButton("Cancel", null)
-                                .show()
-                        },
-                        modifier = Modifier.size(24.dp),
-                        enabled = !isDeleting
-                    ) {
-                        if (isDeleting) CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                        else Icon(imageVector = Icons.Filled.Close, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
-                    }
-                }
-
-                Row {
-                    repeat(item.rating) {
-                        Icon(imageVector = Icons.Filled.Star, contentDescription = null, tint = Color(0xFFFFB300), modifier = Modifier.size(10.dp))
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = item.comment,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-                lineHeight = 16.sp
-            )
-            if (item.comment.length > 80) {
-                 Text(text = "...more", style = MaterialTheme.typography.labelSmall, color = Color.Red, fontSize = 9.sp)
-            }
-        }
-    }
-}
 
 @Composable
 fun StickyFooterButtons(
@@ -2314,13 +2249,5 @@ data class SessionHistoryItem(
     val isEarned: Boolean
 )
 
-data class ReviewItem(
-    val id: String,
-    val clientName: String,
-    val comment: String,
-    val rating: Int,
-    val astrologerName: String,
-    val astrologerImage: String,
-    val astrologerUserId: String
-)
+
 

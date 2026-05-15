@@ -1007,7 +1007,7 @@ fun AstrologerDashboardScreen(
                 "Call" to Icons.Default.Call,
                 "Chat" to Icons.Default.Chat,
                 "Earnings" to Icons.Default.MonetizationOn,
-                "Reviews" to Icons.Default.Star,
+
                 "History" to Icons.Default.History,
                 "Profile" to Icons.Default.Person
             )
@@ -1037,15 +1037,6 @@ fun AstrologerDashboardScreen(
                                              "Profile" -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.EditAstrologerProfileActivity::class.java))
                                              "History" -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.AstrologerHistoryActivity::class.java))
                                              "Earnings" -> Toast.makeText(context, "Balance: ₹${String.format("%.2f", walletBalance)}", Toast.LENGTH_SHORT).show()
-                                             "Reviews" -> {
-                                                 val intent = Intent(context, com.astro5star.app.ui.profile.AstrologerProfileActivity::class.java).apply {
-                                                     putExtra("astro_name", sessionName)
-                                                     putExtra("astro_id", sessionId) // userId
-                                                     putExtra("astro_image", profileImage)
-                                                     putExtra("astro_exp", todayProgress.toString()) // Mock exp from progress
-                                                 }
-                                                 context.startActivity(intent)
-                                             }
                                              "Chat" -> {
                                                  // Check Chat Status or open help
                                                  Toast.makeText(context, "Check Chat Requests in Real-time!", Toast.LENGTH_SHORT).show()

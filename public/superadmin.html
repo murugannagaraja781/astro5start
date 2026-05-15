@@ -1063,6 +1063,14 @@
                                     class="w-full bg-slate-50 p-5 rounded-2xl border-0 focus:ring-2 focus:ring-brand-green font-bold text-slate-800 shadow-sm">
                             </div>
                         </div>
+
+                        <div class="flex items-center gap-3 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                            <input type="checkbox" id="banner-show-content" class="w-6 h-6 rounded-lg text-brand-green focus:ring-brand-green border-emerald-200" checked>
+                            <div>
+                                <label class="block text-xs font-black text-emerald-900 uppercase tracking-widest">Show Text Overlay</label>
+                                <p class="text-[9px] font-bold text-emerald-600/70">Enable to show Title, Subtitle and "Explore Now" button on the banner image.</p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="flex justify-end pt-4">
@@ -3325,6 +3333,7 @@
                 order: parseInt(document.getElementById('banner-order').value),
                 offerPercentage: parseFloat(document.getElementById('banner-offer').value),
                 expiryDate: document.getElementById('banner-expiry').value,
+                showContent: document.getElementById('banner-show-content').checked,
                 ctaText: 'Explore Now'
             };
 
@@ -3371,6 +3380,7 @@
             document.getElementById('banner-image').value = b.imageUrl || '';
             document.getElementById('banner-order').value = b.order || 0;
             document.getElementById('banner-offer').value = b.offerPercentage || 0;
+            document.getElementById('banner-show-content').checked = b.showContent !== false;
 
             if (b.expiryDate) {
                 const d = new Date(b.expiryDate);

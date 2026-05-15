@@ -16,5 +16,6 @@ data class Banner(
     @SerializedName("order") val order: Int = 0,
     @SerializedName("isActive") val isActive: Boolean = true,
     @SerializedName("offerPercentage") val offerPercentage: Double = 0.0,
-    @SerializedName("expiryDate") val expiryDate: String? = null
+    @SerializedName("expiryDate") val expiryDate: String? = null,
+    @SerializedName("showContent") val showContent: Boolean = true
 )
