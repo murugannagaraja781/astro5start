@@ -34,6 +34,16 @@ import java.util.concurrent.TimeUnit
 
 
 import com.astro5star.app.ui.dashboard.RasiDetailDialog
+import androidx.compose.material3.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.astro5star.app.ui.theme.PeacockGreen
 
 class HomeActivity : AppCompatActivity() {
 
@@ -148,11 +158,38 @@ class HomeActivity : AppCompatActivity() {
                 val banners by _banners.collectAsState()
                 val waitlist by _waitlist.collectAsState()
 
-                var selectedRasiItem by remember { mutableStateOf<ComposeRasiItem?>(null) }
+                var showRasiSelector by remember { mutableStateOf(false) }
 
-
-                // Dialog removed in favor of Activity navigation
-
+                if (showRasiSelector) {
+                    AlertDialog(
+                        onDismissRequest = { showRasiSelector = false },
+                        confirmButton = {},
+                        title = { 
+                            Text(
+                                "Daily Horoscope (ராசி பலன்)", 
+                                color = PeacockGreen, 
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            ) 
+                        },
+                        text = {
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                RasiGridSection(onClick = { item ->
+                                    showRasiSelector = false
+                                    val intent = Intent(this@HomeActivity, com.astro5star.app.ui.rasipalan.RasipalanActivity::class.java).apply {
+                                        putExtra("signId", item.id)
+                                        putExtra("signName", item.name)
+                                    }
+                                    startActivity(intent)
+                                })
+                            }
+                        },
+                        containerColor = Color.White,
+                        shape = RoundedCornerShape(24.dp)
+                    )
+                }
 
                 HomeScreen(
                     walletBalance = balance,
@@ -230,7 +267,11 @@ class HomeActivity : AppCompatActivity() {
                         }
                     },
                     onServiceClick = { serviceName ->
-                        handleServiceClick(serviceName)
+                        if (serviceName.contains("Daily Horoscope", ignoreCase = true)) {
+                            showRasiSelector = true
+                        } else {
+                            handleServiceClick(serviceName)
+                        }
                     },
                     onWalletClick = {
                         startActivity(Intent(this, com.astro5star.app.ui.wallet.WalletActivity::class.java))
@@ -267,7 +308,27 @@ class HomeActivity : AppCompatActivity() {
                             startActivity(profileIntent)
                         }
                     },
-                    onApplyReferral = { code -> applyReferralCode(code) }
+                    onApplyReferral = { code -> applyReferralCode(code) },
+                    onAstroClick = { astro ->
+                        val profileIntent = Intent(this, com.astro5star.app.ui.profile.AstrologerProfileActivity::class.java).apply {
+                            putExtra("astro_name", astro.name)
+                            putExtra("astro_exp", astro.experience.toString())
+                            putExtra("astro_skills", astro.skills.joinToString(", "))
+                            putExtra("astro_id", astro.userId)
+                            putExtra("is_chat_online", astro.isChatOnline)
+                            putExtra("is_audio_online", astro.isAudioOnline)
+                            putExtra("is_video_online", astro.isVideoOnline)
+                            putExtra("astro_image", astro.image)
+                            putExtra("astro_price", astro.price)
+                            putExtra("chat_price", astro.chatPrice)
+                            putExtra("audio_price", astro.audioPrice)
+                            putExtra("video_price", astro.videoPrice)
+                            putExtra("unlimited_price", astro.unlimitedPrice)
+                            putExtra("unlimited_enabled", astro.unlimitedOfferEnabled)
+                            putExtra("is_busy", astro.isBusy)
+                        }
+                        startActivity(profileIntent)
+                    }
                 )
 
             }

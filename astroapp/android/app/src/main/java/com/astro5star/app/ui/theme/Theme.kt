@@ -80,7 +80,7 @@ fun CosmicAppTheme(
         )
     }
 
-    private fun findActivity(context: android.content.Context): Activity? {
+    fun findActivity(context: android.content.Context): Activity? {
         var ctx = context
         while (ctx is android.content.ContextWrapper) {
             if (ctx is Activity) return ctx

@@ -2212,6 +2212,87 @@
       font-family: inherit;
       font-size: 0.9rem;
     }
+
+    /* Live Astrologer Carousel Styles */
+    .astro-carousel {
+      display: flex;
+      overflow-x: auto;
+      gap: 15px;
+      padding: 10px 5px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .astro-carousel::-webkit-scrollbar {
+      display: none;
+    }
+
+    .carousel-item {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .carousel-item:active {
+      transform: scale(0.95);
+    }
+
+    .carousel-img-wrap {
+      position: relative;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      padding: 2px;
+      background: linear-gradient(45deg, #f59e0b, #10b981);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .carousel-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid white;
+    }
+
+    .carousel-status {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      width: 14px;
+      height: 14px;
+      background: #10b981;
+      border: 2px solid white;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .carousel-name {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #374151;
+      width: 75px;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .carousel-loading {
+      width: 100%;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+      font-size: 1.5rem;
+    }
   </style>
 
   <!-- Screen: Client Dashboard -->
@@ -2389,7 +2470,7 @@
               <span>Horoscope Match</span>
             </div>
             <div class="service-item-card"
-              onclick="document.getElementById('dailyHoroscopeSection').scrollIntoView({behavior:'smooth'})">
+              onclick="document.getElementById('screen-horoscope').classList.remove('hidden')">
               <img src="images/daily_horoscope_icon.png" alt="Daily">
               <span>Daily Horoscope</span>
             </div>
@@ -2444,26 +2525,51 @@
           }
         </style>
 
-        <!-- Horoscope Section -->
-        <div id="dailyHoroscopeSection" style="margin-bottom: 30px;">
-          <div class="horoscope-header">
-            <div class="horoscope-title-group">
-              <span id="activeSignIcon" style="font-size: 1.5rem;">♈</span>
-              <h3 class="horoscope-main-title" id="activeSignName">மேஷம்</h3>
-            </div>
-            <span id="horoscopeDate" class="date-badge">Loading...</span>
+        <!-- Live Astrologers Carousel -->
+        <div id="liveAstroCarouselSection" style="margin-bottom: 25px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0; font-size:1.1rem; color:#1F2937;">Online Astrologers</h3>
+            <span style="font-size:0.75rem; color:#059669; font-weight:600;">Swipe for more →</span>
           </div>
-
-          <div class="zodiac-scroller" id="zodiacScroller">
-            <!-- Dynamic Zodiac Signs -->
-          </div>
-
-          <div class="horoscope-card">
-            <div id="horoscopeLoading" class="loading-spinner">
-              <i class="fas fa-circle-notch"></i>
+          <div id="liveAstroCarousel" class="astro-carousel">
+            <div class="carousel-loading" id="carouselSpinner">
+              <i class="fas fa-circle-notch fa-spin"></i>
             </div>
-            <div class="horoscope-content-box" id="horoscopeContent">
-              உங்கள் ராசிபலனை அறிய மேலே உள்ள ராசியைத் தேர்ந்தெடுக்கவும்...
+          </div>
+        </div>
+
+        <!-- Horoscope Modal -->
+        <div id="screen-horoscope" class="modal-overlay hidden" style="z-index: 10000; align-items: flex-end;">
+          <div style="background:#F3F4F6; width:100%; height:90vh; border-top-left-radius:25px; border-top-right-radius:25px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 -5px 20px rgba(0,0,0,0.2); animation:slideUp 0.3s ease-out; max-width:500px;">
+            <div style="padding:20px; background:white; font-weight:700; font-size:1.2rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e5e5; color:#1F2937;">
+              <span>🔮 Daily Horoscope</span>
+              <button onclick="document.getElementById('screen-horoscope').classList.add('hidden')" style="background:none; border:none; font-size:1.4rem; color:#6B7280; cursor:pointer;"><i class="fas fa-times"></i></button>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:20px;">
+              <div id="dailyHoroscopeSection" style="margin-bottom: 30px;">
+                <div class="horoscope-header">
+                  <div class="horoscope-title-group">
+                    <span id="activeSignIcon" style="font-size: 1.5rem;">♈</span>
+                    <h3 class="horoscope-main-title" id="activeSignName">மேஷம்</h3>
+                  </div>
+                  <span id="horoscopeDate" class="date-badge">Loading...</span>
+                </div>
+
+                <div class="zodiac-scroller" id="zodiacScroller">
+                  <!-- Dynamic Zodiac Signs -->
+                </div>
+
+                <div class="horoscope-card">
+                  <div id="horoscopeLoading" class="loading-spinner">
+                    <i class="fas fa-circle-notch"></i>
+                  </div>
+                  <div class="horoscope-content-box" id="horoscopeContent">
+                    <div id="horoscopeText">
+                      உங்கள் ராசிபலனை அறிய மேலே உள்ள ராசியைத் தேர்ந்தெடுக்கவும்...
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -4691,6 +4797,7 @@
       socket.on('astrologer-update', (data) => {
         const list = Array.isArray(data) ? data : (data && data.list ? data.list : []);
         state.astroList = list;
+        renderLiveAstroCarousel(list);
         const active = document.querySelector('.nav-item.active');
         if (active) {
           if (active.id === 'nav-call') navSwitch('call');
@@ -4704,6 +4811,7 @@
       socket.on('astro-list', (data) => {
         const list = Array.isArray(data) ? data : (data && data.list ? data.list : []);
         state.astroList = list;
+        renderLiveAstroCarousel(list);
         renderAstroList(list);
       });
 
@@ -5022,12 +5130,6 @@
 
       const sectHome = document.getElementById('section-home');
       const sectDash = document.getElementById('section-dash');
-      const horoSection = document.getElementById('dailyHoroscopeSection');
-
-      if (horoSection) {
-        // Only show Horoscope on Home tab
-        horoSection.style.display = (tab === 'home') ? 'block' : 'none';
-      }
 
       if (tab === 'home') {
         if (sectHome) sectHome.classList.remove('hidden');
@@ -5150,13 +5252,63 @@
     };
 
     function fetchAstrologers() {
+      const spinner = document.getElementById('carouselSpinner');
+      if (spinner) spinner.style.display = 'flex';
+
       socket.emit('get-astrologers', (res) => {
+        if (spinner) spinner.style.display = 'none';
         const list = res.astrologers || (res.list ? res.list : []);
         state.astroList = list;
+        renderLiveAstroCarousel(list);
         renderAstroList(list);
       });
     }
 
+    function renderLiveAstroCarousel(list) {
+      const container = document.getElementById('liveAstroCarousel');
+      if (!container) return;
+      container.innerHTML = '';
+
+      // Only show Online Astrologers in carousel
+      const liveAstros = (list || []).filter(a => a.isOnline || a.isAudioOnline || a.isChatOnline || a.isVideoOnline);
+
+      if (liveAstros.length === 0) {
+        container.innerHTML = '<div style="font-size:0.8rem; color:#9CA3AF; padding:10px;">No live astrologers right now.</div>';
+        return;
+      }
+
+      liveAstros.forEach(a => {
+        const item = document.createElement('div');
+        item.className = 'carousel-item';
+        item.onclick = () => {
+          // Scroll to the astrologer in the main list
+          const target = document.querySelector(`[data-user-id="${a.userId}"]`);
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            target.style.background = '#FFFBEB';
+            setTimeout(() => target.style.background = '', 2000);
+          } else {
+            // If main list not rendered or filtered, just open profile
+            if (typeof openAstroProfile === 'function') openAstroProfile(a);
+            else if (typeof checkGuestAction === 'function') checkGuestAction('view', a.userId);
+          }
+        };
+
+        const imgUrl = a.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=d1fae5&color=059669&bold=true`;
+
+        item.innerHTML = `
+          <div class="carousel-img-wrap">
+            <img src="${imgUrl}" class="carousel-img" alt="${a.name}">
+            <span class="carousel-status"></span>
+          </div>
+          <div class="carousel-name">${a.name.split(' ')[0]}</div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // Add data-user-id to main list items for scrolling
+    const originalRenderAstroList = renderAstroList;
     function renderAstroList(list) {
       const container = document.getElementById('astroList');
       container.innerHTML = '';
@@ -5179,7 +5331,11 @@
       astrologers.forEach(a => {
         const div = document.createElement('div');
         div.className = 'at-card';
-        div.onclick = () => openAstroProfile(a);
+        div.setAttribute('data-user-id', a.userId); // Add this for carousel navigation
+        div.onclick = () => {
+           if (typeof openAstroProfile === 'function') openAstroProfile(a);
+           else checkGuestAction('view', a.userId);
+        };
 
         const orderCount = a.orderCount || Math.floor(Math.random() * 500) + 100;
         const languages = a.languages || ['Tamil', 'English'];

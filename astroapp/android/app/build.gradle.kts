@@ -16,8 +16,8 @@ android {
         applicationId = "com.astro5star.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 36
-        versionName = "5.0.36"
+        versionCode = 5
+        versionName = "5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -71,7 +71,7 @@ android {
 
     packaging {
         jniLibs {
-            useLegacyPackaging = true
+            useLegacyPackaging = false
         }
     }
 }
@@ -89,7 +89,11 @@ dependencies {
     // Image Loading
     implementation("com.github.bumptech.glide:glide:4.16.0")
     implementation("de.hdodenhof:circleimageview:3.1.0")
+    implementation("io.coil-kt:coil:2.6.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // Shimmer Effect
+    implementation("com.facebook.shimmer:shimmer:0.5.0")
 
     // Firebase (Safe 2024 versions)
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
@@ -108,6 +112,7 @@ dependencies {
 
     // Lifecycle
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.0")
 
@@ -117,8 +122,8 @@ dependencies {
     // Socket.IO
     implementation("io.socket:socket.io-client:2.1.0")
 
-    // WebRTC
-    implementation("io.getstream:stream-webrtc-android:1.2.2")
+    // WebRTC (Update to latest for 16KB support attempts)
+    implementation("io.getstream:stream-webrtc-android:1.3.10")
 
     // PhonePe (Keep slightly older or check compatibility)
     implementation("phonepe.intentsdk.android.release:IntentSDK:5.3.0")

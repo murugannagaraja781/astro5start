@@ -360,7 +360,8 @@ fun HomeScreen(
     isNewUser: Boolean = false,
     waitlist: List<org.json.JSONObject> = emptyList(),
     onWaitlistClick: (String) -> Unit = {},
-    onApplyReferral: (String) -> Unit = {}
+    onApplyReferral: (String) -> Unit = {},
+    onAstroClick: (Astrologer) -> Unit = {}
 ) {
 
     val context = LocalContext.current
@@ -823,19 +824,19 @@ fun HomeScreen(
 
                     // 3. Rasi Grid Section (Only on Home)
                     if (selectedTab == 0) {
-                        item {
-                            Text(
-                                text = Localization.get("horoscope", isTamil),
-                                style = MaterialTheme.typography.titleLarge,
-                                color = CosmicAppTheme.colors.accent,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                        }
-                        item { RasiGridSection(onRasiClick) }
+
+                    item {
+                        LiveAstroCarouselSection(
+                            astrologers = astrologers,
+                            isLoading = isLoading,
+                            isTamil = isTamil,
+                            onAstroClick = { astro ->
+                                onAstroClick(astro)
+                            }
+                        )
+                    }
                     }
 
-                    // 4. Customer Stories (Marketplace)
-                    item { CustomerStoriesSection(reviews, isReviewsLoading, userSession?.userId ?: "", userSession?.role ?: "", onReviewDeleted = { reviews = reviews.filter { r -> r.id != it } }) }
 
                     // 5. Astrologers Title
                     item {
@@ -1680,6 +1681,97 @@ fun DailyHoroscopeCard(content: String) {
             }
         }
     }
+}
+
+@Composable
+fun LiveAstroCarouselSection(
+    astrologers: List<Astrologer>,
+    isLoading: Boolean,
+    isTamil: Boolean,
+    onAstroClick: (Astrologer) -> Unit
+) {
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = PeacockGreen)
+        }
+        return
+    }
+
+    // Only show Online Astrologers in carousel
+    val liveAstros = astrologers.filter { it.isOnline || it.isAudioOnline || it.isChatOnline || it.isVideoOnline }
+    
+    if (liveAstros.isEmpty()) return
+
+    Column(modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = Localization.get("live_astrologer", isTamil),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = Color.White
+            )
+            Text(
+                text = "Swipe for more →",
+                style = MaterialTheme.typography.labelSmall,
+                color = PeacockGreen
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            liveAstros.forEach { astro ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.clickable { onAstroClick(astro) }
+                ) {
+                    Box {
+                        AsyncImage(
+                            model = if (astro.image.isNotEmpty()) {
+                                if (astro.image.startsWith("http")) astro.image 
+                                else "${com.astro5star.app.utils.Constants.SERVER_URL}${if (astro.image.startsWith("/")) "" else "/"}${astro.image}"
+                            } else "https://ui-avatars.com/api/?name=${encodeURIComponent(astro.name)}&background=d1fae5&color=059669&bold=true",
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .border(2.dp, PeacockGreen, CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(16.dp)
+                                .align(Alignment.BottomEnd)
+                                .offset(x = (-2).dp, y = (-2).dp)
+                                .background(Color(0xFF4CAF50), CircleShape)
+                                .border(2.dp, Color.White, CircleShape)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = astro.name.split(" ")[0],
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.width(80.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+}
+
+// Helper to encode URI components in Kotlin
+fun encodeURIComponent(s: String): String {
+    return java.net.URLEncoder.encode(s, "UTF-8")
 }
 
 @Composable
