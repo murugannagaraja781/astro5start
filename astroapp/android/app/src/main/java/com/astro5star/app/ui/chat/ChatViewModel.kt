@@ -159,7 +159,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun joinSession(sessionId: String) {
         viewModelScope.launch(Dispatchers.IO) {
-             val payload = JSONObject().apply { put("sessionId", sessionId) }
+             val payload = JSONObject().apply { 
+                 put("sessionId", sessionId) 
+                 val myId = com.astro5star.app.data.local.TokenManager(getApplication()).getUserSession()?.userId
+                 if (myId != null) put("userId", myId)
+             }
              SocketManager.getSocket()?.emit("session-connect", payload)
         }
     }

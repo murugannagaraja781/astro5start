@@ -58,6 +58,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URL
@@ -194,8 +195,10 @@ class ChatActivity : ComponentActivity() {
             if (myId != null) {
                 com.astro5star.app.data.remote.SocketManager.registerUser(myId) { success ->
                     runOnUiThread {
-                        if (success) Toast.makeText(this, "Socket Registered", Toast.LENGTH_SHORT).show()
-                        else Toast.makeText(this, "Socket Reg Failed", Toast.LENGTH_SHORT).show()
+                        if (!success) {
+                            // Only show error toasts, not success/debug ones
+                            Toast.makeText(this, "Connection Error - Retrying...", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }
@@ -204,7 +207,6 @@ class ChatActivity : ComponentActivity() {
             handleIntent(intent)
             
             android.util.Log.d("ChatActivity", "Chat Init: From=$myId, To=$toUserId, Session=$sessionId")
-            Toast.makeText(this, "Chat Ready: $toUserId", Toast.LENGTH_SHORT).show()
 
             // --- GLOBAL STATE FIX: Mark chat as active to prevent incoming calls during session ---
             com.astro5star.app.utils.CallState.isCallActive = true
@@ -618,22 +620,31 @@ class ChatActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         // Re-synchronize on resume to catch any messages missed during multitasking
-        sessionId?.let {
-            viewModel.loadHistory(it)
-            viewModel.joinSessionSafe(it)
-        }
-
         viewModel.startListeners()
         val myUserId = TokenManager(this).getUserSession()?.userId
         if (myUserId != null) {
-            SocketManager.registerUser(myUserId) {
-                // Socket registered - now emit pending accept if any
-                if (pendingAccept && sessionId != null && toUserId != null) {
-                    pendingAccept = false
-                if (sessionId != null && toUserId != null) {
-                    viewModel.acceptSession(sessionId ?: "", toUserId ?: "")
-                }
-                    android.util.Log.d("ChatActivity", "Emitted acceptSession after socket registration")
+            SocketManager.registerUser(myUserId) { success ->
+                if (success) {
+                    // Socket registered - handle session initialization
+                    sessionId?.let { sid ->
+                        viewModel.loadHistory(sid) // Refresh history on resume
+                        if (pendingAccept && toUserId != null) {
+                            android.util.Log.i("ChatActivity", "Accepting pending session: $sid")
+                            pendingAccept = false
+                            viewModel.acceptSession(sid, toUserId ?: "")
+                            // joinSessionSafe will be called inside viewModel.acceptSession (via repository)
+                            // or we can call it here after a short delay
+                            lifecycleScope.launch {
+                                delay(1000)
+                                viewModel.joinSessionSafe(sid)
+                            }
+                        } else {
+                            // Standard join for already active session
+                            viewModel.joinSessionSafe(sid)
+                        }
+                    }
+                } else {
+                    android.util.Log.e("ChatActivity", "Failed to register socket in onResume")
                 }
             }
         }
@@ -876,17 +887,25 @@ fun ChatScreen(
                         "rasi_kadam_analysis" -> "நான் உங்கள் ஜாதகத்தை பகுப்பாய்வு செய்கிறேன்."
                         else -> statusMsg
                     }
+                    val isError = statusMsg.contains("error", ignoreCase = true) || 
+                                 statusMsg.contains("failed", ignoreCase = true) || 
+                                 statusMsg.contains("invalid", ignoreCase = true)
+                    
+                    val bgColor = if (isError) Color(0xFFFFEBEE) else Color(0xFFFFF9C4)
+                    val textColor = if (isError) Color(0xFFD32F2F) else Color.Black
+
                     Surface(
-                        color = Color(0xFFFFF9C4),
+                        color = bgColor,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(8.dp),
-                        shadowElevation = 2.dp
+                        shadowElevation = 2.dp,
+                        border = if (isError) androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD32F2F).copy(alpha=0.3f)) else null
                     ) {
                         Text(
                             text = displayStatus,
                             modifier = Modifier.padding(12.dp),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Black,
+                            color = textColor,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
                         )

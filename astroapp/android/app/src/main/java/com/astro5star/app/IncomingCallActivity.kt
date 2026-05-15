@@ -350,6 +350,23 @@ class IncomingCallActivity : ComponentActivity() {
                 }
                 SocketManager.getSocket()?.emit("answer-session", payload)
                 Log.d(TAG, "Emitted answer-session (accept) immediately from IncomingCallActivity")
+
+                // REST FALLBACK: Ensure server receives acceptance even if socket is disconnected (Crucial for OnePlus)
+                val myId = com.astro5star.app.data.local.TokenManager(this).getUserSession()?.userId
+                if (myId != null) {
+                    val gsonPayload = com.google.gson.JsonObject().apply {
+                        addProperty("sessionId", callId)
+                        addProperty("astrologerId", myId)
+                        addProperty("accept", true)
+                        addProperty("type", callType)
+                    }
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        try {
+                            com.astro5star.app.data.api.ApiClient.api.acceptCall(gsonPayload)
+                            Log.d(TAG, "REST accept-call successful fallback")
+                        } catch (e: Exception) { Log.e(TAG, "REST accept-call fallback failed", e) }
+                    }
+                }
             } catch (e: Exception) { Log.e(TAG, "Failed to emit answer-session on accept", e) }
         }
 
@@ -360,6 +377,7 @@ class IncomingCallActivity : ComponentActivity() {
         SocketManager.remoteLog("User clicked ACCEPT: Type=$finalType Ses=$callId", callId)
 
         if (finalType.contains("chat")) {
+            Log.d(TAG, "Navigating to ChatActivity for session $callId")
             intent = Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 putExtra("sessionId", callId)
@@ -369,6 +387,7 @@ class IncomingCallActivity : ComponentActivity() {
                 putExtra("birthData", birthData)
             }
         } else {
+            Log.d(TAG, "Navigating to CallActivity for session $callId")
             intent = Intent(this, com.astro5star.app.ui.call.CallActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 putExtra("sessionId", callId)
@@ -381,7 +400,14 @@ class IncomingCallActivity : ComponentActivity() {
                 putExtra("partnerImage", callerImage)
             }
         }
-        startActivity(intent)
+        
+        try {
+            startActivity(intent)
+            Log.d(TAG, "startActivity called successfully")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start activity", e)
+            android.widget.Toast.makeText(this, "Failed to open chat: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+        }
 
         shouldStopServiceOnDestroy = false
         finish()
@@ -397,11 +423,13 @@ class IncomingCallActivity : ComponentActivity() {
                     val body = response.body() ?: return@launch
                     val status = body.get("status")?.asString ?: "expired"
                     
-                    if (status != "requested") {
+                    if (status != "requested" && status != "active") {
                         Log.w(TAG, "Ghost Call Detected: Session $sessionId is $status. Auto-dismissing.")
                         withContext(Dispatchers.Main) {
                             onCallRejected()
                         }
+                    } else if (status == "active") {
+                        Log.d(TAG, "Call verified: Session $sessionId is already ACTIVE. This is acceptable for reconnection/retries.")
                     } else {
                         Log.d(TAG, "Call verified: Session $sessionId is still $status")
                     }
