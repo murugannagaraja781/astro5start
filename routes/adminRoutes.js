@@ -100,7 +100,6 @@ router.post('/app-update-settings', async (req, res) => {
 });
 
 // Banner Management
-const bannerController = require('../controllers/bannerController');
 router.get('/banners', bannerController.getAllBanners);
 router.post('/banners', bannerController.createBanner);
 router.put('/banners/:id', bannerController.updateBanner);
