@@ -128,6 +128,7 @@
         <activity android:name=".ui.astro.AstrologerHistoryActivity" />
         <activity android:name=".ui.admin.SuperPowerAdminDashboardActivity" android:exported="false" android:theme="@style/Theme.FCMCallApp"/>
         <activity android:name=".ui.admin.MissedCallNotificationsActivity" android:exported="false" android:theme="@style/Theme.FCMCallApp"/>
+        <activity android:name=".ui.admin.AppUpdateSettingsActivity" android:exported="false" android:theme="@style/Theme.FCMCallApp"/>
         <activity android:name=".ui.settings.SettingsActivity" />
         <activity android:name=".ui.settings.ThemeSettingsActivity" />
         <activity android:name=".ui.rasipalan.RasipalanActivity" />

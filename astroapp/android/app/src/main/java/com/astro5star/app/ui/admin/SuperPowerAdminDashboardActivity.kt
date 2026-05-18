@@ -168,6 +168,19 @@ fun SuperPowerScreen(
                 Text("View Missed Call Notifications", fontWeight = FontWeight.Bold)
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    context.startActivity(Intent(context, com.astro5star.app.ui.admin.AppUpdateSettingsActivity::class.java))
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32), contentColor = Color.White),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("App Update Settings", fontWeight = FontWeight.Bold)
+            }
+
             // ... (Rest of Page logic assumed ok or we can comment it out if risky)
             // Ideally we need to check if PageThemeManager exists.
             // But let's assume it does.

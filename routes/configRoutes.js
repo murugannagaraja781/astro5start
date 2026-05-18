@@ -46,12 +46,12 @@ router.get('/app-config', (req, res) => {
     const { REFERRAL_CONFIG } = require('../services/sharedState');
     res.json({
         ok: true,
-        minVersionCode: parseInt(process.env.MIN_VERSION_CODE) || 5,
-        latestVersionName: process.env.LATEST_VERSION_NAME || "5.0.0",
-        updateUrl: process.env.APP_UPDATE_URL,
+        minVersionCode: parseInt(REFERRAL_CONFIG.MIN_APP_VERSION) || 37,
+        latestVersionName: REFERRAL_CONFIG.LATEST_VERSION_NAME || "6.0.0",
+        updateUrl: REFERRAL_CONFIG.APP_UPDATE_URL || "https://play.google.com/store/apps/details?id=com.astro5star.app",
         referralBaseUrl: `${REFERRAL_CONFIG.APP_BASE_URL}&referrer=`,
         forceUpdate: true,
-        message: process.env.UPDATE_MESSAGE || "A new version of Astro5Star is available with improved call quality. Please update to continue.",
+        message: REFERRAL_CONFIG.UPDATE_MESSAGE || "A new version of Astro5Star is available. Please update to continue.",
 
         // Dynamic Referral UI Text
         REFERRAL_TITLE_TA: REFERRAL_CONFIG.REFERRAL_TITLE_TA,

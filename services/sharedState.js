@@ -72,7 +72,9 @@ let REFERRAL_CONFIG = {
     REFERRAL_WHATSAPP_MSG_TA: "Astro 5 Star-ல் இணையுங்கள்! Referral Code: {code}. ₹108 போனஸ் பெறுங்கள்: ",
     REFERRAL_WHATSAPP_MSG_EN: "Join Astro 5 Star! Get ₹108 bonus: ",
     SUPPORT_WHATSAPP: process.env.SUPPORT_WHATSAPP || "919999999999",
-    SUPPORT_EMAIL: process.env.ADMIN_EMAIL || "admin@astro5star.com"
+    SUPPORT_EMAIL: process.env.ADMIN_EMAIL || "admin@astro5star.com",
+    MIN_APP_VERSION: 37,
+    APP_UPDATE_URL: "https://play.google.com/store/apps/details?id=com.astro5star.app"
 };
 
 async function loadSlabRates() {

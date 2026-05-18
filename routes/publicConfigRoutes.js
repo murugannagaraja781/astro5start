@@ -11,6 +11,8 @@ router.get('/public', (req, res) => {
         FREE_CALL_DURATION: REFERRAL_CONFIG.FREE_CALL_DURATION || 3,
         SHOW_PROMO: true,
         APP_BASE_URL: REFERRAL_CONFIG.APP_BASE_URL,
+        MIN_APP_VERSION: REFERRAL_CONFIG.MIN_APP_VERSION || 37,
+        APP_UPDATE_URL: REFERRAL_CONFIG.APP_UPDATE_URL || "https://play.google.com/store/apps/details?id=com.astro5star.app",
         // UI Text for Referral
         REFERRAL_TITLE_TA: REFERRAL_CONFIG.REFERRAL_TITLE_TA,
         REFERRAL_TITLE_EN: REFERRAL_CONFIG.REFERRAL_TITLE_EN,

@@ -64,7 +64,43 @@ router.post('/recharge-settings', async (req, res) => {
     }
 });
 
-// Banner Management (Requirement 3: Fix for admin panel)
+router.get('/app-update-settings', (req, res) => {
+    res.json({ 
+        ok: true, 
+        data: {
+            latestVersion: REFERRAL_CONFIG.LATEST_VERSION_NAME || "6.0.0",
+            downloadUrl: REFERRAL_CONFIG.APP_UPDATE_URL || "https://play.google.com/store/apps/details?id=com.astro5star.app",
+            forceUpdate: REFERRAL_CONFIG.FORCE_UPDATE || false,
+            minVersionCode: REFERRAL_CONFIG.MIN_APP_VERSION || 37
+        }
+    });
+});
+
+router.post('/app-update-settings', async (req, res) => {
+    try {
+        const { latestVersion, downloadUrl, forceUpdate, minVersionCode } = req.body;
+        
+        const config = {
+            ...REFERRAL_CONFIG, // Keep existing referral settings
+            LATEST_VERSION_NAME: latestVersion,
+            APP_UPDATE_URL: downloadUrl,
+            FORCE_UPDATE: forceUpdate,
+            MIN_APP_VERSION: parseInt(minVersionCode) || 37
+        };
+
+        const success = await updateReferralConfig(config);
+        if (success) {
+            res.json({ ok: true, message: 'App update settings updated successfully' });
+        } else {
+            res.status(500).json({ ok: false, message: 'Failed to update settings' });
+        }
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// Banner Management
+const bannerController = require('../controllers/bannerController');
 router.get('/banners', bannerController.getAllBanners);
 router.post('/banners', bannerController.createBanner);
 router.put('/banners/:id', bannerController.updateBanner);

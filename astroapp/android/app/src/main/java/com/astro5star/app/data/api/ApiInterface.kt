@@ -100,6 +100,9 @@ interface ApiInterface {
     @retrofit2.http.GET("api/app-config")
     suspend fun getAppConfig(): Response<com.google.gson.JsonObject>
 
+    @POST("api/admin/app-update-settings")
+    suspend fun updateAppConfig(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
     @retrofit2.http.GET("api/admin/notifications")
     suspend fun getNotifications(): Response<com.astro5star.app.data.model.NotificationResponse>
 
