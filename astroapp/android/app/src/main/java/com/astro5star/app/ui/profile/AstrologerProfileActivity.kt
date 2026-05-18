@@ -143,9 +143,10 @@ fun AstrologerProfileScreen(
             scope.launch {
                 try {
                     val profileRes = ApiClient.api.getUserProfile(currentUser.userId)
-                    if (profileRes.isSuccessful && profileRes.body() != null) {
-                        walletBalance = profileRes.body()!!.walletBalance ?: walletBalance
-                        superBalance = profileRes.body()!!.superWalletBalance ?: superBalance
+                    val body = profileRes.body()
+                    if (profileRes.isSuccessful && body != null) {
+                        walletBalance = body.walletBalance ?: walletBalance
+                        superBalance = body.superWalletBalance ?: superBalance
                     }
                 } catch (e: Exception) {}
             }
@@ -154,8 +155,9 @@ fun AstrologerProfileScreen(
         if (id.isEmpty() || currentUser?.userId == null) return@LaunchedEffect
         try {
             val res = ApiClient.api.getFavorites(currentUser.userId)
-            if (res.isSuccessful && res.body() != null) {
-                val data = res.body()!!.getAsJsonArray("data")
+            val body = res.body()
+            if (res.isSuccessful && body != null) {
+                val data = body.getAsJsonArray("data")
                 if (data != null) {
                     for (i in 0 until data.size()) {
                         val obj = data.get(i).asJsonObject

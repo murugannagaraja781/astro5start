@@ -56,6 +56,7 @@ import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
+import com.astro5star.app.utils.Localization
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import coil.compose.AsyncImage
@@ -216,6 +217,9 @@ class CallActivity : ComponentActivity() {
 
     private val pendingIceCandidates = LinkedList<IceCandidate>()
 
+    // Language State
+    private var isTamil = true
+
     private var iceServers = listOf(
         PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
     )
@@ -306,7 +310,7 @@ class CallActivity : ComponentActivity() {
                         endCall()
                     } else {
                         lastBackPressedTime = currentTime
-                        Toast.makeText(this@CallActivity, "Press back again to end the call", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@CallActivity, com.astro5star.app.utils.Localization.get("press_back_again_to_end", isTamil), Toast.LENGTH_SHORT).show()
                     }
                 }
                 CosmicAppTheme {
@@ -352,7 +356,8 @@ class CallActivity : ComponentActivity() {
                             startActivity(intent)
                             showMatchSummary = false
                         },
-                        showConnectedOverlay = showConnectedOverlay
+                        showConnectedOverlay = showConnectedOverlay,
+                        isTamil = isTamil
                     )
                 }
             }
@@ -485,7 +490,7 @@ class CallActivity : ComponentActivity() {
         val newMute = !isMutedState
         isMutedState = newMute
         localAudioTrack?.setEnabled(!newMute)
-        Toast.makeText(this, if (newMute) "Muted" else "Unmuted", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, if (newMute) com.astro5star.app.utils.Localization.get("muted", isTamil) else com.astro5star.app.utils.Localization.get("unmuted", isTamil), Toast.LENGTH_SHORT).show()
     }
 
     private fun toggleCamera() {
@@ -493,14 +498,14 @@ class CallActivity : ComponentActivity() {
         val newEnabled = !enabled
         localVideoTrack?.setEnabled(newEnabled)
         isVideoEnabledState = newEnabled
-        Toast.makeText(this, if (newEnabled) "Camera ON" else "Camera OFF", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, if (newEnabled) com.astro5star.app.utils.Localization.get("camera_on", isTamil) else com.astro5star.app.utils.Localization.get("camera_off", isTamil), Toast.LENGTH_SHORT).show()
     }
 
     private fun toggleSpeaker() {
         val newSpeaker = !isSpeakerOnState
         isSpeakerOnState = newSpeaker
         setSpeakerphoneOn(newSpeaker)
-        Toast.makeText(this, if (newSpeaker) "Speaker ON" else "Speaker OFF", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, if (newSpeaker) com.astro5star.app.utils.Localization.get("speaker_on", isTamil) else com.astro5star.app.utils.Localization.get("speaker_off", isTamil), Toast.LENGTH_SHORT).show()
     }
 
     private fun setSpeakerphoneOn(on: Boolean) {
@@ -511,7 +516,7 @@ class CallActivity : ComponentActivity() {
 
     private fun openPorutham() {
         if (clientBirthData == null) {
-            Toast.makeText(this, "Client data not received yet", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, com.astro5star.app.utils.Localization.get("waiting_client_data", isTamil), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -1708,7 +1713,7 @@ class CallActivity : ComponentActivity() {
                 if (res.isSuccessful) {
                     val body = res.body()
                     if (body?.get("ok")?.asBoolean == true) {
-                        Toast.makeText(this@CallActivity, "Review submitted!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@CallActivity, com.astro5star.app.utils.Localization.get("review_submitted", isTamil), Toast.LENGTH_SHORT).show()
                     } else {
                         val err = body?.get("error")?.asString ?: "Unknown error"
                         Toast.makeText(this@CallActivity, "Failed: $err", Toast.LENGTH_LONG).show()
@@ -1783,7 +1788,7 @@ class CallActivity : ComponentActivity() {
 
     private fun showRasiChart() {
         if (clientBirthData == null) {
-            Toast.makeText(this, "Waiting for Client Data...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, com.astro5star.app.utils.Localization.get("waiting_client_data", isTamil), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -1797,12 +1802,12 @@ class CallActivity : ComponentActivity() {
         } else {
             // Partner data exists — show options
             val items = arrayOf(
-                "📊 Client Rasi Chart",
-                "📊 Partner Rasi Chart",
-                "💑 Marriage Compatibility Match"
+                "📊 ${com.astro5star.app.utils.Localization.get("client_rasi_chart", isTamil)}",
+                "📊 ${com.astro5star.app.utils.Localization.get("partner_rasi_chart", isTamil)}",
+                "💑 ${com.astro5star.app.utils.Localization.get("marriage_compatibility", isTamil)}"
             )
             android.app.AlertDialog.Builder(this)
-                .setTitle("View Chart")
+                .setTitle(com.astro5star.app.utils.Localization.get("view_rasi_chart", isTamil))
                 .setItems(items) { _, which ->
                     when (which) {
                         0 -> {
@@ -1903,7 +1908,8 @@ fun CallScreen(
     onSubmitReview: (Int, String) -> Unit = { _, _ -> },
     onSkipReview: () -> Unit = {},
     showSummaryData: JSONObject? = null,
-    onDismissSummary: () -> Unit = {}
+    onDismissSummary: () -> Unit = {},
+    isTamil: Boolean = true
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         if (showSummaryData != null) {
@@ -1922,7 +1928,8 @@ fun CallScreen(
                 summary = callSummary,
                 isSubmitting = isReviewSubmitting,
                 onSubmit = onSubmitReview,
-                onSkip = onSkipReview
+                onSkip = onSkipReview,
+                isTamil = isTamil
             )
         }
 
@@ -1935,7 +1942,7 @@ fun CallScreen(
         }
 
         if (showConnectedOverlay) {
-            ConnectionOverlay(partnerName)
+            ConnectionOverlay(partnerName, isTamil)
         }
     }
 
@@ -2142,7 +2149,7 @@ fun CallScreen(
 }
 
 @Composable
-fun ConnectionOverlay(partnerName: String) {
+fun ConnectionOverlay(partnerName: String, isTamil: Boolean = true) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -2167,7 +2174,7 @@ fun ConnectionOverlay(partnerName: String) {
             )
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Communication Established",
+                    text = com.astro5star.app.utils.Localization.get("communication_established", isTamil),
                     color = Color.White.copy(alpha = 0.7f),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
@@ -2180,7 +2187,7 @@ fun ConnectionOverlay(partnerName: String) {
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "Consultation Started",
+                    text = com.astro5star.app.utils.Localization.get("consultation_started", isTamil),
                     color = Color(0xFF4CAF50),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
@@ -2218,7 +2225,8 @@ fun ReviewDialog(
     summary: String,
     isSubmitting: Boolean,
     onSubmit: (Int, String) -> Unit,
-    onSkip: () -> Unit
+    onSkip: () -> Unit,
+    isTamil: Boolean = true
 ) {
     var rating by remember { mutableIntStateOf(5) }
     var comment by remember { mutableStateOf("") }
@@ -2227,7 +2235,7 @@ fun ReviewDialog(
         onDismissRequest = { }, // Force action
         title = {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Text("How was your session?", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(com.astro5star.app.utils.Localization.get("review_dialog_title", isTamil), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 if (summary.isNotEmpty()) {
                     Text(summary, fontSize = 12.sp, color = Color.Gray, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp))
                 }
@@ -2253,7 +2261,7 @@ fun ReviewDialog(
                 OutlinedTextField(
                     value = comment,
                     onValueChange = { comment = it },
-                    placeholder = { Text("Share your experience (optional)") },
+                    placeholder = { Text(com.astro5star.app.utils.Localization.get("review_placeholder", isTamil)) },
                     modifier = Modifier.fillMaxWidth().height(100.dp),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -2267,12 +2275,12 @@ fun ReviewDialog(
                 modifier = Modifier.fillMaxWidth().height(48.dp)
             ) {
                 if (isSubmitting) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                else Text("Submit Review", fontWeight = FontWeight.Bold)
+                else Text(com.astro5star.app.utils.Localization.get("submit_review", isTamil), fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onSkip, enabled = !isSubmitting, modifier = Modifier.fillMaxWidth()) {
-                Text("Skip", color = Color.Gray)
+                Text(com.astro5star.app.utils.Localization.get("skip", isTamil), color = Color.Gray)
             }
         },
         shape = RoundedCornerShape(24.dp),

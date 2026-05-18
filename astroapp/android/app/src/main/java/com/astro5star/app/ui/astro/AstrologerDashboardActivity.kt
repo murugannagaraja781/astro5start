@@ -400,6 +400,13 @@ fun AstrologerDashboardScreen(
                     isUploading = true
                     val inputStream = context.contentResolver.openInputStream(it)
                     val bytes = inputStream?.readBytes() ?: return@launch
+                    if (bytes.size > 20 * 1024) {
+                        withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            Toast.makeText(context, "Image size too large. Only up to 20 KB allowed.", Toast.LENGTH_LONG).show()
+                        }
+                        isUploading = false
+                        return@launch
+                    }
                     val requestFile = bytes.toRequestBody("image/*".toMediaTypeOrNull())
                     val body = MultipartBody.Part.createFormData("image", "profile.jpg", requestFile)
                     val userIdBody = sessionId.toRequestBody("text/plain".toMediaTypeOrNull())
@@ -431,6 +438,9 @@ fun AstrologerDashboardScreen(
             }
         }
     }
+
+    // Language State (Default Tamil)
+    val isTamil = true // In a real app, this would be tied to a setting or context
 
     // Fetch latest balance on load and when triggered
     LaunchedEffect(refreshTrigger) {
@@ -605,10 +615,11 @@ fun AstrologerDashboardScreen(
                     if (isUploading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = dashColors.accent)
                     } else {
-                        val imageUrl = if (profileImage?.startsWith("http") == true) profileImage
-                        else if (!profileImage.isNullOrEmpty()) {
-                            val path = if (profileImage!!.startsWith("/")) profileImage else "/$profileImage"
-                            val cleanPath = if (path!!.contains("uploads/")) path else if (path!!.startsWith("/")) "/uploads${path}" else "/uploads/$path"
+                        val rawImg = profileImage ?: ""
+                        val imageUrl = if (rawImg.startsWith("http")) rawImg
+                        else if (rawImg.isNotEmpty()) {
+                            val path = if (rawImg.startsWith("/")) rawImg else "/$rawImg"
+                            val cleanPath = if (path.contains("uploads/")) path else if (path.startsWith("/")) "/uploads${path}" else "/uploads/$path"
                             "${com.astro5star.app.utils.Constants.SERVER_URL}$cleanPath"
                         } else null
 
@@ -714,8 +725,8 @@ fun AstrologerDashboardScreen(
                         )
                         .padding(20.dp)
                 ) {
-                    Text("Online for Emergency!", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                    Text("Boost your earnings with emergency sessions.", color = Color.White.copy(alpha=0.9f), fontSize = 13.sp)
+                    Text(com.astro5star.app.utils.Localization.get("emergency_banner_title", isTamil), color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                    Text(com.astro5star.app.utils.Localization.get("emergency_banner_desc", isTamil), color = Color.White.copy(alpha=0.9f), fontSize = 13.sp)
                 }
             }
 
@@ -764,7 +775,7 @@ fun AstrologerDashboardScreen(
                         )
                         .padding(24.dp)
                 ) {
-                    Text("Total Earnings", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(com.astro5star.app.utils.Localization.get("total_earnings", isTamil), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -779,10 +790,10 @@ fun AstrologerDashboardScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = dashColors.accent),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Withdraw", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(com.astro5star.app.utils.Localization.get("withdraw", isTamil), color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
-                    Text("Min. ₹500 to Withdraw", color = dashColors.textSecondary.copy(alpha = 0.6f), fontSize = 11.sp)
+                    Text(com.astro5star.app.utils.Localization.get("min_withdrawal_desc", isTamil), color = dashColors.textSecondary.copy(alpha = 0.6f), fontSize = 11.sp)
                 }
             }
 
@@ -801,8 +812,8 @@ fun AstrologerDashboardScreen(
                         Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFF57F17), modifier = Modifier.size(24.dp))
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text("$waitlistCount customers waiting", fontWeight = FontWeight.ExtraBold, color = Color(0xFFF57F17))
-                            Text("Process your current session to connect with the next person.", fontSize = 11.sp, color = Color(0xFF7F6D01))
+                            Text("$waitlistCount ${com.astro5star.app.utils.Localization.get("customers_waiting", isTamil)}", fontWeight = FontWeight.ExtraBold, color = Color(0xFFF57F17))
+                            Text(com.astro5star.app.utils.Localization.get("process_current_session", isTamil), fontSize = 11.sp, color = Color(0xFF7F6D01))
                         }
                     }
                 }
@@ -813,7 +824,7 @@ fun AstrologerDashboardScreen(
             // 2b. Recent Withdrawal History
             if (withdrawalHistory.isNotEmpty()) {
                 Text(
-                    "Recent Withdrawal Status",
+                    com.astro5star.app.utils.Localization.get("withdrawal_history_title", isTamil),
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = dashColors.accent,
@@ -876,7 +887,7 @@ fun AstrologerDashboardScreen(
                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Today's Progress", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = dashColors.textPrimary)
+                        Text(com.astro5star.app.utils.Localization.get("today_progress", isTamil), fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = dashColors.textPrimary)
                         val totalHours = 12.0
                         val completedHours = (todayProgress / 100.0) * totalHours
                         Text("$todayProgress% completed (${String.format("%.1f", completedHours)} hours)", fontSize = 12.sp, color = dashColors.textSecondary)
@@ -904,6 +915,7 @@ fun AstrologerDashboardScreen(
                 videoPrice = videoPrice,
                 unlimitedPrice = unlimitedPrice,
                 unlimitedEnabled = unlimitedEnabled,
+                isTamil = isTamil,
                 onChatToggle = { enabled ->
                     if (enabled) {
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M && !android.provider.Settings.canDrawOverlays(context)) {
@@ -1004,12 +1016,12 @@ fun AstrologerDashboardScreen(
 
             // 4. Action Grid - Custom Row-based Layout to work inside verticalScroll
             val actions = listOf(
-                "Call" to Icons.Default.Call,
-                "Chat" to Icons.Default.Chat,
-                "Earnings" to Icons.Default.MonetizationOn,
+                com.astro5star.app.utils.Localization.get("call", isTamil) to Icons.Default.Call,
+                com.astro5star.app.utils.Localization.get("chat", isTamil) to Icons.Default.Chat,
+                com.astro5star.app.utils.Localization.get("earnings", isTamil) to Icons.Default.MonetizationOn,
 
-                "History" to Icons.Default.History,
-                "Profile" to Icons.Default.Person
+                com.astro5star.app.utils.Localization.get("history", isTamil) to Icons.Default.History,
+                com.astro5star.app.utils.Localization.get("profile", isTamil) to Icons.Default.Person
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1033,11 +1045,11 @@ fun AstrologerDashboardScreen(
                                      )
                                      .clickable {
                                          when (label) {
-                                             "Call" -> showRecordingsDialog(context)
-                                             "Profile" -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.EditAstrologerProfileActivity::class.java))
-                                             "History" -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.AstrologerHistoryActivity::class.java))
-                                             "Earnings" -> Toast.makeText(context, "Balance: ₹${String.format("%.2f", walletBalance)}", Toast.LENGTH_SHORT).show()
-                                             "Chat" -> {
+                                             com.astro5star.app.utils.Localization.get("call", isTamil) -> showRecordingsDialog(context)
+                                             com.astro5star.app.utils.Localization.get("profile", isTamil) -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.EditAstrologerProfileActivity::class.java))
+                                             com.astro5star.app.utils.Localization.get("history", isTamil) -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.AstrologerHistoryActivity::class.java))
+                                             com.astro5star.app.utils.Localization.get("earnings", isTamil) -> Toast.makeText(context, "Balance: ₹${String.format("%.2f", walletBalance)}", Toast.LENGTH_SHORT).show()
+                                             com.astro5star.app.utils.Localization.get("chat", isTamil) -> {
                                                  // Check Chat Status or open help
                                                  Toast.makeText(context, "Check Chat Requests in Real-time!", Toast.LENGTH_SHORT).show()
                                              }
@@ -1105,7 +1117,8 @@ fun ServiceTogglesCard(
     onChatToggle: (Boolean) -> Unit,
     onAudioToggle: (Boolean) -> Unit,
     onVideoToggle: (Boolean) -> Unit,
-    onUnlimitedToggle: (Boolean) -> Unit
+    onUnlimitedToggle: (Boolean) -> Unit,
+    isTamil: Boolean = true
 ) {
     val dashColors = object {
         val accent = Color(0xFF00E676)
@@ -1121,7 +1134,7 @@ fun ServiceTogglesCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "Service Availability",
+                com.astro5star.app.utils.Localization.get("service_availability", isTamil),
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
                 color = dashColors.textPrimary
@@ -1130,7 +1143,7 @@ fun ServiceTogglesCard(
 
             // Chat Toggle
             ServiceToggleRow(
-                label = "Chat",
+                label = com.astro5star.app.utils.Localization.get("chat", isTamil),
                 subLabel = "₹$chatPrice/min",
                 icon = Icons.Default.Chat,
                 isEnabled = isChatOnline,
@@ -1141,7 +1154,7 @@ fun ServiceTogglesCard(
 
             // Audio Call Toggle
             ServiceToggleRow(
-                label = "Audio Call",
+                label = com.astro5star.app.utils.Localization.get("audio_call", isTamil),
                 subLabel = "₹$audioPrice/min",
                 icon = Icons.Default.Call,
                 isEnabled = isAudioOnline,
@@ -1152,7 +1165,7 @@ fun ServiceTogglesCard(
 
             // Video Call Toggle
             ServiceToggleRow(
-                label = "Video Call",
+                label = com.astro5star.app.utils.Localization.get("video_call", isTamil),
                 subLabel = "₹$videoPrice/min",
                 icon = Icons.Default.Videocam,
                 isEnabled = isVideoOnline,
@@ -1165,8 +1178,8 @@ fun ServiceTogglesCard(
 
             // Unlimited Offer Toggle
             ServiceToggleRow(
-                label = "Unlimited (40 Min)",
-                subLabel = "₹$unlimitedPrice/session",
+                label = "${com.astro5star.app.utils.Localization.get("unlimited_horoscope", isTamil)}",
+                subLabel = "₹$unlimitedPrice/${com.astro5star.app.utils.Localization.get("unlimited_session", isTamil)}",
                 icon = Icons.Default.Star,
                 isEnabled = unlimitedEnabled,
                 onToggle = onUnlimitedToggle
@@ -1368,10 +1381,11 @@ fun AstrologerPublicCard(
         ) {
             // Profile Image with Online Indicator
             Box(modifier = Modifier.size(70.dp)) {
-                val imageUrl = if (image?.startsWith("http") == true) image
-                else if (!image.isNullOrEmpty()) {
-                    val path = if (image!!.startsWith("/")) image else "/$image"
-                    val cleanPath = if (path!!.contains("uploads/")) path else "/uploads$path"
+                val rawImg = image ?: ""
+                val imageUrl = if (rawImg.startsWith("http")) rawImg
+                else if (rawImg.isNotEmpty()) {
+                    val path = if (rawImg.startsWith("/")) rawImg else "/$rawImg"
+                    val cleanPath = if (path.contains("uploads/")) path else "/uploads$path"
                     "${com.astro5star.app.utils.Constants.SERVER_URL}$cleanPath"
                 } else null
 

@@ -260,9 +260,17 @@ private fun uploadImage(context: android.content.Context, uri: Uri, callback: (B
 
 private fun getFileFromUri(context: android.content.Context, uri: Uri): File? {
     val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+    val bytes = inputStream.readBytes()
+    if (bytes.size > 20 * 1024) {
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            Toast.makeText(context, "Image size too large. Only up to 20 KB allowed.", Toast.LENGTH_LONG).show()
+        }
+        inputStream.close()
+        return null
+    }
     val file = File(context.cacheDir, "temp_profile_pic.jpg")
     val outputStream = FileOutputStream(file)
-    inputStream.copyTo(outputStream)
+    outputStream.write(bytes)
     outputStream.close()
     inputStream.close()
     return file

@@ -174,8 +174,8 @@ class WalletActivity : ComponentActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val response = ApiClient.api.getUserProfile(userId)
-                if (response.isSuccessful && response.body() != null) {
-                    val user = response.body()!!
+                val user = response.body()
+                if (response.isSuccessful && user != null) {
                     runOnUiThread {
                         tokenManager.saveUserSession(user)
                         balanceState = user.walletBalance ?: 0.0

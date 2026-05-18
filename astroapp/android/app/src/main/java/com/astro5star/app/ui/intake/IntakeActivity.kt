@@ -97,7 +97,7 @@ class IntakeActivity : ComponentActivity() {
             CosmicAppTheme {
                 IntakeScreen(
                     partnerId = partnerId,
-                    partnerName = partnerName!!,
+                    partnerName = partnerName ?: "Astrologer",
                     partnerImage = partnerImage,
                     callType = type,
                     isEditMode = isEditMode,
@@ -218,15 +218,15 @@ fun IntakeScreen(
     val specificCityLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-         if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            val d = result.data!!
-            val fullName = d.getStringExtra("name") ?: ""
-            val cityRes = d.getStringExtra("city") ?: ""
-            val stateRes = d.getStringExtra("state") ?: ""
-            val countryRes = d.getStringExtra("country") ?: ""
-            val tzId = d.getStringExtra("timezoneId")
-            val latRes = d.getDoubleExtra("lat", 0.0)
-            val lonRes = d.getDoubleExtra("lon", 0.0)
+         val data = result.data
+         if (result.resultCode == Activity.RESULT_OK && data != null) {
+            val fullName = data.getStringExtra("name") ?: ""
+            val cityRes = data.getStringExtra("city") ?: ""
+            val stateRes = data.getStringExtra("state") ?: ""
+            val countryRes = data.getStringExtra("country") ?: ""
+            val tzId = data.getStringExtra("timezoneId")
+            val latRes = data.getDoubleExtra("lat", 0.0)
+            val lonRes = data.getDoubleExtra("lon", 0.0)
 
             val parsed = if (cityRes.isBlank() && stateRes.isBlank() && countryRes.isBlank()) {
                 parsePlaceName(fullName)
@@ -316,8 +316,8 @@ fun IntakeScreen(
 
     // Prefill
     LaunchedEffect(Unit) {
-        if (existingData != null) {
-            val d = existingData!!
+        val d = existingData
+        if (d != null) {
             name = d.optString("name")
             val placeRaw = d.optString("city")
             val parsed = parsePlaceName(placeRaw)
@@ -536,10 +536,10 @@ fun IntakeScreen(
             putInt("minute", minute.toIntOrNull() ?: 0)
             putString("gender", gender)
             putString("occupation", occupation)
-            putString("maritalStatus", maritalStatus)
-            putString("topic", topic)
-            if (latitude != null) putFloat("latitude", latitude!!.toFloat())
-            if (longitude != null) putFloat("longitude", longitude!!.toFloat())
+            if (maritalStatus.isNotEmpty()) putString("maritalStatus", maritalStatus)
+            if (topic.isNotEmpty()) putString("topic", topic)
+            latitude?.let { putFloat("latitude", it.toFloat()) }
+            longitude?.let { putFloat("longitude", it.toFloat()) }
             putFloat("timezone", finalTimezone.toFloat())
             if (!timezoneId.isNullOrBlank()) {
                 putString("timezoneId", timezoneId)

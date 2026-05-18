@@ -135,15 +135,15 @@ fun FreeHoroscopeScreen(
     val placeLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-         if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            val d = result.data!!
-            val fullName = d.getStringExtra("name") ?: ""
-            val cityRes = d.getStringExtra("city") ?: ""
-            val stateRes = d.getStringExtra("state") ?: ""
-            val countryRes = d.getStringExtra("country") ?: ""
-            val tzId = d.getStringExtra("timezoneId")
-            val latRes = d.getDoubleExtra("lat", 0.0)
-            val lonRes = d.getDoubleExtra("lon", 0.0)
+         val data = result.data
+         if (result.resultCode == Activity.RESULT_OK && data != null) {
+            val fullName = data.getStringExtra("name") ?: ""
+            val cityRes = data.getStringExtra("city") ?: ""
+            val stateRes = data.getStringExtra("state") ?: ""
+            val countryRes = data.getStringExtra("country") ?: ""
+            val tzId = data.getStringExtra("timezoneId")
+            val latRes = data.getDoubleExtra("lat", 0.0)
+            val lonRes = data.getDoubleExtra("lon", 0.0)
 
             cityName = if (cityRes.isNotBlank()) cityRes else fullName
             stateName = stateRes

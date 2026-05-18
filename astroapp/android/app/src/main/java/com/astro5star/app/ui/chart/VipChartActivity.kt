@@ -304,9 +304,9 @@ fun VipChartScreen(birthData: JSONObject, onBack: () -> Unit) {
 
                 Box(modifier = Modifier.weight(1f)) {
                     when (selectedTab) {
-                        0 -> ChartsTab(chartState!!, birthData)
-                        1 -> PlanetsTab(chartState!!)
-                        2 -> DashaListTab(chartState!!.dasha)
+                        0 -> chartState?.let { ChartsTab(it, birthData) }
+                        1 -> chartState?.let { PlanetsTab(it) }
+                        2 -> chartState?.let { DashaListTab(it.dasha) }
                     }
                 }
             } else if (errorMessage != null) {
@@ -315,7 +315,7 @@ fun VipChartScreen(birthData: JSONObject, onBack: () -> Unit) {
                         Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = Color.Red, modifier = Modifier.size(64.dp))
                         Spacer(Modifier.height(16.dp))
                         Text(
-                            text = errorMessage!!,
+                            text = errorMessage ?: "Unknown Error",
                             color = Color.DarkGray,
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.bodyMedium

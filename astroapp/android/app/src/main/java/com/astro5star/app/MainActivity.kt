@@ -133,11 +133,11 @@ class MainActivity : AppCompatActivity() {
                 // Add a strict timeout of 3 seconds for the version check to avoid hanging on splash
                 kotlinx.coroutines.withTimeout(3000) {
                     val response = com.astro5star.app.data.api.ApiClient.api.getAppConfig()
-                    if (response.isSuccessful && response.body() != null) {
-                        val config = response.body()!!
-                        val minVersion = config.get("minVersionCode")?.asInt ?: 0
-                        val updateUrl = config.get("updateUrl")?.asString ?: "https://astro5star.com"
-                        val message = config.get("message")?.asString ?: "Please update your app to the latest version."
+                    val body = response.body()
+                    if (response.isSuccessful && body != null) {
+                        val minVersion = body.get("minVersionCode")?.asInt ?: 0
+                        val updateUrl = body.get("updateUrl")?.asString ?: "https://astro5star.com"
+                        val message = body.get("message")?.asString ?: "Please update your app to the latest version."
 
                         val pInfo = packageManager.getPackageInfo(packageName, 0)
                         val currentVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
