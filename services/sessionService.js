@@ -278,15 +278,28 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
 }
 
 async function tryStartBilling(sessionId, io) {
+    console.log(`[tryStartBilling] Triggered for session ${sessionId}`);
     const activeSession = activeSessions.get(sessionId);
-    if (!activeSession) return;
+    if (!activeSession) {
+        console.log(`[tryStartBilling] activeSession not found for ${sessionId}`);
+        return;
+    }
 
     const session = await Session.findOne({ sessionId });
-    if (!session || session.status !== 'active') return;
+    if (!session) {
+        console.log(`[tryStartBilling] session not found in DB for ${sessionId}`);
+        return;
+    }
+    if (session.status !== 'active') {
+        console.log(`[tryStartBilling] session status is ${session.status} (expected 'active') for ${sessionId}`);
+        return;
+    }
 
     const clientConn = session.clientConnectedAt || 0;
     const astroConn = session.astrologerConnectedAt || 0;
     const VALID_TIMESTAMP_THRESHOLD = 1704067200000; 
+
+    console.log(`[tryStartBilling] Connections - Client: ${clientConn}, Astro: ${astroConn}`);
 
     if (clientConn > VALID_TIMESTAMP_THRESHOLD && astroConn > VALID_TIMESTAMP_THRESHOLD) {
         let billingStart = session.actualBillingStart;
@@ -297,6 +310,7 @@ async function tryStartBilling(sessionId, io) {
             
             await Session.updateOne({ sessionId }, { $set: { actualBillingStart: billingStart } });
             activeSession.actualBillingStart = billingStart;
+            console.log(`[tryStartBilling] actualBillingStart set to ${billingStart}`);
         }
         
         if (typeof activeSession.elapsedBillableSeconds === 'undefined' || activeSession.elapsedBillableSeconds === 0) {
@@ -356,8 +370,12 @@ async function tryStartBilling(sessionId, io) {
 }
 
 async function handleUserConnection(sessionId, userId, io) {
+    console.log(`[handleUserConnection] Triggered for session=${sessionId}, user=${userId}`);
     const session = await Session.findOne({ sessionId });
-    if (!session) return;
+    if (!session) {
+        console.log(`[handleUserConnection] session not found in DB`);
+        return;
+    }
 
     const now = Date.now();
     let updated = false;
@@ -366,12 +384,16 @@ async function handleUserConnection(sessionId, userId, io) {
         if (!session.clientConnectedAt) {
             session.clientConnectedAt = now;
             updated = true;
+            console.log(`[handleUserConnection] Setting clientConnectedAt for ${userId}`);
         }
     } else if (userId === session.astrologerId) {
         if (!session.astrologerConnectedAt) {
             session.astrologerConnectedAt = now;
             updated = true;
+            console.log(`[handleUserConnection] Setting astrologerConnectedAt for ${userId}`);
         }
+    } else {
+        console.log(`[handleUserConnection] userId ${userId} does not match client ${session.clientId} or astro ${session.astrologerId}`);
     }
 
     if (updated) {
@@ -381,6 +403,7 @@ async function handleUserConnection(sessionId, userId, io) {
                 astrologerConnectedAt: session.astrologerConnectedAt
             } 
         });
+        console.log(`[handleUserConnection] DB updated with new connection times`);
     }
 
     let activeSession = activeSessions.get(sessionId);
@@ -499,11 +522,11 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
             }
 
             User.updateOne({ userId: astrologerId }, { isBusy: true }).catch(e => {});
-            Session.updateOne({ sessionId }, { 
+            await Session.updateOne({ sessionId }, { 
                 status: 'active', 
                 startTime: Date.now(),
                 currentSlab: session.currentSlab || 1
-            }).catch(e => {});
+            });
 
             if (broadcastAstroUpdate) broadcastAstroUpdate();
             await tryStartBilling(sessionId, io);
