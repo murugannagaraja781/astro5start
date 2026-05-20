@@ -212,6 +212,26 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
             }
         }
 
+        let ledgerRecord;
+        try {
+            ledgerRecord = await BillingLedger.create({
+                billingId: crypto.randomUUID(),
+                sessionId,
+                minuteIndex,
+                chargedToClient: totalToClientDeduct,
+                creditedToAstrologer: astroAmount,
+                adminAmount: adminAmount,
+                reason,
+                appliedRate: totalToClientDeduct > 0 ? (astroAmount / totalToClientDeduct) : 0
+            });
+        } catch (err) {
+            if (err.code === 11000) {
+                // Race condition caught! Another process already inserted this record.
+                return;
+            }
+            throw err;
+        }
+
         if (totalToClientDeduct > 0) {
             let mainDeduct = totalToClientDeduct;
             let superDeduct = 0;
@@ -229,7 +249,9 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
             );
 
             if (!updatedClient) {
-                console.warn(`[Billing] Potential double-charge or insufficient funds during atomic update sid=${sessionId}`);
+                console.warn(`[Billing] Insufficient funds during atomic update sid=${sessionId}`);
+                // Revert the ledger record since deduction failed
+                await BillingLedger.deleteOne({ _id: ledgerRecord._id });
                 return forceEndSession(sessionId, 'insufficient_funds', io);
             }
             
@@ -253,18 +275,6 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
                 astro.totalEarnings = updatedAstro.totalEarnings;
             }
         }
-
-        // Create Ledger Record
-        await BillingLedger.create({
-            billingId: crypto.randomUUID(),
-            sessionId,
-            minuteIndex,
-            chargedToClient: totalToClientDeduct,
-            creditedToAstrologer: astroAmount,
-            adminAmount: adminAmount,
-            reason,
-            appliedRate: totalToClientDeduct > 0 ? (astroAmount / totalToClientDeduct) : 0
-        });
 
         const activeSess = activeSessions.get(sessionId);
         if (activeSess) {

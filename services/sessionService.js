@@ -564,12 +564,10 @@ async function initPairMonth(clientId, astrologerId) {
         const yearMonth = new Date().toISOString().substring(0, 7); // "YYYY-MM"
         const pairId = `${clientId}_${astrologerId}`;
 
-        let current = await PairMonth.findOne({ pairId, yearMonth });
-        if (current) return current;
-
-        // If not found for current month, look for the most recent one
+        // Get the latest slab history
         const latest = await PairMonth.findOne({ pairId }).sort({ yearMonth: -1 });
         let startSlab = 1;
+        let slabLockedAt = 0;
 
         if (latest) {
             // RULE: Levels 1-3 are permanent. Levels 4-5 reset to 3 each month.
@@ -578,16 +576,30 @@ async function initPairMonth(clientId, astrologerId) {
             } else {
                 startSlab = latest.currentSlab || 1;
             }
+            slabLockedAt = latest.slabLockedAt || 0;
         }
 
-        return await PairMonth.create({
-            pairId,
-            clientId,
-            astrologerId,
-            yearMonth,
-            currentSlab: startSlab,
-            slabLockedAt: (latest ? latest.slabLockedAt : 0) // optional: keep history
-        });
+        try {
+            const current = await PairMonth.findOneAndUpdate(
+                { pairId, yearMonth },
+                {
+                    $setOnInsert: {
+                        clientId,
+                        astrologerId,
+                        currentSlab: startSlab,
+                        slabLockedAt
+                    }
+                },
+                { new: true, upsert: true }
+            );
+            return current;
+        } catch (upsertErr) {
+            if (upsertErr.code === 11000) {
+                // In rare concurrent cases, upsert can throw 11000. Fetch the inserted doc.
+                return await PairMonth.findOne({ pairId, yearMonth });
+            }
+            throw upsertErr;
+        }
     } catch (e) {
         console.error('[PairMonth] Initialization Error:', e);
         return null;
