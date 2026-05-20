@@ -217,9 +217,8 @@ class ChatActivity : ComponentActivity() {
             notificationManager.cancel(9999) // CALL_NOTIFICATION_ID
             notificationManager.cancel(1001) // Foreground Service ID
             notificationManager.cancel(1002) // GENERIC_NOTIFICATION_ID
-            // Also attempt to cancel by callerId hash if provided
             toUserId?.let { notificationManager.cancel(it.hashCode()) }
-            notificationManager.cancelAll() // Safeguard: clear everything for this app
+            // Removed cancelAll() because it kills Foreground Service notifications (like AstrologerStatusService)
         } catch (e: Exception) { e.printStackTrace() }
 
         setContent {
