@@ -87,7 +87,13 @@ const handleChat = (socket, io) => {
             else if (content.type === 'voice') pushText = '🎤 Voice message';
             else if (content.type === 'file') pushText = '📄 Sent a file';
 
-            sendChatMessagePush(toUserId, fromUserId, pushText || 'New message', sessionId, mId, content);
+            const { userActiveSession } = require('../sharedState');
+            const activeSessionId = userActiveSession.get(toUserId);
+            
+            // Prevent push notification spam if the user is actively in the chat screen
+            if (activeSessionId !== sessionId) {
+                sendChatMessagePush(toUserId, fromUserId, pushText || 'New message', sessionId, mId, content);
+            }
         } catch (err) { console.error('chat-message error', err); }
     });
 

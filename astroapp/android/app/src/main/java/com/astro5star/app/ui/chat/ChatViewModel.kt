@@ -169,6 +169,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun joinSessionSafe(sessionId: String) {
+        _currentSessionId.value = sessionId
         viewModelScope.launch {
             // Force connection attempt to handle first-time connect issues
             SocketManager.getSocket()?.connect()
