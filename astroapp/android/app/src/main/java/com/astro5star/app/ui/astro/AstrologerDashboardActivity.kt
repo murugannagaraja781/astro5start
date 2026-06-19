@@ -333,6 +333,14 @@ fun AstrologerDashboardScreen(
     var withdrawalHistory by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var waitlistCount by remember { mutableIntStateOf(0) }
 
+    // Strict Permissions State
+    var hasOverlay by remember { mutableStateOf(true) }
+    var hasAudio by remember { mutableStateOf(true) }
+    var hasCamera by remember { mutableStateOf(true) }
+    var hasNotification by remember { mutableStateOf(true) }
+    var hasFullScreenIntent by remember { mutableStateOf(true) }
+    var hasBatteryOptimization by remember { mutableStateOf(true) }
+
     fun refreshBalanceAndHistory() {
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
@@ -486,6 +494,43 @@ fun AstrologerDashboardScreen(
         }
     }
 
+    // Periodic Sync for Permissions and Auto-Offline Logic
+    LaunchedEffect(Unit) {
+        while(true) {
+            hasOverlay = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) android.provider.Settings.canDrawOverlays(context) else true
+            hasAudio = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            hasCamera = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                hasNotification = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            }
+            
+            if (android.os.Build.VERSION.SDK_INT >= 34) {
+                hasFullScreenIntent = (context.getSystemService(android.app.NotificationManager::class.java)).canUseFullScreenIntent()
+            }
+            
+            val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+            hasBatteryOptimization = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) pm.isIgnoringBatteryOptimizations(context.packageName) else true
+
+            // Auto-Offline Logic: If critical permissions missing, force offline.
+            val hasBasePerms = hasOverlay && hasNotification && hasBatteryOptimization && hasFullScreenIntent
+            if (!hasBasePerms) {
+                if (isChatOnline) { isChatOnline = false; updateServiceStatus(context, sessionId, "chat", false) }
+                if (isAudioOnline) { isAudioOnline = false; updateServiceStatus(context, sessionId, "audio", false) }
+                if (isVideoOnline) { isVideoOnline = false; updateServiceStatus(context, sessionId, "video", false) }
+            } else {
+                if (isAudioOnline && !hasAudio) {
+                    isAudioOnline = false; updateServiceStatus(context, sessionId, "audio", false)
+                }
+                if (isVideoOnline && (!hasAudio || !hasCamera)) {
+                    isVideoOnline = false; updateServiceStatus(context, sessionId, "video", false)
+                }
+            }
+
+            kotlinx.coroutines.delay(2000)
+        }
+    }
+
     if (showWithdrawDialog) {
         AlertDialog(
             onDismissRequest = { showWithdrawDialog = false },
@@ -557,6 +602,81 @@ fun AstrologerDashboardScreen(
         val bgGradient = Brush.verticalGradient(
             colors = listOf(bgStart, Color(0xFF00332B), bgEnd)
         )
+    }
+
+    val allPermissionsGranted = hasOverlay && hasAudio && hasCamera && hasNotification && hasFullScreenIntent && hasBatteryOptimization
+
+    if (!allPermissionsGranted) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { /* Cannot dismiss */ },
+            properties = androidx.compose.ui.window.DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false,
+                usePlatformDefaultWidth = false
+            )
+        ) {
+            Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(Icons.Default.Warning, contentDescription = null, tint = Color.Red, modifier = Modifier.size(64.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Action Required", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("You MUST enable ALL the following permissions to log in and receive calls as an Astrologer.", textAlign = androidx.compose.ui.text.style.TextAlign.Center, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    if (!hasOverlay) {
+                        Button(onClick = { 
+                            val intent = Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:${context.packageName}"))
+                            context.startActivity(intent)
+                        }, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
+                            Text("Enable Display Over Other Apps")
+                        }
+                    }
+                    if (!hasAudio || !hasCamera) {
+                        Button(onClick = { 
+                            videoPermissionLauncher.launch(arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO))
+                        }, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
+                            Text("Enable Camera & Microphone")
+                        }
+                    }
+                    if (!hasNotification) {
+                         Button(onClick = { 
+                             val intent = Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                 .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                             context.startActivity(intent)
+                        }, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
+                            Text("Enable Notifications")
+                        }
+                    }
+                    if (!hasFullScreenIntent) {
+                        Button(onClick = { 
+                            if (android.os.Build.VERSION.SDK_INT >= 34) {
+                                val intent = Intent(android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, android.net.Uri.parse("package:${context.packageName}"))
+                                context.startActivity(intent)
+                            }
+                        }, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
+                            Text("Enable Full Screen Intents")
+                        }
+                    }
+                    if (!hasBatteryOptimization) {
+                         Button(onClick = { 
+                             val intent = Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, android.net.Uri.parse("package:${context.packageName}"))
+                             context.startActivity(intent)
+                        }, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
+                            Text("Disable Battery Optimization")
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    TextButton(onClick = onLogout) {
+                        Text("Logout", color = Color.Gray)
+                    }
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -918,6 +1038,8 @@ fun AstrologerDashboardScreen(
                 isTamil = isTamil,
                 onChatToggle = { enabled ->
                     if (enabled) {
+                        val hasFullScreenIntent = if (android.os.Build.VERSION.SDK_INT >= 34) (context.getSystemService(android.app.NotificationManager::class.java)).canUseFullScreenIntent() else true
+                        
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M && !android.provider.Settings.canDrawOverlays(context)) {
                             android.widget.Toast.makeText(context, "Please allow 'Display over other apps' to go Online", android.widget.Toast.LENGTH_LONG).show()
                             val intent = android.content.Intent(
@@ -925,9 +1047,16 @@ fun AstrologerDashboardScreen(
                                 android.net.Uri.parse("package:${context.packageName}")
                             )
                             context.startActivity(intent)
+                        } else if (!hasFullScreenIntent && android.os.Build.VERSION.SDK_INT >= 34) {
+                            android.widget.Toast.makeText(context, "Please allow 'Full Screen Intent' to go Online", android.widget.Toast.LENGTH_LONG).show()
+                            val intent = android.content.Intent(
+                                android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
+                                android.net.Uri.parse("package:${context.packageName}")
+                            )
+                            context.startActivity(intent)
                         } else {
                             // Check Battery Optimization before going Online
-                            val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+                            val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
                             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M && !pm.isIgnoringBatteryOptimizations(context.packageName)) {
                                 showBatteryOptimizationPrompt(context)
                                 return@ServiceTogglesCard
@@ -947,14 +1076,19 @@ fun AstrologerDashboardScreen(
                 },
                 onAudioToggle = { enabled ->
                     if (enabled) {
+                        val hasFullScreenIntent = if (android.os.Build.VERSION.SDK_INT >= 34) (context.getSystemService(android.app.NotificationManager::class.java)).canUseFullScreenIntent() else true
                         val overlayGranted = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) android.provider.Settings.canDrawOverlays(context) else true
                         val micGranted = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+                        val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
                         val batteryIgnored = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) pm.isIgnoringBatteryOptimizations(context.packageName) else true
 
                         if (!overlayGranted) {
                             android.widget.Toast.makeText(context, "Please allow 'Display over other apps' to go Online", android.widget.Toast.LENGTH_LONG).show()
                             val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:${context.packageName}"))
+                            context.startActivity(intent)
+                        } else if (!hasFullScreenIntent && android.os.Build.VERSION.SDK_INT >= 34) {
+                            android.widget.Toast.makeText(context, "Please allow 'Full Screen Intent' to go Online", android.widget.Toast.LENGTH_LONG).show()
+                            val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, android.net.Uri.parse("package:${context.packageName}"))
                             context.startActivity(intent)
                         } else if (!micGranted) {
                             audioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
@@ -975,16 +1109,21 @@ fun AstrologerDashboardScreen(
                 },
                 onVideoToggle = { enabled ->
                     if (enabled) {
+                        val hasFullScreenIntent = if (android.os.Build.VERSION.SDK_INT >= 34) (context.getSystemService(android.app.NotificationManager::class.java)).canUseFullScreenIntent() else true
                         val overlayGranted = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) android.provider.Settings.canDrawOverlays(context) else true
 
                         if (!overlayGranted) {
                             android.widget.Toast.makeText(context, "Please allow 'Display over other apps' to go Online", android.widget.Toast.LENGTH_LONG).show()
                             val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:${context.packageName}"))
                             context.startActivity(intent)
+                        } else if (!hasFullScreenIntent && android.os.Build.VERSION.SDK_INT >= 34) {
+                            android.widget.Toast.makeText(context, "Please allow 'Full Screen Intent' to go Online", android.widget.Toast.LENGTH_LONG).show()
+                            val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, android.net.Uri.parse("package:${context.packageName}"))
+                            context.startActivity(intent)
                         } else {
                             val cameraGranted = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
                             val audioGranted = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                            val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+                            val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
                             val batteryIgnored = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) pm.isIgnoringBatteryOptimizations(context.packageName) else true
 
                             if (!cameraGranted || !audioGranted) {
@@ -1021,6 +1160,7 @@ fun AstrologerDashboardScreen(
                 com.astro5star.app.utils.Localization.get("earnings", isTamil) to Icons.Default.MonetizationOn,
 
                 com.astro5star.app.utils.Localization.get("history", isTamil) to Icons.Default.History,
+                "Reviews" to Icons.Default.Star,
                 com.astro5star.app.utils.Localization.get("profile", isTamil) to Icons.Default.Person
             )
 
@@ -1048,6 +1188,7 @@ fun AstrologerDashboardScreen(
                                              com.astro5star.app.utils.Localization.get("call", isTamil) -> showRecordingsDialog(context)
                                              com.astro5star.app.utils.Localization.get("profile", isTamil) -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.EditAstrologerProfileActivity::class.java))
                                              com.astro5star.app.utils.Localization.get("history", isTamil) -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.AstrologerHistoryActivity::class.java))
+                                             "Reviews" -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.AstrologerReviewsActivity::class.java))
                                              com.astro5star.app.utils.Localization.get("earnings", isTamil) -> Toast.makeText(context, "Balance: ₹${String.format("%.2f", walletBalance)}", Toast.LENGTH_SHORT).show()
                                              com.astro5star.app.utils.Localization.get("chat", isTamil) -> {
                                                  // Check Chat Status or open help

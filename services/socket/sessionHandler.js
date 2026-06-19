@@ -4,7 +4,8 @@ const {
     socketToUser,
     userActiveSession,
     activeSessions,
-    sessionTimeouts
+    sessionTimeouts,
+    SYSTEM_RULES
 } = require('../sharedState');
 const User = require('../../models/User');
 const Session = require('../../models/Session');
@@ -98,19 +99,17 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 }
 
                 const totalBalance = (client.walletBalance || 0) + (client.superWalletBalance || 0);
-                const isFirstCall = !client.isFirstCallDone;
+                const isFirstCall = !client.isFirstCallDone && (SYSTEM_RULES.FREE_CALL_FOR_NEW_USERS !== false);
+                const allowBonusBypass = (SYSTEM_RULES.ALLOW_BONUS_CREDIT_CALLS !== false) && client.superWalletBalance > 0;
 
-                // Rule: If not first call, must have at least pricePerMin
-                // If it IS first call, they have 3 mins free anyway, so we allow it.
-                // Exception: Always allow if superWalletBalance > 0
-                if (!(client.superWalletBalance > 0) && !isFirstCall && totalBalance < pricePerMin) {
+                // Rule: If not first call and not bypassing via bonus, must have at least pricePerMin
+                if (!allowBonusBypass && !isFirstCall && totalBalance < pricePerMin) {
                     const errorMsg = isUnlimited ? `Insufficient funds for this plan (Needs ₹${pricePerMin})` : `Insufficient balance. Please recharge to call (Needs ₹${pricePerMin})`;
                     if (typeof cb === "function") return cb({ ok: false, error: errorMsg });
                 }
                 
                 // For Unlimited, they MUST have the full amount regardless of first call status
-                // Exception: Always allow if superWalletBalance > 0
-                if (!(client.superWalletBalance > 0) && isUnlimited && totalBalance < pricePerMin) {
+                if (!allowBonusBypass && isUnlimited && totalBalance < pricePerMin) {
                     if (typeof cb === "function") return cb({ ok: false, error: `Insufficient funds for ${offerType || 'unlimited'} plan (Needs ₹${pricePerMin})` });
                 }
             }

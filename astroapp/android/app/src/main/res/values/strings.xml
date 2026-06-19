@@ -19,4 +19,7 @@
     <string name="apply">Apply</string>
     <string name="applied">Applied</string>
     <string name="enter_valid_amount">Enter valid amount</string>
+    <string name="facebook_app_id">1641556493735534</string>
+    <string name="fb_login_protocol_scheme">fb1641556493735534</string>
+    <string name="facebook_client_token">26f573d8d8e53045aa93c18348b3b33f</string>
 </resources>

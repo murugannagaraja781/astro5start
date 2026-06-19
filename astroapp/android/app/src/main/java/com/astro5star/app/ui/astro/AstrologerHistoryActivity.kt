@@ -13,6 +13,9 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -53,6 +56,10 @@ fun HistoryScreen(userId: String, onBack: () -> Unit) {
     var sessions by remember { mutableStateOf<List<SessionHistoryItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    
+    // Tab State
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val tabs = listOf("Calling History", "Chat History")
 
     LaunchedEffect(userId) {
         withContext(Dispatchers.IO) {
@@ -77,18 +84,20 @@ fun HistoryScreen(userId: String, onBack: () -> Unit) {
                             val isAstro = myRole == "astrologer"
                             list.add(
                                 SessionHistoryItem(
-                                    id = obj.optString("sessionId"),
+                                    id = obj.optString("sessionId", "Unknown"),
                                     partnerName = if (isAstro) obj.optString("clientName", "Unknown") else obj.optString("astrologerName", "Unknown"),
                                     type = obj.optString("type", "call"),
-                                    startTime = if (obj.has("actualBillingStart") && obj.optLong("actualBillingStart") > 0) obj.optLong("actualBillingStart") else obj.optLong("startTime", 0),
-                                    endTime = if (obj.has("sessionEndAt") && obj.optLong("sessionEndAt") > 0) obj.optLong("sessionEndAt") else obj.optLong("endTime", 0),
+                                    startTime = if (obj.has("actualBillingStart") && obj.optLong("actualBillingStart") > 0) obj.optLong("actualBillingStart") else obj.optLong("startTime", System.currentTimeMillis()),
+                                    endTime = if (obj.has("sessionEndAt") && obj.optLong("sessionEndAt") > 0) obj.optLong("sessionEndAt") else obj.optLong("endTime", System.currentTimeMillis()),
                                     duration = obj.optInt("duration", 0),
                                     amount = if (isAstro) obj.optDouble("totalEarned", 0.0) else obj.optDouble("totalCharged", 0.0),
-                                    isEarned = isAstro
+                                    isEarned = isAstro,
+                                    status = if (obj.optBoolean("success", true)) "Completed" else "CANCELLED"
                                 )
                             )
                         }
-                        sessions = list
+                        // Sort by latest first
+                        sessions = list.sortedByDescending { it.startTime }
 
                     } else {
                         error = "Failed to load history"
@@ -104,53 +113,83 @@ fun HistoryScreen(userId: String, onBack: () -> Unit) {
         }
     }
 
+    val filteredSessions = sessions.filter { 
+        if (selectedTabIndex == 0) it.type != "chat" else it.type == "chat"
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Consultation History", color = Color.White) },
+                title = { Text(tabs[selectedTabIndex], color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = CosmicAppTheme.colors.headerStart
+                    containerColor = Color(0xFFFF8A80) // Pastel Red header from screenshot
                 )
             )
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(CosmicAppTheme.backgroundBrush)
+                .background(Color(0xFFF5F5F5)) // Light gray background
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = CosmicAppTheme.colors.accent)
-            } else if (error != null) {
-                Text(text = error!!, color = Color.Red, modifier = Modifier.align(Alignment.Center))
-            } else if (sessions.isEmpty()) {
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = Color.Gray
+            TabRow(
+                selectedTabIndex = selectedTabIndex,
+                containerColor = Color.White,
+                contentColor = Color(0xFFFF8A80),
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                        color = Color(0xFFFF8A80)
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("No history found", color = Color.Gray)
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(sessions) { session ->
-                        HistoryCard(session)
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index },
+                        text = { Text(title, color = if (selectedTabIndex == index) Color(0xFFFF8A80) else Color.Gray) }
+                    )
+                }
+            }
+
+            Box(modifier = Modifier.fillMaxSize().weight(1f)) {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color(0xFFFF8A80))
+                } else if (error != null) {
+                    Text(text = error!!, color = Color.Red, modifier = Modifier.align(Alignment.Center))
+                } else if (filteredSessions.isEmpty()) {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.LightGray)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Data shown for last 3 days only", color = Color.Gray, fontSize = 14.sp)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(filteredSessions) { session ->
+                            HistoryDetailedCard(session)
+                        }
+                        item {
+                            Text(
+                                text = "Data shown for last 3 days only",
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                color = Color.Gray,
+                                fontSize = 14.sp
+                            )
+                        }
                     }
                 }
             }
@@ -159,61 +198,91 @@ fun HistoryScreen(userId: String, onBack: () -> Unit) {
 }
 
 @Composable
-fun HistoryCard(item: SessionHistoryItem) {
-    val colors = CosmicAppTheme.colors
-    val dateFormat = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
-    val startTimeStr = if (item.startTime > 0) dateFormat.format(Date(item.startTime)) else "N/A"
+fun HistoryDetailedCard(item: SessionHistoryItem) {
+    val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+    val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
+    val startStr = if (item.startTime > 0) "${dateFormat.format(Date(item.startTime))} (${timeFormat.format(Date(item.startTime))} - ${timeFormat.format(Date(item.endTime))})" else "N/A"
 
     Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.cardBg),
-        elevation = CardDefaults.cardElevation(4.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = if (item.type == "chat") Icons.Default.Chat else Icons.Default.Call,
-                    contentDescription = null,
-                    tint = colors.accent,
-                    modifier = Modifier.size(24.dp)
-                )
+        Column {
+            // Header Row
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (item.status == "Completed") {
+                    Text(item.status, color = Color(0xFF388E3C), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF388E3C), modifier = Modifier.size(16.dp))
+                } else {
+                    Text(item.status, color = Color(0xFF1976D2), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+                
+                // Action Icons
+                Icon(Icons.Default.Assignment, contentDescription = "Notes", tint = Color(0xFFFF8A80), modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = item.partnerName,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = colors.textPrimary,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = "₹${String.format("%.2f", item.amount)}",
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 18.sp,
-                    color = if (item.isEarned) Color(0xFF4CAF50) else Color(0xFF1E3A8A)
-                )
+                Icon(Icons.Default.MoreVert, contentDescription = "More", tint = Color.Gray, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Icon(Icons.Default.FavoriteBorder, contentDescription = "Like", tint = Color.Gray, modifier = Modifier.size(20.dp))
             }
 
+            Divider(color = Color(0xFFEEEEEE))
 
-            Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider(color = colors.cardStroke.copy(alpha = 0.5f))
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text("Date & Time", fontSize = 12.sp, color = colors.textSecondary)
-                    Text(startTimeStr, fontSize = 14.sp, color = colors.textPrimary)
+            // Sub Header: Astro5Star Logo & Name
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Logo placeholder
+                Box(modifier = Modifier.size(24.dp).background(Color(0xFFFFEB3B), CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Star, contentDescription = null, tint = Color.Black, modifier = Modifier.size(14.dp))
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("Consultation Time", fontSize = 12.sp, color = colors.textSecondary)
-                    val totalSec = item.duration / 1000
-                    val mins = totalSec / 60
-                    val secs = totalSec % 60
-                    val duraText = if (mins > 0) "${mins}m ${secs}s" else "${secs}s"
-                    Text(duraText, fontSize = 14.sp, color = Color(0xFF039BE5), fontWeight = FontWeight.SemiBold)
-                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Astro5Star", fontSize = 14.sp, color = Color.Black)
+                Text(" (#${item.id})", fontSize = 14.sp, color = Color.Gray)
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = Color.Gray, modifier = Modifier.size(14.dp))
+                
+                Spacer(modifier = Modifier.weight(1f))
+                
+                Text("₹ ${item.amount}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
+                Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = Color.Black)
             }
+
+            Text(startStr, fontSize = 12.sp, color = Color.DarkGray, modifier = Modifier.padding(horizontal = 16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Details Table
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                DetailRow("Name", item.partnerName)
+                
+                val totalSec = item.duration / 1000
+                val mins = totalSec / 60
+                val secs = totalSec % 60
+                val duraText = if (mins > 0) "${mins}m ${secs}s" else "${secs}s"
+                DetailRow("Duration", duraText)
+                
+                DetailRow("Amount", "₹ ${item.amount}")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+}
+
+@Composable
+fun DetailRow(label: String, value: String, valueColor: Color = Color.DarkGray) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text(label, color = Color.Gray, fontSize = 14.sp, modifier = Modifier.width(80.dp))
+        Text(":", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.width(20.dp))
+        Text(value, color = valueColor, fontSize = 14.sp, modifier = Modifier.weight(1f))
     }
 }
 
@@ -225,6 +294,7 @@ data class SessionHistoryItem(
     val endTime: Long,
     val duration: Int,
     val amount: Double,
-    val isEarned: Boolean
+    val isEarned: Boolean,
+    val status: String
 )
 

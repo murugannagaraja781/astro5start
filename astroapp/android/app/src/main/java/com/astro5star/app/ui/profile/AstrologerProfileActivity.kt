@@ -204,8 +204,8 @@ fun AstrologerProfileScreen(
         }
         val minRequired = (rate * minMins).toDouble()
 
-        if (totalBal < minRequired && totalBal < 1.0) { // Allow if they have at least 1 rupee for the first call maybe? 
-            // Better to stay safe and enforce the minRequired
+        if (totalBal < minRequired && superBalance <= 0) {
+            // User has insufficient regular balance and no bonus credits
             Toast.makeText(context, "Insufficient balance! Please recharge (Min ₹${minRequired.toInt()} required).", Toast.LENGTH_LONG).show()
             return
         }
@@ -623,11 +623,50 @@ fun AstrologerProfileScreen(
                 if (isLoadingReviews) {
                     CircularProgressIndicator(modifier = Modifier.padding(16.dp), color = Color(0xFF004D40))
                 } else if (reviews.isEmpty()) {
+                    // Show Sample Reviews
+                    val sampleReviews = listOf(
+                        com.astro5star.app.ui.home.ReviewItem(
+                            id = "sample1",
+                            clientName = "Priya",
+                            comment = "Very accurate predictions! Helped me a lot with my career choices.",
+                            rating = 5,
+                            astrologerName = name,
+                            astrologerImage = image,
+                            astrologerUserId = id
+                        ),
+                        com.astro5star.app.ui.home.ReviewItem(
+                            id = "sample2",
+                            clientName = "Rahul",
+                            comment = "Good consultation, gave clear remedies. Feeling positive.",
+                            rating = 4,
+                            astrologerName = name,
+                            astrologerImage = image,
+                            astrologerUserId = id
+                        ),
+                        com.astro5star.app.ui.home.ReviewItem(
+                            id = "sample3",
+                            clientName = "Anita",
+                            comment = "Excellent experience. Very patient and detailed analysis.",
+                            rating = 5,
+                            astrologerName = name,
+                            astrologerImage = image,
+                            astrologerUserId = id
+                        )
+                    )
+                    sampleReviews.forEach { item ->
+                        ReviewListItem(
+                            item = item,
+                            currentUserId = currentUser?.userId ?: "",
+                            currentRole = currentUser?.role ?: "",
+                            onDeleted = {} // Samples cannot be deleted
+                        )
+                    }
                     Text(
-                        "No reviews yet. Be the first to consult!",
+                        "Sample Reviews. Live reviews will appear here once users consult this astrologer.",
                         color = Color.Gray,
                         modifier = Modifier.padding(16.dp),
-                        fontSize = 13.sp
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center
                     )
                 } else {
                     reviews.forEach { item ->

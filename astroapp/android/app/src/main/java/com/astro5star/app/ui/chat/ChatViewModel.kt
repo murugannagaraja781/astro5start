@@ -59,6 +59,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _statusUpdate = MutableLiveData<String>()
     val statusUpdate: LiveData<String> = _statusUpdate
 
+    private val _currentSessionId = MutableLiveData<String>()
+    val currentSessionId: LiveData<String> = _currentSessionId
+
     fun sendMessage(data: JSONObject) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -252,10 +255,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             // Immediately update UI and DB
             android.util.Log.d("ChatViewModel", "Incoming Msg: $msgId Type=$type URL=$fileUrl Content=$content")
             
+            val myUserId = com.astro5star.app.data.local.TokenManager(getApplication()).getUserSession()?.userId
+            val isMe = (senderId == myUserId)
+
             val msg = ChatMessage(
                 id = msgId, 
                 text = text, 
-                isSent = false, 
+                isSent = isMe, 
                 timestamp = timestamp,
                 type = type,
                 fileUrl = if (fileUrl.isNullOrEmpty()) null else fileUrl,

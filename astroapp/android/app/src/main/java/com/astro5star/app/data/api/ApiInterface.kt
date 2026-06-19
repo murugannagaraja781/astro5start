@@ -144,4 +144,7 @@ interface ApiInterface {
 
     @POST("api/native/accept-call")
     suspend fun acceptCall(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/rasi-eng/kp-chart")
+    suspend fun getKpChart(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
 }

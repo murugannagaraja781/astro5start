@@ -101,4 +101,13 @@ class TokenManager(context: Context) {
     fun clearPendingReferralCode() {
         sharedPreferences.edit().remove("pending_referral_code").apply()
     }
+
+    // App Version Tracking (for auto-logout on update)
+    fun getLastVersionCode(): Long {
+        return sharedPreferences.getLong("last_version_code", 0L)
+    }
+
+    fun saveLastVersionCode(version: Long) {
+        sharedPreferences.edit().putLong("last_version_code", version).apply()
+    }
 }

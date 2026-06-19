@@ -126,6 +126,7 @@
         <activity android:name=".ui.horoscope.FreeHoroscopeActivity" />
         <activity android:name=".ui.astro.AstrologerDashboardActivity" />
         <activity android:name=".ui.astro.AstrologerHistoryActivity" />
+        <activity android:name=".ui.astro.AstrologerReviewsActivity" />
         <activity android:name=".ui.admin.SuperPowerAdminDashboardActivity" android:exported="false" android:theme="@style/Theme.FCMCallApp"/>
         <activity android:name=".ui.admin.MissedCallNotificationsActivity" android:exported="false" android:theme="@style/Theme.FCMCallApp"/>
         <activity android:name=".ui.admin.AppUpdateSettingsActivity" android:exported="false" android:theme="@style/Theme.FCMCallApp"/>
@@ -242,6 +243,20 @@
             android:foregroundServiceType="specialUse|dataSync">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                       android:value="Maintaining socket connection for astrologer availability status" />
+        </service>
+
+        <!--
+            CallConnectionService: TelecomManager integration for native call handling
+            This allows the app to wake up all devices (including Xiaomi/Vivo/Oppo) reliably
+            by treating the VoIP call as a native system call.
+        -->
+        <service
+            android:name=".telecom.CallConnectionService"
+            android:permission="android.permission.BIND_TELECOM_CONNECTION_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.telecom.ConnectionService" />
+            </intent-filter>
         </service>
 
         <!-- Required meta-data for FCM default notification channel -->

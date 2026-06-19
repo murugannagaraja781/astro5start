@@ -99,6 +99,29 @@ router.post('/app-update-settings', async (req, res) => {
     }
 });
 
+router.get('/system-rules', (req, res) => {
+    const { SYSTEM_RULES } = require('../services/sharedState');
+    res.json({ ok: true, data: SYSTEM_RULES });
+});
+
+router.post('/system-rules', async (req, res) => {
+    try {
+        const { FREE_CALL_FOR_NEW_USERS, ALLOW_BONUS_CREDIT_CALLS } = req.body;
+        const { updateSystemRules } = require('../services/sharedState');
+        const success = await updateSystemRules({
+            FREE_CALL_FOR_NEW_USERS: !!FREE_CALL_FOR_NEW_USERS,
+            ALLOW_BONUS_CREDIT_CALLS: !!ALLOW_BONUS_CREDIT_CALLS
+        });
+        if (success) {
+            res.json({ ok: true, message: 'System rules updated successfully' });
+        } else {
+            res.status(500).json({ ok: false, message: 'Failed to update system rules' });
+        }
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
 // Banner Management
 router.get('/banners', bannerController.getAllBanners);
 router.post('/banners', bannerController.createBanner);

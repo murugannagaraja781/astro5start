@@ -174,6 +174,47 @@ async function updateRechargePacks(newPacks) {
 const paymentTokens = new Map();
 const phonepeV2Cache = { token: null, expiresAt: 0 };
 
+let SYSTEM_RULES = {
+    FREE_CALL_FOR_NEW_USERS: true,
+    ALLOW_BONUS_CREDIT_CALLS: true
+};
+
+async function loadSystemRules() {
+    try {
+        const GlobalSettings = require('../models/GlobalSettings');
+        const doc = await GlobalSettings.findOne({ key: 'SYSTEM_RULES' });
+        if (doc && doc.value) {
+            Object.assign(SYSTEM_RULES, doc.value);
+            console.log('✓ System rules loaded from DB:', SYSTEM_RULES);
+        } else {
+            // Save defaults if not exist
+            await GlobalSettings.findOneAndUpdate(
+                { key: 'SYSTEM_RULES' },
+                { value: SYSTEM_RULES },
+                { upsert: true, returnDocument: 'after' }
+            );
+        }
+    } catch (e) {
+        console.error('Error loading system rules:', e);
+    }
+}
+
+async function updateSystemRules(newRules) {
+    try {
+        const GlobalSettings = require('../models/GlobalSettings');
+        Object.assign(SYSTEM_RULES, newRules);
+        await GlobalSettings.findOneAndUpdate(
+            { key: 'SYSTEM_RULES' },
+            { value: SYSTEM_RULES },
+            { upsert: true, returnDocument: 'after' }
+        );
+        return true;
+    } catch (e) {
+        console.error('Error updating system rules:', e);
+        return false;
+    }
+}
+
 module.exports = {
     userSockets,
     socketToUser,
@@ -198,5 +239,8 @@ module.exports = {
     paymentTokens,
     phonepeV2Cache,
     lastSeenCache,
-    sessionTimeouts
+    sessionTimeouts,
+    SYSTEM_RULES,
+    loadSystemRules,
+    updateSystemRules
 };

@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/Users/wohozo/Documents/astro5start/logs/.76df5409b756acb19088b1c3ffcf315058c4ae3a-audit.json",
+    "files": [
+        {
+            "date": 1779285269354,
+            "name": "/Users/wohozo/Documents/astro5start/logs/application-2026-05-20.log",
+            "hash": "d00356ca3f2bbb4d710f6f6ca4a8b5078d549e92c5f31dcfc2375442d299c8a2"
+        }
+    ],
+    "hashType": "sha256"
+}

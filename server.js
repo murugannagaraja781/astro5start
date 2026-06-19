@@ -54,10 +54,11 @@ const upload = multer({ storage: storage });
 
 // Connect to Database
 connectDB().then(async () => {
-  const { loadSlabRates, loadReferralConfig, loadRechargePacks } = require('./services/sharedState');
+  const { loadSlabRates, loadReferralConfig, loadRechargePacks, loadSystemRules } = require('./services/sharedState');
   loadSlabRates();
   loadReferralConfig();
   loadRechargePacks();
+  loadSystemRules();
 
   // Cleanup: Reset isBusy for all users on startup to prevent stale states
   setTimeout(async () => {

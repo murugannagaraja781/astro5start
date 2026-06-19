@@ -26,6 +26,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -233,6 +235,9 @@ class IncomingCallActivity : ComponentActivity() {
             notificationManager.cancel(9999) // FCM Incoming
             notificationManager.cancel(1001) // Foreground Service
             notificationManager.cancel(1002) // Generic FCM
+            if (callerId.isNotEmpty()) {
+                notificationManager.cancel(callerId.hashCode())
+            }
         } catch (e: Exception) { e.printStackTrace() }
     }
 
@@ -335,45 +340,21 @@ class IncomingCallActivity : ComponentActivity() {
         stopRingtoneAndVibration()
         clearAllCallNotifications()
         handler.removeCallbacks(timeoutRunnable)
-
-        // --- STABILITY FIX: Emit answer-session immediately for better responsiveness ---
-        if (hasEmittedAnswer) {
-            Log.d(TAG, "Already emitted answer for $callId, skipping duplicate")
-        } else {
-            hasEmittedAnswer = true
-            try {
-                val payload = JSONObject().apply {
-                    put("sessionId", callId)
-                    put("toUserId", callerId)
-                    put("type", callType)
-                    put("accept", true)
-                }
-                SocketManager.getSocket()?.emit("answer-session", payload)
-                Log.d(TAG, "Emitted answer-session (accept) immediately from IncomingCallActivity")
-
-                // REST FALLBACK: Ensure server receives acceptance even if socket is disconnected (Crucial for OnePlus)
-                val myId = com.astro5star.app.data.local.TokenManager(this).getUserSession()?.userId
-                if (myId != null) {
-                    val gsonPayload = com.google.gson.JsonObject().apply {
-                        addProperty("sessionId", callId)
-                        addProperty("astrologerId", myId)
-                        addProperty("accept", true)
-                        addProperty("type", callType)
-                    }
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        try {
-                            com.astro5star.app.data.api.ApiClient.api.acceptCall(gsonPayload)
-                            Log.d(TAG, "REST accept-call successful fallback")
-                        } catch (e: Exception) { Log.e(TAG, "REST accept-call fallback failed", e) }
-                    }
-                }
-            } catch (e: Exception) { Log.e(TAG, "Failed to emit answer-session on accept", e) }
+        
+        // Notify Telecom subsystem that call was accepted
+        try {
+            com.astro5star.app.telecom.TelecomHelper.activeConnection?.setActive()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to notify TelecomConnection of accept", e)
         }
+
+        // Removed premature answer-session emission to prevent WebRTC race condition.
+        // The actual answer-session will be emitted by ChatActivity or CallActivity 
+        // after they have fully initialized their sockets and WebRTC layer.
 
         val intent: Intent
         val finalType = callType.lowercase()
         android.util.Log.e("IncomingCallActivity", "Processing Accept: Type=$finalType, Session=$callId")
-        android.widget.Toast.makeText(this, "Accepting $finalType Session", android.widget.Toast.LENGTH_SHORT).show()
         SocketManager.remoteLog("User clicked ACCEPT: Type=$finalType Ses=$callId", callId)
 
         if (finalType.contains("chat")) {
@@ -445,6 +426,17 @@ class IncomingCallActivity : ComponentActivity() {
         stopRingtoneAndVibration()
         handler.removeCallbacks(timeoutRunnable)
 
+        // Notify Telecom subsystem that call was rejected
+        try {
+            com.astro5star.app.telecom.TelecomHelper.activeConnection?.setDisconnected(
+                android.telecom.DisconnectCause(android.telecom.DisconnectCause.REJECTED)
+            )
+            com.astro5star.app.telecom.TelecomHelper.activeConnection?.destroy()
+            com.astro5star.app.telecom.TelecomHelper.activeConnection = null
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to notify TelecomConnection of reject", e)
+        }
+
         // Emit rejection status to socket
         if (!hasEmittedAnswer) {
             hasEmittedAnswer = true
@@ -469,6 +461,19 @@ class IncomingCallActivity : ComponentActivity() {
         super.onDestroy()
         stopRingtoneAndVibration()
         handler.removeCallbacks(timeoutRunnable)
+
+        // Clean up Telecom connection on destroy if not already
+        try {
+            com.astro5star.app.telecom.TelecomHelper.activeConnection?.let { conn ->
+                if (conn.state != android.telecom.Connection.STATE_DISCONNECTED) {
+                    conn.setDisconnected(android.telecom.DisconnectCause(android.telecom.DisconnectCause.LOCAL))
+                }
+                conn.destroy()
+                com.astro5star.app.telecom.TelecomHelper.activeConnection = null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cleaning up Telecom connection", e)
+        }
 
         try {
             unregisterReceiver(callControlReceiver)
@@ -543,6 +548,12 @@ fun IncomingCallScreen(
                 "chat" -> "INCOMING CHAT REQUEST"
                 "video" -> "INCOMING VIDEO CALL"
                 else -> "INCOMING AUDIO CALL"
+            }
+            
+            val acceptIcon = when(callType) {
+                "chat" -> androidx.compose.material.icons.Icons.Default.Chat
+                "video" -> androidx.compose.material.icons.Icons.Default.Videocam
+                else -> androidx.compose.material.icons.Icons.Default.Call
             }
 
             Text(
@@ -628,7 +639,7 @@ fun IncomingCallScreen(
                         modifier = Modifier.size(72.dp),
                         shape = CircleShape
                     ) {
-                        Icon(Icons.Default.Call, "Accept", modifier = Modifier.size(32.dp))
+                        Icon(acceptIcon, "Accept", modifier = Modifier.size(32.dp))
                     }
                     Text("Accept", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(top=8.dp))
                 }

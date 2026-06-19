@@ -374,7 +374,7 @@ fun HomeScreen(
     val listState = rememberLazyListState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(1) }
     var selectedFilter by remember { mutableStateOf("All") }
     var showReferralDialog by remember { mutableStateOf(false) }
     var referralInput by remember { mutableStateOf("") }
@@ -1545,7 +1545,7 @@ fun AstrologerCard(
                             enabled = true,
                             fontSize = fontSize,
                             iconSize = iconSize,
-                            onClick = { onChatClick(astro) } // Update as needed
+                            onClick = { onCallClick(astro, "Unlimited") }
                         )
                     }
                 }

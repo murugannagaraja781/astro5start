@@ -1156,6 +1156,39 @@ class CallActivity : ComponentActivity() {
         isWebRTCInitialized = true
         isReady = true
         drainSignalBuffer()
+
+        // STABILITY FIX: Emit answer-session ONLY after WebRTC and listeners are ready
+        if (isNewRequest) {
+            isNewRequest = false
+            try {
+                val payload = JSONObject().apply {
+                    put("sessionId", sessionId)
+                    put("toUserId", partnerId)
+                    put("type", callType)
+                    put("accept", true)
+                }
+                SocketManager.getSocket()?.emit("answer-session", payload)
+                sendAppLog("Emitted delayed answer-session after WebRTC init")
+
+                val myId = TokenManager(this).getUserSession()?.userId
+                if (myId != null) {
+                    val gsonPayload = com.google.gson.JsonObject().apply {
+                        addProperty("sessionId", sessionId)
+                        addProperty("astrologerId", myId)
+                        addProperty("accept", true)
+                        addProperty("type", callType)
+                    }
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        try {
+                            ApiClient.api.acceptCall(gsonPayload)
+                        } catch (e: Exception) {}
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to emit delayed answer-session", e)
+            }
+        }
+
         return true
     }
 

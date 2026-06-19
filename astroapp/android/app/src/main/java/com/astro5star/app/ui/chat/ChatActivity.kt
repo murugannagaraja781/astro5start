@@ -113,6 +113,8 @@ class ChatActivity : ComponentActivity() {
         }
     }
 
+    var showQuickRasiChart by mutableStateOf(false)
+
     private val imagePickerLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri: android.net.Uri? ->
         uri?.let { handleMediaUpload(it) }
     }
@@ -182,7 +184,6 @@ class ChatActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Toast.makeText(this, "Opening Chat Box...", Toast.LENGTH_SHORT).show()
         SocketManager.remoteLog("ChatActivity: onCreate triggered")
         try {
             voiceRecorder = com.astro5star.app.utils.VoiceRecorder(this)
@@ -241,28 +242,39 @@ class ChatActivity : ComponentActivity() {
                         onViewChart = {
                             if (clientBirthData != null) {
                                 val hasPartner = clientBirthData?.let { it.has("partner") && it.optJSONObject("partner") != null } ?: false
-                                if (!hasPartner) {
-                                    val intent = Intent(this, com.astro5star.app.ui.chart.VipChartActivity::class.java)
-                                    intent.putExtra("birthData", clientBirthData.toString())
-                                    intent.putExtra("toUserId", toUserId)
-                                    intent.putExtra("sessionId", sessionId)
-                                    startActivity(intent)
+                                val items = if (!hasPartner) {
+                                    arrayOf("👁️ Quick View Rasi Chart", "📊 Full VIP Chart")
                                 } else {
-                                    val items = arrayOf(
-                                        "📊 Client Rasi Chart",
-                                        "📊 Partner Rasi Chart",
-                                        "💑 Marriage Compatibility Match"
-                                    )
-                                    android.app.AlertDialog.Builder(this)
-                                        .setTitle("View Chart")
-                                        .setItems(items) { _, which ->
+                                    arrayOf("👁️ Quick View Rasi Chart", "📊 Client Full Chart", "📊 Partner Full Chart", "💑 Marriage Compatibility Match")
+                                }
+                                android.app.AlertDialog.Builder(this)
+                                    .setTitle("View Chart")
+                                    .setItems(items) { _, which ->
+                                        if (!hasPartner) {
                                             when (which) {
                                                 0 -> {
+                                                    (this as? ChatActivity)?.showQuickRasiChart = true
+                                                }
+                                                1 -> {
+                                                    val intent = Intent(this, com.astro5star.app.ui.chart.VipChartActivity::class.java)
+                                                    intent.putExtra("birthData", clientBirthData.toString())
+                                                    intent.putExtra("toUserId", toUserId)
+                                                    intent.putExtra("sessionId", sessionId)
+                                                    startActivity(intent)
+                                                }
+                                                else -> {}
+                                            }
+                                        } else {
+                                            when (which) {
+                                                0 -> {
+                                                    (this as? ChatActivity)?.showQuickRasiChart = true
+                                                }
+                                                1 -> {
                                                     val intent = Intent(this, com.astro5star.app.ui.chart.VipChartActivity::class.java)
                                                     intent.putExtra("birthData", clientBirthData.toString())
                                                     startActivity(intent)
                                                 }
-                                                1 -> {
+                                                2 -> {
                                                     val partnerObj = clientBirthData?.optJSONObject("partner")
                                                     if (partnerObj != null) {
                                                         val partnerBirthData = JSONObject().apply {
@@ -288,15 +300,16 @@ class ChatActivity : ComponentActivity() {
                                                         Toast.makeText(this, "Partner data unavailable", Toast.LENGTH_SHORT).show()
                                                     }
                                                 }
-                                                2 -> {
+                                                3 -> {
                                                     val intent = Intent(this, com.astro5star.app.ui.chart.MatchDisplayActivity::class.java)
                                                     intent.putExtra("birthData", clientBirthData.toString())
                                                     startActivity(intent)
                                                 }
+                                                else -> {}
                                             }
                                         }
-                                        .show()
-                                }
+                                    }
+                                    .show()
                             } else {
                                  Toast.makeText(this, "Waiting for Client Data...", Toast.LENGTH_SHORT).show()
                             }
@@ -358,13 +371,17 @@ class ChatActivity : ComponentActivity() {
                             }
                         },
                         onStopRecording = {
+                            val duration = recordingSeconds
                             recordingTimer?.removeCallbacks(recordingRunnable)
                             recordingTimer = null
                             val file = voiceRecorder.stopRecording()
-                            if (file != null && file.exists()) {
+                            if (duration < 2) {
+                                if (file != null && file.exists()) file.delete()
+                                Toast.makeText(this@ChatActivity, "Voice message must be at least 2 seconds", Toast.LENGTH_SHORT).show()
+                            } else if (file != null && file.exists()) {
                                 handleMediaUpload(directFile = file)
                             } else {
-                                Toast.makeText(this, "Recording failed", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@ChatActivity, "Recording failed", Toast.LENGTH_SHORT).show()
                             }
                         },
                         recordingTime = recordingTime,
@@ -452,7 +469,6 @@ class ChatActivity : ComponentActivity() {
             }
 
             android.util.Log.e("ChatActivity", "Resolved Decision: Session=$sessionId, ToUser=$toUserId")
-            Toast.makeText(this, "Accepting Session: $sessionId", Toast.LENGTH_LONG).show()
             SocketManager.remoteLog("ChatActivity: Resolved Decision: Session=$sessionId ToUser=$toUserId", sessionId)
 
             if (sessionId == null) {
@@ -743,6 +759,8 @@ fun ChatScreen(
     val isTyping by viewModel.typingStatus.observeAsState(false)
     val context = LocalContext.current
     var isRecording by remember { mutableStateOf(false) }
+    var replyingTo by remember { mutableStateOf<ChatMessage?>(null) }
+    var showLowBalanceDialog by remember { mutableStateOf(false) }
 
     // Disable Back Button for Clients
     BackHandler(enabled = !isAstrologer) {
@@ -753,12 +771,62 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     var inputText by remember { mutableStateOf("") }
 
-    // Reply State
-    var replyingTo by remember { mutableStateOf<ChatMessage?>(null) }
-
+    // Reply State removed
     // History Visibility State
     // Filter messages: Show all messages by default to ensure no data loss
     val displayedMessages = remember(messages) { messages }
+
+    if ((context as? ChatActivity)?.showQuickRasiChart == true && clientBirthData != null) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { context.showQuickRasiChart = false }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White,
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Client Rasi Chart", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(bottom = 12.dp))
+                    
+                    val rasiMap = remember(clientBirthData) {
+                        val map = mutableMapOf<String, List<String>>()
+                        try {
+                            val kundliObj = clientBirthData.optJSONObject("kundliData") ?: clientBirthData
+                            val rasiObj = kundliObj?.optJSONObject("rasi") ?: kundliObj?.optJSONObject("rasiChart") ?: kundliObj?.optJSONObject("planets")
+                            if (rasiObj != null) {
+                                val keys = rasiObj.keys()
+                                while (keys.hasNext()) {
+                                    val key = keys.next() as String
+                                    val planetsArr = rasiObj.optJSONArray(key)
+                                    if (planetsArr != null) {
+                                        val list = mutableListOf<String>()
+                                        for (i in 0 until planetsArr.length()) {
+                                            list.add(planetsArr.optString(i))
+                                        }
+                                        map[key] = list
+                                    } else {
+                                        // Fallback if it's a comma separated string
+                                        val str = rasiObj.optString(key)
+                                        if (str.isNotEmpty()) map[key] = str.split(",").map { it.trim() }
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) { e.printStackTrace() }
+                        map
+                    }
+                    
+                    RasiKattam(rasiData = rasiMap, title = clientBirthData.optString("name", "Client"))
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { context.showQuickRasiChart = false },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD84315))
+                    ) {
+                        Text("Close")
+                    }
+                }
+            }
+        }
+    }
 
     LaunchedEffect(displayedMessages.size) {
         if (displayedMessages.isNotEmpty()) listState.animateScrollToItem(displayedMessages.size - 1)
@@ -1039,7 +1107,7 @@ fun ChatBubble(
                              if (msg.type == "image" && !msg.fileUrl.isNullOrEmpty()) {
                                 val context = androidx.compose.ui.platform.LocalContext.current
                                 val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL
-                                val fUrl = msg.fileUrl ?: ""
+                                val fUrl = (msg.fileUrl ?: "").replace("\\", "/")
                                 val fullUrl = remember(fUrl) {
                                     if (fUrl.startsWith("http")) fUrl else {
                                         val separator = if (baseUrl.endsWith("/") || fUrl.startsWith("/")) "" else "/"
@@ -1123,7 +1191,7 @@ fun ChatBubble(
                             } else if (msg.type == "voice" && !msg.fileUrl.isNullOrEmpty()) {
                                 // WhatsApp-inspired Voice Player UI
                                 val baseUrl = com.astro5star.app.utils.Constants.SERVER_URL
-                                val fUrl = msg.fileUrl ?: ""
+                                val fUrl = (msg.fileUrl ?: "").replace("\\", "/")
                                 val fullUrl = if (fUrl.startsWith("http")) fUrl else {
                                     val separator = if (baseUrl.endsWith("/") || fUrl.startsWith("/")) "" else "/"
                                     "$baseUrl$separator$fUrl"
@@ -1307,119 +1375,133 @@ fun ChatInputBar(
     onStopRecording: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    Surface(
-        color = Color.White,
-        shadowElevation = 8.dp,
+    Column(
         modifier = Modifier
+            .fillMaxWidth()
             .navigationBarsPadding()
             .imePadding()
+            .padding(start = 8.dp, end = 8.dp, bottom = 12.dp)
     ) {
-        Column {
-            if (replyingTo != null) {
-                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+        if (replyingTo != null) {
+            Surface(
+                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                color = Color(0xFFE8F5E9), // Light green for reply
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp)
+            ) {
                 Row(
-                    Modifier.fillMaxWidth().background(Color.Gray.copy(alpha = 0.05f)).padding(8.dp),
+                    Modifier.fillMaxWidth().padding(12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                   Text("Replying to: ${replyingTo.text?.take(30) ?: ""}...", fontSize = 12.sp, color = Color.Gray)
+                   Column(modifier = Modifier.weight(1f)) {
+                       Text("Replying to", fontSize = 12.sp, color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold)
+                       Text(replyingTo.text ?: "", fontSize = 14.sp, color = Color.DarkGray, maxLines = 1)
+                   }
                    IconButton(onClick = onCancelReply, modifier = Modifier.size(24.dp)) {
                        Icon(Icons.Default.Close, "Cancel", tint = Color.Gray)
                    }
                 }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 8.dp, bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+        }
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            // Main Input Area (Pill Shape)
+            Surface(
+                shape = if (replyingTo != null) RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp) else RoundedCornerShape(24.dp),
+                color = Color.White,
+                shadowElevation = 2.dp,
+                modifier = Modifier.weight(1f).padding(end = 8.dp)
             ) {
-                if (isRecording) {
-                    // WhatsApp-like full-width recording bar
-                    Icon(Icons.Default.Mic, "Recording", tint = Color.Red, modifier = Modifier.padding(horizontal = 12.dp))
-                    Text(
-                        text = "Recording Voice... $recordingTime",
-                        modifier = Modifier.weight(1f),
-                        color = Color.Red,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    Text(
-                        "Slide to cancel",
-                        fontSize = 12.sp,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
-                } else {
-                    IconButton(onClick = onPickImage) {
-                        Icon(Icons.Default.Image, "Pick Image", tint = Color(0xFF6200EE))
-                    }
-                    IconButton(onClick = onPickFile) {
-                        Icon(Icons.Default.AttachFile, "Pick File", tint = Color(0xFF6200EE))
-                    }
-                    
-                    if (onViewChart != null) {
-                        val isReady = clientBirthData != null
-                        IconButton(onClick = onViewChart) {
-                            if (isReady) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_chart),
-                                    contentDescription = "Chart",
-                                    tint = Color(0xFF4CAF50)
-                                )
-                            } else {
-                                Icon(Icons.Default.Refresh, "Pending", tint = Color.Gray)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isRecording) {
+                        // WhatsApp-like full-width recording bar
+                        Icon(Icons.Default.Mic, "Recording", tint = Color.Red, modifier = Modifier.padding(12.dp))
+                        Text(
+                            text = "Recording... $recordingTime",
+                            modifier = Modifier.weight(1f),
+                            color = Color.Red,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    } else {
+                        IconButton(onClick = onPickImage, modifier = Modifier.size(40.dp)) {
+                            Icon(Icons.Default.Image, "Pick Image", tint = Color.Gray)
+                        }
+                        IconButton(onClick = onPickFile, modifier = Modifier.size(40.dp)) {
+                            Icon(Icons.Default.AttachFile, "Pick File", tint = Color.Gray)
+                        }
+                        
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = text,
+                            onValueChange = onTextChange,
+                            modifier = Modifier.weight(1f).padding(vertical = 12.dp, horizontal = 4.dp),
+                            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp, color = Color.Black),
+                            maxLines = 6,
+                            decorationBox = { innerTextField ->
+                                if (text.isEmpty()) {
+                                    Text("Message", fontSize = 16.sp, color = Color.Gray)
+                                }
+                                innerTextField()
+                            }
+                        )
+                        
+                        if (onViewChart != null) {
+                            val isReady = clientBirthData != null
+                            IconButton(onClick = onViewChart, modifier = Modifier.size(40.dp)) {
+                                if (isReady) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_chart),
+                                        contentDescription = "Chart",
+                                        tint = Color(0xFF4CAF50)
+                                    )
+                                } else {
+                                    Icon(Icons.Default.Refresh, "Pending", tint = Color.LightGray)
+                                }
                             }
                         }
                     }
-                    
-                    OutlinedTextField(
-                        value = text,
-                        onValueChange = onTextChange,
-                        modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        placeholder = { Text("Type a message", fontSize = 14.sp) },
-                        maxLines = 4,
-                        colors = TextFieldDefaults.colors(
-                           focusedContainerColor = Color(0xFFF0F0F0),
-                           unfocusedContainerColor = Color(0xFFF0F0F0),
-                           focusedIndicatorColor = Color.Transparent,
-                           unfocusedIndicatorColor = Color.Transparent
-                        )
-                    )
                 }
+            }
 
-                if (text.isNotBlank() && !isRecording) {
-                    IconButton(onClick = onSend) {
-                        Icon(Icons.Default.Send, "Send", tint = Color(0xFF6200EE))
+            // Send or Mic FAB
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(if (text.isNotBlank() && !isRecording) Color(0xFF00A884) else if (isRecording) Color.Red else Color(0xFF00A884))
+                    .clickable(enabled = text.isNotBlank() && !isRecording) {
+                        if (text.isNotBlank() && !isRecording) onSend()
                     }
-                } else {
-                    // Record Button with PointerInput
-                    Box(
-                        modifier = Modifier
-                            .size(if (isRecording) 56.dp else 48.dp)
-                            .clip(CircleShape)
-                            .background(if (isRecording) Color.Red else Color(0xFF6200EE))
-                            .pointerInput(Unit) {
-                                detectTapGestures(
-                                    onPress = {
-                                        onStartRecording()
-                                        try {
-                                            awaitRelease()
-                                        } finally {
-                                            onStopRecording()
-                                        }
+                    .pointerInput(text.isBlank()) {
+                        if (text.isBlank()) {
+                            detectTapGestures(
+                                onPress = {
+                                    onStartRecording()
+                                    try {
+                                        awaitRelease()
+                                    } finally {
+                                        onStopRecording()
                                     }
-                                )
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            if (isRecording) Icons.Default.Mic else Icons.Default.MicNone,
-                            "Record",
-                            tint = Color.White,
-                            modifier = Modifier.size(if (isRecording) 28.dp else 24.dp)
-                        )
-                    }
-                }
+                                }
+                            )
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (text.isNotBlank() && !isRecording) Icons.Default.Send else if (isRecording) Icons.Default.Mic else Icons.Default.MicNone,
+                    contentDescription = "Action",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
     }

@@ -37,7 +37,8 @@ class AstrologerListActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         adapter = AstrologerAdapter(
             onChat = { /* Handle Chat Click */ },
-            onCall = { /* Handle Call Click */ }
+            onCall = { /* Handle Call Click */ },
+            onVideoCall = { /* Handle Video Call Click */ }
         )
 
         binding.rvAstrologers.apply {

@@ -34,11 +34,25 @@ class ChatAudioPlayer {
             stop()
             _currentUrl.value = url
             mediaPlayer = MediaPlayer().apply {
-                setDataSource(url)
+                var fis: java.io.FileInputStream? = null
+                val isHttp = url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)
+                if (!isHttp) {
+                    val file = java.io.File(url)
+                    if (file.exists()) {
+                        fis = java.io.FileInputStream(file)
+                        setDataSource(fis!!.fd)
+                    } else {
+                        setDataSource(url)
+                    }
+                } else {
+                    setDataSource(url)
+                }
+
                 setOnPreparedListener {
                     start()
                     _isPlaying.value = true
                     android.util.Log.d("ChatAudioPlayer", "Playback started: $url")
+                    try { fis?.close() } catch (e: Exception) {}
                 }
                 setOnCompletionListener {
                     _isPlaying.value = false
@@ -50,6 +64,7 @@ class ChatAudioPlayer {
                     android.util.Log.e("ChatAudioPlayer", "Playback ERROR: what=$what, extra=$extra URL=$url")
                     _isPlaying.value = false
                     _currentUrl.value = null
+                    try { fis?.close() } catch (e: Exception) {}
                     true
                 }
                 prepareAsync()

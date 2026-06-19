@@ -17,7 +17,8 @@ import com.astro5star.app.databinding.ItemAstrologerBinding
  */
 class AstrologerAdapter(
     private val onChat: (Astrologer) -> Unit,
-    private val onCall: (Astrologer) -> Unit
+    private val onCall: (Astrologer) -> Unit,
+    private val onVideoCall: (Astrologer) -> Unit
 ) : ListAdapter<Astrologer, AstrologerAdapter.ViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -58,6 +59,7 @@ class AstrologerAdapter(
                 // Optimized click listeners (set once per bind)
                 btnChat.setOnClickListener { onChat(item) }
                 btnCall.setOnClickListener { onCall(item) }
+                btnVideoCall.setOnClickListener { onVideoCall(item) }
             }
         }
     }

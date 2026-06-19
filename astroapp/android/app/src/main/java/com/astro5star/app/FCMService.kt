@@ -47,7 +47,7 @@ class FCMService : FirebaseMessagingService() {
 
     companion object {
         private const val TAG = "FCMService"
-        private const val CALL_CHANNEL_ID = "incoming_calls_v5"
+        private const val CALL_CHANNEL_ID = "incoming_calls_v6"
         private const val CALL_CHANNEL_NAME = "Incoming Calls (High Priority)"
         private const val CHAT_CHANNEL_ID = "chat_messages_v1"
         private const val CHAT_CHANNEL_NAME = "Chat Messages"
@@ -331,13 +331,19 @@ class FCMService : FirebaseMessagingService() {
 
         // FIX: Server sends 'sessionId', manual test might send 'callId'
         val callId = data["sessionId"] ?: data["callId"] ?: System.currentTimeMillis().toString()
-        val callType = data["callType"] ?: "audio" // Differentiate chat vs audio/video
+        val callType = data["callType"] ?: data["type"] ?: "audio" // Differentiate chat vs audio/video
 
         Log.d(TAG, "=== INCOMING $callType ===")
         Log.d(TAG, "From: $callerName ($callerId), callId: $callId")
 
+        val tokenManager = com.astro5star.app.data.local.TokenManager(this)
+        if (!tokenManager.isLoggedIn()) {
+            Log.w(TAG, "User is logged out locally. Ignoring incoming call from FCM.")
+            return
+        }
+
         // CRITICAL: Prevent self-call loops which cause crashes and resource conflicts
-        val myUserId = com.astro5star.app.data.local.TokenManager(this).getUserSession()?.userId
+        val myUserId = tokenManager.getUserSession()?.userId
         if (callerId == myUserId && myUserId != null) {
             Log.w(TAG, "Self-call detected from FCM (target == caller). Ignoring to avoid loop.")
             return
@@ -349,54 +355,68 @@ class FCMService : FirebaseMessagingService() {
         // Wake up the screen
         wakeUpDevice()
 
-        // Create intent for IncomingCallActivity
-        val intent = Intent(this, IncomingCallActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-            putExtra("callerId", callerId)
-            putExtra("callerName", callerName)
-            putExtra("callId", callId)
-            putExtra("callType", callType) // Pass type to activity
-            putExtra("birthData", data["birthData"]) // Pass birthData
-        }
-
-        // Create pending intent for full-screen notification
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            System.currentTimeMillis().toInt(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        // Show HIGH-PRIORITY notification with full-screen intent
-        // This is THE OFFICIAL WAY to show call UI on locked screen
-        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-        
-        val notification = NotificationCompat.Builder(this, CALL_CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_menu_call)
-            // Removed Title and Text to prevent top-level banner/heads-up
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setCategory(NotificationCompat.CATEGORY_CALL)
-            .setFullScreenIntent(pendingIntent, true)  // Still required for screen-wake/lockscreen launch
-            .setAutoCancel(true)
-            .setOngoing(true)
-            .setSound(soundUri)
-            .setVibrate(longArrayOf(0, 500, 500))
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .build()
-
-        val notificationManager = getSystemService(NotificationManager::class.java)
-        notificationManager.notify(CALL_NOTIFICATION_ID, notification)
-        Log.d(TAG, "Full-screen notification triggered (official Android 10+ method)")
-
-        // Fallback: Try to start activity directly if app is in foreground or has permission
         try {
-            startActivity(intent)
-            Log.d(TAG, "Direct startActivity successfully called as backup")
+            // Attempt to use native TelecomManager (ConnectionService) API
+            // This is the guaranteed way to wake devices on Android 8+
+            com.astro5star.app.telecom.TelecomHelper.startIncomingCall(
+                this,
+                callId = callId,
+                callerName = callerName,
+                callType = callType,
+                callerId = callerId,
+                birthData = data["birthData"]
+            )
         } catch (e: Exception) {
-            Log.w(TAG, "Direct startActivity blocked, relying on fullScreenIntent notification")
+            Log.e(TAG, "TelecomManager failed, falling back to Notification", e)
+            
+            // Create intent for IncomingCallActivity
+            val intent = Intent(this, IncomingCallActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                putExtra("callerId", callerId)
+                putExtra("callerName", callerName)
+                putExtra("callId", callId)
+                putExtra("callType", callType) // Pass type to activity
+                putExtra("birthData", data["birthData"]) // Pass birthData
+            }
+
+            // Create pending intent for full-screen notification
+            val pendingIntent = PendingIntent.getActivity(
+                this,
+                System.currentTimeMillis().toInt(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            // Show HIGH-PRIORITY notification with full-screen intent
+            val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            
+            val notification = NotificationCompat.Builder(this, CALL_CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_menu_call)
+                .setContentTitle("Incoming $callType")
+                .setContentText("Incoming call from $callerName")
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_CALL)
+                .setFullScreenIntent(pendingIntent, true)
+                .setAutoCancel(true)
+                .setOngoing(true)
+                .setSound(soundUri)
+                .setVibrate(longArrayOf(0, 500, 500))
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .build()
+
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager.notify(CALL_NOTIFICATION_ID, notification)
+            
+            // Fallback: Try to start activity directly if app is in foreground or has permission
+            try {
+                startActivity(intent)
+                Log.d(TAG, "Direct startActivity successfully called as backup")
+            } catch (e2: Exception) {
+                Log.w(TAG, "Direct startActivity blocked, relying on fullScreenIntent notification")
+            }
         }
     }
 
@@ -442,11 +462,11 @@ class FCMService : FirebaseMessagingService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = getSystemService(NotificationManager::class.java)
 
-            // 1. Call Channel (Default Importance - prevents heads-up popups while keeping full-screen capability)
+            // 1. Call Channel (High Importance - REQUIRED for full-screen capability)
             val callChannel = NotificationChannel(
                 CALL_CHANNEL_ID,
                 CALL_CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Notifications for incoming calls"
                 enableVibration(true)
@@ -495,6 +515,12 @@ class FCMService : FirebaseMessagingService() {
     }
 
     private fun handleIncomingChat(callerName: String, callerId: String, sessionId: String) {
+        val tokenManager = com.astro5star.app.data.local.TokenManager(this)
+        if (!tokenManager.isLoggedIn()) {
+            Log.w(TAG, "User is logged out locally. Ignoring incoming chat from FCM.")
+            return
+        }
+
         val intent = Intent(this, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("toUserId", callerId)
