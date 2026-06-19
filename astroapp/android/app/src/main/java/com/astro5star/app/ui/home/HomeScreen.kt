@@ -480,7 +480,7 @@ fun HomeScreen(
                 Column {
                     Text(com.astro5star.app.utils.Localization.get("low_balance_desc", isTamil), color = CosmicAppTheme.colors.textPrimary)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Current Balance: ₹${walletBalance.toInt()}", fontWeight = FontWeight.Bold, color = CosmicAppTheme.colors.accent)
+                    Text("Current Balance: ₹${(walletBalance + superWalletBalance).toInt()}", fontWeight = FontWeight.Bold, color = CosmicAppTheme.colors.accent)
                 }
             },
             confirmButton = {
@@ -672,7 +672,8 @@ fun HomeScreen(
 
 
     fun checkBalanceAndProceed(action: () -> Unit) {
-        if (!isGuest && walletBalance < 10) { // Skip check for guest (login handles it)
+        val totalBal = walletBalance + superWalletBalance
+        if (!isGuest && totalBal < 10) { // Skip check for guest (login handles it)
             showLowBalanceDialog = true
         } else {
             action()
