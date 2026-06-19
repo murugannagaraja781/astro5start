@@ -289,8 +289,11 @@ const verifyOtp = async (req, res) => {
             isNewSignup = true;
             const userId = crypto.randomUUID();
             
-            const { REFERRAL_CONFIG } = require('../services/sharedState');
-            let initialBonus = REFERRAL_CONFIG.INITIAL_BONUS_AMOUNT || 108;
+            const { REFERRAL_CONFIG, SYSTEM_RULES } = require('../services/sharedState');
+            let initialBonus = 0;
+            if (SYSTEM_RULES && SYSTEM_RULES.ENABLE_WELCOME_BONUS !== false) {
+                initialBonus = REFERRAL_CONFIG.INITIAL_BONUS_AMOUNT || 108;
+            }
             let referredBy = null;
 
             if (referralCode) {

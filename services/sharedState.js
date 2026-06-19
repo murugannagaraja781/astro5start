@@ -176,7 +176,8 @@ const phonepeV2Cache = { token: null, expiresAt: 0 };
 
 let SYSTEM_RULES = {
     FREE_CALL_FOR_NEW_USERS: true,
-    ALLOW_BONUS_CREDIT_CALLS: true
+    ALLOW_BONUS_CREDIT_CALLS: true,
+    ENABLE_WELCOME_BONUS: true
 };
 
 async function loadSystemRules() {

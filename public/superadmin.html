@@ -1403,6 +1403,23 @@
                         </label>
                     </div>
 
+                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-700">Enable Welcome Bonus for New Signups</h4>
+                            <p class="text-xs text-slate-500">If enabled, new users receive the configured bonus amount in their super-wallet upon signup.</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="ruleEnableWelcomeBonus" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-green/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-green"></div>
+                        </label>
+                    </div>
+
+                    <div class="p-4 bg-slate-50 rounded-2xl space-y-2">
+                        <label class="block text-sm font-bold text-slate-700">Initial Wallet Amount / Welcome Bonus (₹)</label>
+                        <input type="number" id="ruleInitialBonus" class="w-full bg-white p-4 border border-slate-200 focus:ring-2 focus:ring-brand-green rounded-2xl font-bold" placeholder="108">
+                        <p class="text-xs text-slate-500">The amount credited to a new user's super-wallet upon registration.</p>
+                    </div>
+
                     <button onclick="saveSystemRules()" class="w-full bg-brand-green text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-100 hover:bg-deep-green transition-all uppercase tracking-widest text-sm">
                         <i class="fas fa-save mr-2"></i> Save Rules
                     </button>
@@ -4240,8 +4257,10 @@
                 });
                 const data = await res.json();
                 if (data.ok) {
-                    document.getElementById('ruleFreeCall').checked = data.data.FREE_CALL_FOR_NEW_USERS;
-                    document.getElementById('ruleAllowBonusCalls').checked = data.data.ALLOW_BONUS_CREDIT_CALLS;
+                    document.getElementById('ruleFreeCall').checked = data.data.FREE_CALL_FOR_NEW_USERS || false;
+                    document.getElementById('ruleAllowBonusCalls').checked = data.data.ALLOW_BONUS_CREDIT_CALLS || false;
+                    document.getElementById('ruleEnableWelcomeBonus').checked = data.data.ENABLE_WELCOME_BONUS !== false;
+                    document.getElementById('ruleInitialBonus').value = data.data.INITIAL_BONUS_AMOUNT || 0;
                 }
             } catch (e) { console.error('Error loading system rules:', e); }
         }
@@ -4250,6 +4269,8 @@
             try {
                 const FREE_CALL_FOR_NEW_USERS = document.getElementById('ruleFreeCall').checked;
                 const ALLOW_BONUS_CREDIT_CALLS = document.getElementById('ruleAllowBonusCalls').checked;
+                const ENABLE_WELCOME_BONUS = document.getElementById('ruleEnableWelcomeBonus').checked;
+                const INITIAL_BONUS_AMOUNT = parseInt(document.getElementById('ruleInitialBonus').value) || 0;
 
                 const res = await fetch('/api/admin/system-rules', {
                     method: 'POST',
@@ -4257,7 +4278,7 @@
                         'Content-Type': 'application/json',
                         'x-admin-key': ADMIN_SECRET_KEY 
                     },
-                    body: JSON.stringify({ FREE_CALL_FOR_NEW_USERS, ALLOW_BONUS_CREDIT_CALLS })
+                    body: JSON.stringify({ FREE_CALL_FOR_NEW_USERS, ALLOW_BONUS_CREDIT_CALLS, ENABLE_WELCOME_BONUS, INITIAL_BONUS_AMOUNT })
                 });
                 const data = await res.json();
                 if (data.ok) {

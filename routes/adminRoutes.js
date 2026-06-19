@@ -100,19 +100,34 @@ router.post('/app-update-settings', async (req, res) => {
 });
 
 router.get('/system-rules', (req, res) => {
-    const { SYSTEM_RULES } = require('../services/sharedState');
-    res.json({ ok: true, data: SYSTEM_RULES });
+    const { SYSTEM_RULES, REFERRAL_CONFIG } = require('../services/sharedState');
+    res.json({
+        ok: true,
+        data: {
+            ...SYSTEM_RULES,
+            INITIAL_BONUS_AMOUNT: REFERRAL_CONFIG.INITIAL_BONUS_AMOUNT
+        }
+    });
 });
 
 router.post('/system-rules', async (req, res) => {
     try {
-        const { FREE_CALL_FOR_NEW_USERS, ALLOW_BONUS_CREDIT_CALLS } = req.body;
-        const { updateSystemRules } = require('../services/sharedState');
-        const success = await updateSystemRules({
+        const { FREE_CALL_FOR_NEW_USERS, ALLOW_BONUS_CREDIT_CALLS, INITIAL_BONUS_AMOUNT, ENABLE_WELCOME_BONUS } = req.body;
+        const { updateSystemRules, REFERRAL_CONFIG, updateReferralConfig } = require('../services/sharedState');
+        
+        const successRules = await updateSystemRules({
             FREE_CALL_FOR_NEW_USERS: !!FREE_CALL_FOR_NEW_USERS,
-            ALLOW_BONUS_CREDIT_CALLS: !!ALLOW_BONUS_CREDIT_CALLS
+            ALLOW_BONUS_CREDIT_CALLS: !!ALLOW_BONUS_CREDIT_CALLS,
+            ENABLE_WELCOME_BONUS: !!ENABLE_WELCOME_BONUS
         });
-        if (success) {
+        
+        const newConfig = {
+            ...REFERRAL_CONFIG,
+            INITIAL_BONUS_AMOUNT: parseInt(INITIAL_BONUS_AMOUNT) || 0
+        };
+        const successConfig = await updateReferralConfig(newConfig);
+
+        if (successRules && successConfig) {
             res.json({ ok: true, message: 'System rules updated successfully' });
         } else {
             res.status(500).json({ ok: false, message: 'Failed to update system rules' });
