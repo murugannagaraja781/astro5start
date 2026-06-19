@@ -102,13 +102,15 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
                 // Rule: If not first call, must have at least pricePerMin
                 // If it IS first call, they have 3 mins free anyway, so we allow it.
-                if (!isFirstCall && totalBalance < pricePerMin) {
+                // Exception: Always allow if superWalletBalance > 0
+                if (!(client.superWalletBalance > 0) && !isFirstCall && totalBalance < pricePerMin) {
                     const errorMsg = isUnlimited ? `Insufficient funds for this plan (Needs ₹${pricePerMin})` : `Insufficient balance. Please recharge to call (Needs ₹${pricePerMin})`;
                     if (typeof cb === "function") return cb({ ok: false, error: errorMsg });
                 }
                 
                 // For Unlimited, they MUST have the full amount regardless of first call status
-                if (isUnlimited && totalBalance < pricePerMin) {
+                // Exception: Always allow if superWalletBalance > 0
+                if (!(client.superWalletBalance > 0) && isUnlimited && totalBalance < pricePerMin) {
                     if (typeof cb === "function") return cb({ ok: false, error: `Insufficient funds for ${offerType || 'unlimited'} plan (Needs ₹${pricePerMin})` });
                 }
             }
