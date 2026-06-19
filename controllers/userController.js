@@ -314,8 +314,8 @@ const verifyOtp = async (req, res) => {
                 phone: cleanPhone,
                 role: cleanPhone === '9876543210' ? 'superadmin' : (cleanPhone === '8000000001' ? 'astrologer' : 'client'),
                 name: 'User ' + cleanPhone.slice(-4),
-                walletBalance: 0, // Recharge only
-                superWalletBalance: initialBonus, // Bonus only
+                walletBalance: initialBonus, // Welcome bonus credited directly to main balance
+                superWalletBalance: 0,
                 referredBy,
                 approvalStatus: cleanPhone === '8000000001' ? 'approved' : 'pending'
             });
