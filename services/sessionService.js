@@ -35,21 +35,11 @@ async function handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpd
     try {
         const astro = await User.findOne({ userId: toUserId });
         if (astro && astro.role === 'astrologer') {
-            // Force fully offline across all services if any call is missed
-            astro.isChatOnline = false;
-            astro.isAudioOnline = false;
-            astro.isVideoOnline = false;
-            astro.isOnline = false;
-            astro.isAvailable = false;
-            astro.isBusy = false; // Also reset busy state just in case
+            // Reset busy state but keep online status intact on missed call
+            astro.isBusy = false;
             
             await User.updateOne({ userId: toUserId }, {
                 $set: {
-                    isChatOnline: false,
-                    isAudioOnline: false,
-                    isVideoOnline: false,
-                    isOnline: false,
-                    isAvailable: false,
                     isBusy: false
                 }
             });
@@ -63,7 +53,7 @@ async function handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpd
                 io.to(sId).emit('my-profile-updated', formattedUser);
             }
 
-            const reasonMsg = `🚨 Missed Call: Astrologer ${astro.name} (${astro.phone}) did not attend the call. Automatically marked OFFLINE.`;
+            const reasonMsg = `🚨 Missed Call: Astrologer ${astro.name} (${astro.phone}) did not attend the call.`;
 
             // Save notification for admin
             const Notification = require('../models/Notification');
@@ -87,7 +77,7 @@ async function handleMissedCallLogic(toUserId, fromUserId, io, broadcastAstroUpd
                 astroName: astro.name
             });
 
-            const logMsg = `[${new Date().toISOString()}] MISSED CALL: Astrologer ${astro.name} (${astro.phone}) missed a call from ${fromUserId}. Marked OFFLINE.\n`;
+            const logMsg = `[${new Date().toISOString()}] MISSED CALL: Astrologer ${astro.name} (${astro.phone}) missed a call from ${fromUserId}.\n`;
             fs.appendFile('missed_calls_log.txt', logMsg, (err) => {
                 if (err) console.error('Error writing to log file', err);
             });
