@@ -40,8 +40,53 @@ class CallConnection(
     }
 
     override fun onAnswer(videoState: Int) {
+        Log.d("CallConnection", "Call answered with videoState via telecom UI")
+        setActive()
+        acceptCallAndOpenActivity()
+    }
+
+    override fun onAnswer() {
         Log.d("CallConnection", "Call answered via telecom UI")
         setActive()
+        acceptCallAndOpenActivity()
+    }
+
+    private fun acceptCallAndOpenActivity() {
+        Log.d("CallConnection", "acceptCallAndOpenActivity: callId=$callId, type=$callType")
+        
+        val intent: Intent
+        val finalType = callType.lowercase()
+        
+        if (finalType.contains("chat")) {
+            Log.d("CallConnection", "Navigating to ChatActivity for session $callId")
+            intent = Intent(context, com.astro5star.app.ui.chat.ChatActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra("sessionId", callId)
+                putExtra("toUserId", callerId)
+                putExtra("toUserName", callerName)
+                putExtra("isNewRequest", true)
+                putExtra("birthData", birthData)
+            }
+        } else {
+            Log.d("CallConnection", "Navigating to CallActivity for session $callId")
+            intent = Intent(context, com.astro5star.app.ui.call.CallActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra("sessionId", callId)
+                putExtra("partnerId", callerId)
+                putExtra("partnerName", callerName)
+                putExtra("isInitiator", false)
+                putExtra("isNewRequest", true)
+                putExtra("callType", callType)
+                putExtra("birthData", birthData)
+            }
+        }
+        
+        try {
+            context.startActivity(intent)
+            Log.d("CallConnection", "Activity launched successfully from CallConnection")
+        } catch (e: Exception) {
+            Log.e("CallConnection", "Failed to launch activity from CallConnection", e)
+        }
     }
 
     override fun onReject() {

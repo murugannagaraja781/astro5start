@@ -741,8 +741,12 @@ class CallActivity : ComponentActivity() {
             // Re-setup listeners after reconnect
             setupSocketListeners()
             // Re-join session room
+            val myId = TokenManager(this).getUserSession()?.userId
             SocketManager.getSocket()?.emit("rejoin-session", JSONObject().apply {
                 put("sessionId", sessionId)
+                if (myId != null) {
+                    put("userId", myId)
+                }
             })
         } else {
             Log.d(TAG, "Socket still connected")
@@ -1161,16 +1165,19 @@ class CallActivity : ComponentActivity() {
         if (isNewRequest) {
             isNewRequest = false
             try {
+                val myId = TokenManager(this).getUserSession()?.userId
                 val payload = JSONObject().apply {
                     put("sessionId", sessionId)
                     put("toUserId", partnerId)
                     put("type", callType)
                     put("accept", true)
+                    if (myId != null) {
+                        put("userId", myId)
+                    }
                 }
                 SocketManager.getSocket()?.emit("answer-session", payload)
                 sendAppLog("Emitted delayed answer-session after WebRTC init")
 
-                val myId = TokenManager(this).getUserSession()?.userId
                 if (myId != null) {
                     val gsonPayload = com.google.gson.JsonObject().apply {
                         addProperty("sessionId", sessionId)

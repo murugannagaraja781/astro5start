@@ -243,7 +243,28 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
     socket.on('answer-session', async (data, cb) => {
         try {
             const { sessionId, accept, type, userId } = data || {};
-            const astrologerId = userId || socketToUser.get(socket.id);
+            let astrologerId = userId || socketToUser.get(socket.id);
+
+            // Self-healing: if astrologerId is missing, resolve it from memory or DB
+            if (!astrologerId && sessionId) {
+                const activeSess = activeSessions.get(sessionId);
+                if (activeSess) {
+                    astrologerId = activeSess.astrologerId;
+                    console.log(`[Session] Resolved astrologerId ${astrologerId} from memory for sessionId ${sessionId}`);
+                } else {
+                    const dbSess = await Session.findOne({ sessionId }).select('astrologerId').lean();
+                    if (dbSess) {
+                        astrologerId = dbSess.astrologerId;
+                        console.log(`[Session] Resolved astrologerId ${astrologerId} from DB for sessionId ${sessionId}`);
+                    }
+                }
+            }
+
+            if (astrologerId && userSockets.get(astrologerId) !== socket.id) {
+                socketToUser.set(socket.id, astrologerId);
+                userSockets.set(astrologerId, socket.id);
+                console.log(`[Session] Self-healing register via answer-session for ${astrologerId}`);
+            }
 
             if (!astrologerId || !sessionId) {
                 console.error('[Session] answer-session: Missing astrologerId or sessionId', { astrologerId, sessionId, socketId: socket.id });
@@ -266,7 +287,29 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
     socket.on('answer-session-native', async (data, cb) => {
         const { sessionId, accept, callType } = data || {};
-        const astrologerId = socketToUser.get(socket.id);
+        let astrologerId = socketToUser.get(socket.id);
+        
+        // Self-healing: if astrologerId is missing, resolve it from memory or DB
+        if (!astrologerId && sessionId) {
+            const activeSess = activeSessions.get(sessionId);
+            if (activeSess) {
+                astrologerId = activeSess.astrologerId;
+                console.log(`[Session] Resolved astrologerId ${astrologerId} from memory for native sessionId ${sessionId}`);
+            } else {
+                const dbSess = await Session.findOne({ sessionId }).select('astrologerId').lean();
+                if (dbSess) {
+                    astrologerId = dbSess.astrologerId;
+                    console.log(`[Session] Resolved astrologerId ${astrologerId} from DB for native sessionId ${sessionId}`);
+                }
+            }
+        }
+
+        if (astrologerId && userSockets.get(astrologerId) !== socket.id) {
+            socketToUser.set(socket.id, astrologerId);
+            userSockets.set(astrologerId, socket.id);
+            console.log(`[Session] Self-healing register via answer-session-native for ${astrologerId}`);
+        }
+
         if (!astrologerId || !sessionId) {
             if (typeof cb === 'function') cb({ ok: false, error: 'Invalid data' });
             return;
@@ -364,7 +407,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             }
 
             // Persistence: Ensure socketToUser is updated if payloadUserId was provided
-            if (payloadUserId && !socketToUser.has(socket.id)) {
+            if (payloadUserId && userSockets.get(payloadUserId) !== socket.id) {
                 socketToUser.set(socket.id, payloadUserId);
                 userSockets.set(payloadUserId, socket.id);
             }
@@ -402,8 +445,17 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
     socket.on('rejoin-session', (data) => {
         try {
-            const { sessionId } = data || {};
-            const userId = socketToUser.get(socket.id);
+            const { sessionId, userId: payloadUserId } = data || {};
+            let userId = payloadUserId || socketToUser.get(socket.id);
+
+            // Self-healing: update mapping if payloadUserId was provided
+            if (payloadUserId && userSockets.get(payloadUserId) !== socket.id) {
+                socketToUser.set(socket.id, payloadUserId);
+                userSockets.set(payloadUserId, socket.id);
+                userId = payloadUserId;
+                console.log(`[Session] Self-healing register via rejoin-session for ${payloadUserId}`);
+            }
+
             if (sessionId && userId) {
                 const activeSess = activeSessions.get(sessionId);
                 const otherId = sessionService.getOtherUserIdFromSession(sessionId, userId);

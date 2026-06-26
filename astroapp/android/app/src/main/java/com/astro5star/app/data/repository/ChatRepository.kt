@@ -63,10 +63,14 @@ class ChatRepository(private val context: Context) {
     }
 
     fun acceptSession(sessionId: String, toUserId: String) {
+        val myUserId = com.astro5star.app.data.local.TokenManager(context).getUserSession()?.userId
         val payload = JSONObject().apply {
             put("sessionId", sessionId)
             put("toUserId", toUserId)
             put("accept", true)
+            if (myUserId != null) {
+                put("userId", myUserId)
+            }
         }
         SocketManager.getSocket()?.emit("answer-session", payload)
     }
