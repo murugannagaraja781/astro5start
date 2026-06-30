@@ -26,9 +26,10 @@ router.get('/session/status/:sessionId', userController.getSessionStatus);
 router.post('/referral/apply', userController.applyReferral);
 
 const { upload } = require('../config/multer');
-router.post('/user/profile-pic', upload.single('image'), userController.uploadProfilePic);
+const compressImage = require('../middleware/imageCompressor');
+router.post('/user/profile-pic', upload.single('image'), compressImage, userController.uploadProfilePic);
 router.post('/call/upload-recording', upload.single('recording'), userController.uploadRecording);
-router.post('/chat/upload-media', upload.single('file'), userController.uploadChatMedia);
+router.post('/chat/upload-media', upload.single('file'), compressImage, userController.uploadChatMedia);
 
 // Appointment & Queue
 const appointmentController = require('../controllers/appointmentController');

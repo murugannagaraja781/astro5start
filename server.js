@@ -172,7 +172,8 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/logs', require('./routes/logRoutes'));
 
 // File Upload Route
-app.post('/upload', upload.single('file'), (req, res) => {
+const compressImage = require('./middleware/imageCompressor');
+app.post('/upload', upload.single('file'), compressImage, (req, res) => {
   if (!req.file) return res.json({ ok: false, error: 'No file' });
   return res.json({ ok: true, url: '/uploads/' + req.file.filename });
 });
