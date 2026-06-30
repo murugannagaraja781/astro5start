@@ -31,4 +31,9 @@ const SessionSchema = new mongoose.Schema({
     recordingUrl: { type: String } // URL to call recording audio file
 }, { timestamps: true });
 
+SessionSchema.index({ clientId: 1 }, { background: true });
+SessionSchema.index({ astrologerId: 1 }, { background: true });
+SessionSchema.index({ status: 1 }, { background: true });
+SessionSchema.index({ createdAt: -1 }, { background: true });
+
 module.exports = mongoose.model('Session', SessionSchema);
