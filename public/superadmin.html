@@ -892,6 +892,10 @@
                         class="bg-red-50 text-red-600 border border-red-100 px-5 py-2 rounded-xl text-xs font-black hover:bg-red-600 hover:text-white transition-all">
                         <i class="fas fa-trash-can mr-2"></i> Clear Logs
                     </button>
+                    <button onclick="downloadSystemLogs()"
+                        class="bg-blue-50 text-blue-600 border border-blue-100 px-5 py-2 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all">
+                        <i class="fas fa-download mr-2"></i> Download Logs
+                    </button>
                     <button onclick="fetchSystemLogs()"
                         class="bg-emerald-50 text-brand-green border border-emerald-100 px-5 py-2 rounded-xl text-xs font-black hover:bg-brand-green hover:text-white transition-all">
                         <i class="fas fa-sync-alt mr-2"></i> Refresh
@@ -4424,6 +4428,37 @@
                             </div>
                         `;
                     }).join('');
+                }
+            });
+        }
+
+        function downloadSystemLogs() {
+            const level = document.getElementById('log-level-filter').value;
+            socket.emit('admin-get-system-logs', { limit: 1000, level }, (res) => {
+                if (res.ok) {
+                    if (res.logs.length === 0) {
+                        alert('No logs to download');
+                        return;
+                    }
+                    const text = res.logs.map(log => {
+                        const date = new Date(log.timestamp).toISOString();
+                        let line = `[${date}] [${log.level.toUpperCase()}] ${log.message}`;
+                        if (log.path) line += ` (Path: ${log.path})`;
+                        if (log.stack) line += `\nStack:\n${log.stack}`;
+                        return line;
+                    }).join('\n\n');
+
+                    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `system_logs_${level}_${Date.now()}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } else {
+                    alert('Failed to fetch logs for download');
                 }
             });
         }
