@@ -113,6 +113,7 @@ async function endSessionRecord(sessionId, endReason, io, broadcastAstroUpdate) 
             io.to(sessionId).emit('session-ended', payload);
             if (s.clientId) io.to(s.clientId).emit('session-ended', payload);
             if (s.astrologerId) io.to(s.astrologerId).emit('session-ended', payload);
+            io.to('admin-room').emit('admin-refresh');
         }
 
         // USER REQUEST: Show final debit amount summary as a notification
@@ -301,6 +302,7 @@ async function tryStartBilling(sessionId, io) {
             await Session.updateOne({ sessionId }, { $set: { actualBillingStart: billingStart } });
             activeSession.actualBillingStart = billingStart;
             console.log(`[tryStartBilling] actualBillingStart set to ${billingStart}`);
+            if (io) io.to('admin-room').emit('admin-refresh');
         }
         
         if (typeof activeSession.elapsedBillableSeconds === 'undefined' || activeSession.elapsedBillableSeconds === 0) {
@@ -502,6 +504,7 @@ async function acceptSession(sessionId, astrologerId, accept, type, io, broadcas
             session.isAnswered = true;
             userActiveSession.set(astrologerId, sessionId);
             userActiveSession.set(fromUserId, sessionId);
+            if (io) io.to('admin-room').emit('admin-refresh');
 
             // Initialize Slab for the pair (Monthly Reset Handling)
             const pairMonth = await initPairMonth(session.clientId, astrologerId);

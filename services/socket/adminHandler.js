@@ -14,6 +14,7 @@ const Payment = require('../../models/Payment');
 const Session = require('../../models/Session');
 const SystemLog = require('../../models/SystemLog');
 const { formatImageUrl } = require('../../utils/formatImage');
+const sessionService = require('../sessionService');
 
 const checkAdmin = async (sid) => {
     const uid = socketToUser.get(sid);
@@ -1017,6 +1018,64 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
         }
         broadcastAstroUpdate(); // Always trigger a list sync just in case
         broadcastAdminUpdate(); // Update other admins too
+    });
+
+    socket.on('admin-get-live-calls', async (cb) => {
+        if (!await checkAdmin(socket.id)) {
+            if (typeof cb === "function") cb({ ok: false, error: 'Unauthorized' });
+            return;
+        }
+        try {
+            const list = [];
+            const userIds = [];
+            for (const [sessionId, session] of activeSessions) {
+                userIds.push(session.clientId, session.astrologerId);
+            }
+            
+            const users = await User.find({ userId: { $in: userIds } }).select('userId name phone role').lean();
+            const userMap = new Map(users.map(u => [u.userId, u]));
+
+            for (const [sessionId, session] of activeSessions) {
+                const client = userMap.get(session.clientId) || { userId: session.clientId, name: 'Client', phone: '' };
+                const astrologer = userMap.get(session.astrologerId) || { userId: session.astrologerId, name: 'Astrologer', phone: '' };
+                
+                list.push({
+                    sessionId,
+                    type: session.type, // 'chat', 'audio', 'video', 'unlimited'
+                    isAnswered: session.isAnswered,
+                    startedAt: session.startedAt,
+                    actualBillingStart: session.actualBillingStart,
+                    elapsedBillableSeconds: session.elapsedBillableSeconds,
+                    client,
+                    astrologer
+                });
+            }
+
+            if (typeof cb === "function") cb({ ok: true, list });
+        } catch (e) {
+            console.error('[Admin] Get Live Calls Error:', e);
+            if (typeof cb === "function") cb({ ok: false, error: 'Failed to fetch live calls' });
+        }
+    });
+
+    socket.on('admin-end-session', async (data, cb) => {
+        if (!await checkAdmin(socket.id)) {
+            if (typeof cb === "function") cb({ ok: false, error: 'Unauthorized' });
+            return;
+        }
+        try {
+            const { sessionId } = data || {};
+            if (!sessionId) {
+                if (typeof cb === "function") cb({ ok: false, error: 'Missing sessionId' });
+                return;
+            }
+
+            await sessionService.endSessionRecord(sessionId, 'force_ended_by_admin', io, broadcastAstroUpdate);
+            if (typeof cb === "function") cb({ ok: true });
+        } catch (e) {
+            console.error('[Admin] End Session Error:', e);
+            if (typeof cb === "function") cb({ ok: false, error: 'Failed to end session' });
+        }
     });
 
 };

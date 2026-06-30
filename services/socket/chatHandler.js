@@ -44,7 +44,33 @@ const handleChat = (socket, io) => {
     socket.on('chat-message', async (data) => {
         try {
             const { toUserId, sessionId, content, timestamp, messageId } = data || {};
-            const fromUserId = socketToUser.get(socket.id);
+            let fromUserId = socketToUser.get(socket.id);
+
+            // Self-healing: if fromUserId is missing from socket mapping, resolve it using sessionId
+            if (!fromUserId && sessionId) {
+                const { activeSessions } = require('../sharedState');
+                const activeSess = activeSessions.get(sessionId);
+                if (activeSess) {
+                    // Resolve who is sending based on the target toUserId
+                    fromUserId = activeSess.users.find(u => u !== toUserId);
+                    console.log(`[Chat] Resolved fromUserId ${fromUserId} from memory for sessionId ${sessionId} and toUserId ${toUserId}`);
+                } else {
+                    const Session = require('../../models/Session');
+                    const dbSess = await Session.findOne({ sessionId }).lean();
+                    if (dbSess) {
+                        fromUserId = dbSess.clientId === toUserId ? dbSess.astrologerId : dbSess.clientId;
+                        console.log(`[Chat] Resolved fromUserId ${fromUserId} from DB for sessionId ${sessionId} and toUserId ${toUserId}`);
+                    }
+                }
+
+                if (fromUserId) {
+                    socketToUser.set(socket.id, fromUserId);
+                    userSockets.set(fromUserId, socket.id);
+                    socket.join(fromUserId); // Ensure they are in their room
+                    console.log(`[Chat] Self-healing register via chat-message for ${fromUserId}`);
+                }
+            }
+
             if (!fromUserId || !toUserId || !content) {
                 console.warn(`[Chat] Message ignored. From:${fromUserId}, To:${toUserId}, Socket:${socket.id}. User may need to re-register.`);
                 return;

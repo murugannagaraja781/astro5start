@@ -156,6 +156,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     userActiveSession.delete(toUserId);
                     activeSessions.delete(sessionId);
                     sessionTimeouts.delete(sessionId);
+                    io.to('admin-room').emit('admin-refresh');
                     await Session.updateOne({ sessionId }, { status: 'missed', endTime: Date.now() }).catch(() => { });
                 }
             }, 30000); // 30 Seconds Timeout
@@ -186,6 +187,7 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
 
             userActiveSession.set(fromUserId, sessionId);
             userActiveSession.set(toUserId, sessionId);
+            io.to('admin-room').emit('admin-refresh');
 
             // Join the creator to the room
             socket.join(sessionId);

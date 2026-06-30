@@ -133,6 +133,13 @@
                     class="lg:ml-auto bg-red-500 text-white text-[0.6rem] font-black px-2 py-0.5 rounded-full shadow-lg border border-white/10 min-w-[22px] text-center hidden">0</span>
             </div>
             <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="live-calls" onclick="showTab('live-calls')" id="menu-live-calls">
+                <i class="fas fa-headset text-lg lg:w-5 text-center text-rose-500 group-hover:text-white"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Live Calls</span>
+                <span id="live-calls-count-badge"
+                    class="lg:ml-auto bg-rose-500 text-white text-[0.6rem] font-black px-2 py-0.5 rounded-full shadow-lg border border-white/10 min-w-[22px] text-center badge-pulse hidden">0</span>
+            </div>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
                 data-tab="app-update-settings" onclick="showTab('app-update-settings')">
                 <i class="fas fa-mobile-alt text-lg lg:w-5 text-center"></i>
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">App Updates</span>
@@ -1472,6 +1479,48 @@
             </div>
         </section>
 
+        <!-- Live Calls Tab -->
+        <section id="tab-live-calls" class="tab-content hidden animate-up space-y-6">
+            <header class="flex items-center gap-4">
+                <button onclick="showTab('dashboard')"
+                    class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-black hover:text-brand-green transition-all shadow-sm"><i
+                        class="fas fa-arrow-left"></i></button>
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight text-deep-green">Live Communication Monitor</h1>
+                    <p class="text-slate-500 font-medium">Real-time status of all active calls, chats, and video sessions</p>
+                </div>
+                <button onclick="fetchLiveCalls()"
+                    class="bg-white border border-emerald-100 px-4 py-2.5 rounded-xl text-xs font-bold text-black hover:text-brand-green transition-all shadow-sm ml-auto">
+                    <i class="fas fa-arrows-rotate mr-2"></i> Refresh Monitor
+                </button>
+            </header>
+
+            <div class="bg-white rounded-[2rem] border border-emerald-50 shadow-premium overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/50 border-b border-slate-100">
+                                <th class="px-6 py-4 text-[0.6rem] font-black uppercase tracking-widest text-slate-400">Session ID</th>
+                                <th class="px-6 py-4 text-[0.6rem] font-black uppercase tracking-widest text-slate-400">Astrologer</th>
+                                <th class="px-6 py-4 text-[0.6rem] font-black uppercase tracking-widest text-slate-400">Client</th>
+                                <th class="px-6 py-4 text-[0.6rem] font-black uppercase tracking-widest text-slate-400">Type</th>
+                                <th class="px-6 py-4 text-[0.6rem] font-black uppercase tracking-widest text-slate-400">Duration</th>
+                                <th class="px-6 py-4 text-[0.6rem] font-black uppercase tracking-widest text-slate-400">Status</th>
+                                <th class="px-6 py-4 text-[0.6rem] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="live-calls-table-body" class="divide-y divide-slate-50">
+                            <!-- Live calls dynamically injected here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="live-calls-empty-state" class="py-12 flex flex-col items-center justify-center text-slate-400 gap-3 hidden">
+                    <i class="fas fa-headset text-4xl text-slate-300"></i>
+                    <p class="font-semibold text-sm">No live calls at the moment</p>
+                </div>
+            </div>
+        </section>
+
         <!-- View Performance Detail Modal -->
         <div id="modal-view-performance" class="modal-fixed fixed inset-0 z-[100] hidden">
             <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
@@ -2342,6 +2391,7 @@
             if (activeTab === 'referral') loadReferralSettings();
             if (activeTab === 'recharge-settings') fetchRechargeSettings();
             if (activeTab === 'astro-wallets') renderAstroWallets();
+            if (activeTab === 'live-calls') fetchLiveCalls();
             // Also refresh badges
             socket.emit('admin-get-pending-photos', (res) => {
                 const badge = document.getElementById('photo-pending-badge');
@@ -2391,6 +2441,11 @@
             if (id === 'server-logs') fetchSystemLogs();
             if (id === 'recharge-settings') fetchRechargeSettings();
             if (id === 'astro-wallets') renderAstroWallets();
+            if (id === 'live-calls') {
+                fetchLiveCalls();
+            } else {
+                stopLiveCallsTimer();
+            }
         }
 
         function renderAstroWallets() {
@@ -2509,6 +2564,126 @@
             });
         }
 
+
+        let liveCallsTimer = null;
+
+        function startLiveCallsTimer() {
+            if (liveCallsTimer) clearInterval(liveCallsTimer);
+            liveCallsTimer = setInterval(() => {
+                document.querySelectorAll('.live-call-duration').forEach(el => {
+                    const startTime = parseInt(el.dataset.start);
+                    if (!startTime) return;
+                    const elapsedSecs = Math.floor((Date.now() - startTime) / 1000);
+                    if (elapsedSecs < 0) {
+                        el.innerText = '00:00';
+                        return;
+                    }
+                    const hrs = Math.floor(elapsedSecs / 3600);
+                    const mins = Math.floor((elapsedSecs % 3600) / 60);
+                    const secs = elapsedSecs % 60;
+                    
+                    const pad = (num) => String(num).padStart(2, '0');
+                    if (hrs > 0) {
+                        el.innerText = `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+                    } else {
+                        el.innerText = `${pad(mins)}:${pad(secs)}`;
+                    }
+                });
+            }, 1000);
+        }
+
+        function stopLiveCallsTimer() {
+            if (liveCallsTimer) {
+                clearInterval(liveCallsTimer);
+                liveCallsTimer = null;
+            }
+        }
+
+        function fetchLiveCalls() {
+            toggleLoader(true, 'tab-live-calls');
+            socket.emit('admin-get-live-calls', (res) => {
+                toggleLoader(false, 'tab-live-calls');
+                const tableBody = document.getElementById('live-calls-table-body');
+                const emptyState = document.getElementById('live-calls-empty-state');
+                if (!tableBody) return;
+
+                if (res.ok && res.list && res.list.length > 0) {
+                    emptyState.classList.add('hidden');
+                    tableBody.innerHTML = res.list.map(call => {
+                        const typeMap = {
+                            'chat': { label: 'Chat', icon: 'fa-comments text-sky-500', bg: 'bg-sky-50 text-sky-600' },
+                            'audio': { label: 'Voice Call', icon: 'fa-phone text-emerald-500', bg: 'bg-emerald-50 text-emerald-600' },
+                            'video': { label: 'Video Call', icon: 'fa-video text-purple-500', bg: 'bg-purple-50 text-purple-600' }
+                        };
+                        const info = typeMap[call.type] || { label: call.type || 'Call', icon: 'fa-headset text-slate-500', bg: 'bg-slate-50 text-slate-600' };
+                        
+                        const statusBadge = call.isAnswered 
+                            ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-emerald-50 text-emerald-600 border border-emerald-100">
+                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                                Connected
+                               </span>`
+                            : `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-amber-50 text-amber-600 border border-amber-100">
+                                <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                                Calling/Ringing
+                               </span>`;
+
+                        const timeStart = call.isAnswered ? (call.actualBillingStart || call.startedAt) : call.startedAt;
+
+                        return `
+                            <tr class="hover:bg-slate-50 transition-all">
+                                <td class="px-6 py-4">
+                                    <span class="font-mono text-xs text-slate-500 select-all" title="${call.sessionId}">${call.sessionId.substring(0, 8)}...</span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="font-semibold text-slate-800">${call.astrologer.name || 'Astrologer'}</div>
+                                    <div class="text-xs text-slate-500">${call.astrologer.phone || 'N/A'}</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="font-semibold text-slate-800">${call.client.name || 'Client'}</div>
+                                    <div class="text-xs text-slate-500">${call.client.phone || 'N/A'}</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold ${info.bg}">
+                                        <i class="fas ${info.icon}"></i> ${info.label}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 font-semibold text-slate-700">
+                                    <span class="live-call-duration" data-start="${timeStart}">00:00</span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    ${statusBadge}
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <button onclick="endLiveCall('${call.sessionId}')" 
+                                            class="px-3.5 py-1.5 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow-md">
+                                        <i class="fas fa-phone-slash mr-1"></i> End Call
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                    
+                    startLiveCallsTimer();
+                } else {
+                    tableBody.innerHTML = '';
+                    emptyState.classList.remove('hidden');
+                    stopLiveCallsTimer();
+                }
+            });
+        }
+
+        function endLiveCall(sessionId) {
+            if (!confirm('Are you sure you want to force disconnect this call?')) return;
+            
+            socket.emit('admin-end-session', { sessionId }, (res) => {
+                if (res.ok) {
+                    showToast('Live call disconnected successfully', 'success');
+                    fetchLiveCalls();
+                } else {
+                    showToast(res.error || 'Failed to disconnect call', 'error');
+                }
+            });
+        }
 
         function fetchNotifications() {
             toggleLoader(true, 'tab-notifications');
@@ -2660,6 +2835,12 @@
                         const count = s.pendingRequests || 0;
                         badge.innerText = count;
                         badge.classList.toggle('hidden', count === 0);
+                    }
+                    const liveBadge = document.getElementById('live-calls-count-badge');
+                    if (liveBadge) {
+                        const count = s.activeSessions || 0;
+                        liveBadge.innerText = count;
+                        liveBadge.classList.toggle('hidden', count === 0);
                     }
                 }
             });
