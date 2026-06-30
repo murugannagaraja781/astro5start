@@ -143,4 +143,64 @@ router.post('/banners', bannerController.createBanner);
 router.put('/banners/:id', bannerController.updateBanner);
 router.delete('/banners/:id', bannerController.deleteBanner);
 
+// Debug APK Management
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
+
+const debugApkStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dest = path.join(__dirname, '../public/downloads');
+        if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+        cb(null, dest);
+    },
+    filename: (req, file, cb) => {
+        cb(null, 'astro5star-debug.apk');
+    }
+});
+const debugApkUpload = multer({
+    storage: debugApkStorage,
+    limits: { fileSize: 200 * 1024 * 1024 } // 200MB limit
+});
+
+router.get('/debug-apk', (req, res) => {
+    const apkPath = path.join(__dirname, '../public/downloads/astro5star-debug.apk');
+    if (!fs.existsSync(apkPath)) {
+        return res.json({ ok: true, exists: false });
+    }
+    try {
+        const stats = fs.statSync(apkPath);
+        res.json({
+            ok: true,
+            exists: true,
+            sizeBytes: stats.size,
+            sizeMb: (stats.size / (1024 * 1024)).toFixed(2) + ' MB',
+            lastModified: stats.mtime
+        });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: e.message });
+    }
+});
+
+router.post('/debug-apk/upload', debugApkUpload.single('file'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ ok: false, message: 'No file uploaded' });
+    }
+    try {
+        const stats = fs.statSync(req.file.path);
+        res.json({
+            ok: true,
+            message: 'Debug APK uploaded and updated successfully',
+            data: {
+                exists: true,
+                sizeBytes: stats.size,
+                sizeMb: (stats.size / (1024 * 1024)).toFixed(2) + ' MB',
+                lastModified: stats.mtime
+            }
+        });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: e.message });
+    }
+});
+
 module.exports = router;
