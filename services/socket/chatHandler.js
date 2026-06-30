@@ -10,8 +10,8 @@ const { sendFcmV1Push } = require('../fcmService');
 
 async function sendChatMessagePush(toUserId, fromUserId, messageText, sessionId, messageId, mediaData = {}) {
     try {
-        const toUser = await User.findOne({ userId: toUserId });
-        const fromUser = await User.findOne({ userId: fromUserId });
+        const toUser = await User.findOne({ userId: toUserId }).select('fcmToken role').lean();
+        const fromUser = await User.findOne({ userId: fromUserId }).select('name').lean();
 
         if (toUser && toUser.fcmToken) {
             if (toUser.role === 'astrologer' && !toUser.fcmToken) {

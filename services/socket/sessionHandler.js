@@ -31,8 +31,8 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             if (!fromUserId) if (typeof cb === "function") return cb({ ok: false, error: 'Not registered' });
             if (!toUserId || !type) if (typeof cb === "function") return cb({ ok: false, error: 'Missing fields' });
 
-            const toUser = await User.findOne({ userId: toUserId });
-            const fromUser = await User.findOne({ userId: fromUserId });
+            const toUser = await User.findOne({ userId: toUserId }).lean();
+            const fromUser = await User.findOne({ userId: fromUserId }).lean();
 
             if (!toUser) {
                 if (typeof cb === "function") return cb({ ok: false, error: 'User not found' });
