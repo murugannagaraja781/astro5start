@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/smoothness/jquery-ui.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script>
     // Redirect to desktop version if width > 1024px
     if (window.innerWidth >= 1024 && !window.location.href.includes('desktop-view.html')) {
@@ -8244,7 +8245,7 @@
         <span class="bal-amount" id="lbAmount">₹0</span>
       </div>
 
-      <button class="btn-recharge" onclick="location.href='#recharge'">Add Funds Now</button>
+      <button class="btn-recharge" onclick="handleLowBalanceRecharge()">Add Funds Now</button>
       <button class="btn-dismiss" onclick="hideLowBalanceAlert()">I'll do it later</button>
     </div>
   </div>
@@ -8356,6 +8357,14 @@
       const msgElem = document.getElementById('couponMessage');
       if (msgElem) msgElem.innerText = '';
 
+      const rInp = document.getElementById('rechargeInput');
+      if (rInp && (!rInp.value || parseFloat(rInp.value) < 1)) {
+        rInp.value = '500';
+      }
+      if (typeof updateRechargeSummary === 'function') {
+        updateRechargeSummary();
+      }
+
       closeMainWallet();
       initiateRecharge();
     };
@@ -8368,7 +8377,7 @@
       }
 
       if (!state.me || !state.me.userId) {
-        alert('Please login first');
+        alert(state.language === 'ta' ? 'தயவுசெய்து முதலில் உள்நுழையவும்' : 'Please login first');
         showLogin();
         return;
       }
@@ -8381,22 +8390,133 @@
 
       const amount = parseFloat(amountStr);
       if (amount < 1) {
-        alert('Minimum amount is ₹1');
+        alert(state.language === 'ta' ? "குறைந்தபட்ச தொகை ₹1" : "Minimum amount is ₹1");
         return;
       }
 
       // Set flag immediately
       isPaymentInProgress = true;
-      const originalBtn = event?.target;
+      const originalBtn = document.getElementById('btn-recharge-submit');
+      const originalText = originalBtn ? originalBtn.innerHTML : '';
       if (originalBtn) {
         originalBtn.disabled = true;
-        originalBtn.textContent = 'Processing...';
+        originalBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
       }
 
       const couponCode = state.appliedCoupon || "";
 
+      // Prioritize Razorpay Standard Web Checkout
+      if (typeof Razorpay === 'function') {
+        try {
+          const orderRes = await fetch('/api/payment/razorpay/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amount: amount,
+              userId: state.me.userId,
+              couponCode: couponCode
+            })
+          });
+
+          const orderData = await orderRes.json();
+
+          if (!orderData.ok) {
+            alert(orderData.error || 'Failed to create payment order');
+            isPaymentInProgress = false;
+            if (originalBtn) {
+              originalBtn.disabled = false;
+              originalBtn.innerHTML = originalText;
+            }
+            return;
+          }
+
+          closeRechargeModal();
+
+          const options = {
+            key: orderData.key_id,
+            amount: orderData.amount,
+            currency: orderData.currency || 'INR',
+            name: 'Astro 5 Star',
+            description: 'Wallet Recharge',
+            order_id: orderData.order_id,
+            prefill: {
+              contact: (state.me && state.me.phone) ? String(state.me.phone).replace(/[^0-9]/g, '').slice(-10) : '',
+              name: (state.me && state.me.name) || ''
+            },
+            theme: {
+              color: '#059669',
+              backdrop_color: 'rgba(0,0,0,0.6)'
+            },
+            handler: async function (response) {
+              try {
+                const verifyRes = await fetch('/api/payment/razorpay/verify-payment', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature
+                  })
+                });
+
+                const verifyData = await verifyRes.json();
+
+                if (verifyData.ok) {
+                  const successMsg = `✅ Payment Successful! ₹${verifyData.credited} added to wallet.`;
+                  if (typeof showToast === 'function') {
+                    showToast(successMsg);
+                  } else {
+                    alert(successMsg);
+                  }
+                  if (window.refreshWallet) window.refreshWallet();
+                  if (window.refreshDashWallet) window.refreshDashWallet();
+                  if (state.socket) {
+                    state.socket.emit('get-wallet', { userId: state.me.userId });
+                  }
+                } else {
+                  alert(verifyData.error || 'Payment verification failed');
+                }
+              } catch (err) {
+                console.error('Verification error:', err);
+                alert('Network error during verification. If money was deducted, please contact support.');
+              } finally {
+                isPaymentInProgress = false;
+                if (originalBtn) {
+                  originalBtn.disabled = false;
+                  originalBtn.innerHTML = originalText;
+                }
+              }
+            },
+            modal: {
+              ondismiss: function () {
+                isPaymentInProgress = false;
+                if (originalBtn) {
+                  originalBtn.disabled = false;
+                  originalBtn.innerHTML = originalText;
+                }
+              }
+            }
+          };
+
+          const rzp = new Razorpay(options);
+          rzp.on('payment.failed', function (response) {
+            alert('Payment failed: ' + (response.error?.description || 'Transaction declined'));
+            isPaymentInProgress = false;
+            if (originalBtn) {
+              originalBtn.disabled = false;
+              originalBtn.innerHTML = originalText;
+            }
+          });
+          rzp.open();
+          return;
+
+        } catch (err) {
+          console.error('[Razorpay] Init error, falling back to token flow:', err);
+        }
+      }
+
+      // Fallback: Token-based flow
       try {
-        // Generate secure payment token from backend
         const response = await fetch('/api/payment/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -8410,23 +8530,22 @@
         const result = await response.json();
 
         if (result.ok && result.token) {
-          // Redirect to payment.html with secure token
           window.location.href = `/payment.html?token=${result.token}`;
         } else {
           alert(result.error || 'Failed to initiate payment');
-          isPaymentInProgress = false; // Reset flag on error
+          isPaymentInProgress = false;
           if (originalBtn) {
             originalBtn.disabled = false;
-            originalBtn.textContent = 'Proceed to Pay';
+            originalBtn.innerHTML = originalText;
           }
         }
       } catch (error) {
         console.error('Payment token error:', error);
         alert('Network error. Please try again.');
-        isPaymentInProgress = false; // Reset flag on error
+        isPaymentInProgress = false;
         if (originalBtn) {
           originalBtn.disabled = false;
-          originalBtn.textContent = 'Proceed to Pay';
+          originalBtn.innerHTML = originalText;
         }
       }
     };
@@ -8602,6 +8721,31 @@
     function hideLowBalanceAlert() {
       const overlay = document.getElementById('lowBalanceOverlay');
       if (overlay) overlay.classList.remove('active');
+    }
+
+    window.handleLowBalanceRecharge = function () {
+      hideLowBalanceAlert();
+      if (!state.me || !state.me.userId || state.me.role === 'guest') {
+        if (typeof showLogin === 'function') {
+          showLogin();
+        } else {
+          alert(state.language === 'ta' ? 'தயவுசெய்து முதலில் உள்நுழையவும்' : 'Please login first');
+        }
+        return;
+      }
+      openRechargeFromMain();
+    };
+
+    // Support #recharge hash in URL
+    window.addEventListener('hashchange', function () {
+      if (window.location.hash === '#recharge') {
+        window.handleLowBalanceRecharge();
+      }
+    });
+    if (window.location.hash === '#recharge') {
+      setTimeout(function () {
+        window.handleLowBalanceRecharge();
+      }, 500);
     }
 
     // --- On-Demand Earnings Logic ---

@@ -15,7 +15,18 @@ const { createRazorpayOrder, verifyRazorpaySignature, getRazorpayKeyId } = requi
  */
 router.post('/create-order', async (req, res) => {
     try {
-        const { amount, userId, couponCode, offerPercentage } = req.body;
+        let { amount, userId, couponCode, offerPercentage, token } = req.body;
+
+        if (token) {
+            const { paymentTokens } = require('../services/sharedState');
+            const tokenData = paymentTokens.get(token);
+            if (tokenData) {
+                userId = tokenData.userId;
+                amount = tokenData.baseAmount || tokenData.amount;
+                couponCode = tokenData.couponCode || couponCode;
+                offerPercentage = tokenData.offerPercentage || offerPercentage;
+            }
+        }
 
         if (!amount || !userId) {
             return res.status(400).json({ ok: false, error: 'Missing amount or userId' });
