@@ -169,6 +169,11 @@ app.get('/api/phonepe/status/:transactionId', (req, res) => {
 app.use('/api', mainRoutes);
 app.use('/api', configRoutes);
 app.use('/api/payment', paymentRoutes);
+
+// Razorpay Standard Checkout Routes
+const razorpayRoutes = require('./routes/razorpayRoutes');
+app.use('/api/payment/razorpay', razorpayRoutes);
+
 app.use('/api/logs', require('./routes/logRoutes'));
 
 // File Upload Route

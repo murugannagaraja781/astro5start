@@ -23,12 +23,13 @@
     "mongoose": "^9.3.0",
     "multer": "^2.0.2",
     "node-fetch": "^2.7.0",
+    "razorpay": "^2.9.8",
+    "sharp": "^0.33.5",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "uuid": "^11.1.0",
     "winston": "^3.19.0",
-    "winston-daily-rotate-file": "^5.0.0",
-    "sharp": "^0.33.5"
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "description": "",
   "devDependencies": {

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/images/astro_5_star_logo.png">
+    <title>Razorpay Checkout - Astro 5 Star</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        :root {
+            --primary-yellow: #FFEB3B;
+            --secondary-yellow: #FFF176;
+            --text-dark: #1A1A1A;
+            --text-muted: #666666;
+            --card-bg: #FFFFFF;
+            --bg-light: #F9F9F9;
+            --success-green: #10B981;
+            --error-red: #EF4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--primary-yellow);
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        header h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 20px 16px 100px;
+        }
+
+        /* Amount Display */
+        .amount-display {
+            background: linear-gradient(135deg, #FFEB3B 0%, #FFC107 100%);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(255, 193, 7, 0.3);
+        }
+
+        .amount-display .label {
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0.7;
+            margin-bottom: 4px;
+        }
+
+        .amount-display .value {
+            font-size: 36px;
+            font-weight: 800;
+        }
+
+        .amount-display .gst-note {
+            font-size: 12px;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        /* Input Card */
+        .input-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        }
+
+        .input-card label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .input-card input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #E5E7EB;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: 'Outfit', sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-card input:focus {
+            border-color: var(--primary-yellow);
+        }
+
+        .input-card input::placeholder {
+            color: #9CA3AF;
+        }
+
+        /* Quick Amount Grid */
+        .quick-amounts {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .quick-btn {
+            padding: 12px 8px;
+            border: 2px solid #E5E7EB;
+            border-radius: 10px;
+            background: #FAFAFA;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .quick-btn:hover, .quick-btn.selected {
+            border-color: var(--primary-yellow);
+            background: #FFFDE7;
+        }
+
+        /* Pay Button */
+        .pay-btn {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px 20px;
+            background: #fff;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+            z-index: 100;
+        }
+
+        .pay-btn button {
+            width: 100%;
+            max-width: 480px;
+            display: block;
+            margin: 0 auto;
+            padding: 16px;
+            background: linear-gradient(135deg, #FFEB3B 0%, #FFC107 100%);
+            border: none;
+            border-radius: 14px;
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+        }
+
+        .pay-btn button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(255, 193, 7, 0.5);
+        }
+
+        .pay-btn button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Status Messages */
+        .status-bar {
+            display: none;
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            font-weight: 500;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-bar.success {
+            display: flex;
+            background: #ECFDF5;
+            color: #065F46;
+            border: 1px solid #A7F3D0;
+        }
+
+        .status-bar.error {
+            display: flex;
+            background: #FEF2F2;
+            color: #991B1B;
+            border: 1px solid #FECACA;
+        }
+
+        .status-bar.loading {
+            display: flex;
+            background: #FFFBEB;
+            color: #92400E;
+            border: 1px solid #FDE68A;
+        }
+
+        .status-bar i {
+            font-size: 18px;
+        }
+
+        /* Powered By */
+        .powered-by {
+            text-align: center;
+            font-size: 12px;
+            color: #9CA3AF;
+            margin-top: 20px;
+        }
+
+        .powered-by img {
+            height: 16px;
+            vertical-align: middle;
+            margin-left: 4px;
+        }
+
+        /* Spinner */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #92400E;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <button class="back-btn" onclick="history.back()">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1>💳 Pay via Razorpay</h1>
+    </header>
+
+    <div class="container">
+        <!-- Status Bar -->
+        <div id="statusBar" class="status-bar"></div>
+
+        <!-- Amount Display -->
+        <div class="amount-display">
+            <div class="label">Total Amount</div>
+            <div class="value" id="totalDisplay">₹0</div>
+            <div class="gst-note" id="gstNote">inclusive of 18% GST</div>
+        </div>
+
+        <!-- Amount Input -->
+        <div class="input-card">
+            <label>Enter Recharge Amount (₹)</label>
+            <input type="number" id="amountInput" placeholder="Enter amount in ₹" min="1" step="1"
+                oninput="updateDisplay()">
+            <div class="quick-amounts">
+                <button class="quick-btn" onclick="setAmount(100)">₹100</button>
+                <button class="quick-btn" onclick="setAmount(250)">₹250</button>
+                <button class="quick-btn" onclick="setAmount(500)">₹500</button>
+                <button class="quick-btn" onclick="setAmount(1000)">₹1000</button>
+                <button class="quick-btn" onclick="setAmount(2000)">₹2000</button>
+                <button class="quick-btn" onclick="setAmount(5000)">₹5000</button>
+            </div>
+        </div>
+
+        <!-- User ID (from URL params or manual) -->
+        <div class="input-card" id="userIdCard" style="display:none;">
+            <label>User ID</label>
+            <input type="text" id="userIdInput" placeholder="Your User ID" readonly>
+        </div>
+
+        <div class="powered-by">
+            <i class="fas fa-lock"></i> Secured by Razorpay
+        </div>
+    </div>
+
+    <!-- Fixed Pay Button -->
+    <div class="pay-btn">
+        <button id="payButton" onclick="initiatePayment()" disabled>
+            <i class="fas fa-shield-alt"></i> Pay Securely
+        </button>
+    </div>
+
+    <script>
+        // Read userId from URL params (passed by mobile app / recharge page)
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId') || urlParams.get('uid') || '';
+        const presetAmount = urlParams.get('amount') || '';
+
+        // Set user ID
+        if (userId) {
+            document.getElementById('userIdInput').value = userId;
+        } else {
+            // Show manual input if no userId in URL
+            const card = document.getElementById('userIdCard');
+            card.style.display = 'block';
+            card.querySelector('input').removeAttribute('readonly');
+            card.querySelector('input').placeholder = 'Enter your User ID';
+        }
+
+        // Set preset amount if provided
+        if (presetAmount) {
+            document.getElementById('amountInput').value = presetAmount;
+            updateDisplay();
+        }
+
+        function setAmount(val) {
+            document.getElementById('amountInput').value = val;
+            updateDisplay();
+
+            // Highlight selected
+            document.querySelectorAll('.quick-btn').forEach(btn => btn.classList.remove('selected'));
+            event.target.classList.add('selected');
+        }
+
+        function updateDisplay() {
+            const base = parseFloat(document.getElementById('amountInput').value) || 0;
+            const gst = base * 0.18;
+            const total = base + gst;
+
+            document.getElementById('totalDisplay').textContent = '₹' + total.toFixed(2);
+            document.getElementById('gstNote').textContent = `₹${base} + ₹${gst.toFixed(2)} GST`;
+            document.getElementById('payButton').disabled = base <= 0;
+        }
+
+        function showStatus(type, message) {
+            const bar = document.getElementById('statusBar');
+            bar.className = 'status-bar ' + type;
+
+            let icon = '';
+            if (type === 'success') icon = '<i class="fas fa-check-circle"></i>';
+            else if (type === 'error') icon = '<i class="fas fa-exclamation-circle"></i>';
+            else if (type === 'loading') icon = '<span class="spinner"></span>';
+
+            bar.innerHTML = icon + '<span>' + message + '</span>';
+        }
+
+        function hideStatus() {
+            document.getElementById('statusBar').className = 'status-bar';
+        }
+
+        async function initiatePayment() {
+            const amount = parseFloat(document.getElementById('amountInput').value);
+            const uid = userId || document.getElementById('userIdInput').value.trim();
+
+            if (!uid) {
+                showStatus('error', 'Please enter your User ID');
+                return;
+            }
+
+            if (!amount || amount <= 0) {
+                showStatus('error', 'Please enter a valid amount');
+                return;
+            }
+
+            showStatus('loading', 'Creating order...');
+            document.getElementById('payButton').disabled = true;
+
+            try {
+                // Step 1: Create order on backend
+                const orderRes = await fetch('/api/payment/razorpay/create-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount, userId: uid })
+                });
+
+                const orderData = await orderRes.json();
+
+                if (!orderData.ok) {
+                    showStatus('error', orderData.error || 'Failed to create order');
+                    document.getElementById('payButton').disabled = false;
+                    return;
+                }
+
+                hideStatus();
+
+                // Step 2: Open Razorpay Checkout Modal
+                const options = {
+                    key: orderData.key_id,
+                    amount: orderData.amount,
+                    currency: orderData.currency,
+                    name: 'Astro 5 Star',
+                    description: 'Wallet Recharge',
+                    order_id: orderData.order_id,
+                    prefill: {
+                        contact: '',
+                        email: ''
+                    },
+                    theme: {
+                        color: '#FFEB3B',
+                        backdrop_color: 'rgba(0,0,0,0.6)'
+                    },
+
+                    // Step 3: Handle Success
+                    handler: async function (response) {
+                        showStatus('loading', 'Verifying payment...');
+
+                        try {
+                            const verifyRes = await fetch('/api/payment/razorpay/verify-payment', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature
+                                })
+                            });
+
+                            const verifyData = await verifyRes.json();
+
+                            if (verifyData.ok) {
+                                showStatus('success', `Payment successful! ₹${verifyData.credited} credited to wallet.`);
+
+                                // Redirect to success page after 2 seconds
+                                setTimeout(() => {
+                                    window.location.href = `/payment-success?amount=${verifyData.credited}&txnId=${response.razorpay_payment_id}`;
+                                }, 2000);
+                            } else {
+                                showStatus('error', verifyData.error || 'Payment verification failed');
+                            }
+                        } catch (err) {
+                            showStatus('error', 'Network error during verification. Contact support.');
+                        }
+
+                        document.getElementById('payButton').disabled = false;
+                    },
+
+                    // Handle Modal Dismiss
+                    modal: {
+                        ondismiss: function () {
+                            showStatus('error', 'Payment cancelled by user');
+                            document.getElementById('payButton').disabled = false;
+                        }
+                    },
+
+                    // Handle Payment Failed
+                    "handler.failed": function (response) {
+                        showStatus('error', 'Payment failed: ' + (response.error?.description || 'Unknown error'));
+                        document.getElementById('payButton').disabled = false;
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+
+                rzp.on('payment.failed', function (response) {
+                    showStatus('error', response.error.description || 'Payment failed');
+                    document.getElementById('payButton').disabled = false;
+                });
+
+                rzp.open();
+
+            } catch (err) {
+                showStatus('error', 'Network error. Please try again.');
+                document.getElementById('payButton').disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>
