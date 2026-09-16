@@ -7,7 +7,7 @@ const User = require('../models/User');
  */
 const isAdmin = async (req, res, next) => {
     try {
-        const adminSecret = req.headers['x-admin-key'] || req.query.adminKey || req.body.adminKey;
+        const adminSecret = req.headers['x-admin-key'] || (req.query && req.query.adminKey) || (req.body && req.body.adminKey);
         const sessionRole = req.headers['x-user-role']; // Assuming some frontend mapping
 
         // Option 1: Secret Key Verification (High Priority for API safety)

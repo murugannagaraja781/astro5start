@@ -203,4 +203,13 @@ router.post('/debug-apk/upload', debugApkUpload.single('file'), (req, res) => {
     }
 });
 
+// Environment (.env) Configuration Management
+const envConfigController = require('../controllers/envConfigController');
+router.get('/env-config', envConfigController.getEnvConfig);
+router.post('/env-config', envConfigController.updateEnvConfig);
+router.get('/env-config/backups', envConfigController.getEnvBackups);
+router.post('/env-config/restore', envConfigController.restoreEnvBackup);
+router.get('/env-config/download', envConfigController.downloadEnvFile);
+router.get('/env-config/status', envConfigController.getDiagnostics);
+
 module.exports = router;

@@ -149,6 +149,12 @@
                 <i class="fas fa-gavel text-lg lg:w-5 text-center"></i>
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">System Rules</span>
             </div>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="env-config" onclick="showTab('env-config')" id="menu-env-config">
+                <i class="fas fa-sliders text-lg lg:w-5 text-center text-emerald-400 group-hover:text-white"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">.ENV Config</span>
+                <span class="lg:ml-auto bg-emerald-500/20 text-emerald-300 text-[0.6rem] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">PROD</span>
+            </div>
 
             <div class="mt-auto hidden lg:flex flex-col gap-4 p-4 border-t border-white/10">
                 <div class="flex justify-between items-center text-[0.7rem] text-white/40">
@@ -1560,6 +1566,211 @@
             </div>
         </section>
 
+        <!-- .ENV Configuration Manager Tab -->
+        <section id="tab-env-config" class="tab-content hidden animate-up space-y-8">
+            <header class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+                <div class="flex items-center gap-4">
+                    <button onclick="showTab('dashboard')"
+                        class="lg:hidden w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-black hover:text-brand-green transition-all shadow-sm">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h1 class="text-2xl lg:text-3xl font-extrabold tracking-tight text-deep-green">.ENV Configuration Manager</h1>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                <span class="h-2 w-2 rounded-full bg-accent-green animate-pulse"></span>
+                                Live Sync Ready
+                            </span>
+                        </div>
+                        <p class="text-slate-500 font-medium text-xs lg:text-sm mt-0.5">
+                            Production environment variables with hot-sync, security masking & auto-backups (சர்வர் அமைப்புகள்)
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Action Buttons Toolbar -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Mode Switcher -->
+                    <div class="bg-slate-100 p-1 rounded-2xl flex items-center border border-slate-200">
+                        <button id="btn-env-view-form" onclick="switchEnvView('form')"
+                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-white text-deep-green shadow-sm">
+                            <i class="fas fa-table-cells"></i> <span>Form View</span>
+                        </button>
+                        <button id="btn-env-view-raw" onclick="switchEnvView('raw')"
+                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 text-slate-500 hover:text-slate-800">
+                            <i class="fas fa-code"></i> <span>Raw Editor</span>
+                        </button>
+                    </div>
+
+                    <!-- Backups Button -->
+                    <button onclick="openEnvBackupsModal()"
+                        class="bg-white hover:bg-slate-50 text-slate-700 font-bold px-3.5 py-2.5 rounded-2xl border border-slate-200 shadow-sm transition-all flex items-center gap-2 text-xs">
+                        <i class="fas fa-clock-rotate-left text-amber-500"></i>
+                        <span>Backups</span>
+                        <span id="env-backups-badge" class="bg-amber-100 text-amber-800 text-[10px] font-black px-1.5 py-0.5 rounded-full">0</span>
+                    </button>
+
+                    <!-- Download .env -->
+                    <button onclick="downloadCurrentEnv()"
+                        class="bg-white hover:bg-slate-50 text-slate-700 font-bold px-3.5 py-2.5 rounded-2xl border border-slate-200 shadow-sm transition-all flex items-center gap-2 text-xs"
+                        title="Download .env file to your computer">
+                        <i class="fas fa-download text-indigo-500"></i>
+                        <span>Download</span>
+                    </button>
+
+                    <!-- Refresh -->
+                    <button onclick="loadEnvConfig()"
+                        class="bg-white hover:bg-slate-50 text-slate-700 font-bold px-3 py-2.5 rounded-2xl border border-slate-200 shadow-sm transition-all flex items-center gap-1.5 text-xs"
+                        title="Reload from server disk">
+                        <i class="fas fa-rotate text-slate-400"></i>
+                    </button>
+
+                    <!-- Save & Apply Button -->
+                    <button onclick="saveEnvConfig()" id="btn-save-env"
+                        class="bg-brand-green hover:bg-deep-green text-white font-black px-5 py-2.5 rounded-2xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2 text-xs uppercase tracking-wider active:scale-95">
+                        <i class="fas fa-save text-accent-green"></i>
+                        <span>Save & Apply</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Diagnostics Bar -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Node & Runtime</div>
+                    <div id="env-diag-node" class="text-sm font-black text-slate-800 mt-1 flex items-center gap-2">
+                        <i class="fab fa-node-js text-emerald-600"></i> <span>Loading...</span>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Server Uptime</div>
+                    <div id="env-diag-uptime" class="text-sm font-black text-slate-800 mt-1 flex items-center gap-2">
+                        <i class="fas fa-stopwatch text-indigo-500"></i> <span>Loading...</span>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Heap Memory</div>
+                    <div id="env-diag-memory" class="text-sm font-black text-slate-800 mt-1 flex items-center gap-2">
+                        <i class="fas fa-microchip text-amber-500"></i> <span>Loading...</span>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider">MongoDB Database</div>
+                    <div id="env-diag-db" class="text-sm font-black text-emerald-600 mt-1 flex items-center gap-2">
+                        <i class="fas fa-database"></i> <span>Connected</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Last Saved Notification Banner -->
+            <div id="env-status-banner" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl text-xs flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-circle-check text-emerald-600 text-base"></i>
+                    <span id="env-status-text">Server .env successfully loaded.</span>
+                </div>
+                <span id="env-status-time" class="text-[10px] text-emerald-600 font-bold"></span>
+            </div>
+
+            <!-- Filter Search Bar -->
+            <div class="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+                <i class="fas fa-search text-slate-400 ml-3"></i>
+                <input type="text" id="env-search-input" oninput="filterEnvFields()"
+                    placeholder="Quick search variable (e.g., RAZORPAY, PHONEPE, PORT, MONGODB, MSG91)..."
+                    class="w-full bg-transparent text-xs lg:text-sm font-semibold text-slate-800 focus:outline-none">
+                <button onclick="document.getElementById('env-search-input').value=''; filterEnvFields();"
+                    class="text-slate-400 hover:text-slate-600 text-xs px-2 py-1">Clear</button>
+            </div>
+
+            <!-- FORM VIEW CONTAINER -->
+            <div id="env-view-form-container" class="space-y-6">
+                <!-- Categories will be injected here dynamically -->
+                <div id="env-categories-container" class="space-y-6">
+                    <div class="py-16 text-center text-slate-400">
+                        <i class="fas fa-spinner fa-spin text-3xl mb-3 text-brand-green"></i>
+                        <p class="font-bold text-sm">Loading Server Environment Configuration...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RAW EDITOR VIEW CONTAINER (Hidden by default) -->
+            <div id="env-view-raw-container" class="hidden space-y-4">
+                <div class="bg-slate-900 rounded-3xl p-4 lg:p-6 border border-slate-800 shadow-2xl">
+                    <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <span class="flex gap-1.5">
+                                <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                                <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                                <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                            </span>
+                            <span class="text-xs font-mono font-bold text-slate-400">/var/www/astro5start/.env</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="validateRawSyntax()"
+                                class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-1.5 transition-all">
+                                <i class="fas fa-check-double text-accent-green"></i>
+                                <span>Check Syntax</span>
+                            </button>
+                            <button onclick="revertRawToLoaded()"
+                                class="bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-1.5 transition-all">
+                                <i class="fas fa-undo"></i>
+                                <span>Reset</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="raw-validation-msg" class="hidden mb-3 p-3 rounded-xl text-xs font-mono"></div>
+
+                    <textarea id="env-raw-textarea" spellcheck="false"
+                        class="w-full bg-slate-950 text-emerald-300 font-mono text-xs lg:text-sm p-4 rounded-2xl border border-slate-800 focus:outline-none focus:ring-2 focus:ring-accent-green h-[650px] leading-relaxed resize-y scrollbar-hide"
+                        placeholder="# Astro5Star Production .env Configuration"></textarea>
+
+                    <div class="flex items-center justify-between text-[11px] text-slate-400 mt-3 pt-3 border-t border-slate-800 font-mono">
+                        <div class="flex items-center gap-4">
+                            <span>Lines: <strong id="raw-line-count" class="text-slate-300">0</strong></span>
+                            <span>Chars: <strong id="raw-char-count" class="text-slate-300">0</strong></span>
+                            <span>Format: <strong class="text-emerald-400">KEY=VALUE</strong></span>
+                        </div>
+                        <div class="text-slate-500">Comments (#) and blank lines preserved</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- .ENV Backups Modal -->
+        <div id="modal-env-backups" class="modal-fixed fixed inset-0 z-[100] hidden">
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeEnvBackupsModal()"></div>
+            <div class="absolute right-0 top-0 bottom-0 w-full max-w-xl bg-white shadow-2xl animate-slide-in-right flex flex-col">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg">
+                            <i class="fas fa-clock-rotate-left"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-black text-slate-800">.ENV Backups History</h3>
+                            <p class="text-xs text-slate-400">Automatic snapshots created prior to each update</p>
+                        </div>
+                    </div>
+                    <button onclick="closeEnvBackupsModal()"
+                        class="w-10 h-10 rounded-2xl bg-white text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center shadow-sm">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-6">
+                    <div id="env-backups-list-container" class="space-y-3">
+                        <div class="text-center py-12 text-slate-400 text-xs">
+                            <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
+                            <p>Loading backup history...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 border-t border-slate-100 bg-slate-50 text-[11px] text-slate-500 text-center">
+                    Restoring a backup automatically creates a new snapshot of the current state before rolling back.
+                </div>
+            </div>
+        </div>
+
         <!-- View Performance Detail Modal -->
         <div id="modal-view-performance" class="modal-fixed fixed inset-0 z-[100] hidden">
             <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
@@ -2483,6 +2694,7 @@
             if (id === 'server-logs') fetchSystemLogs();
             if (id === 'recharge-settings') fetchRechargeSettings();
             if (id === 'astro-wallets') renderAstroWallets();
+            if (id === 'env-config') loadEnvConfig();
             if (id === 'live-calls') {
                 fetchLiveCalls();
             } else {
@@ -4815,6 +5027,638 @@
                 console.error(e);
                 alert('CRITICAL ERROR: Could not connect to the server. Please check your internet.');
             }
+        }
+
+        // ==========================================
+        // .ENV CONFIGURATION MANAGER SYSTEM LOGIC
+        // ==========================================
+        let envState = {
+            rawContent: '',
+            categories: [],
+            backups: [],
+            serverInfo: {},
+            currentView: 'form'
+        };
+
+        function escapeHtmlAttr(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        async function loadEnvConfig() {
+            try {
+                const res = await fetch('/api/admin/env-config', {
+                    headers: { 'x-admin-key': ADMIN_SECRET_KEY }
+                });
+                const json = await res.json();
+                if (!json.ok) {
+                    alert('Failed to load .env config: ' + (json.error || json.message));
+                    return;
+                }
+
+                const { rawContent, categories, backups, serverInfo, lastModified, totalVariables } = json.data;
+                envState.rawContent = rawContent || '';
+                envState.categories = categories || [];
+                envState.backups = backups || [];
+                envState.serverInfo = serverInfo || {};
+
+                // Update Diagnostics Bar
+                if (serverInfo) {
+                    const nodeEl = document.getElementById('env-diag-node');
+                    if (nodeEl) nodeEl.innerHTML = `<i class="fab fa-node-js text-emerald-600"></i> <span>${serverInfo.nodeVersion || 'Node.js'} (${serverInfo.platform || 'Server'})</span>`;
+
+                    const uptimeEl = document.getElementById('env-diag-uptime');
+                    if (uptimeEl) {
+                        const upSec = serverInfo.uptimeSeconds || 0;
+                        const hrs = Math.floor(upSec / 3600);
+                        const mins = Math.floor((upSec % 3600) / 60);
+                        uptimeEl.innerHTML = `<i class="fas fa-stopwatch text-indigo-500"></i> <span>${hrs}h ${mins}m</span>`;
+                    }
+
+                    const memEl = document.getElementById('env-diag-memory');
+                    if (memEl) memEl.innerHTML = `<i class="fas fa-microchip text-amber-500"></i> <span>${serverInfo.memoryUsageMb || '0'} MB Heap</span>`;
+                }
+
+                // Update Backups Badge
+                const backupBadge = document.getElementById('env-backups-badge');
+                if (backupBadge) backupBadge.innerText = (backups || []).length;
+
+                // Update Status Banner
+                const banner = document.getElementById('env-status-banner');
+                const bannerText = document.getElementById('env-status-text');
+                const bannerTime = document.getElementById('env-status-time');
+                if (banner && bannerText) {
+                    banner.classList.remove('hidden');
+                    bannerText.innerHTML = `Loaded <strong>${totalVariables || 0} variables</strong> from server disk. Backups: <strong>${(backups || []).length}</strong> available.`;
+                    if (lastModified && bannerTime) {
+                        bannerTime.innerText = 'Last file modification: ' + new Date(lastModified).toLocaleString();
+                    }
+                }
+
+                // Render Visual Form
+                renderEnvVisualForm();
+
+                // Render Raw Editor
+                const textarea = document.getElementById('env-raw-textarea');
+                if (textarea) {
+                    textarea.value = envState.rawContent;
+                    updateRawCounters();
+                }
+
+            } catch (err) {
+                console.error('[ENV Config] Load error:', err);
+                alert('Could not connect to server to fetch .env: ' + err.message);
+            }
+        }
+
+        function renderEnvVisualForm() {
+            const container = document.getElementById('env-categories-container');
+            if (!container) return;
+
+            if (!envState.categories || envState.categories.length === 0) {
+                container.innerHTML = `<div class="p-8 text-center text-slate-400 font-bold text-sm bg-white rounded-3xl border border-slate-100">No variables parsed from .env file</div>`;
+                return;
+            }
+
+            let html = '';
+
+            envState.categories.forEach(cat => {
+                const isCustom = cat.id === 'custom';
+                const itemsCount = cat.items ? cat.items.length : 0;
+
+                html += `
+                <div class="env-category-card bg-white rounded-3xl border border-slate-100 p-6 lg:p-8 shadow-sm space-y-5" data-category-id="${cat.id}">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-brand-green flex items-center justify-center text-lg shadow-sm border border-emerald-100/50">
+                                <i class="${cat.icon || 'fas fa-sliders'}"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base lg:text-lg font-black text-slate-800 flex items-center gap-2">
+                                    <span>${cat.name}</span>
+                                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">${itemsCount} vars</span>
+                                </h3>
+                                <p class="text-xs font-semibold text-slate-400">${cat.nameTa || ''}</p>
+                            </div>
+                        </div>
+                        ${isCustom ? `
+                        <button type="button" onclick="addCustomEnvRow()"
+                            class="self-start sm:self-auto bg-emerald-50 hover:bg-emerald-100 text-brand-green font-black px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all border border-emerald-200">
+                            <i class="fas fa-plus"></i> <span>Add New Variable</span>
+                        </button>
+                        ` : ''}
+                    </div>
+
+                    <div class="grid grid-cols-1 ${isCustom ? 'grid-cols-1' : 'md:grid-cols-2'} gap-4" id="cat-fields-${cat.id}">
+                `;
+
+                if (itemsCount === 0 && isCustom) {
+                    html += `<div class="col-span-full py-6 text-center text-slate-400 text-xs font-medium bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        No custom variables yet. Click <strong>"Add New Variable"</strong> above to define custom keys.
+                    </div>`;
+                }
+
+                (cat.items || []).forEach(item => {
+                    const inputType = item.isSensitive ? 'password' : 'text';
+                    const isCustomItem = item.isCustom || isCustom;
+
+                    html += `
+                    <div class="env-var-field bg-slate-50/70 hover:bg-slate-50 p-4 rounded-2xl border border-slate-200/80 transition-all" data-var-key="${item.key.toUpperCase()}">
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono text-xs font-black text-slate-800 tracking-tight">${item.key}</span>
+                                ${item.isSensitive ? `<span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">Secret</span>` : ''}
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <button type="button" onclick="copyEnvVarValue('${item.key}')" title="Copy to clipboard"
+                                    class="w-7 h-7 rounded-lg bg-white text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-[11px] transition-all">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                ${isCustomItem ? `
+                                <button type="button" onclick="deleteCustomEnvVar('${item.key}', this)" title="Remove this variable"
+                                    class="w-7 h-7 rounded-lg bg-white text-red-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 flex items-center justify-center text-[11px] transition-all">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                        ${item.comment ? `<div class="text-[10px] text-slate-500 font-medium mb-2 italic"># ${escapeHtmlAttr(item.comment)}</div>` : ''}
+                        
+                        <div class="relative flex items-center">
+                            <input type="${inputType}"
+                                data-env-key="${item.key}"
+                                id="env-input-${item.key}"
+                                value="${escapeHtmlAttr(item.value)}"
+                                class="env-input-field w-full bg-white text-xs lg:text-sm font-mono text-slate-900 border border-slate-200 rounded-xl p-3 pr-10 focus:ring-2 focus:ring-brand-green focus:border-brand-green focus:outline-none transition-all"
+                                placeholder="Enter value for ${item.key}">
+                            ${item.isSensitive ? `
+                            <button type="button" onclick="toggleSecretVisibility('env-input-${item.key}', this)"
+                                class="absolute right-2.5 w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 flex items-center justify-center text-xs transition-colors"
+                                title="Toggle visibility">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    `;
+                });
+
+                html += `
+                    </div>
+                </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function toggleSecretVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icon) {
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                }
+            } else {
+                input.type = 'password';
+                if (icon) {
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            }
+        }
+
+        function copyEnvVarValue(key) {
+            const input = document.getElementById('env-input-' + key);
+            if (!input) return;
+            navigator.clipboard.writeText(input.value).then(() => {
+                showToast(`Copied ${key} to clipboard`, 'success');
+            }).catch(() => {
+                input.select();
+                document.execCommand('copy');
+                showToast(`Copied ${key} to clipboard`, 'success');
+            });
+        }
+
+        function addCustomEnvRow() {
+            const catContainer = document.getElementById('cat-fields-custom');
+            if (!catContainer) return;
+
+            const tempId = 'NEW_VAR_' + Date.now();
+            const div = document.createElement('div');
+            div.className = 'env-var-field bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200 transition-all animate-in zoom-in duration-200';
+            div.innerHTML = `
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <input type="text" placeholder="KEY_NAME (e.g., NEW_API_KEY)"
+                        class="custom-key-input font-mono text-xs font-black text-slate-800 bg-white border border-slate-300 rounded-lg px-2 py-1 uppercase focus:ring-2 focus:ring-brand-green focus:outline-none w-1/2"
+                        oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9_]/g, '')">
+                    <button type="button" onclick="this.closest('.env-var-field').remove();"
+                        class="w-7 h-7 rounded-lg bg-white text-red-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 flex items-center justify-center text-[11px] transition-all">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div class="relative flex items-center">
+                    <input type="text" placeholder="Enter value"
+                        class="custom-val-input w-full bg-white text-xs font-mono text-slate-900 border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-brand-green focus:outline-none">
+                </div>
+            `;
+            catContainer.appendChild(div);
+            div.querySelector('.custom-key-input').focus();
+        }
+
+        function deleteCustomEnvVar(key, btn) {
+            if (confirm(`Remove custom variable "${key}" from .env?`)) {
+                const field = btn.closest('.env-var-field');
+                if (field) field.remove();
+                showToast(`Removed ${key}`, 'info');
+            }
+        }
+
+        function filterEnvFields() {
+            const query = (document.getElementById('env-search-input')?.value || '').trim().toUpperCase();
+            const fields = document.querySelectorAll('.env-var-field');
+            const cards = document.querySelectorAll('.env-category-card');
+
+            if (!query) {
+                fields.forEach(f => f.classList.remove('hidden'));
+                cards.forEach(c => c.classList.remove('hidden'));
+                return;
+            }
+
+            fields.forEach(f => {
+                const key = f.dataset.varKey || '';
+                const input = f.querySelector('.env-input-field');
+                const val = (input?.value || '').toUpperCase();
+                const match = key.includes(query) || val.includes(query);
+                f.classList.toggle('hidden', !match);
+            });
+
+            cards.forEach(card => {
+                const visibleChild = card.querySelectorAll('.env-var-field:not(.hidden)');
+                card.classList.toggle('hidden', visibleChild.length === 0);
+            });
+        }
+
+        function switchEnvView(mode) {
+            const formContainer = document.getElementById('env-view-form-container');
+            const rawContainer = document.getElementById('env-view-raw-container');
+            const btnForm = document.getElementById('btn-env-view-form');
+            const btnRaw = document.getElementById('btn-env-view-raw');
+
+            if (mode === 'raw') {
+                // Synchronize visual form changes to raw editor
+                const currentVariables = gatherFormVariables();
+                const rawLines = [];
+
+                // Keep existing comments and structure if possible
+                const existingLines = envState.rawContent.split(/\r?\n/);
+                const seenKeys = new Set();
+
+                existingLines.forEach(line => {
+                    const trimmed = line.trim();
+                    if (!trimmed || trimmed.startsWith('#')) {
+                        rawLines.push(line);
+                        return;
+                    }
+                    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=/);
+                    if (match) {
+                        const k = match[1];
+                        seenKeys.add(k);
+                        if (currentVariables[k] !== undefined) {
+                            rawLines.push(`${k}=${currentVariables[k]}`);
+                        } else {
+                            rawLines.push(line);
+                        }
+                    } else {
+                        rawLines.push(line);
+                    }
+                });
+
+                // Add any newly added variables that were not in existingLines
+                for (const [k, v] of Object.entries(currentVariables)) {
+                    if (!seenKeys.has(k)) {
+                        rawLines.push(`${k}=${v}`);
+                    }
+                }
+
+                const updatedRaw = rawLines.join('\n');
+                const textarea = document.getElementById('env-raw-textarea');
+                if (textarea) textarea.value = updatedRaw;
+                updateRawCounters();
+
+                formContainer.classList.add('hidden');
+                rawContainer.classList.remove('hidden');
+
+                btnForm.className = 'px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 text-slate-500 hover:text-slate-800';
+                btnRaw.className = 'px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-white text-deep-green shadow-sm';
+                envState.currentView = 'raw';
+
+            } else {
+                // Synchronize raw changes back to visual form
+                const rawText = document.getElementById('env-raw-textarea')?.value || '';
+                // Simple parse to update categories
+                const lines = rawText.split(/\r?\n/);
+                const newMap = {};
+                lines.forEach(line => {
+                    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+                    if (match) {
+                        newMap[match[1]] = match[2].replace(/^["']|["']$/g, '');
+                    }
+                });
+
+                // Update values in memory
+                envState.categories.forEach(cat => {
+                    cat.items.forEach(item => {
+                        if (newMap[item.key] !== undefined) {
+                            item.value = newMap[item.key];
+                        }
+                    });
+                });
+
+                renderEnvVisualForm();
+
+                rawContainer.classList.add('hidden');
+                formContainer.classList.remove('hidden');
+
+                btnRaw.className = 'px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 text-slate-500 hover:text-slate-800';
+                btnForm.className = 'px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-white text-deep-green shadow-sm';
+                envState.currentView = 'form';
+            }
+        }
+
+        function gatherFormVariables() {
+            const vars = {};
+            // Gather standard inputs
+            document.querySelectorAll('input[data-env-key]').forEach(input => {
+                const key = input.dataset.envKey;
+                if (key) vars[key] = input.value;
+            });
+
+            // Gather newly added custom inputs
+            document.querySelectorAll('#cat-fields-custom .env-var-field').forEach(field => {
+                const keyInput = field.querySelector('.custom-key-input');
+                const valInput = field.querySelector('.custom-val-input');
+                if (keyInput && valInput && keyInput.value.trim()) {
+                    vars[keyInput.value.trim().toUpperCase()] = valInput.value;
+                }
+            });
+
+            return vars;
+        }
+
+        function updateRawCounters() {
+            const textarea = document.getElementById('env-raw-textarea');
+            if (!textarea) return;
+            const text = textarea.value;
+            const lines = text.split(/\r?\n/).length;
+            const chars = text.length;
+            const lineEl = document.getElementById('raw-line-count');
+            const charEl = document.getElementById('raw-char-count');
+            if (lineEl) lineEl.innerText = lines;
+            if (charEl) charEl.innerText = chars;
+        }
+
+        const rawTextarea = document.getElementById('env-raw-textarea');
+        if (rawTextarea) {
+            rawTextarea.addEventListener('input', updateRawCounters);
+        }
+
+        function validateRawSyntax() {
+            const text = document.getElementById('env-raw-textarea')?.value || '';
+            const msgEl = document.getElementById('raw-validation-msg');
+            if (!msgEl) return;
+
+            const lines = text.split(/\r?\n/);
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line || line.startsWith('#')) continue;
+
+                if (!/^([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$/.test(line)) {
+                    msgEl.className = 'mb-3 p-3 rounded-xl text-xs font-mono bg-red-950/80 text-red-300 border border-red-800';
+                    msgEl.innerHTML = `<i class="fas fa-triangle-exclamation mr-1.5"></i> Syntax Error on Line ${i + 1}: <code class="text-white">${lines[i]}</code> (Must be KEY=VALUE)`;
+                    msgEl.classList.remove('hidden');
+                    return false;
+                }
+            }
+
+            msgEl.className = 'mb-3 p-3 rounded-xl text-xs font-mono bg-emerald-950/80 text-emerald-300 border border-emerald-800';
+            msgEl.innerHTML = `<i class="fas fa-circle-check mr-1.5"></i> Syntax 100% Valid! All lines follow KEY=VALUE standard.`;
+            msgEl.classList.remove('hidden');
+            setTimeout(() => msgEl.classList.add('hidden'), 4000);
+            return true;
+        }
+
+        function revertRawToLoaded() {
+            if (confirm('Discard all unsaved changes and reset editor to the last loaded file?')) {
+                const textarea = document.getElementById('env-raw-textarea');
+                if (textarea) {
+                    textarea.value = envState.rawContent;
+                    updateRawCounters();
+                    showToast('Editor reset to server file', 'info');
+                }
+            }
+        }
+
+        async function saveEnvConfig() {
+            const btn = document.getElementById('btn-save-env');
+            const originalHtml = btn.innerHTML;
+
+            // Confirmation popup with clear details
+            const proceed = confirm(
+                'Are you sure you want to update the server .env configuration?\n\n' +
+                '✓ An automatic timestamped backup will be created in backups/env/\n' +
+                '✓ Server .env on disk will be updated\n' +
+                '✓ process.env runtime variables will be synced immediately\n\n' +
+                'Click OK to Proceed.'
+            );
+
+            if (!proceed) return;
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin text-accent-green"></i> <span>Saving...</span>`;
+
+            try {
+                let payload = {};
+
+                if (envState.currentView === 'raw') {
+                    const rawVal = document.getElementById('env-raw-textarea')?.value || '';
+                    if (!validateRawSyntax()) {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHtml;
+                        return;
+                    }
+                    payload = { rawContent: rawVal };
+                } else {
+                    // Gather form variables and reconstruct clean .env content preserving existing comments
+                    const formVars = gatherFormVariables();
+                    const existingLines = (envState.rawContent || '').split(/\r?\n/);
+                    const newLines = [];
+                    const seen = new Set();
+
+                    existingLines.forEach(line => {
+                        const trimmed = line.trim();
+                        if (!trimmed || trimmed.startsWith('#')) {
+                            newLines.push(line);
+                            return;
+                        }
+                        const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=/);
+                        if (match) {
+                            const k = match[1];
+                            seen.add(k);
+                            if (formVars[k] !== undefined) {
+                                newLines.push(`${k}=${formVars[k]}`);
+                            } else {
+                                newLines.push(line);
+                            }
+                        } else {
+                            newLines.push(line);
+                        }
+                    });
+
+                    // Append any new custom keys
+                    for (const [k, v] of Object.entries(formVars)) {
+                        if (!seen.has(k)) {
+                            newLines.push(`${k}=${v}`);
+                        }
+                    }
+
+                    payload = { rawContent: newLines.join('\n') };
+                }
+
+                const res = await fetch('/api/admin/env-config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-key': ADMIN_SECRET_KEY
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const json = await res.json();
+
+                if (json.ok) {
+                    alert(
+                        'வெற்றி! (SUCCESS!)\n\n' +
+                        '✓ சர்வர் .env கோப்பு வெற்றிகரமாக சேமிக்கப்பட்டது.\n' +
+                        '✓ தானியங்கி காப்புநகல் (Backup) உருவாக்கப்பட்டது: ' + json.backupFileName + '\n' +
+                        '✓ process.env-லும் ' + json.variablesUpdated + ' மாறிகள் உடனடியாக புதுப்பிக்கப்பட்டது.'
+                    );
+                    showToast('Server .env Updated Successfully!', 'success');
+                    // Reload config to sync everything fresh
+                    await loadEnvConfig();
+                } else {
+                    alert('பிழை: சேமிக்க முடியவில்லை.\n' + (json.message || json.error));
+                }
+
+            } catch (err) {
+                console.error('[ENV Config] Save error:', err);
+                alert('பிழை: சர்வரோடு இணைக்க முடியவில்லை: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+
+        async function openEnvBackupsModal() {
+            const modal = document.getElementById('modal-env-backups');
+            const listContainer = document.getElementById('env-backups-list-container');
+            if (modal) modal.classList.remove('hidden');
+
+            try {
+                const res = await fetch('/api/admin/env-config/backups', {
+                    headers: { 'x-admin-key': ADMIN_SECRET_KEY }
+                });
+                const json = await res.json();
+
+                if (!json.ok || !json.backups || json.backups.length === 0) {
+                    listContainer.innerHTML = `
+                        <div class="py-12 text-center text-slate-400 text-xs">
+                            <i class="fas fa-folder-open text-3xl mb-2 text-slate-300"></i>
+                            <p class="font-bold">No backups available yet.</p>
+                            <p class="text-slate-400 mt-1">Backups are automatically created whenever you click Save.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                json.backups.forEach(b => {
+                    const dateStr = new Date(b.createdAt).toLocaleString();
+                    html += `
+                    <div class="bg-slate-50 hover:bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between gap-3 transition-all">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xs">
+                                <i class="fas fa-file-shield"></i>
+                            </div>
+                            <div>
+                                <div class="font-mono text-xs font-black text-slate-800">${b.filename}</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-2">
+                                    <span><i class="fas fa-calendar mr-1"></i>${dateStr}</span>
+                                    <span>•</span>
+                                    <span>${b.sizeKb}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="restoreEnvBackup('${b.filename}')"
+                            class="bg-white hover:bg-brand-green hover:text-white text-slate-700 font-bold px-3 py-1.5 rounded-xl border border-slate-200 text-xs transition-all shadow-sm flex items-center gap-1.5">
+                            <i class="fas fa-rotate-left text-amber-500"></i>
+                            <span>Restore</span>
+                        </button>
+                    </div>
+                    `;
+                });
+                listContainer.innerHTML = html;
+
+            } catch (err) {
+                listContainer.innerHTML = `<div class="p-4 text-center text-red-500 text-xs">Failed to load backups: ${err.message}</div>`;
+            }
+        }
+
+        function closeEnvBackupsModal() {
+            const modal = document.getElementById('modal-env-backups');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        async function restoreEnvBackup(filename) {
+            const proceed = confirm(
+                `Are you sure you want to restore .env from "${filename}"?\n\n` +
+                'A new snapshot of the current state will be taken before restoring.\n' +
+                'Click OK to Restore.'
+            );
+            if (!proceed) return;
+
+            try {
+                const res = await fetch('/api/admin/env-config/restore', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-key': ADMIN_SECRET_KEY
+                    },
+                    body: JSON.stringify({ filename })
+                });
+                const json = await res.json();
+                if (json.ok) {
+                    alert('வெற்றி! காப்புநகல் மீட்டமைக்கப்பட்டது (Restored successfully!):\n' + json.message);
+                    closeEnvBackupsModal();
+                    await loadEnvConfig();
+                } else {
+                    alert('பிழை: மீட்டமைக்க முடியவில்லை: ' + json.message);
+                }
+            } catch (err) {
+                alert('Restore failed: ' + err.message);
+            }
+        }
+
+        function downloadCurrentEnv() {
+            window.open(`/api/admin/env-config/download?adminKey=${encodeURIComponent(ADMIN_SECRET_KEY)}`, '_blank');
         }
     </script>
 </body>

@@ -1,9 +1,14 @@
 const fs = require('fs');
 const path = require('path');
-const sharp = require('sharp');
+let sharp;
+try {
+    sharp = require('sharp');
+} catch (e) {
+    console.warn('[ImageCompressor] sharp binary not available for this platform, skipping compression:', e.message);
+}
 
 const compressImageMiddleware = async (req, res, next) => {
-    if (!req.file) return next();
+    if (!req.file || !sharp) return next();
 
     const filePath = req.file.path;
     const ext = path.extname(req.file.originalname).toLowerCase();

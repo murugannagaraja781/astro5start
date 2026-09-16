@@ -33,6 +33,7 @@ yarn-error.log*
 # Logs and temporary files
 *.log
 uploads/
+backups/
 test.txt
 a
 a.sh
