@@ -2733,26 +2733,26 @@
                         <i class="fas fa-times"></i>
                     </button>
                     
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pr-12">
-                        <div class="flex items-center gap-4">
-                            <div class="relative">
-                                <img id="c360-avatar" src="" class="w-16 h-16 rounded-2xl object-cover ring-4 ring-white/10 bg-white shadow-lg">
-                                <span id="c360-online-dot" class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-slate-900 bg-slate-400"></span>
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pr-10">
+                        <div class="flex items-center gap-3">
+                            <div class="relative shrink-0">
+                                <img id="c360-avatar" src="" class="w-10 h-10 rounded-xl object-cover ring-2 ring-white/20 bg-white shadow-sm">
+                                <span id="c360-online-dot" class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-slate-900 bg-slate-400"></span>
                             </div>
-                            <div>
+                            <div class="min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <h2 id="c360-name" class="text-xl font-black text-white">Client Name</h2>
-                                    <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Client</span>
-                                    <span id="c360-app-badge" class="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full font-bold">App User</span>
+                                    <h2 id="c360-name" class="text-base sm:text-lg font-black text-white truncate">Client Name</h2>
+                                    <span class="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.2 rounded-full font-bold uppercase tracking-wider">Client</span>
+                                    <span id="c360-app-badge" class="text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.2 rounded-full font-bold">App User</span>
                                 </div>
-                                <div class="flex items-center gap-3 text-xs text-slate-300 font-medium mt-1 flex-wrap">
+                                <div class="flex items-center gap-2.5 text-xs text-slate-300 font-medium mt-0.5 flex-wrap">
                                     <span id="c360-phone" class="font-mono text-emerald-400 font-bold">📞 9999999999</span>
                                     <span class="text-slate-500">•</span>
                                     <span id="c360-email" class="text-slate-300">client@email.com</span>
                                     <span class="text-slate-500">•</span>
                                     <span id="c360-joined" class="text-slate-400">Joined: -</span>
                                 </div>
-                                <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-2">
+                                <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-2">
                                     <span class="font-mono bg-white/5 px-2 py-0.5 rounded font-bold" id="c360-uid">ID: ...</span>
                                     <button type="button" onclick="copyClientUserId()" class="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] flex items-center gap-1">
                                         <i class="fas fa-copy"></i> Copy
@@ -2764,55 +2764,58 @@
 
                         <!-- Header Quick Action Buttons -->
                         <div class="flex items-center gap-2 self-stretch sm:self-auto justify-end flex-wrap">
-                            <button type="button" id="c360-btn-wa" onclick="c360OpenWhatsApp()" class="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md shadow-emerald-900/30 transition-all cursor-pointer">
+                            <button type="button" id="c360-btn-wa" onclick="c360OpenWhatsApp()" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md shadow-emerald-900/30 transition-all cursor-pointer">
                                 <i class="fab fa-whatsapp text-sm"></i> WhatsApp
                             </button>
-                            <button type="button" id="c360-btn-add-wallet" onclick="c360AddWallet()" class="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer">
+                            <button type="button" id="c360-btn-add-wallet" onclick="c360AddWallet()" class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer">
                                 <i class="fas fa-plus"></i> Add ₹
                             </button>
-                            <button type="button" id="c360-btn-deduct-wallet" onclick="c360DeductWallet()" class="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer">
+                            <button type="button" id="c360-btn-deduct-wallet" onclick="c360DeductWallet()" class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer">
                                 <i class="fas fa-minus"></i> Deduct ₹
                             </button>
                         </div>
                     </div>
 
                     <!-- 2. KPI Metrics Ribbon -->
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-white/10">
-                        <div class="bg-white/5 rounded-2xl p-3 border border-white/5">
-                            <div class="text-[10px] text-slate-400 font-black uppercase tracking-wider">Main Wallet (மெயின் வாலட்)</div>
-                            <div id="c360-kpi-wallet" class="text-xl font-black text-emerald-400 mt-0.5">₹0.00</div>
-                            <div class="text-[10px] text-emerald-300/70 mt-0.5">பயன்படுத்தக்கூடிய தொகை</div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-3.5 border-t border-white/10">
+                        <div class="bg-white/5 rounded-2xl p-2.5 border border-white/5">
+                            <div class="text-[9px] text-slate-400 font-black uppercase tracking-wider">Main Wallet (மெயின் வாலட்)</div>
+                            <div id="c360-kpi-wallet" class="text-lg font-black text-emerald-400 mt-0.5">₹0.00</div>
+                            <div class="text-[9px] text-emerald-300/70 mt-0.5">பயன்படுத்தக்கூடிய இருப்பு</div>
                         </div>
-                        <div class="bg-white/5 rounded-2xl p-3 border border-white/5">
-                            <div class="text-[10px] text-slate-400 font-black uppercase tracking-wider">Bonus Wallet (போனஸ்)</div>
-                            <div id="c360-kpi-super" class="text-xl font-black text-purple-400 mt-0.5">₹0.00</div>
-                            <div class="text-[10px] text-purple-300/70 mt-0.5">இலவச ஆஃபர் தொகை</div>
+                        <div class="bg-white/5 rounded-2xl p-2.5 border border-white/5">
+                            <div class="text-[9px] text-slate-400 font-black uppercase tracking-wider">Bonus Wallet (போனஸ்)</div>
+                            <div id="c360-kpi-super" class="text-lg font-black text-purple-400 mt-0.5">₹0.00</div>
+                            <div class="text-[9px] text-purple-300/70 mt-0.5">இலவச ஆஃபர் இருப்பு</div>
                         </div>
-                        <div class="bg-white/5 rounded-2xl p-3 border border-white/5">
-                            <div class="text-[10px] text-slate-400 font-black uppercase tracking-wider">Total Recharged (மொத்த ரீசார்ஜ்)</div>
-                            <div id="c360-kpi-recharged" class="text-xl font-black text-amber-400 mt-0.5">₹0.00</div>
-                            <div id="c360-kpi-recharge-count" class="text-[10px] text-amber-300/70 mt-0.5">0 பரிவர்த்தனைகள்</div>
+                        <div class="bg-white/5 rounded-2xl p-2.5 border border-white/5">
+                            <div class="text-[9px] text-slate-400 font-black uppercase tracking-wider">Total Recharged (மொத்த ரீசார்ஜ்)</div>
+                            <div id="c360-kpi-recharged" class="text-lg font-black text-amber-400 mt-0.5">₹0.00</div>
+                            <div id="c360-kpi-recharge-count" class="text-[9px] text-amber-300/70 mt-0.5">0 பரிவர்த்தனைகள்</div>
                         </div>
-                        <div class="bg-white/5 rounded-2xl p-3 border border-white/5">
-                            <div class="text-[10px] text-slate-400 font-black uppercase tracking-wider">Consultation Spent (பேசிய கட்டணம்)</div>
-                            <div id="c360-kpi-spent" class="text-xl font-black text-rose-400 mt-0.5">₹0.00</div>
-                            <div id="c360-kpi-calls-count" class="text-[10px] text-rose-300/70 mt-0.5">0 அழைப்புகள் (0 mins)</div>
+                        <div class="bg-white/5 rounded-2xl p-2.5 border border-white/5">
+                            <div class="text-[9px] text-slate-400 font-black uppercase tracking-wider">Consultation Spent (பேசிய கட்டணம்)</div>
+                            <div id="c360-kpi-spent" class="text-lg font-black text-rose-400 mt-0.5">₹0.00</div>
+                            <div id="c360-kpi-calls-count" class="text-[9px] text-rose-300/70 mt-0.5">0 அழைப்புகள் (0 mins)</div>
                         </div>
                     </div>
                 </header>
 
                 <!-- 3. Navigation Sub-Tabs -->
-                <div class="bg-slate-50 border-b border-slate-200 px-6 pt-3 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
-                    <button type="button" id="c360-tab-btn-consultations" onclick="switchClient360Tab('consultations')" class="px-4 py-2.5 rounded-t-2xl font-black text-xs transition-all flex items-center gap-2 border-b-2 border-brand-green bg-white text-brand-green shadow-sm whitespace-nowrap cursor-pointer">
+                <div class="bg-slate-50 border-b border-slate-200 px-4 sm:px-6 pt-2.5 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
+                    <button type="button" id="c360-tab-btn-profile" onclick="switchClient360Tab('profile')" class="px-4 py-2.5 rounded-t-2xl font-black text-xs transition-all flex items-center gap-2 border-b-2 border-brand-green bg-white text-brand-green shadow-sm whitespace-nowrap cursor-pointer">
+                        <i class="fas fa-id-card"></i> வாடிக்கையாளர் விவரங்கள்
+                    </button>
+                    <button type="button" id="c360-tab-btn-consultations" onclick="switchClient360Tab('consultations')" class="px-4 py-2.5 rounded-t-2xl font-bold text-xs transition-all flex items-center gap-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 whitespace-nowrap cursor-pointer border-transparent">
                         <i class="fas fa-phone-volume"></i> ஜோதிடரிடம் பேசியவை <span id="c360-badge-consultations" class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">0</span>
                     </button>
-                    <button type="button" id="c360-tab-btn-recharges" onclick="switchClient360Tab('recharges')" class="px-4 py-2.5 rounded-t-2xl font-bold text-xs transition-all flex items-center gap-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 whitespace-nowrap cursor-pointer">
+                    <button type="button" id="c360-tab-btn-recharges" onclick="switchClient360Tab('recharges')" class="px-4 py-2.5 rounded-t-2xl font-bold text-xs transition-all flex items-center gap-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 whitespace-nowrap cursor-pointer border-transparent">
                         <i class="fas fa-credit-card"></i> ரீசார்ஜ் செய்த தொகை <span id="c360-badge-recharges" class="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-bold">0</span>
                     </button>
-                    <button type="button" id="c360-tab-btn-bonuses" onclick="switchClient360Tab('bonuses')" class="px-4 py-2.5 rounded-t-2xl font-bold text-xs transition-all flex items-center gap-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 whitespace-nowrap cursor-pointer">
+                    <button type="button" id="c360-tab-btn-bonuses" onclick="switchClient360Tab('bonuses')" class="px-4 py-2.5 rounded-t-2xl font-bold text-xs transition-all flex items-center gap-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 whitespace-nowrap cursor-pointer border-transparent">
                         <i class="fas fa-gift"></i> கிடைத்த போனஸ்கள் <span id="c360-badge-bonuses" class="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">0</span>
                     </button>
-                    <button type="button" id="c360-tab-btn-ledgers" onclick="switchClient360Tab('ledgers')" class="px-4 py-2.5 rounded-t-2xl font-bold text-xs transition-all flex items-center gap-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 whitespace-nowrap cursor-pointer">
+                    <button type="button" id="c360-tab-btn-ledgers" onclick="switchClient360Tab('ledgers')" class="px-4 py-2.5 rounded-t-2xl font-bold text-xs transition-all flex items-center gap-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 whitespace-nowrap cursor-pointer border-transparent">
                         <i class="fas fa-receipt"></i> நிமிட பில்லிங் லெட்ஜர் <span id="c360-badge-ledgers" class="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-bold">0</span>
                     </button>
                 </div>
@@ -2820,22 +2823,74 @@
                 <!-- 4. Scrollable Tab Contents Container -->
                 <div class="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0 bg-slate-50/50">
                     
-                    <!-- TAB 1: CONSULTATIONS -->
-                    <div id="c360-pane-consultations" class="space-y-3">
+                    <!-- TAB 1: CLIENT PROFILE TABLE -->
+                    <div id="c360-pane-profile" class="space-y-4">
+                        <div class="overflow-x-auto bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-5">
+                            <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2.5">
+                                <h4 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                                    <i class="fas fa-user-circle text-brand-green"></i> வாடிக்கையாளர் தனிப்பட்ட விவரங்கள் (Client Profile Table)
+                                </h4>
+                                <span class="text-[10px] font-bold text-slate-400">அட்டவணை வடிவம் (Table Format)</span>
+                            </div>
+                            <table class="w-full text-xs text-left border border-slate-200 rounded-xl overflow-hidden border-collapse">
+                                <tbody class="divide-y divide-slate-200">
+                                    <tr class="bg-slate-50/70">
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] w-1/4 border-r border-slate-200">வாடிக்கையாளர் ID (User ID)</th>
+                                        <td class="px-4 py-2.5 font-mono font-bold text-slate-800 border-r border-slate-200" id="c360-full-uid">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] w-1/4 border-r border-slate-200">முழு பெயர் (Full Name)</th>
+                                        <td class="px-4 py-2.5 font-black text-slate-800" id="c360-full-name">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] border-r border-slate-200">போன் எண் (Phone Number)</th>
+                                        <td class="px-4 py-2.5 font-mono font-bold text-emerald-600 border-r border-slate-200" id="c360-full-phone">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] border-r border-slate-200">மின்னஞ்சல் (Email Address)</th>
+                                        <td class="px-4 py-2.5 font-medium text-slate-700" id="c360-full-email">-</td>
+                                    </tr>
+                                    <tr class="bg-slate-50/70">
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] border-r border-slate-200">பிறந்த தேதி (Date of Birth)</th>
+                                        <td class="px-4 py-2.5 font-medium text-slate-700 border-r border-slate-200" id="c360-full-dob">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] border-r border-slate-200">பிறந்த நேரம் (Time of Birth)</th>
+                                        <td class="px-4 py-2.5 font-medium text-slate-700" id="c360-full-tob">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] border-r border-slate-200">பிறந்த இடம் (Place of Birth)</th>
+                                        <td class="px-4 py-2.5 font-medium text-slate-700 border-r border-slate-200" id="c360-full-pob">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] border-r border-slate-200">பாலினம் (Gender)</th>
+                                        <td class="px-4 py-2.5 font-medium text-slate-700" id="c360-full-gender">-</td>
+                                    </tr>
+                                    <tr class="bg-slate-50/70">
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] border-r border-slate-200">பரிந்துரை குறியீடு (Referral Code)</th>
+                                        <td class="px-4 py-2.5 font-mono font-bold text-purple-600 border-r border-slate-200" id="c360-full-refcode">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] border-r border-slate-200">அழைத்தவர் (Referred By)</th>
+                                        <td class="px-4 py-2.5 font-medium text-slate-700" id="c360-full-referrer">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] border-r border-slate-200">பதிவு தேதி (Joined Date)</th>
+                                        <td class="px-4 py-2.5 font-medium text-slate-700 border-r border-slate-200" id="c360-full-joined">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] border-r border-slate-200">இணைப்பு நிலை (Status)</th>
+                                        <td class="px-4 py-2.5 font-bold" id="c360-full-status">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: CONSULTATIONS -->
+                    <div id="c360-pane-consultations" class="hidden space-y-3">
                         <div id="c360-consultations-list" class="space-y-3"></div>
                     </div>
 
-                    <!-- TAB 2: RECHARGES -->
+                    <!-- TAB 3: RECHARGES -->
                     <div id="c360-pane-recharges" class="hidden space-y-3">
                         <div id="c360-recharges-list" class="space-y-3"></div>
                     </div>
 
-                    <!-- TAB 3: BONUSES -->
+                    <!-- TAB 4: BONUSES -->
                     <div id="c360-pane-bonuses" class="hidden space-y-3">
                         <div id="c360-bonuses-list" class="space-y-3"></div>
                     </div>
 
-                    <!-- TAB 4: BILLING LEDGERS -->
+                    <!-- TAB 5: BILLING LEDGERS -->
                     <div id="c360-pane-ledgers" class="hidden space-y-3">
                         <div id="c360-ledgers-list" class="space-y-3"></div>
                     </div>
@@ -3672,7 +3727,7 @@
                 <tr class="hover:bg-slate-50 transition-colors group">
                     <td class="px-6 py-4 cursor-pointer" onclick="openClientHistoryModal('${u.userId}')" title="கிளிக் செய்து முழுமையான வரலாறு பார்க்கவும்">
                         <div class="flex items-center gap-3">
-                            <img src="${getProfileImage(u.image, u.name)}" class="w-10 h-10 rounded-xl object-cover ring-4 ring-emerald-50 bg-white">
+                            <img src="${getProfileImage(u.image, u.name)}" class="w-8 h-8 rounded-lg object-cover ring-2 ring-emerald-100 bg-white">
                             <div>
                                 <div class="font-black text-slate-800 text-sm leading-none flex items-center gap-1 group-hover:text-brand-green transition-colors">
                                     ${u.name} ${u.isNewUser ? '<span class="text-[8px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full">NEW</span>' : ''}
@@ -3724,7 +3779,7 @@
         // CLIENT 360° DETAILED HISTORY CONTROLLER
         // ==========================================
         let currentC360Data = null;
-        let currentC360Tab = 'consultations';
+        let currentC360Tab = 'profile';
 
         function openUserHistory(uid) {
             openClientHistoryModal(uid);
@@ -3744,7 +3799,7 @@
             if (content) content.classList.add('hidden');
             
             currentC360Data = null;
-            switchClient360Tab('consultations');
+            switchClient360Tab('profile');
 
             socket.emit('admin-get-client-history', { userId }, (res) => {
                 if (!res || !res.ok) {
@@ -3763,7 +3818,7 @@
 
         function switchClient360Tab(tab) {
             currentC360Tab = tab;
-            const tabs = ['consultations', 'recharges', 'bonuses', 'ledgers'];
+            const tabs = ['profile', 'consultations', 'recharges', 'bonuses', 'ledgers'];
             tabs.forEach(t => {
                 const btn = document.getElementById(`c360-tab-btn-${t}`);
                 const pane = document.getElementById(`c360-pane-${t}`);
@@ -3785,13 +3840,13 @@
             const client = data.client || {};
             const stats = data.stats || {};
 
-            // Header profile
+            // Header profile (compact image)
             const avatarImg = document.getElementById('c360-avatar');
             if (avatarImg) avatarImg.src = getProfileImage(client.image, client.name);
 
             const onlineDot = document.getElementById('c360-online-dot');
             if (onlineDot) {
-                onlineDot.className = `absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-slate-900 ${client.isOnline ? 'bg-accent-green' : 'bg-slate-400'}`;
+                onlineDot.className = `absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-slate-900 ${client.isOnline ? 'bg-accent-green' : 'bg-slate-400'}`;
             }
 
             const nameEl = document.getElementById('c360-name');
@@ -3816,10 +3871,10 @@
             if (appBadge) {
                 if (client.fcmToken) {
                     appBadge.innerText = '📱 Android App';
-                    appBadge.className = 'text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full font-bold';
+                    appBadge.className = 'text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.2 rounded-full font-bold';
                 } else {
                     appBadge.innerText = '🌐 Web Client';
-                    appBadge.className = 'text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-bold';
+                    appBadge.className = 'text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.2 rounded-full font-bold';
                 }
             }
 
@@ -3844,7 +3899,7 @@
             if (kpiRecharged) kpiRecharged.innerText = `₹${(stats.totalRecharged || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
             const kpiRechargeCount = document.getElementById('c360-kpi-recharge-count');
-            if (kpiRechargeCount) kpiRechargeCount.innerText = `${stats.rechargeCount || 0} வெற்றிகரமான பரிவர்த்தனைகள்`;
+            if (kpiRechargeCount) kpiRechargeCount.innerText = `${stats.rechargeCount || 0} பரிவர்த்தனைகள்`;
 
             const kpiSpent = document.getElementById('c360-kpi-spent');
             if (kpiSpent) kpiSpent.innerText = `₹${(stats.totalSpentOnCalls || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -3865,7 +3920,31 @@
             const bLedg = document.getElementById('c360-badge-ledgers');
             if (bLedg) bLedg.innerText = data.ledgers?.length || 0;
 
-            // Render sub-tab lists
+            // Populate Client Profile Details Table
+            const setTxt = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = val || '-';
+            };
+            setTxt('c360-full-uid', client.userId || '-');
+            setTxt('c360-full-name', client.name || 'Unnamed Client');
+            setTxt('c360-full-phone', client.phone || '-');
+            setTxt('c360-full-email', client.email || 'மின்னஞ்சல் இல்லை');
+            setTxt('c360-full-dob', client.dob || '-');
+            setTxt('c360-full-tob', client.tob || '-');
+            setTxt('c360-full-pob', client.pob || '-');
+            setTxt('c360-full-gender', client.gender || '-');
+            setTxt('c360-full-refcode', client.referralCode ? `${client.referralCode} (${client.referralCount || 0} நண்பர்கள்)` : '-');
+            setTxt('c360-full-referrer', client.referrerName || client.referredBy || 'நேரடி பயனர் (None)');
+            setTxt('c360-full-joined', client.createdAt ? new Date(client.createdAt).toLocaleDateString('ta-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-');
+            
+            const statusEl = document.getElementById('c360-full-status');
+            if (statusEl) {
+                statusEl.innerHTML = client.isOnline 
+                    ? '<span class="text-emerald-600 font-bold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Online</span>' 
+                    : '<span class="text-slate-400 font-medium flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-slate-300"></span> Offline</span>';
+            }
+
+            // Render sub-tab lists in Table Format
             renderC360Consultations(data.consultations || []);
             renderC360Recharges(data.recharges || []);
             renderC360Bonuses(data.bonuses || []);
@@ -3878,79 +3957,77 @@
 
             if (!list || list.length === 0) {
                 container.innerHTML = `
-                    <div class="py-12 px-4 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-                        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-brand-green flex items-center justify-center text-xl mx-auto mb-3">
+                    <div class="py-10 px-4 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-brand-green flex items-center justify-center text-lg mx-auto mb-2">
                             <i class="fas fa-phone-slash"></i>
                         </div>
-                        <h4 class="font-bold text-slate-700 text-sm">ஜோதிடரிடம் பேசிய விவரங்கள் எதுவும் இல்லை</h4>
-                        <p class="text-xs text-slate-400 mt-1">வாடிக்கையாளர் ஜோதிடருடன் ஆடியோ அல்லது வீடியோ அழைப்பு மேற்கொண்டவுடன் இங்கே விவரங்கள் தோன்றும்.</p>
+                        <h4 class="font-bold text-slate-700 text-xs">ஜோதிடரிடம் பேசிய விவரங்கள் எதுவும் இல்லை</h4>
+                        <p class="text-[11px] text-slate-400 mt-0.5">வாடிக்கையாளர் ஜோதிடருடன் அழைப்பு மேற்கொண்டவுடன் இங்கே அட்டவணையில் தோன்றும்.</p>
                     </div>
                 `;
                 return;
             }
 
-            container.innerHTML = list.map(c => {
-                const durationMins = Math.floor((c.duration || 0) / 60);
-                const durationSecs = (c.duration || 0) % 60;
-                const durationStr = durationMins > 0 ? `${durationMins}m ${durationSecs}s` : `${durationSecs}s`;
-                
-                const callType = c.type === 'video' ? 'வீடியோ' : c.type === 'chat' ? 'சேட்' : 'ஆடியோ';
-                const typeIcon = c.type === 'video' ? 'fa-video text-purple-500' : c.type === 'chat' ? 'fa-comment-dots text-blue-500' : 'fa-phone-alt text-brand-green';
-                const typeBg = c.type === 'video' ? 'bg-purple-50 border-purple-200 text-purple-700' : c.type === 'chat' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-emerald-50 border-emerald-200 text-brand-green';
-                
-                const callDate = c.createdAt ? new Date(c.createdAt).toLocaleDateString('ta-IN', {
-                    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
-                }) : 'N/A';
+            container.innerHTML = `
+                <div class="overflow-x-auto bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                            <tr>
+                                <th class="px-3.5 py-2.5">ஜோதிடர் (Astrologer)</th>
+                                <th class="px-3.5 py-2.5">அழைப்பு வகை</th>
+                                <th class="px-3.5 py-2.5">கால அளவு</th>
+                                <th class="px-3.5 py-2.5">கட்டணம் (Client)</th>
+                                <th class="px-3.5 py-2.5">ஜோதிடர் பங்கு</th>
+                                <th class="px-3.5 py-2.5">ஆடியோ பதிவு (Recording)</th>
+                                <th class="px-3.5 py-2.5 text-right">தேதி / நேரம்</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            ${list.map(c => {
+                                const durationMins = Math.floor((c.duration || 0) / 60);
+                                const durationSecs = (c.duration || 0) % 60;
+                                const durationStr = durationMins > 0 ? `${durationMins}m ${durationSecs}s` : `${durationSecs}s`;
+                                
+                                const callType = c.type === 'video' ? 'வீடியோ' : c.type === 'chat' ? 'சேட்' : 'ஆடியோ';
+                                const typeIcon = c.type === 'video' ? 'fa-video text-purple-500' : c.type === 'chat' ? 'fa-comment-dots text-blue-500' : 'fa-phone-alt text-brand-green';
+                                const typeBg = c.type === 'video' ? 'bg-purple-50 border-purple-200 text-purple-700' : c.type === 'chat' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-emerald-50 border-emerald-200 text-brand-green';
+                                
+                                const callDate = c.createdAt ? new Date(c.createdAt).toLocaleDateString('ta-IN', {
+                                    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
+                                }) : 'N/A';
 
-                return `
-                    <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm hover:shadow-md transition-all">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div class="flex items-center gap-3">
-                                <img src="${getProfileImage(c.astrologerImage, c.astrologerName)}" onerror="this.src='https://ui-avatars.com/api/?background=f0fdf4&color=059669&bold=true&name=${encodeURIComponent(c.astrologerName)}'" class="w-12 h-12 rounded-xl object-cover ring-2 ring-slate-100 bg-white">
-                                <div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-black text-slate-800 text-sm">${c.astrologerName || 'Astrologer'}</span>
-                                        <span class="text-[10px] px-2 py-0.5 rounded-lg border font-bold uppercase ${typeBg} flex items-center gap-1">
-                                            <i class="fas ${typeIcon} text-[9px]"></i> ${callType}
-                                        </span>
-                                    </div>
-                                    <div class="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
-                                        <span>📞 ${c.astrologerPhone || 'N/A'}</span>
-                                        <span>•</span>
-                                        <span class="text-slate-400 font-mono text-[11px]">${callDate}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100">
-                                <div class="text-right">
-                                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">நேரம்</div>
-                                    <div class="text-xs font-black text-slate-700 mt-0.5 flex items-center gap-1 justify-end">
-                                        <i class="far fa-clock text-slate-400"></i> ${durationStr}
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">கட்டணம்</div>
-                                    <div class="text-sm font-black text-rose-600 mt-0.5">₹${(c.totalCharged || 0).toFixed(2)}</div>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ஜோதிடர் பங்கு</div>
-                                    <div class="text-xs font-black text-brand-green mt-0.5">₹${(c.totalEarned || 0).toFixed(2)}</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        ${c.recordingUrl ? `
-                        <div class="mt-3 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center gap-2 bg-slate-50/70 p-2.5 rounded-xl">
-                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1 shrink-0">
-                                <i class="fas fa-microphone text-emerald-600"></i> ஆடியோ பதிவு (Recording):
-                            </span>
-                            <audio controls src="${c.recordingUrl}" preload="none" class="w-full h-8 rounded-lg outline-none"></audio>
-                        </div>
-                        ` : ''}
-                    </div>
-                `;
-            }).join('');
+                                return `
+                                    <tr class="hover:bg-slate-50/70 transition-colors">
+                                        <td class="px-3.5 py-2">
+                                            <div class="flex items-center gap-2">
+                                                <img src="${getProfileImage(c.astrologerImage, c.astrologerName)}" onerror="this.src='https://ui-avatars.com/api/?background=f0fdf4&color=059669&bold=true&name=${encodeURIComponent(c.astrologerName)}'" class="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200 bg-white shrink-0">
+                                                <div>
+                                                    <div class="font-black text-slate-800 text-xs">${c.astrologerName || 'Astrologer'}</div>
+                                                    <div class="text-[10px] text-slate-400 font-mono">📞 ${c.astrologerPhone || 'N/A'}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-3.5 py-2">
+                                            <span class="text-[10px] px-2 py-0.5 rounded-md border font-bold uppercase ${typeBg} inline-flex items-center gap-1">
+                                                <i class="fas ${typeIcon} text-[9px]"></i> ${callType}
+                                            </span>
+                                        </td>
+                                        <td class="px-3.5 py-2 font-mono font-bold text-slate-700 text-xs">${durationStr}</td>
+                                        <td class="px-3.5 py-2 font-black text-rose-600 text-xs">₹${(c.totalCharged || 0).toFixed(2)}</td>
+                                        <td class="px-3.5 py-2 font-black text-brand-green text-xs">₹${(c.totalEarned || 0).toFixed(2)}</td>
+                                        <td class="px-3.5 py-2">
+                                            ${c.recordingUrl ? `
+                                                <audio controls src="${c.recordingUrl}" preload="none" class="h-6 w-36 outline-none"></audio>
+                                            ` : '<span class="text-slate-300 text-[10px]">-</span>'}
+                                        </td>
+                                        <td class="px-3.5 py-2 text-right font-mono text-slate-400 text-[10px]">${callDate}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
         }
 
         function renderC360Recharges(list) {
@@ -3959,61 +4036,67 @@
 
             if (!list || list.length === 0) {
                 container.innerHTML = `
-                    <div class="py-12 px-4 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-                        <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl mx-auto mb-3">
+                    <div class="py-10 px-4 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                        <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg mx-auto mb-2">
                             <i class="fas fa-credit-card"></i>
                         </div>
-                        <h4 class="font-bold text-slate-700 text-sm">ரீசார்ஜ் பரிவர்த்தனைகள் எதுவும் இல்லை</h4>
-                        <p class="text-xs text-slate-400 mt-1">வாடிக்கையாளர் PhonePe அல்லது Razorpay மூலம் ரீசார்ஜ் செய்த வரலாறு இங்கே தோன்றும்.</p>
+                        <h4 class="font-bold text-slate-700 text-xs">ரீசார்ஜ் பரிவர்த்தனைகள் எதுவும் இல்லை</h4>
+                        <p class="text-[11px] text-slate-400 mt-0.5">வாடிக்கையாளர் ரீசார்ஜ் செய்த வரலாறு இங்கே அட்டவணையில் தோன்றும்.</p>
                     </div>
                 `;
                 return;
             }
 
-            container.innerHTML = list.map(r => {
-                const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString('ta-IN', {
-                    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
-                }) : 'N/A';
+            container.innerHTML = `
+                <div class="overflow-x-auto bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                            <tr>
+                                <th class="px-3.5 py-2.5">பரிவர்த்தனை ID</th>
+                                <th class="px-3.5 py-2.5">கேட்வே</th>
+                                <th class="px-3.5 py-2.5">செலுத்திய தொகை</th>
+                                <th class="px-3.5 py-2.5">வாலட் வரவு</th>
+                                <th class="px-3.5 py-2.5">கூப்பன் / ஆஃபர்</th>
+                                <th class="px-3.5 py-2.5">நிலை (Status)</th>
+                                <th class="px-3.5 py-2.5 text-right">தேதி / நேரம்</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            ${list.map(r => {
+                                const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString('ta-IN', {
+                                    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
+                                }) : 'N/A';
 
-                const isSuccess = r.status === 'success';
-                const isFailed = r.status === 'failed';
-                const statusBadge = isSuccess ?
-                    `<span class="text-[10px] font-black bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full flex items-center gap-1"><i class="fas fa-check-circle text-emerald-600"></i> வெற்றி</span>` :
-                    isFailed ?
-                    `<span class="text-[10px] font-black bg-rose-100 text-rose-800 px-2.5 py-1 rounded-full flex items-center gap-1"><i class="fas fa-times-circle text-rose-600"></i> தோல்வி</span>` :
-                    `<span class="text-[10px] font-black bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full flex items-center gap-1"><i class="fas fa-clock text-amber-600"></i> நிலுவை</span>`;
+                                const isSuccess = r.status === 'success';
+                                const isFailed = r.status === 'failed';
+                                const statusBadge = isSuccess ?
+                                    `<span class="text-[10px] font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><i class="fas fa-check-circle text-emerald-600"></i> வெற்றி</span>` :
+                                    isFailed ?
+                                    `<span class="text-[10px] font-black bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><i class="fas fa-times-circle text-rose-600"></i> தோல்வி</span>` :
+                                    `<span class="text-[10px] font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><i class="fas fa-clock text-amber-600"></i> நிலுவை</span>`;
 
-                const gatewayBadge = (r.gateway && String(r.gateway).toLowerCase().includes('phonepe')) ?
-                    `<span class="text-[10px] bg-purple-50 text-purple-700 font-black border border-purple-200 px-2 py-0.5 rounded-lg">PhonePe</span>` :
-                    `<span class="text-[10px] bg-blue-50 text-blue-700 font-black border border-blue-200 px-2 py-0.5 rounded-lg">Razorpay</span>`;
+                                const gatewayBadge = (r.gateway && String(r.gateway).toLowerCase().includes('phonepe')) ?
+                                    `<span class="text-[10px] bg-purple-50 text-purple-700 font-bold border border-purple-200 px-2 py-0.5 rounded">PhonePe</span>` :
+                                    `<span class="text-[10px] bg-blue-50 text-blue-700 font-bold border border-blue-200 px-2 py-0.5 rounded">Razorpay</span>`;
 
-                return `
-                    <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div class="space-y-1">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="text-base font-black text-slate-800">₹${(r.amount || 0).toFixed(2)}</span>
-                                ${gatewayBadge}
-                                ${statusBadge}
-                                ${r.couponCode ? `
-                                    <span class="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-lg font-bold flex items-center gap-1">
-                                        <i class="fas fa-tag text-amber-600"></i> ${r.couponCode} (+₹${r.couponBonus || 0})
-                                    </span>
-                                ` : ''}
-                            </div>
-                            <div class="text-xs text-slate-500 font-mono flex items-center gap-2 flex-wrap">
-                                <span>Txn ID: ${r.merchantTransactionId || r.id || 'N/A'}</span>
-                                <span>•</span>
-                                <span>${dateStr}</span>
-                            </div>
-                        </div>
-
-                        <div class="text-left sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100">
-                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">வாலட்டில் வரவு (Credited)</div>
-                            <div class="text-base font-black text-brand-green mt-0.5">₹${(r.creditedAmount || r.amount || 0).toFixed(2)}</div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+                                return `
+                                    <tr class="hover:bg-slate-50/70 transition-colors">
+                                        <td class="px-3.5 py-2 font-mono text-[11px] font-bold text-slate-700">${r.merchantTransactionId || r.id || 'N/A'}</td>
+                                        <td class="px-3.5 py-2">${gatewayBadge}</td>
+                                        <td class="px-3.5 py-2 font-black text-slate-800 text-xs">₹${(r.amount || 0).toFixed(2)}</td>
+                                        <td class="px-3.5 py-2 font-black text-brand-green text-xs">₹${(r.creditedAmount || r.amount || 0).toFixed(2)}</td>
+                                        <td class="px-3.5 py-2">
+                                            ${r.couponCode ? `<span class="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded font-bold"><i class="fas fa-tag text-amber-600"></i> ${r.couponCode} (+₹${r.couponBonus || 0})</span>` : '<span class="text-slate-300 text-[10px]">-</span>'}
+                                        </td>
+                                        <td class="px-3.5 py-2">${statusBadge}</td>
+                                        <td class="px-3.5 py-2 text-right font-mono text-slate-400 text-[10px]">${dateStr}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
         }
 
         function renderC360Bonuses(list) {
@@ -4022,42 +4105,52 @@
 
             if (!list || list.length === 0) {
                 container.innerHTML = `
-                    <div class="py-12 px-4 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-                        <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl mx-auto mb-3">
+                    <div class="py-10 px-4 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                        <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg mx-auto mb-2">
                             <i class="fas fa-gift"></i>
                         </div>
-                        <h4 class="font-bold text-slate-700 text-sm">போனஸ் விவரங்கள் எதுவும் இல்லை</h4>
-                        <p class="text-xs text-slate-400 mt-1">வரவேற்பு போனஸ், நண்பரை அழைத்த பரிந்துரை வெகுமதி மற்றும் கூப்பன் போனஸ்கள் இங்கே தோன்றும்.</p>
+                        <h4 class="font-bold text-slate-700 text-xs">போனஸ் விவரங்கள் எதுவும் இல்லை</h4>
+                        <p class="text-[11px] text-slate-400 mt-0.5">வரவேற்பு போனஸ், பரிந்துரை மற்றும் கூப்பன் போனஸ்கள் இங்கே அட்டவணையில் தோன்றும்.</p>
                     </div>
                 `;
                 return;
             }
 
-            container.innerHTML = list.map(b => {
-                const dateStr = b.date ? new Date(b.date).toLocaleDateString('ta-IN', {
-                    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
-                }) : 'N/A';
+            container.innerHTML = `
+                <div class="overflow-x-auto bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                            <tr>
+                                <th class="px-3.5 py-2.5">போனஸ் வகை</th>
+                                <th class="px-3.5 py-2.5">போனஸ் தொகை</th>
+                                <th class="px-3.5 py-2.5">விளக்கம்</th>
+                                <th class="px-3.5 py-2.5 text-right">வழங்கப்பட்ட தேதி</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            ${list.map(b => {
+                                const dateStr = b.date ? new Date(b.date).toLocaleDateString('ta-IN', {
+                                    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
+                                }) : 'N/A';
 
-                return `
-                    <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-base shrink-0">
-                                <i class="fas fa-gift"></i>
-                            </div>
-                            <div>
-                                <div class="font-black text-slate-800 text-sm">${b.type}</div>
-                                <div class="text-xs text-slate-500 mt-0.5">${b.description}</div>
-                                <div class="text-[10px] text-slate-400 font-mono mt-1">${dateStr}</div>
-                            </div>
-                        </div>
-                        <div class="text-right shrink-0">
-                            <div class="text-sm sm:text-base font-black text-purple-600 bg-purple-50 px-3 py-1 rounded-xl">
-                                +₹${(b.amount || 0).toFixed(2)}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+                                return `
+                                    <tr class="hover:bg-slate-50/70 transition-colors">
+                                        <td class="px-3.5 py-2 font-bold text-slate-800">
+                                            <span class="inline-flex items-center gap-1.5">
+                                                <span class="w-5 h-5 rounded bg-purple-50 text-purple-600 flex items-center justify-center text-[9px] shrink-0"><i class="fas fa-gift"></i></span>
+                                                ${b.type}
+                                            </span>
+                                        </td>
+                                        <td class="px-3.5 py-2 font-black text-purple-600 text-xs">+₹${(b.amount || 0).toFixed(2)}</td>
+                                        <td class="px-3.5 py-2 text-slate-600 text-xs">${b.description}</td>
+                                        <td class="px-3.5 py-2 text-right font-mono text-slate-400 text-[10px]">${dateStr}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
         }
 
         function renderC360Ledgers(list) {
@@ -4066,12 +4159,12 @@
 
             if (!list || list.length === 0) {
                 container.innerHTML = `
-                    <div class="py-12 px-4 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-                        <div class="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center text-xl mx-auto mb-3">
+                    <div class="py-10 px-4 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                        <div class="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center text-lg mx-auto mb-2">
                             <i class="fas fa-receipt"></i>
                         </div>
-                        <h4 class="font-bold text-slate-700 text-sm">நிமிட லெட்ஜர் பதிவுகள் எதுவும் இல்லை</h4>
-                        <p class="text-xs text-slate-400 mt-1">அழைப்பின் ஒவ்வொரு நிமிடமும் வாலட்டில் பிடித்தம் செய்யப்படும் துல்லியமான கணக்குகள் இங்கே தோன்றும்.</p>
+                        <h4 class="font-bold text-slate-700 text-xs">நிமிட லெட்ஜர் பதிவுகள் எதுவும் இல்லை</h4>
+                        <p class="text-[11px] text-slate-400 mt-0.5">அழைப்பின் ஒவ்வொரு நிமிடமும் வாலட்டில் பிடித்தம் செய்யப்படும் துல்லியமான கணக்குகள் இங்கே தோன்றும்.</p>
                     </div>
                 `;
                 return;
@@ -4079,14 +4172,14 @@
 
             container.innerHTML = `
                 <div class="overflow-x-auto bg-white rounded-2xl border border-slate-200/80 shadow-sm">
-                    <table class="w-full text-left text-xs">
+                    <table class="w-full text-left text-xs border-collapse">
                         <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
                             <tr>
-                                <th class="px-4 py-3">Session & நிமிடம்</th>
-                                <th class="px-4 py-3">வாடிக்கையாளர் பிடித்தம்</th>
-                                <th class="px-4 py-3">ஜோதிடர் வரவு</th>
-                                <th class="px-4 py-3">காரணம்</th>
-                                <th class="px-4 py-3 text-right">தேதி/நேரம்</th>
+                                <th class="px-3.5 py-2.5">Session & நிமிடம்</th>
+                                <th class="px-3.5 py-2.5">வாடிக்கையாளர் பிடித்தம்</th>
+                                <th class="px-3.5 py-2.5">ஜோதிடர் வரவு</th>
+                                <th class="px-3.5 py-2.5">காரணம்</th>
+                                <th class="px-3.5 py-2.5 text-right">தேதி / நேரம்</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -4096,14 +4189,14 @@
                                 }) : '-';
                                 return `
                                     <tr class="hover:bg-slate-50/70 transition-colors">
-                                        <td class="px-4 py-2.5 font-mono">
+                                        <td class="px-3.5 py-2 font-mono">
                                             <span class="font-bold text-slate-700">${(l.sessionId || '').slice(-8)}</span>
-                                            ${l.minuteIndex !== undefined ? `<span class="ml-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-black text-[9px]">Min #${l.minuteIndex}</span>` : ''}
+                                            ${l.minuteIndex !== undefined ? `<span class="ml-1 px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-black text-[9px]">Min #${l.minuteIndex}</span>` : ''}
                                         </td>
-                                        <td class="px-4 py-2.5 font-black text-rose-600">₹${(l.chargedToClient || 0).toFixed(2)}</td>
-                                        <td class="px-4 py-2.5 font-black text-brand-green">₹${(l.creditedToAstrologer || 0).toFixed(2)}</td>
-                                        <td class="px-4 py-2.5 text-slate-600 text-[11px]">${l.reason || 'Per-minute billing'}</td>
-                                        <td class="px-4 py-2.5 text-right font-mono text-slate-400 text-[10px]">${dateStr}</td>
+                                        <td class="px-3.5 py-2 font-black text-rose-600 text-xs">₹${(l.chargedToClient || 0).toFixed(2)}</td>
+                                        <td class="px-3.5 py-2 font-black text-brand-green text-xs">₹${(l.creditedToAstrologer || 0).toFixed(2)}</td>
+                                        <td class="px-3.5 py-2 text-slate-600 text-[11px]">${l.reason || 'Per-minute billing'}</td>
+                                        <td class="px-3.5 py-2 text-right font-mono text-slate-400 text-[10px]">${dateStr}</td>
                                     </tr>
                                 `;
                             }).join('')}
