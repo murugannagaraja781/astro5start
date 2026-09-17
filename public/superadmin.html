@@ -1983,7 +1983,7 @@
                 <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-emerald-50/30">
                     <div class="flex items-center gap-4">
                         <img id="perf-astro-img" src=""
-                            class="w-16 h-16 rounded-2xl object-cover ring-4 ring-white shadow-lg">
+                            class="w-10 h-10 rounded-xl object-cover ring-2 ring-white shadow-md">
                         <div>
                             <h2 id="perf-astro-name" class="text-2xl font-black text-slate-800">Astrologer Name</h2>
                             <p id="perf-astro-id"
@@ -2094,10 +2094,10 @@
                             <div class="flex items-center gap-4 lg:col-span-3 relative z-10">
                                 <div class="relative shrink-0">
                                     <img id="edit-user-preview" src=""
-                                        class="w-16 h-16 rounded-xl object-cover ring-2 ring-emerald-500/30 shadow-lg">
+                                        class="w-10 h-10 rounded-xl object-cover ring-2 ring-emerald-500/30 shadow-md">
                                     <button type="button" onclick="triggerEditPhotoUpload()"
-                                        class="absolute -bottom-1 -right-1 w-7 h-7 bg-white text-emerald-900 rounded-lg flex items-center justify-center shadow-lg hover:scale-110 transition-all border border-emerald-900">
-                                        <i class="fas fa-camera text-[10px]"></i>
+                                        class="absolute -bottom-1 -right-1 w-5 h-5 bg-white text-emerald-900 rounded-md flex items-center justify-center shadow hover:scale-110 transition-all border border-emerald-900">
+                                        <i class="fas fa-camera text-[8px]"></i>
                                     </button>
                                 </div>
                                 <div class="space-y-1 flex-1">
@@ -2459,9 +2459,9 @@
                 <div class="flex items-center gap-6">
                     <div class="relative group/pht">
                         <img id="view-astro-img" src=""
-                            class="w-16 h-16 rounded-2xl object-cover ring-4 ring-slate-100 bg-white shadow-xl transition-all duration-300">
+                            class="w-10 h-10 rounded-xl object-cover ring-2 ring-slate-100 bg-white shadow-md transition-all duration-300">
                         <button onclick="triggerAdminPhotoUpload()"
-                            class="absolute -bottom-1 -right-1 w-6 h-6 bg-brand-green text-white rounded-lg flex items-center justify-center text-[10px] shadow-lg border-2 border-white hover:scale-110 active:scale-95 transition-all cursor-pointer">
+                            class="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-green text-white rounded-md flex items-center justify-center text-[8px] shadow border border-white hover:scale-110 active:scale-95 transition-all cursor-pointer">
                             <i class="fas fa-camera"></i>
                         </button>
                     </div>
@@ -2736,8 +2736,8 @@
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pr-10">
                         <div class="flex items-center gap-3">
                             <div class="relative shrink-0">
-                                <img id="c360-avatar" src="" class="w-10 h-10 rounded-xl object-cover ring-2 ring-white/20 bg-white shadow-sm">
-                                <span id="c360-online-dot" class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-slate-900 bg-slate-400"></span>
+                                <img id="c360-avatar" src="" class="w-8 h-8 rounded-lg object-cover ring-2 ring-white/20 bg-white shadow-sm">
+                                <span id="c360-online-dot" class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-900 bg-slate-400"></span>
                             </div>
                             <div class="min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
@@ -2837,8 +2837,13 @@
                                     <tr class="bg-slate-50/70">
                                         <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] w-1/4 border-r border-slate-200">வாடிக்கையாளர் ID (User ID)</th>
                                         <td class="px-4 py-2.5 font-mono font-bold text-slate-800 border-r border-slate-200" id="c360-full-uid">-</td>
-                                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] w-1/4 border-r border-slate-200">முழு பெயர் (Full Name)</th>
-                                        <td class="px-4 py-2.5 font-black text-slate-800" id="c360-full-name">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] w-1/4 border-r border-slate-200">முழு பெயர் & படம் (Name & Photo)</th>
+                                        <td class="px-4 py-2.5 font-black text-slate-800">
+                                            <div class="flex items-center gap-2">
+                                                <img id="c360-full-avatar" src="" class="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200 bg-white inline-block shrink-0">
+                                                <span id="c360-full-name">-</span>
+                                            </div>
+                                        </td>
                                     </tr>
                                     <tr>
                                         <th class="px-4 py-2.5 font-bold text-slate-500 uppercase text-[10px] border-r border-slate-200">போன் எண் (Phone Number)</th>
@@ -3120,8 +3125,8 @@
                 return `
                     <tr class="hover:bg-slate-50 transition-colors">
                         <td class="px-8 py-5">
-                            <div class="flex items-center gap-4">
-                                <img src="${getProfileImage(u.image, u.name)}" class="w-10 h-10 rounded-xl object-cover ring-2 ring-emerald-50 bg-white">
+                            <div class="flex items-center gap-3">
+                                <img src="${getProfileImage(u.image, u.name)}" class="w-8 h-8 rounded-lg object-cover ring-2 ring-emerald-50 bg-white">
                                 <div>
                                     <div class="font-black text-slate-800 text-sm leading-tight">${u.name}</div>
                                     <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">${u.userId.slice(-6)}</div>
@@ -3724,10 +3729,10 @@
 
         function renderClientRow(u) {
             return `
-                <tr class="hover:bg-slate-50 transition-colors group">
-                    <td class="px-6 py-4 cursor-pointer" onclick="openClientHistoryModal('${u.userId}')" title="கிளிக் செய்து முழுமையான வரலாறு பார்க்கவும்">
+                <tr class="hover:bg-slate-50 transition-colors group cursor-pointer" onclick="openClientHistoryModal('${u.userId}')" title="கிளிக் செய்து வாடிக்கையாளர் முழு விவரங்கள் & வரலாறு பார்க்கவும்">
+                    <td class="px-6 py-4">
                         <div class="flex items-center gap-3">
-                            <img src="${getProfileImage(u.image, u.name)}" class="w-8 h-8 rounded-lg object-cover ring-2 ring-emerald-100 bg-white">
+                            <img src="${getProfileImage(u.image, u.name)}" class="w-8 h-8 rounded-lg object-cover ring-2 ring-emerald-100 bg-white shrink-0">
                             <div>
                                 <div class="font-black text-slate-800 text-sm leading-none flex items-center gap-1 group-hover:text-brand-green transition-colors">
                                     ${u.name} ${u.isNewUser ? '<span class="text-[8px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full">NEW</span>' : ''}
@@ -3749,7 +3754,7 @@
                         <div class="text-xs font-black text-slate-700">${u.orderCount || 0} Sessions</div>
                         <div class="text-[8px] text-slate-400 font-bold uppercase mt-1 tracking-widest">Joined: ${new Date(u.createdAt).toLocaleDateString()}</div>
                     </td>
-                    <td class="px-6 py-4 text-right">
+                    <td class="px-6 py-4 text-right" onclick="event.stopPropagation()">
                         <div class="flex justify-end gap-1.5 flex-wrap">
                             <button class="w-16 h-8 rounded-lg bg-emerald-50 text-brand-green font-black text-[9px] uppercase hover:bg-brand-green hover:text-white transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95" onclick="openEditWallet('${u.userId}', ${u.walletBalance || 0}, 'add')" title="Add Funds"><i class="fas fa-plus"></i> Add</button>
                             <button class="w-16 h-8 rounded-lg bg-red-50 text-red-500 font-black text-[9px] uppercase hover:bg-red-500 hover:text-white transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95" onclick="openEditWallet('${u.userId}', ${u.walletBalance || 0}, 'deduct')" title="Reduce Funds"><i class="fas fa-minus"></i> Reduce</button>
@@ -3921,6 +3926,9 @@
             if (bLedg) bLedg.innerText = data.ledgers?.length || 0;
 
             // Populate Client Profile Details Table
+            const fullAvatar = document.getElementById('c360-full-avatar');
+            if (fullAvatar) fullAvatar.src = getProfileImage(client.image, client.name);
+
             const setTxt = (id, val) => {
                 const el = document.getElementById(id);
                 if (el) el.innerText = val || '-';
@@ -4253,7 +4261,7 @@
                     <div class="flex flex-col sm:flex-row justify-between items-start gap-3">
                         <div class="flex gap-3 items-center min-w-0 flex-1">
                             <div class="relative flex-shrink-0">
-                                <img src="${getProfileImage(u.image, u.name)}" onerror="this.src='https://ui-avatars.com/api/?background=f0fdf4&color=059669&bold=true&name=${encodeURIComponent(u.name)}'" class="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl object-cover ring-4 ${isBusy ? 'ring-red-100' : 'ring-emerald-50'} bg-white">
+                                <img src="${getProfileImage(u.image, u.name)}" onerror="this.src='https://ui-avatars.com/api/?background=f0fdf4&color=059669&bold=true&name=${encodeURIComponent(u.name)}'" class="w-9 h-9 rounded-xl object-cover ring-2 ${isBusy ? 'ring-red-100' : 'ring-emerald-50'} bg-white">
                                 <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${isBusy ? 'bg-red-500 animate-pulse' : isOnline ? 'bg-accent-green' : 'bg-slate-300'}"></span>
                             </div>
                             <div class="min-w-0 flex-1">
@@ -4311,8 +4319,8 @@
                         tableBody.innerHTML = res.requests.map(req => `
                             <tr class="hover:bg-slate-50 transition-all">
                                 <td class="px-8 py-5">
-                                    <div class="flex items-center gap-4">
-                                        <img src="${getProfileImage(req.image, req.name)}" class="w-12 h-12 rounded-xl object-cover ring-2 ring-emerald-50 bg-white">
+                                    <div class="flex items-center gap-3">
+                                        <img src="${getProfileImage(req.image, req.name)}" class="w-8 h-8 rounded-lg object-cover ring-2 ring-emerald-50 bg-white">
                                         <div class="font-black text-slate-800">${req.name}</div>
                                     </div>
                                 </td>
@@ -4339,7 +4347,7 @@
                             <div class="bg-white p-6 rounded-[2rem] border border-emerald-50 shadow-sm relative group overflow-hidden">
                                 <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-50 -mr-12 -mt-12 rounded-full opacity-50 group-hover:scale-150 transition-all duration-500"></div>
                                 <div class="flex items-start gap-4 mb-6 relative z-10">
-                                    <img src="${getProfileImage(req.image, req.name)}" class="w-16 h-16 rounded-2xl object-cover ring-4 ring-emerald-50 bg-white shadow-lg">
+                                    <img src="${getProfileImage(req.image, req.name)}" class="w-10 h-10 rounded-xl object-cover ring-2 ring-emerald-50 bg-white shadow-md">
                                     <div>
                                         <h4 class="font-black text-slate-800 text-lg leading-tight mb-1">${req.name}</h4>
                                         <p class="text-[11px] font-bold text-slate-500 flex items-center gap-1.5"><i class="fas fa-phone text-brand-green"></i> ${req.phone}</p>
@@ -5760,8 +5768,8 @@
                     tbody.innerHTML = res.performance.map(p => `
                         <tr class="hover:bg-slate-50 transition-colors group">
                             <td class="px-8 py-5">
-                                <div class="flex items-center gap-4">
-                                    <img src="${getProfileImage(p.image, p.name)}" class="w-10 h-10 rounded-xl object-cover ring-2 ring-slate-100 shadow-sm">
+                                <div class="flex items-center gap-3">
+                                    <img src="${getProfileImage(p.image, p.name)}" class="w-8 h-8 rounded-lg object-cover ring-2 ring-slate-100 shadow-sm">
                                     <div>
                                         <div class="font-black text-slate-800 text-sm leading-tight">${p.name}</div>
                                         <div class="text-[0.6rem] font-bold text-slate-400 font-mono">${p.phone}</div>
