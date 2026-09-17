@@ -448,6 +448,207 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
         } catch (e) { cb?.({ ok: false }); }
     });
 
+    // -------------------------------------------------------------------------
+    // CLIENT 360° DETAILED HISTORY: Consultations, Recharges, Bonuses, Ledgers
+    // -------------------------------------------------------------------------
+    const getClientHistoryHandler = async (data, cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false, error: 'Unauthorized' });
+        try {
+            const { userId } = data || {};
+            if (!userId) return cb?.({ ok: false, error: 'User ID is required' });
+
+            // 1. Fetch User Record
+            const user = await User.findOne({ userId }).lean();
+            if (!user) return cb?.({ ok: false, error: 'User not found' });
+
+            // Fetch Referrer details if referredBy exists
+            let referrerName = null;
+            if (user.referredBy) {
+                const refUser = await User.findOne({ userId: user.referredBy }).select('name phone').lean();
+                if (refUser) referrerName = `${refUser.name} (${refUser.phone})`;
+            }
+
+            // 2. Fetch Consultation Sessions (Calls & Chats)
+            const sessions = await Session.find({
+                $or: [{ clientId: userId }, { fromUserId: userId }]
+            })
+            .sort({ createdAt: -1, startTime: -1 })
+            .limit(100)
+            .lean();
+
+            // Populate Astrologer info & format session financial stats
+            const populatedSessions = await Promise.all(sessions.map(async (s) => {
+                const astroId = s.astrologerId || s.toUserId;
+                const astro = astroId ? await User.findOne({ userId: astroId }).select('name phone image price').lean() : null;
+
+                const durationSec = s.duration || 0;
+                const mins = Math.floor(durationSec / 60);
+                const secs = durationSec % 60;
+                const durationFormatted = `${mins}m ${secs}s`;
+
+                return {
+                    sessionId: s.sessionId,
+                    astrologerId: astroId,
+                    astrologerName: astro?.name || 'Astrologer',
+                    astrologerPhone: astro?.phone || 'N/A',
+                    astrologerImage: astro?.image || '',
+                    type: s.type || 'audio',
+                    status: s.status || 'ended',
+                    duration: durationSec,
+                    durationFormatted,
+                    ratePerMinute: astro?.price || 20,
+                    totalCharged: s.totalCharged || 0,
+                    totalEarned: s.totalEarned || 0,
+                    recordingUrl: s.recordingUrl || null,
+                    createdAt: s.createdAt || (s.startTime ? new Date(s.startTime) : null)
+                };
+            }));
+
+            // 3. Fetch Payments & Recharges
+            const payments = await Payment.find({ userId })
+                .sort({ createdAt: -1 })
+                .limit(100)
+                .lean();
+
+            const formattedPayments = payments.map(p => ({
+                id: p._id,
+                transactionId: p.transactionId || 'TXN_' + String(p._id).slice(-8),
+                merchantTransactionId: p.merchantTransactionId || 'N/A',
+                amount: p.amount || 0,
+                creditedAmount: p.creditedAmount || p.amount || 0,
+                status: p.status || 'pending',
+                gateway: p.gateway || (p.merchantTransactionId && p.merchantTransactionId.startsWith('MT') ? 'PhonePe' : (p.providerRefId ? 'Razorpay' : 'Payment Gateway')),
+                provider: p.gateway || (p.merchantTransactionId && p.merchantTransactionId.startsWith('MT') ? 'PhonePe' : (p.providerRefId ? 'Razorpay' : 'Payment Gateway')),
+                couponCode: p.couponCode || null,
+                couponBonus: p.couponBonus || 0,
+                createdAt: p.createdAt
+            }));
+
+            // 4. Fetch Bonus & Credit History
+            const bonuses = [];
+
+            // A. Welcome Bonus (credited on signup)
+            const { REFERRAL_CONFIG, SYSTEM_RULES } = require('../sharedState');
+            const welcomeAmount = (SYSTEM_RULES && SYSTEM_RULES.ENABLE_WELCOME_BONUS !== false)
+                ? (REFERRAL_CONFIG?.INITIAL_BONUS_AMOUNT || 108)
+                : 0;
+
+            if (welcomeAmount > 0) {
+                bonuses.push({
+                    type: 'Welcome Bonus (வரவேற்பு போனஸ்)',
+                    amount: welcomeAmount,
+                    description: 'பதிவு செய்தபோது வழங்கப்பட்ட ஆரம்ப போனஸ் (Initial Signup Bonus)',
+                    date: user.createdAt
+                });
+            }
+
+            // B. Referral Bonus (if user invited others)
+            const referralLedgers = await BillingLedger.find({
+                sessionId: { $regex: `^REF_` },
+                reason: { $regex: userId }
+            }).sort({ createdAt: -1 }).lean();
+
+            referralLedgers.forEach(r => {
+                bonuses.push({
+                    type: 'Referral Reward (பரிந்துரை போனஸ்)',
+                    amount: Math.abs(r.adminAmount || 50),
+                    description: `நண்பரை அழைத்ததற்காக வழங்கப்பட்ட வெகுமதி (${r.reason || 'Referral'})`,
+                    date: r.createdAt
+                });
+            });
+
+            // If user has referralCount but ledgers older, add summary
+            if (referralLedgers.length === 0 && (user.referralCount || 0) > 0) {
+                const rewardPerRef = REFERRAL_CONFIG?.REFERRER_REWARD || 50;
+                bonuses.push({
+                    type: 'Referral Rewards (பரிந்துரை போனஸ்)',
+                    amount: user.referralCount * rewardPerRef,
+                    description: `${user.referralCount} நண்பர்களை வெற்றிகரமாக இணைத்த போனஸ்`,
+                    date: user.createdAt
+                });
+            }
+
+            // C. Coupon Bonuses from recharge payments
+            payments.forEach(p => {
+                if (p.status === 'success' && p.couponBonus && p.couponBonus > 0) {
+                    bonuses.push({
+                        type: 'Coupon Bonus (கூப்பன் ஆஃபர்)',
+                        amount: p.couponBonus,
+                        description: `ரீசார்ஜ் கூப்பன் போனஸ்: ${p.couponCode || 'PROMO'}`,
+                        date: p.createdAt
+                    });
+                }
+            });
+
+            // 5. Billing Ledger Entries for minute-by-minute transparency
+            const sessionIds = populatedSessions.map(s => s.sessionId).filter(Boolean);
+            const ledgers = await BillingLedger.find({
+                sessionId: { $in: sessionIds }
+            })
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .lean();
+
+            // 6. Compute Financial KPI Aggregates
+            const totalRecharged = payments
+                .filter(p => p.status === 'success')
+                .reduce((acc, p) => acc + (p.amount || 0), 0);
+
+            const totalSpentOnCalls = populatedSessions
+                .reduce((acc, s) => acc + (s.totalCharged || 0), 0);
+
+            const totalBonusReceived = bonuses
+                .reduce((acc, b) => acc + (b.amount || 0), 0);
+
+            const totalCallMinutes = Math.round(
+                populatedSessions.reduce((acc, s) => acc + (s.duration || 0), 0) / 60
+            );
+
+            cb?.({
+                ok: true,
+                client: {
+                    userId: user.userId,
+                    name: user.name || 'Unnamed Client',
+                    phone: user.phone || 'N/A',
+                    email: user.email || '',
+                    image: user.image || '',
+                    walletBalance: user.walletBalance || 0,
+                    superWalletBalance: user.superWalletBalance || 0,
+                    gender: user.gender || '',
+                    dob: user.dob || '',
+                    tob: user.tob || '',
+                    pob: user.pob || '',
+                    referralCode: user.referralCode || '',
+                    referredBy: user.referredBy || null,
+                    referrerName,
+                    referralCount: user.referralCount || 0,
+                    createdAt: user.createdAt,
+                    isOnline: !!user.isOnline,
+                    fcmToken: user.fcmToken || null
+                },
+                stats: {
+                    totalRecharged,
+                    totalSpentOnCalls,
+                    totalBonusReceived,
+                    totalConsultations: populatedSessions.length,
+                    totalCallMinutes,
+                    rechargeCount: payments.filter(p => p.status === 'success').length
+                },
+                consultations: populatedSessions,
+                recharges: formattedPayments,
+                bonuses,
+                ledgers
+            });
+
+        } catch (err) {
+            console.error('[Admin] getClientHistory error:', err);
+            cb?.({ ok: false, error: err.message || 'Failed to fetch client history' });
+        }
+    };
+
+    socket.on('admin-get-client-history', getClientHistoryHandler);
+    socket.on('get-client-history', getClientHistoryHandler);
+
     socket.on('get-slab-rates', async (cb) => {
         if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
         if (typeof cb === "function") cb({ ok: true, rates: SLAB_RATES });
