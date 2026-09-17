@@ -4045,10 +4045,14 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             ${list.map(c => {
-                                const totalSeconds = c.duration || 0;
+                                let totalSeconds = c.duration || 0;
+                                // If duration is in milliseconds (e.g. 254000 ms), convert to seconds
+                                if (totalSeconds > 3600) {
+                                    totalSeconds = Math.round(totalSeconds / 1000);
+                                }
                                 const durationMins = Math.floor(totalSeconds / 60);
                                 const durationSecs = totalSeconds % 60;
-                                const billedMinutes = Math.ceil(totalSeconds / 60);
+                                const billedMinutes = totalSeconds > 0 ? Math.max(1, Math.ceil(totalSeconds / 60)) : 0;
 
                                 let durationBadge = '';
                                 if (totalSeconds <= 0) {
