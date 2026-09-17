@@ -2710,130 +2710,141 @@
     <!-- CLIENT 360° DETAILED HISTORY MODAL                                       -->
     <!-- Consultation logs, Recharge records, Bonuses received, Wallet ledger       -->
     <!-- ========================================================================= -->
-    <div id="modal-client-360" class="modal-fixed fixed inset-0 z-[100] hidden overflow-hidden flex items-center justify-center p-2 sm:p-4 md:p-6">
-        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onclick="closeModal('modal-client-360')"></div>
-        <div class="relative w-full max-w-5xl bg-white rounded-[2.5rem] shadow-2xl border border-emerald-50 flex flex-col max-h-[92vh] overflow-hidden animate-up">
+    <div id="modal-client-360" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onclick="closeModal('modal-client-360')"></div>
+        <div class="relative w-full max-w-6xl bg-white rounded-3xl sm:rounded-[2rem] shadow-2xl border border-slate-200/80 flex flex-col overflow-hidden animate-up" style="height: 90vh; max-height: 92vh;">
             
             <!-- Loading State -->
-            <div id="c360-loading" class="p-16 flex flex-col items-center justify-center gap-4 text-center">
-                <div class="w-16 h-16 rounded-3xl bg-emerald-50 text-brand-green flex items-center justify-center text-2xl shadow-inner animate-pulse">
+            <div id="c360-loading" class="p-16 flex flex-col items-center justify-center gap-4 text-center m-auto">
+                <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-brand-green flex items-center justify-center text-2xl shadow-inner animate-pulse">
                     <i class="fas fa-spinner fa-spin"></i>
                 </div>
                 <div>
-                    <h3 class="font-extrabold text-slate-800 text-base">வாடிக்கையாளர் வரலாறு ஏற்றப்படுகிறது...</h3>
-                    <p class="text-xs text-slate-400 mt-1">அழைப்புகள், ரீசார்ஜ்கள் மற்றும் போனஸ் விவரங்கள் தொகுக்கப்படுகின்றன</p>
+                    <h3 class="font-extrabold text-slate-800 text-sm">வாடிக்கையாளர் வரலாறு ஏற்றப்படுகிறது...</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">அழைப்புகள், ரீசார்ஜ்கள் மற்றும் போனஸ் விவரங்கள் தொகுக்கப்படுகின்றன</p>
                 </div>
             </div>
 
             <!-- Content Area -->
-            <div id="c360-content" class="hidden flex flex-col flex-1 min-h-0">
-                <!-- 1. Modern Light Header Section -->
-                <header class="bg-gradient-to-r from-emerald-50/70 via-white to-slate-50 border-b border-slate-200/80 p-4 sm:p-5 text-slate-800 shrink-0 relative">
-                    <button onclick="closeModal('modal-client-360')" class="absolute top-4 right-4 w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-all cursor-pointer shadow-sm">
-                        <i class="fas fa-times text-xs"></i>
-                    </button>
-                    
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pr-10">
-                        <div class="flex items-center gap-3">
+            <div id="c360-content" class="hidden flex flex-col flex-1 min-h-0 overflow-hidden" style="flex: 1 1 0%; min-height: 0;">
+                
+                <!-- 1. Sleek Compact Header Bar (~50px) -->
+                <header class="bg-gradient-to-r from-emerald-50/70 via-white to-slate-50 border-b border-slate-200/80 px-4 py-2.5 sm:px-6 sm:py-3 text-slate-800 shrink-0">
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        
+                        <!-- Left: Client Identity -->
+                        <div class="flex items-center gap-3 min-w-0">
                             <div class="relative shrink-0">
                                 <img id="c360-avatar" src="" class="w-10 h-10 rounded-xl object-cover ring-2 ring-emerald-500/20 bg-white shadow-sm">
-                                <span id="c360-online-dot" class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white bg-slate-400"></span>
+                                <span id="c360-online-dot" class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white bg-slate-400"></span>
                             </div>
                             <div class="min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <h2 id="c360-name" class="text-base sm:text-lg font-black text-slate-900 truncate">Client Name</h2>
-                                    <span class="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Client</span>
-                                    <span id="c360-app-badge" class="text-[9px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-bold">App User</span>
+                                    <h2 id="c360-name" class="text-sm sm:text-base font-black text-slate-900 truncate">Client Name</h2>
+                                    <span id="c360-app-badge" class="text-[9px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.2 rounded-full font-bold">App User</span>
+                                    <span class="text-slate-300 hidden sm:inline">•</span>
+                                    <span id="c360-phone" class="font-mono text-emerald-700 font-bold text-xs cursor-pointer hover:underline" onclick="copyClientPhone()" title="Click to copy phone">📞 -</span>
+                                    <span class="text-slate-300 hidden sm:inline">•</span>
+                                    <span class="font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer hover:bg-slate-200" id="c360-uid" onclick="copyClientUserId()" title="Click to copy ID">ID: ... <i class="fas fa-copy text-[8px] text-slate-400"></i></span>
+                                    <span id="c360-referrer" class="text-amber-700 hidden font-bold text-[10px] bg-amber-50 border border-amber-200 px-2 py-0.2 rounded-full"></span>
                                 </div>
-                                <div class="flex items-center gap-2.5 text-xs text-slate-600 font-medium mt-0.5 flex-wrap">
-                                    <span id="c360-phone" class="font-mono text-emerald-700 font-bold">📞 9999999999</span>
-                                    <span class="text-slate-300">•</span>
-                                    <span id="c360-email" class="text-slate-500">client@email.com</span>
-                                    <span class="text-slate-300">•</span>
-                                    <span id="c360-joined" class="text-slate-400">Joined: -</span>
-                                </div>
-                                <div class="text-[10px] text-slate-500 mt-0.5 flex items-center gap-2">
-                                    <span class="font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold" id="c360-uid">ID: ...</span>
-                                    <button type="button" onclick="copyClientUserId()" class="text-brand-green hover:underline font-bold text-[10px] flex items-center gap-1 cursor-pointer">
-                                        <i class="fas fa-copy"></i> Copy
-                                    </button>
-                                    <span id="c360-referrer" class="text-amber-700 hidden font-medium"></span>
+                                <div class="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                                    <span id="c360-email" class="text-slate-500 truncate max-w-[180px] sm:max-w-xs">client@email.com</span>
+                                    <span>•</span>
+                                    <span id="c360-joined">Joined: -</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Header Quick Action Buttons -->
-                        <div class="flex items-center gap-2 self-stretch sm:self-auto justify-end flex-wrap">
+                        <!-- Right: Action Buttons & Close (X) -->
+                        <div class="flex items-center gap-2 shrink-0 ml-auto">
                             <button type="button" id="c360-btn-wa" onclick="c360OpenWhatsApp()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition-all cursor-pointer">
-                                <i class="fab fa-whatsapp text-sm"></i> WhatsApp
+                                <i class="fab fa-whatsapp text-sm"></i> <span class="hidden sm:inline">WhatsApp</span>
                             </button>
-                            <button type="button" id="c360-btn-add-wallet" onclick="c360AddWallet()" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-black flex items-center gap-1 transition-all cursor-pointer">
-                                <i class="fas fa-plus"></i> Add ₹
+                            <button type="button" id="c360-btn-add-wallet" onclick="c360AddWallet()" class="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-black flex items-center gap-1 transition-all cursor-pointer">
+                                <i class="fas fa-plus"></i> <span class="hidden sm:inline">Add</span> ₹
                             </button>
-                            <button type="button" id="c360-btn-deduct-wallet" onclick="c360DeductWallet()" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-black flex items-center gap-1 transition-all cursor-pointer">
-                                <i class="fas fa-minus"></i> Deduct ₹
+                            <button type="button" id="c360-btn-deduct-wallet" onclick="c360DeductWallet()" class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-black flex items-center gap-1 transition-all cursor-pointer">
+                                <i class="fas fa-minus"></i> <span class="hidden sm:inline">Deduct</span> ₹
+                            </button>
+                            <button type="button" onclick="closeModal('modal-client-360')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 flex items-center justify-center transition-all cursor-pointer shadow-xs ml-1" title="Close (Esc)">
+                                <i class="fas fa-times text-xs"></i>
                             </button>
                         </div>
+
                     </div>
 
-                    <!-- 2. KPI Metrics Ribbon -->
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3.5 pt-3 border-t border-slate-200/60">
-                        <div class="bg-gradient-to-br from-emerald-50/80 to-emerald-50/20 rounded-2xl p-2.5 border border-emerald-100 shadow-sm">
-                            <div class="text-[9px] text-emerald-800 font-black uppercase tracking-wider flex items-center gap-1">
-                                <i class="fas fa-wallet text-emerald-600"></i> Main Wallet (மெயின்)
-                            </div>
-                            <div id="c360-kpi-wallet" class="text-base sm:text-lg font-black text-emerald-700 mt-0.5">₹0.00</div>
-                            <div class="text-[9px] text-slate-500 mt-0.5">பயன்படுத்தக்கூடிய இருப்பு</div>
+                    <!-- 2. Ultra-Compact KPI Ribbon (~36px) -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2.5 pt-2 border-t border-slate-200/60 text-xs">
+                        <div class="flex items-center justify-between bg-emerald-50/70 rounded-xl px-3 py-1.5 border border-emerald-100/80">
+                            <span class="text-[10px] text-emerald-800 font-bold uppercase tracking-wider flex items-center gap-1">
+                                <i class="fas fa-wallet text-emerald-600"></i> Main வாலட்:
+                            </span>
+                            <span id="c360-kpi-wallet" class="font-black text-emerald-700 text-sm">₹0.00</span>
                         </div>
-                        <div class="bg-gradient-to-br from-purple-50/80 to-purple-50/20 rounded-2xl p-2.5 border border-purple-100 shadow-sm">
-                            <div class="text-[9px] text-purple-800 font-black uppercase tracking-wider flex items-center gap-1">
-                                <i class="fas fa-gift text-purple-600"></i> Bonus Wallet (போனஸ்)
-                            </div>
-                            <div id="c360-kpi-super" class="text-base sm:text-lg font-black text-purple-700 mt-0.5">₹0.00</div>
-                            <div class="text-[9px] text-slate-500 mt-0.5">இலவச ஆஃபர் இருப்பு</div>
+                        <div class="flex items-center justify-between bg-purple-50/70 rounded-xl px-3 py-1.5 border border-purple-100/80">
+                            <span class="text-[10px] text-purple-800 font-bold uppercase tracking-wider flex items-center gap-1">
+                                <i class="fas fa-gift text-purple-600"></i> போனஸ்:
+                            </span>
+                            <span id="c360-kpi-super" class="font-black text-purple-700 text-sm">₹0.00</span>
                         </div>
-                        <div class="bg-gradient-to-br from-blue-50/80 to-blue-50/20 rounded-2xl p-2.5 border border-blue-100 shadow-sm">
-                            <div class="text-[9px] text-blue-800 font-black uppercase tracking-wider flex items-center gap-1">
-                                <i class="fas fa-credit-card text-blue-600"></i> Total Recharged (ரீசார்ஜ்)
+                        <div class="flex items-center justify-between bg-blue-50/70 rounded-xl px-3 py-1.5 border border-blue-100/80">
+                            <span class="text-[10px] text-blue-800 font-bold uppercase tracking-wider flex items-center gap-1">
+                                <i class="fas fa-credit-card text-blue-600"></i> ரீசார்ஜ்:
+                            </span>
+                            <div class="text-right">
+                                <span id="c360-kpi-recharged" class="font-black text-blue-700 text-sm">₹0.00</span>
+                                <span id="c360-kpi-recharge-count" class="text-[9px] text-slate-400 font-medium ml-1">(0)</span>
                             </div>
-                            <div id="c360-kpi-recharged" class="text-base sm:text-lg font-black text-blue-700 mt-0.5">₹0.00</div>
-                            <div id="c360-kpi-recharge-count" class="text-[9px] text-slate-500 mt-0.5">0 பரிவர்த்தனைகள்</div>
                         </div>
-                        <div class="bg-gradient-to-br from-rose-50/80 to-rose-50/20 rounded-2xl p-2.5 border border-rose-100 shadow-sm">
-                            <div class="text-[9px] text-rose-800 font-black uppercase tracking-wider flex items-center gap-1">
-                                <i class="fas fa-phone-volume text-rose-600"></i> Spent (பேசிய கட்டணம்)
+                        <div class="flex items-center justify-between bg-rose-50/70 rounded-xl px-3 py-1.5 border border-rose-100/80">
+                            <span class="text-[10px] text-rose-800 font-bold uppercase tracking-wider flex items-center gap-1">
+                                <i class="fas fa-phone-volume text-rose-600"></i> அழைப்பு செலவு:
+                            </span>
+                            <div class="text-right">
+                                <span id="c360-kpi-spent" class="font-black text-rose-700 text-sm">₹0.00</span>
+                                <span id="c360-kpi-calls-count" class="text-[9px] text-slate-400 font-medium ml-1">(0 mins)</span>
                             </div>
-                            <div id="c360-kpi-spent" class="text-base sm:text-lg font-black text-rose-700 mt-0.5">₹0.00</div>
-                            <div id="c360-kpi-calls-count" class="text-[9px] text-slate-500 mt-0.5">0 அழைப்புகள் (0 mins)</div>
                         </div>
                     </div>
                 </header>
 
-                <!-- 3. Navigation Sub-Tabs -->
-                <div class="bg-slate-50/80 border-b border-slate-200 px-4 sm:px-6 pt-2 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
-                    <button type="button" id="c360-tab-btn-consultations" onclick="switchClient360Tab('consultations')" class="px-4 py-2.5 rounded-t-xl font-black text-xs transition-all flex items-center gap-1.5 border-b-2 border-brand-green bg-white text-brand-green shadow-sm whitespace-nowrap cursor-pointer">
-                        <i class="fas fa-phone-volume"></i> ஜோதிடரிடம் பேசியவை <span id="c360-badge-consultations" class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full font-bold">0</span>
-                    </button>
-                    <button type="button" id="c360-tab-btn-recharges" onclick="switchClient360Tab('recharges')" class="px-4 py-2.5 rounded-t-xl font-bold text-xs transition-all flex items-center gap-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 whitespace-nowrap cursor-pointer border-transparent">
-                        <i class="fas fa-credit-card"></i> ரீசார்ஜ் செய்த தொகை <span id="c360-badge-recharges" class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full font-bold">0</span>
-                    </button>
-                    <button type="button" id="c360-tab-btn-bonuses" onclick="switchClient360Tab('bonuses')" class="px-4 py-2.5 rounded-t-xl font-bold text-xs transition-all flex items-center gap-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 whitespace-nowrap cursor-pointer border-transparent">
-                        <i class="fas fa-gift"></i> கிடைத்த போனஸ்கள் <span id="c360-badge-bonuses" class="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded-full font-bold">0</span>
-                    </button>
-                    <button type="button" id="c360-tab-btn-profile" onclick="switchClient360Tab('profile')" class="px-4 py-2.5 rounded-t-xl font-bold text-xs transition-all flex items-center gap-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 whitespace-nowrap cursor-pointer border-transparent">
-                        <i class="fas fa-id-card"></i> வாடிக்கையாளர் விவரங்கள்
-                    </button>
-                    <button type="button" id="c360-tab-btn-ledgers" onclick="switchClient360Tab('ledgers')" class="px-4 py-2.5 rounded-t-xl font-bold text-xs transition-all flex items-center gap-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 whitespace-nowrap cursor-pointer border-transparent">
-                        <i class="fas fa-receipt"></i> நிமிட பில்லிங் லெட்ஜர் <span id="c360-badge-ledgers" class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full font-bold">0</span>
-                    </button>
+                <!-- 3. Navigation Sub-Tabs + Live Filter Bar -->
+                <div class="bg-slate-100/80 border-b border-slate-200 px-3 sm:px-6 py-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shrink-0">
+                    <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+                        <button type="button" id="c360-tab-btn-consultations" onclick="switchClient360Tab('consultations')" class="px-3.5 py-1.5 rounded-xl font-black text-xs transition-all flex items-center gap-1.5 bg-brand-green text-white shadow-sm whitespace-nowrap cursor-pointer">
+                            <i class="fas fa-phone-volume"></i> ஜோதிடரிடம் பேசியவை <span id="c360-badge-consultations" class="text-[10px] bg-white/20 text-white px-1.5 py-0.2 rounded-full font-bold">0</span>
+                        </button>
+                        <button type="button" id="c360-tab-btn-recharges" onclick="switchClient360Tab('recharges')" class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 whitespace-nowrap cursor-pointer">
+                            <i class="fas fa-credit-card"></i> ரீசார்ஜ்கள் <span id="c360-badge-recharges" class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full font-bold">0</span>
+                        </button>
+                        <button type="button" id="c360-tab-btn-bonuses" onclick="switchClient360Tab('bonuses')" class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 whitespace-nowrap cursor-pointer">
+                            <i class="fas fa-gift"></i> போனஸ்கள் <span id="c360-badge-bonuses" class="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded-full font-bold">0</span>
+                        </button>
+                        <button type="button" id="c360-tab-btn-profile" onclick="switchClient360Tab('profile')" class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 whitespace-nowrap cursor-pointer">
+                            <i class="fas fa-id-card"></i> சுயவிவரம்
+                        </button>
+                        <button type="button" id="c360-tab-btn-ledgers" onclick="switchClient360Tab('ledgers')" class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 whitespace-nowrap cursor-pointer">
+                            <i class="fas fa-receipt"></i> நிமிட லெட்ஜர் <span id="c360-badge-ledgers" class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full font-bold">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Live Quick Search Input -->
+                    <div class="relative shrink-0 sm:w-56">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                        <input type="text" id="c360-quick-search" oninput="filterClient360Table(this.value)" placeholder="தேடுக (Filter records)..." class="w-full pl-8 pr-7 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-green/30 shadow-2xs">
+                        <button type="button" onclick="clearC360Filter()" id="c360-clear-filter" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">
+                            <i class="fas fa-times-circle"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- 4. Scrollable Tab Contents Container -->
-                <div class="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0 bg-slate-50/40">
+                <!-- 4. Scrollable Container with Guaranteed Scroll -->
+                <div id="c360-scroll-container" class="flex-1 min-h-0 overflow-y-auto overflow-x-auto p-3 sm:p-5 bg-slate-50/50" style="flex: 1 1 0%; min-height: 0; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;">
                     
                     <!-- TAB 1: CLIENT PROFILE TABLE -->
                     <div id="c360-pane-profile" class="hidden space-y-4">
-                        <div class="overflow-x-auto bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-5">
+                        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-5">
                             <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2.5">
                                 <h4 class="font-black text-slate-800 text-sm flex items-center gap-2">
                                     <i class="fas fa-user-circle text-brand-green"></i> வாடிக்கையாளர் தனிப்பட்ட விவரங்கள் (Client Profile Table)
@@ -2843,10 +2854,10 @@
                             <table class="w-full text-xs text-left border-collapse">
                                 <tbody class="divide-y divide-slate-100">
                                     <tr class="hover:bg-slate-50/50">
-                                        <th class="px-4 py-3 font-bold text-slate-500 text-[11px] w-1/4 bg-slate-50/60">வாடிக்கையாளர் ID (User ID)</th>
-                                        <td class="px-4 py-3 font-mono font-bold text-slate-800" id="c360-full-uid">-</td>
-                                        <th class="px-4 py-3 font-bold text-slate-500 text-[11px] w-1/4 bg-slate-50/60">பெயர் & படம் (Name & Photo)</th>
-                                        <td class="px-4 py-3 font-black text-slate-800">
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 text-[11px] w-1/4 bg-slate-50/60">வாடிக்கையாளர் ID (User ID)</th>
+                                        <td class="px-4 py-2.5 font-mono font-bold text-slate-800" id="c360-full-uid">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 text-[11px] w-1/4 bg-slate-50/60">பெயர் & படம் (Name & Photo)</th>
+                                        <td class="px-4 py-2.5 font-black text-slate-800">
                                             <div class="flex items-center gap-2">
                                                 <img id="c360-full-avatar" src="" class="w-6 h-6 rounded-full object-cover ring-1 ring-emerald-200 bg-white inline-block shrink-0">
                                                 <span id="c360-full-name">-</span>
@@ -2854,34 +2865,34 @@
                                         </td>
                                     </tr>
                                     <tr class="hover:bg-slate-50/50">
-                                        <th class="px-4 py-3 font-bold text-slate-500 text-[11px] bg-slate-50/60">போன் எண் (Phone Number)</th>
-                                        <td class="px-4 py-3 font-mono font-bold text-emerald-600" id="c360-full-phone">-</td>
-                                        <th class="px-4 py-3 font-bold text-slate-500 text-[11px] bg-slate-50/60">மின்னஞ்சல் (Email Address)</th>
-                                        <td class="px-4 py-3 font-medium text-slate-700" id="c360-full-email">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 text-[11px] bg-slate-50/60">போன் எண் (Phone Number)</th>
+                                        <td class="px-4 py-2.5 font-mono font-bold text-emerald-600" id="c360-full-phone">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 text-[11px] bg-slate-50/60">மின்னஞ்சல் (Email Address)</th>
+                                        <td class="px-4 py-2.5 font-medium text-slate-700" id="c360-full-email">-</td>
                                     </tr>
                                     <tr class="hover:bg-slate-50/50">
-                                        <th class="px-4 py-3 font-bold text-slate-500 text-[11px] bg-slate-50/60">பிறந்த தேதி (Date of Birth)</th>
-                                        <td class="px-4 py-3 font-medium text-slate-700" id="c360-full-dob">-</td>
-                                        <th class="px-4 py-3 font-bold text-slate-500 text-[11px] bg-slate-50/60">பிறந்த நேரம் (Time of Birth)</th>
-                                        <td class="px-4 py-3 font-medium text-slate-700" id="c360-full-tob">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 text-[11px] bg-slate-50/60">பிறந்த தேதி (Date of Birth)</th>
+                                        <td class="px-4 py-2.5 font-medium text-slate-700" id="c360-full-dob">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 text-[11px] bg-slate-50/60">பிறந்த நேரம் (Time of Birth)</th>
+                                        <td class="px-4 py-2.5 font-medium text-slate-700" id="c360-full-tob">-</td>
                                     </tr>
                                     <tr class="hover:bg-slate-50/50">
-                                        <th class="px-4 py-3 font-bold text-slate-500 text-[11px] bg-slate-50/60">பிறந்த இடம் (Place of Birth)</th>
-                                        <td class="px-4 py-3 font-medium text-slate-700" id="c360-full-pob">-</td>
-                                        <th class="px-4 py-3 font-bold text-slate-500 text-[11px] bg-slate-50/60">பாலினம் (Gender)</th>
-                                        <td class="px-4 py-3 font-medium text-slate-700" id="c360-full-gender">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 text-[11px] bg-slate-50/60">பிறந்த இடம் (Place of Birth)</th>
+                                        <td class="px-4 py-2.5 font-medium text-slate-700" id="c360-full-pob">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 text-[11px] bg-slate-50/60">பாலினம் (Gender)</th>
+                                        <td class="px-4 py-2.5 font-medium text-slate-700" id="c360-full-gender">-</td>
                                     </tr>
                                     <tr class="hover:bg-slate-50/50">
-                                        <th class="px-4 py-3 font-bold text-slate-500 text-[11px] bg-slate-50/60">பரிந்துரை குறியீடு (Referral Code)</th>
-                                        <td class="px-4 py-3 font-mono font-bold text-purple-600" id="c360-full-refcode">-</td>
-                                        <th class="px-4 py-3 font-bold text-slate-500 text-[11px] bg-slate-50/60">அழைத்தவர் (Referred By)</th>
-                                        <td class="px-4 py-3 font-medium text-slate-700" id="c360-full-referrer">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 text-[11px] bg-slate-50/60">பரிந்துரை குறியீடு (Referral Code)</th>
+                                        <td class="px-4 py-2.5 font-mono font-bold text-purple-600" id="c360-full-refcode">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 text-[11px] bg-slate-50/60">அழைத்தவர் (Referred By)</th>
+                                        <td class="px-4 py-2.5 font-medium text-slate-700" id="c360-full-referrer">-</td>
                                     </tr>
                                     <tr class="hover:bg-slate-50/50">
-                                        <th class="px-4 py-3 font-bold text-slate-500 text-[11px] bg-slate-50/60">பதிவு தேதி (Joined Date)</th>
-                                        <td class="px-4 py-3 font-medium text-slate-700" id="c360-full-joined">-</td>
-                                        <th class="px-4 py-3 font-bold text-slate-500 text-[11px] bg-slate-50/60">இணைப்பு நிலை (Status)</th>
-                                        <td class="px-4 py-3 font-bold" id="c360-full-status">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 text-[11px] bg-slate-50/60">பதிவு தேதி (Joined Date)</th>
+                                        <td class="px-4 py-2.5 font-medium text-slate-700" id="c360-full-joined">-</td>
+                                        <th class="px-4 py-2.5 font-bold text-slate-500 text-[11px] bg-slate-50/60">இணைப்பு நிலை (Status)</th>
+                                        <td class="px-4 py-2.5 font-bold" id="c360-full-status">-</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -2889,36 +2900,27 @@
                     </div>
 
                     <!-- TAB 2: CONSULTATIONS -->
-                    <div id="c360-pane-consultations" class="hidden space-y-3">
-                        <div id="c360-consultations-list" class="space-y-3"></div>
+                    <div id="c360-pane-consultations" class="hidden">
+                        <div id="c360-consultations-list"></div>
                     </div>
 
                     <!-- TAB 3: RECHARGES -->
-                    <div id="c360-pane-recharges" class="hidden space-y-3">
-                        <div id="c360-recharges-list" class="space-y-3"></div>
+                    <div id="c360-pane-recharges" class="hidden">
+                        <div id="c360-recharges-list"></div>
                     </div>
 
                     <!-- TAB 4: BONUSES -->
-                    <div id="c360-pane-bonuses" class="hidden space-y-3">
-                        <div id="c360-bonuses-list" class="space-y-3"></div>
+                    <div id="c360-pane-bonuses" class="hidden">
+                        <div id="c360-bonuses-list"></div>
                     </div>
 
                     <!-- TAB 5: BILLING LEDGERS -->
-                    <div id="c360-pane-ledgers" class="hidden space-y-3">
-                        <div id="c360-ledgers-list" class="space-y-3"></div>
+                    <div id="c360-pane-ledgers" class="hidden">
+                        <div id="c360-ledgers-list"></div>
                     </div>
 
                 </div>
 
-                <!-- 5. Footer -->
-                <footer class="p-4 sm:px-6 bg-white border-t border-slate-100 flex items-center justify-between shrink-0">
-                    <div class="text-xs text-slate-400 font-medium">
-                        Astro 5 Star Super Admin Client 360° Audit
-                    </div>
-                    <button type="button" onclick="closeModal('modal-client-360')" class="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white font-black text-xs transition-all cursor-pointer">
-                        CLOSE
-                    </button>
-                </footer>
             </div>
 
         </div>
@@ -3803,6 +3805,9 @@
             const modal = document.getElementById('modal-client-360');
             const loading = document.getElementById('c360-loading');
             const content = document.getElementById('c360-content');
+            const scroller = document.getElementById('c360-scroll-container');
+            const searchInput = document.getElementById('c360-quick-search');
+            const clearBtn = document.getElementById('c360-clear-filter');
             
             if (!modal) return;
             modal.classList.remove('hidden');
@@ -3810,6 +3815,9 @@
             
             if (loading) loading.classList.remove('hidden');
             if (content) content.classList.add('hidden');
+            if (scroller) scroller.scrollTop = 0;
+            if (searchInput) searchInput.value = '';
+            if (clearBtn) clearBtn.classList.add('hidden');
             
             currentC360Data = null;
             switchClient360Tab('consultations');
@@ -3835,11 +3843,18 @@
             tabs.forEach(t => {
                 const btn = document.getElementById(`c360-tab-btn-${t}`);
                 const pane = document.getElementById(`c360-pane-${t}`);
+                const badge = document.getElementById(`c360-badge-${t}`);
                 if (btn) {
                     if (t === tab) {
-                        btn.className = 'px-4 py-2.5 rounded-t-xl font-black text-xs transition-all flex items-center gap-1.5 border-b-2 border-brand-green bg-white text-brand-green shadow-sm whitespace-nowrap cursor-pointer';
+                        btn.className = 'px-3.5 py-1.5 rounded-xl font-black text-xs transition-all flex items-center gap-1.5 bg-brand-green text-white shadow-sm whitespace-nowrap cursor-pointer';
+                        if (badge) badge.className = 'text-[10px] bg-white/20 text-white px-1.5 py-0.2 rounded-full font-bold';
                     } else {
-                        btn.className = 'px-4 py-2.5 rounded-t-xl font-bold text-xs transition-all flex items-center gap-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 whitespace-nowrap cursor-pointer border-transparent';
+                        btn.className = 'px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 whitespace-nowrap cursor-pointer';
+                        if (badge) {
+                            badge.className = t === 'bonuses' 
+                                ? 'text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded-full font-bold'
+                                : 'text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full font-bold';
+                        }
                     }
                 }
                 if (pane) {
@@ -3847,6 +3862,34 @@
                     else pane.classList.add('hidden');
                 }
             });
+
+            const scroller = document.getElementById('c360-scroll-container');
+            if (scroller) scroller.scrollTop = 0;
+
+            const searchInput = document.getElementById('c360-quick-search');
+            filterClient360Table(searchInput ? searchInput.value : '');
+        }
+
+        function filterClient360Table(term) {
+            term = (term || '').toLowerCase().trim();
+            const clearBtn = document.getElementById('c360-clear-filter');
+            if (clearBtn) clearBtn.classList.toggle('hidden', !term);
+
+            const activePane = document.getElementById(`c360-pane-${currentC360Tab}`);
+            if (!activePane) return;
+            const rows = activePane.querySelectorAll('tbody tr');
+            rows.forEach(tr => {
+                const text = tr.innerText.toLowerCase();
+                tr.style.display = (!term || text.includes(term)) ? '' : 'none';
+            });
+        }
+
+        function clearC360Filter() {
+            const input = document.getElementById('c360-quick-search');
+            if (input) {
+                input.value = '';
+                filterClient360Table('');
+            }
         }
 
         function populateClient360Modal(data) {
@@ -3859,7 +3902,9 @@
 
             const onlineDot = document.getElementById('c360-online-dot');
             if (onlineDot) {
-                onlineDot.className = `absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-slate-900 ${client.isOnline ? 'bg-accent-green' : 'bg-slate-400'}`;
+                onlineDot.className = client.isOnline 
+                    ? 'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white bg-accent-green shadow-xs' 
+                    : 'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white bg-slate-400';
             }
 
             const nameEl = document.getElementById('c360-name');
@@ -3878,23 +3923,23 @@
             }
 
             const uidEl = document.getElementById('c360-uid');
-            if (uidEl) uidEl.innerText = `ID: ${client.userId}`;
+            if (uidEl) uidEl.innerHTML = `ID: ${client.userId || '...'} <i class="fas fa-copy text-[8px] text-slate-400"></i>`;
 
             const appBadge = document.getElementById('c360-app-badge');
             if (appBadge) {
                 if (client.fcmToken) {
                     appBadge.innerText = '📱 Android App';
-                    appBadge.className = 'text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.2 rounded-full font-bold';
+                    appBadge.className = 'text-[9px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.2 rounded-full font-bold';
                 } else {
                     appBadge.innerText = '🌐 Web Client';
-                    appBadge.className = 'text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.2 rounded-full font-bold';
+                    appBadge.className = 'text-[9px] bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.2 rounded-full font-bold';
                 }
             }
 
             const refEl = document.getElementById('c360-referrer');
             if (refEl) {
                 if (client.referrerName || client.referredBy) {
-                    refEl.innerText = `🤝 Invited by: ${client.referrerName || client.referredBy}`;
+                    refEl.innerText = `🤝 By: ${client.referrerName || client.referredBy}`;
                     refEl.classList.remove('hidden');
                 } else {
                     refEl.classList.add('hidden');
@@ -3912,13 +3957,13 @@
             if (kpiRecharged) kpiRecharged.innerText = `₹${(stats.totalRecharged || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
             const kpiRechargeCount = document.getElementById('c360-kpi-recharge-count');
-            if (kpiRechargeCount) kpiRechargeCount.innerText = `${stats.rechargeCount || 0} பரிவர்த்தனைகள்`;
+            if (kpiRechargeCount) kpiRechargeCount.innerText = `(${stats.rechargeCount || 0})`;
 
             const kpiSpent = document.getElementById('c360-kpi-spent');
             if (kpiSpent) kpiSpent.innerText = `₹${(stats.totalSpentOnCalls || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
             const kpiCallsCount = document.getElementById('c360-kpi-calls-count');
-            if (kpiCallsCount) kpiCallsCount.innerText = `${stats.totalConsultations || 0} அழைப்புகள் (${stats.totalCallMinutes || 0} mins)`;
+            if (kpiCallsCount) kpiCallsCount.innerText = `(${stats.totalConsultations || 0} calls, ${stats.totalCallMinutes || 0} mins)`;
 
             // Tab Badges
             const bCons = document.getElementById('c360-badge-consultations');
@@ -3973,7 +4018,7 @@
 
             if (!list || list.length === 0) {
                 container.innerHTML = `
-                    <div class="py-10 px-4 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                    <div class="py-12 px-4 text-center bg-white rounded-2xl border border-dashed border-slate-200 shadow-2xs">
                         <div class="w-10 h-10 rounded-xl bg-emerald-50 text-brand-green flex items-center justify-center text-lg mx-auto mb-2">
                             <i class="fas fa-phone-slash"></i>
                         </div>
@@ -3985,9 +4030,9 @@
             }
 
             container.innerHTML = `
-                <div class="overflow-x-auto bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
                     <table class="w-full text-left text-xs border-collapse">
-                        <thead class="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                        <thead class="sticky top-0 bg-slate-100/95 backdrop-blur z-10 text-slate-700 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
                             <tr>
                                 <th class="px-3.5 py-2.5">ஜோதிடர் (Astrologer)</th>
                                 <th class="px-3.5 py-2.5">அழைப்பு வகை</th>
@@ -4016,7 +4061,7 @@
                                     <tr class="hover:bg-slate-50/70 transition-colors">
                                         <td class="px-3.5 py-2.5">
                                             <div class="flex items-center gap-2">
-                                                <img src="${getProfileImage(c.astrologerImage, c.astrologerName)}" onerror="this.src='https://ui-avatars.com/api/?background=f0fdf4&color=059669&bold=true&name=${encodeURIComponent(c.astrologerName)}'" class="w-6 h-6 rounded-full object-cover ring-1 ring-emerald-300 bg-white shrink-0">
+                                                <img src="${getProfileImage(c.astrologerImage, c.astrologerName)}" onerror="this.src='https://ui-avatars.com/api/?background=f0fdf4&color=059669&bold=true&name=${encodeURIComponent(c.astrologerName)}'" class="w-7 h-7 rounded-full object-cover ring-1 ring-emerald-300 bg-white shrink-0">
                                                 <div>
                                                     <div class="font-black text-slate-800 text-xs">${c.astrologerName || 'Astrologer'}</div>
                                                     <div class="text-[10px] text-slate-400 font-mono">📞 ${c.astrologerPhone || 'N/A'}</div>
@@ -4052,7 +4097,7 @@
 
             if (!list || list.length === 0) {
                 container.innerHTML = `
-                    <div class="py-10 px-4 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                    <div class="py-12 px-4 text-center bg-white rounded-2xl border border-dashed border-slate-200 shadow-2xs">
                         <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg mx-auto mb-2">
                             <i class="fas fa-credit-card"></i>
                         </div>
@@ -4064,9 +4109,9 @@
             }
 
             container.innerHTML = `
-                <div class="overflow-x-auto bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
                     <table class="w-full text-left text-xs border-collapse">
-                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                        <thead class="sticky top-0 bg-slate-100/95 backdrop-blur z-10 text-slate-700 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
                             <tr>
                                 <th class="px-3.5 py-2.5">பரிவர்த்தனை ID</th>
                                 <th class="px-3.5 py-2.5">கேட்வே</th>
@@ -4121,7 +4166,7 @@
 
             if (!list || list.length === 0) {
                 container.innerHTML = `
-                    <div class="py-10 px-4 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                    <div class="py-12 px-4 text-center bg-white rounded-2xl border border-dashed border-slate-200 shadow-2xs">
                         <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg mx-auto mb-2">
                             <i class="fas fa-gift"></i>
                         </div>
@@ -4133,9 +4178,9 @@
             }
 
             container.innerHTML = `
-                <div class="overflow-x-auto bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
                     <table class="w-full text-left text-xs border-collapse">
-                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                        <thead class="sticky top-0 bg-slate-100/95 backdrop-blur z-10 text-slate-700 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
                             <tr>
                                 <th class="px-3.5 py-2.5">போனஸ் வகை</th>
                                 <th class="px-3.5 py-2.5">போனஸ் தொகை</th>
@@ -4175,7 +4220,7 @@
 
             if (!list || list.length === 0) {
                 container.innerHTML = `
-                    <div class="py-10 px-4 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                    <div class="py-12 px-4 text-center bg-white rounded-2xl border border-dashed border-slate-200 shadow-2xs">
                         <div class="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center text-lg mx-auto mb-2">
                             <i class="fas fa-receipt"></i>
                         </div>
@@ -4187,9 +4232,9 @@
             }
 
             container.innerHTML = `
-                <div class="overflow-x-auto bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
                     <table class="w-full text-left text-xs border-collapse">
-                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                        <thead class="sticky top-0 bg-slate-100/95 backdrop-blur z-10 text-slate-700 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
                             <tr>
                                 <th class="px-3.5 py-2.5">Session & நிமிடம்</th>
                                 <th class="px-3.5 py-2.5">வாடிக்கையாளர் பிடித்தம்</th>
@@ -4251,6 +4296,15 @@
             openEditWallet(currentC360Data.client.userId, currentC360Data.client.walletBalance || 0, 'deduct');
         }
 
+        function copyClientPhone() {
+            if (!currentC360Data?.client?.phone) return;
+            navigator.clipboard.writeText(currentC360Data.client.phone).then(() => {
+                showToast('போன் எண் நகலெடுக்கப்பட்டது: ' + currentC360Data.client.phone, 'success');
+            }).catch(() => {
+                prompt('போன் எண்:', currentC360Data.client.phone);
+            });
+        }
+
         function copyClientUserId() {
             if (!currentC360Data?.client?.userId) return;
             navigator.clipboard.writeText(currentC360Data.client.userId).then(() => {
@@ -4259,6 +4313,16 @@
                 prompt('வாடிக்கையாளர் ID:', currentC360Data.client.userId);
             });
         }
+
+        // Global keydown listener for Escape key to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const c360Modal = document.getElementById('modal-client-360');
+                if (c360Modal && !c360Modal.classList.contains('hidden')) {
+                    closeModal('modal-client-360');
+                }
+            }
+        });
         function renderUserCard(u) {
             const isAstro = u.role === 'astrologer';
             const isOnline = u.isOnline;
