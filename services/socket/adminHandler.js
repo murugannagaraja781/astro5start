@@ -786,6 +786,32 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
         }
     });
 
+    // -------------------------------------------------------------------------
+    // OMNICHANNEL BROADCAST: Push + SMS + WhatsApp for All Clients
+    // -------------------------------------------------------------------------
+    socket.on('admin-omnichannel-broadcast', async (payload, cb) => {
+        if (!await checkAdmin(socket.id)) return cb?.({ ok: false, error: 'Unauthorized' });
+
+        try {
+            const { executeOmnichannelBroadcast } = require('../broadcastService');
+            const result = await executeOmnichannelBroadcast({
+                channels: payload.channels || { push: true, sms: false, whatsapp: false },
+                title: payload.title || 'Astro 5 Star',
+                message: payload.message || '',
+                imageUrl: payload.imageUrl || '',
+                filter: {
+                    allClients: payload.allClients !== false,
+                    userIds: payload.userIds || []
+                }
+            });
+
+            cb?.(result);
+        } catch (err) {
+            console.error('[Admin] Omnichannel Broadcast Exception:', err);
+            cb?.({ ok: false, error: err.message || 'Broadcast failed' });
+        }
+    });
+
     socket.on('admin-get-withdrawals', async (data, cb) => {
         if (!await checkAdmin(socket.id)) return cb?.({ ok: false });
         try {
