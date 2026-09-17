@@ -481,9 +481,8 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
                 const astroId = s.astrologerId || s.toUserId;
                 const astro = astroId ? await User.findOne({ userId: astroId }).select('name phone image price').lean() : null;
 
-                // Session duration in DB is stored in ms (e.g. 254000 ms = 254 sec = 4m 14s)
-                const rawDuration = s.duration || 0;
-                const durationSec = rawDuration > 3600 ? Math.round(rawDuration / 1000) : rawDuration;
+                // Session duration in DB is stored in ms (e.g. 254000 ms = 254 sec = 4m 14s), matching Billing Records
+                const durationSec = s.duration ? Math.floor(s.duration / 1000) : 0;
                 const mins = Math.floor(durationSec / 60);
                 const secs = durationSec % 60;
                 const durationFormatted = `${mins}m ${secs}s`;
