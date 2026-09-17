@@ -308,9 +308,15 @@ async function executeOmnichannelBroadcast({ channels, title, message, imageUrl,
     // 2. Parallel Channel Dispatching
     const tasks = [];
 
+    let finalImageUrl = imageUrl ? String(imageUrl).trim() : '';
+    if (finalImageUrl && finalImageUrl.startsWith('/')) {
+        const baseUrl = process.env.SERVER_BASE_URL || 'https://astro5star.com';
+        finalImageUrl = baseUrl.replace(/\/+$/, '') + finalImageUrl;
+    }
+
     if (channels && channels.push) {
         tasks.push(
-            sendBroadcastFCM(clients, title, message, imageUrl)
+            sendBroadcastFCM(clients, title, message, finalImageUrl)
                 .then(res => { results.fcm = res; })
                 .catch(err => { results.fcm = { success: false, error: err.message }; })
         );

@@ -877,17 +877,44 @@
                                 class="w-full bg-slate-50 p-4 border border-slate-200 focus:border-brand-green rounded-2xl font-bold text-sm outline-none transition-colors">
                         </div>
 
-                        <!-- Banner Image URL (Optional) -->
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Banner Image URL (Push Notification-க்கு மட்டும்)</label>
+                        <!-- Banner Image / Photo Upload & Live Preview (4to Concept) -->
+                        <div class="space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-xs font-bold text-slate-500 uppercase">
+                                    <i class="fas fa-image text-brand-green mr-1"></i> Photo / Banner Image (4to Preview)
+                                </label>
+                                <span class="text-[10px] text-slate-400 font-bold">(விருப்பத்தேர்வு / Optional)</span>
+                            </div>
                             <div class="flex gap-2">
-                                <input type="text" id="broadcastImage" placeholder="https://... or /images/offer_icon.png" value="/images/offer_icon.png"
-                                    class="flex-1 bg-slate-50 p-3.5 border border-slate-200 rounded-2xl text-xs font-medium outline-none">
-                                <button type="button" onclick="triggerBroadcastUpload()" title="Upload Image"
-                                    class="bg-slate-100 hover:bg-slate-200 px-4 rounded-2xl text-slate-700 transition-all">
-                                    <i class="fas fa-camera"></i>
+                                <input type="text" id="broadcastImage" placeholder="படத்தின் URL அல்லது Upload செய்யவும்..." value="/images/offer_icon.png"
+                                    oninput="updateBroadcastImagePreview()"
+                                    class="flex-1 bg-slate-50 p-3.5 border border-slate-200 focus:border-brand-green rounded-2xl text-xs font-medium outline-none transition-all">
+                                <button type="button" onclick="triggerBroadcastUpload()" id="btnUploadPhoto" title="Upload Photo from Device"
+                                    class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm whitespace-nowrap">
+                                    <i class="fas fa-camera text-sm"></i> Upload Photo
                                 </button>
                                 <input type="file" id="broadcastFileInput" hidden accept="image/*" onchange="handleBroadcastUpload(this)">
+                            </div>
+
+                            <!-- Live Photo (4to) Preview Container -->
+                            <div id="broadcastImagePreviewBox" class="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[11px] font-black text-slate-700 flex items-center gap-1.5">
+                                        <i class="fas fa-eye text-brand-green"></i> Photo Preview (நோட்டிபிகேஷன் போட்டோ):
+                                    </span>
+                                    <button type="button" onclick="clearBroadcastImage()" class="text-[10px] font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1">
+                                        <i class="fas fa-trash-alt"></i> Remove Photo
+                                    </button>
+                                </div>
+                                <div class="relative w-full bg-slate-100/80 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center min-h-[100px] max-h-[220px]">
+                                    <img id="broadcastImagePreview" src="/images/offer_icon.png" alt="Notification Banner Photo"
+                                        onload="onBroadcastImageLoaded(true)" onerror="onBroadcastImageLoaded(false)"
+                                        class="w-full max-h-[220px] object-contain rounded-xl transition-all">
+                                    <div id="broadcastImageFallback" class="hidden text-center p-4 text-slate-400 text-xs font-bold">
+                                        <i class="fas fa-image text-3xl mb-1 text-slate-300 block"></i>
+                                        போட்டோ தேர்ந்தெடுக்கப்படவில்லை (No Photo Selected)
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -3798,6 +3825,7 @@
             });
             updateCharCount();
             updateBroadcastSubmitButtonState();
+            updateBroadcastImagePreview();
         }
 
         function updateCharCount() {
@@ -4004,23 +4032,83 @@
             document.getElementById('broadcastFileInput')?.click();
         }
 
+        function updateBroadcastImagePreview() {
+            const input = document.getElementById('broadcastImage');
+            const preview = document.getElementById('broadcastImagePreview');
+            const fallback = document.getElementById('broadcastImageFallback');
+            const val = (input?.value || '').trim();
+
+            if (!val) {
+                if (preview) preview.classList.add('hidden');
+                if (fallback) {
+                    fallback.classList.remove('hidden');
+                    fallback.innerHTML = '<i class="fas fa-image text-3xl mb-1 text-slate-300 block"></i> போட்டோ தேர்ந்தெடுக்கப்படவில்லை (No Photo Selected)';
+                }
+                return;
+            }
+
+            if (preview) {
+                preview.classList.remove('hidden');
+                preview.src = val;
+            }
+            if (fallback) fallback.classList.add('hidden');
+        }
+
+        function onBroadcastImageLoaded(success) {
+            const preview = document.getElementById('broadcastImagePreview');
+            const fallback = document.getElementById('broadcastImageFallback');
+            if (success) {
+                if (preview) preview.classList.remove('hidden');
+                if (fallback) fallback.classList.add('hidden');
+            } else {
+                if (preview) preview.classList.add('hidden');
+                if (fallback) {
+                    fallback.classList.remove('hidden');
+                    fallback.innerHTML = '<i class="fas fa-exclamation-triangle text-amber-500 text-2xl mb-1 block"></i> இந்த போட்டோவை லோட் செய்ய முடியவில்லை. சரியான URL அல்லது Upload பட்டனைப் பயன்படுத்தவும்.';
+                }
+            }
+        }
+
+        function clearBroadcastImage() {
+            const input = document.getElementById('broadcastImage');
+            if (input) input.value = '';
+            updateBroadcastImagePreview();
+        }
+
         async function handleBroadcastUpload(input) {
             const file = input?.files?.[0];
             if (!file) return;
             const formData = new FormData();
             formData.append('file', file);
+
+            const btn = document.getElementById('btnUploadPhoto');
+            const oldHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Uploading...';
+            }
+
             try {
                 const res = await fetch('/upload', { method: 'POST', body: formData }).then(r => r.json());
-                if (res.ok) {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = oldHtml;
+                }
+                if (res.ok && res.url) {
                     const imgEl = document.getElementById('broadcastImage');
                     if (imgEl) imgEl.value = res.url;
-                    alert('✅ Image uploaded successfully!');
+                    updateBroadcastImagePreview();
+                    alert('✅ போட்டோ வெற்றிகரமாக அப்லோட் செய்யப்பட்டது!');
                 } else {
                     alert('Upload failed: ' + (res.error || 'Server error'));
                 }
             } catch (e) {
                 console.error(e);
-                alert('Upload Error');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = oldHtml;
+                }
+                alert('Upload Error: ' + e.message);
             }
         }
 
