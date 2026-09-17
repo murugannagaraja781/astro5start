@@ -12,7 +12,12 @@ async function getTargetClients(filter = {}) {
     try {
         const query = { role: 'client' };
 
-        if (filter.userIds && Array.isArray(filter.userIds) && filter.userIds.length > 0) {
+        if (filter.allClients === false) {
+            if (!filter.userIds || !Array.isArray(filter.userIds) || filter.userIds.length === 0) {
+                return [];
+            }
+            query.userId = { $in: filter.userIds };
+        } else if (filter.userIds && Array.isArray(filter.userIds) && filter.userIds.length > 0) {
             query.userId = { $in: filter.userIds };
         }
 
@@ -117,12 +122,13 @@ async function sendBroadcastFCM(clients, title, body, imageUrl) {
 }
 
 /**
- * 2. SMS BROADCAST (MSG91 Flow API Batch)
+ * 2. SMS BROADCAST (MSG91 Flow API / Fast2SMS Batch)
  */
 async function sendBroadcastSMS(clients, messageText, templateId) {
     try {
         const authKey = process.env.MSG91_AUTH_KEY;
         const resolvedTemplateId = templateId || process.env.MSG91_NOTIFY_TEMPLATE_ID;
+        const fast2smsKey = process.env.FAST2SMS_API_KEY;
 
         // போன் எண்களைச் சுத்தம் செய்தல் (10 இலக்க இந்திய எண்)
         const validPhones = clients
@@ -140,58 +146,101 @@ async function sendBroadcastSMS(clients, messageText, templateId) {
             return { success: true, sent: 0, failed: 0, total: 0, message: 'No valid phone numbers found' };
         }
 
-        // MSG91 Key அல்லது Template ID இல்லையெனில் Safe Simulation
-        if (!authKey || !resolvedTemplateId) {
-            console.log(`[SMS Broadcast Simulation] Would send to ${validPhones.length} clients: "${messageText}"`);
-            return {
-                success: true,
-                sent: validPhones.length,
-                failed: 0,
-                total: validPhones.length,
-                simulated: true,
-                message: 'MSG91 credentials missing in .env. Simulated delivery.'
-            };
-        }
-
-        let successCount = 0;
-        let failureCount = 0;
-        const batchSize = 250; // MSG91 batch limit
-
-        for (let i = 0; i < validPhones.length; i += batchSize) {
-            const batch = validPhones.slice(i, i + batchSize);
-            const recipients = batch.map(mob => ({
-                mobiles: mob,
-                msg: messageText,
-                message: messageText
-            }));
-
+        // Option A: Fast2SMS Quick SMS API (Instant without DLT approval)
+        if (fast2smsKey) {
             try {
-                const res = await fetch('https://control.msg91.com/api/v5/flow/', {
+                const numbers = validPhones.map(p => p.slice(2)).join(',');
+                const fastRes = await fetch('https://www.fast2sms.com/dev/bulkV2', {
                     method: 'POST',
                     headers: {
-                        'authkey': authKey,
-                        'content-type': 'application/json'
+                        'authorization': fast2smsKey,
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        template_id: resolvedTemplateId,
-                        recipients
+                        route: 'q',
+                        message: messageText,
+                        language: 'english',
+                        flash: 0,
+                        numbers
                     })
                 });
-                const data = await res.json();
-                if (data.type === 'success' || data.status === 'success') {
-                    successCount += batch.length;
+                const fastData = await fastRes.json();
+                if (fastData && fastData.return === true) {
+                    console.log(`[Fast2SMS Completed] Sent to ${validPhones.length} clients`);
+                    return { success: true, sent: validPhones.length, failed: 0, total: validPhones.length, provider: 'Fast2SMS' };
                 } else {
-                    console.error('[MSG91 Flow Response Error]:', data);
-                    failureCount += batch.length;
+                    console.error('[Fast2SMS Error]:', fastData);
                 }
-            } catch (e) {
-                console.error('[Broadcast SMS Error]:', e.message);
-                failureCount += batch.length;
+            } catch (fastErr) {
+                console.error('[Fast2SMS Exception]:', fastErr.message);
             }
         }
 
-        console.log(`[Broadcast SMS Completed] Total: ${validPhones.length} | Sent: ${successCount} | Failed: ${failureCount}`);
-        return { success: true, sent: successCount, failed: failureCount, total: validPhones.length };
+        // Option B: MSG91 Flow API (Requires DLT registered Template ID in India)
+        if (authKey && resolvedTemplateId) {
+            let successCount = 0;
+            let failureCount = 0;
+            let lastErrMsg = '';
+            const batchSize = 250; // MSG91 batch limit
+
+            for (let i = 0; i < validPhones.length; i += batchSize) {
+                const batch = validPhones.slice(i, i + batchSize);
+                const recipients = batch.map(mob => ({
+                    mobiles: mob,
+                    msg: messageText,
+                    message: messageText,
+                    body: messageText,
+                    var: messageText,
+                    otp: messageText
+                }));
+
+                try {
+                    const res = await fetch('https://control.msg91.com/api/v5/flow/', {
+                        method: 'POST',
+                        headers: {
+                            'authkey': authKey,
+                            'content-type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            template_id: resolvedTemplateId,
+                            recipients
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.type === 'success' || data.status === 'success') {
+                        successCount += batch.length;
+                    } else {
+                        console.error('[MSG91 Flow Response Error]:', data);
+                        failureCount += batch.length;
+                        lastErrMsg = data.message || JSON.stringify(data);
+                    }
+                } catch (e) {
+                    console.error('[Broadcast SMS Error]:', e.message);
+                    failureCount += batch.length;
+                    lastErrMsg = e.message;
+                }
+            }
+
+            console.log(`[Broadcast SMS Completed] Total: ${validPhones.length} | Sent: ${successCount} | Failed: ${failureCount}`);
+            return {
+                success: successCount > 0,
+                sent: successCount,
+                failed: failureCount,
+                total: validPhones.length,
+                error: failureCount > 0 ? (lastErrMsg || 'SMS delivery failed via MSG91 Flow') : null
+            };
+        }
+
+        // Neither SMS Gateway is configured
+        console.warn(`[SMS Broadcast Warning] Neither MSG91_NOTIFY_TEMPLATE_ID nor FAST2SMS_API_KEY configured.`);
+        return {
+            success: false,
+            sent: 0,
+            failed: validPhones.length,
+            total: validPhones.length,
+            simulated: false,
+            error: 'SMS கேட்வே Template ID அமைக்கப்படவில்லை. .env ஃபைலில் MSG91_NOTIFY_TEMPLATE_ID அல்லது FAST2SMS_API_KEY சேர்க்க வேண்டும்.'
+        };
 
     } catch (err) {
         console.error('[Broadcast SMS Fatal Error]:', err.message);
@@ -222,21 +271,22 @@ async function sendBroadcastWhatsApp(clients, messageText, templateName) {
             return { success: true, sent: 0, failed: 0, total: 0, message: 'No valid phone numbers found' };
         }
 
-        // WhatsApp Business API Config இல்லையெனில் Safe Simulation
+        // WhatsApp Business API Config check
         if (!authKey || !process.env.MSG91_WHATSAPP_NUMBER) {
-            console.log(`[WhatsApp Broadcast Simulation] Would send to ${validPhones.length} clients: "${messageText}"`);
+            console.warn(`[WhatsApp Broadcast] MSG91_WHATSAPP_NUMBER is not set in .env`);
             return {
-                success: true,
-                sent: validPhones.length,
-                failed: 0,
+                success: false,
+                sent: 0,
+                failed: validPhones.length,
                 total: validPhones.length,
-                simulated: true,
-                message: 'WhatsApp API credentials not set. Simulated delivery.'
+                simulated: false,
+                error: 'MSG91-ல் WhatsApp Business API இணைக்கப்படவில்லை ("WhatsApp not integrated"). கீழே உள்ள "வாட்ஸ்அப் (Direct)" பட்டனைப் பயன்படுத்தி வாடிக்கையாளர்களுக்கு இலவசமாக நேரடியாக அனுப்பலாம்.'
             };
         }
 
         let successCount = 0;
         let failureCount = 0;
+        let lastErrMsg = '';
 
         for (const phone of validPhones) {
             try {
@@ -266,16 +316,27 @@ async function sendBroadcastWhatsApp(clients, messageText, templateName) {
                     })
                 });
                 const data = await res.json();
-                if (data.status === 'success' || data.type === 'success') successCount++;
-                else failureCount++;
+                if (data.status === 'success' || data.type === 'success') {
+                    successCount++;
+                } else {
+                    failureCount++;
+                    lastErrMsg = data.errors || data.message || 'WhatsApp send error';
+                }
             } catch (e) {
                 console.error('[WhatsApp Single Send Error]:', e.message);
                 failureCount++;
+                lastErrMsg = e.message;
             }
         }
 
         console.log(`[Broadcast WhatsApp Completed] Total: ${validPhones.length} | Sent: ${successCount} | Failed: ${failureCount}`);
-        return { success: true, sent: successCount, failed: failureCount, total: validPhones.length };
+        return {
+            success: successCount > 0,
+            sent: successCount,
+            failed: failureCount,
+            total: validPhones.length,
+            error: failureCount > 0 ? (lastErrMsg || 'WhatsApp delivery failed') : null
+        };
 
     } catch (err) {
         console.error('[Broadcast WhatsApp Fatal Error]:', err.message);

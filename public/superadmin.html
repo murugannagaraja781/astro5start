@@ -765,7 +765,10 @@
                                     <i class="fas fa-bell"></i>
                                 </div>
                                 <div>
-                                    <div class="font-bold text-slate-800 text-sm">Push Notification (FCM)</div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-slate-800 text-sm">Push Notification (FCM)</span>
+                                        <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-black">✅ Active</span>
+                                    </div>
                                     <div class="text-[11px] text-slate-400">Mobile App Pop-up (Free & Instant)</div>
                                 </div>
                             </div>
@@ -779,8 +782,11 @@
                                     <i class="fab fa-whatsapp"></i>
                                 </div>
                                 <div>
-                                    <div class="font-bold text-slate-800 text-sm">WhatsApp Message</div>
-                                    <div class="text-[11px] text-slate-400">Official Cloud API / MSG91 Outbound</div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-slate-800 text-sm">WhatsApp Message</span>
+                                        <span class="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">1-Click / API</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-400">Official Cloud API / 1-Click Direct WhatsApp</div>
                                 </div>
                             </div>
                             <input type="checkbox" id="chkChannelWA" checked class="w-5 h-5 rounded text-brand-green focus:ring-brand-green cursor-pointer">
@@ -793,8 +799,11 @@
                                     <i class="fas fa-comment-sms"></i>
                                 </div>
                                 <div>
-                                    <div class="font-bold text-slate-800 text-sm">SMS Message (MSG91)</div>
-                                    <div class="text-[11px] text-slate-400">Direct SIM SMS Notification</div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-slate-800 text-sm">SMS Message (MSG91 / Fast2SMS)</span>
+                                        <span class="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-bold">DLT Required</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-400">DLT Flow Template / Fast2SMS Quick SMS</div>
                                 </div>
                             </div>
                             <input type="checkbox" id="chkChannelSMS" class="w-5 h-5 rounded text-brand-green focus:ring-brand-green cursor-pointer">
@@ -814,7 +823,7 @@
                                 <span class="text-[11px] text-emerald-700">பதிவு செய்துள்ள அனைத்து Client-களுக்கும் செல்லும்</span>
                             </div>
                         </label>
-                        <label class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer border border-slate-100 group">
+                        <label class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer border border-slate-100 group" onclick="setTimeout(toggleAudienceSelection, 10)">
                             <input type="radio" name="broadcastAudience" id="audSelectedClients" value="selected" onchange="toggleAudienceSelection()"
                                 class="w-5 h-5 text-brand-green focus:ring-brand-green">
                             <div>
@@ -861,6 +870,10 @@
                                     <i class="fas fa-paper-plane text-red-600"></i> SUBMIT & SEND
                                 </button>
                             </div>
+                            <!-- Direct WhatsApp Action for Selected Clients -->
+                            <button type="button" onclick="openWhatsAppForSelectedClients()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer">
+                                <i class="fab fa-whatsapp text-sm"></i> தேர்ந்தெடுக்கப்பட்டவர்களுக்கு வாட்ஸ்அப் அனுப்பு (Direct WhatsApp)
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -3864,9 +3877,7 @@
             if (!container) return;
             if (isSelected) {
                 container.classList.remove('hidden');
-                if (broadcastCurrentPageUsers.length === 0) {
-                    loadBroadcastClientsPage(1);
-                }
+                loadBroadcastClientsPage(broadcastCurrentPage || 1);
             } else {
                 container.classList.add('hidden');
             }
@@ -3919,20 +3930,75 @@
 
             listEl.innerHTML = broadcastCurrentPageUsers.map(u => {
                 const isChecked = selectedBroadcastClientIds.has(u.userId);
+                const safeName = (u.name || 'Client').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const cleanPhone = String(u.phone || '').replace(/\D/g, '');
                 return `
-                <label class="flex items-center gap-2.5 p-2.5 bg-white rounded-xl border border-slate-100 hover:bg-emerald-50/50 cursor-pointer transition-colors">
-                    <input type="checkbox" class="broadcast-user-chk w-4 h-4 rounded text-brand-green focus:ring-brand-green border-slate-300"
+                <div class="flex items-center gap-2.5 p-2.5 rounded-xl border transition-all ${isChecked ? 'bg-emerald-50/70 border-emerald-300' : 'bg-white border-slate-100 hover:bg-slate-50'}">
+                    <input type="checkbox" class="broadcast-user-chk w-4 h-4 rounded text-brand-green focus:ring-brand-green border-slate-300 cursor-pointer"
                         value="${u.userId}"
                         ${isChecked ? 'checked' : ''}
                         onchange="toggleBroadcastUserSelection('${u.userId}', this.checked)">
-                    <div class="flex-1 min-w-0">
+                    <div class="flex-1 min-w-0 cursor-pointer" onclick="toggleBroadcastUserById('${u.userId}')">
                         <div class="font-bold text-slate-800 text-xs truncate">${u.name || 'Unnamed Client'}</div>
-                        <div class="text-[10px] text-slate-400 font-mono">${u.phone || 'No Phone'}</div>
+                        <div class="text-[10px] text-slate-400 font-mono flex items-center gap-2">
+                            <span>📞 ${u.phone || 'No Phone'}</span>
+                            ${u.fcmToken ? '<span class="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded font-bold">🔔 App</span>' : ''}
+                        </div>
                     </div>
-                    ${u.fcmToken ? '<span class="text-[9px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded font-bold">App</span>' : ''}
-                </label>
+                    ${cleanPhone ? `
+                    <button type="button" onclick="openDirectWhatsAppForUser('${cleanPhone}', '${safeName}')" title="இந்த வாடிக்கையாளருக்கு வாட்ஸ்அப்பில் மெசேஜ் அனுப்பவும்" class="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[10px] font-black flex items-center gap-1 shadow-sm transition-all cursor-pointer whitespace-nowrap">
+                        <i class="fab fa-whatsapp text-xs"></i> வாட்ஸ்அப்
+                    </button>
+                    ` : ''}
+                </div>
                 `;
             }).join('');
+        }
+
+        function toggleBroadcastUserById(userId) {
+            const isChecked = selectedBroadcastClientIds.has(userId);
+            toggleBroadcastUserSelection(userId, !isChecked);
+            renderBroadcastUsersList();
+        }
+
+        function openDirectWhatsAppForUser(phone, name) {
+            let cleanPhone = String(phone || '').replace(/\D/g, '');
+            if (cleanPhone.length > 10) {
+                if (cleanPhone.startsWith('91')) cleanPhone = cleanPhone.slice(2);
+                else if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.slice(1);
+            }
+            if (cleanPhone.length !== 10) {
+                alert('சரியான 10 இலக்க போன் எண் இல்லை: ' + phone);
+                return;
+            }
+
+            const bodyInput = document.getElementById('broadcastBody');
+            const message = (bodyInput?.value || '').trim() || 'வணக்கம்! Astro 5 Star செயலியிலிருந்து அழைக்கிறோம்.';
+            const encoded = encodeURIComponent(message);
+            const waUrl = `https://wa.me/91${cleanPhone}?text=${encoded}`;
+
+            window.open(waUrl, '_blank');
+        }
+
+        function openWhatsAppForSelectedClients() {
+            if (selectedBroadcastClientIds.size === 0) {
+                alert('குறைந்தது ஒரு வாடிக்கையாளரையாவது தேர்ந்தெடுக்கவும்!');
+                return;
+            }
+
+            const selectedUsers = broadcastCurrentPageUsers.filter(u => selectedBroadcastClientIds.has(u.userId));
+            if (selectedUsers.length === 0) {
+                alert('தேர்ந்தெடுக்கப்பட்ட வாடிக்கையாளர்கள் தற்போதைய பக்கத்தில் இல்லை. மீண்டும் பட்டியலை சரிபார்க்கவும்.');
+                return;
+            }
+
+            if (selectedUsers.length === 1) {
+                openDirectWhatsAppForUser(selectedUsers[0].phone, selectedUsers[0].name);
+                return;
+            }
+
+            openDirectWhatsAppForUser(selectedUsers[0].phone, selectedUsers[0].name);
+            alert(`முதல் நபர் (${selectedUsers[0].name || selectedUsers[0].phone}) வாட்ஸ்அப் திறக்கப்பட்டது! அடுத்த நபர்களுக்கு பட்டியலில் உள்ள பச்சை நிற 'வாட்ஸ்அப்' பட்டனை கிளிக் செய்யவும்.`);
         }
 
         function toggleBroadcastUserSelection(userId, isChecked) {
@@ -4140,7 +4206,8 @@
                 imageUrl = window.location.origin + imageUrl;
             }
 
-            const allClients = document.getElementById('audAllClients')?.checked !== false;
+            const isSelectedTargets = document.getElementById('audSelectedClients')?.checked === true;
+            const allClients = !isSelectedTargets;
             let selectedUserIds = [];
 
             if (!allClients) {
@@ -4207,28 +4274,85 @@
                     return;
                 }
 
-                // Success
+                // Success completion
                 if (progressBar) {
                     progressBar.style.width = '100%';
                     progressBar.className = 'bg-emerald-500 h-2.5 rounded-full';
                 }
-                if (statusTitle) statusTitle.innerHTML = '<i class="fas fa-check-circle text-emerald-600 mr-1.5"></i> வெற்றிகரமாக அனுப்பி முடிக்கப்பட்டது!';
-                if (statusStats) statusStats.textContent = '100%';
+                if (statusTitle) statusTitle.innerHTML = '<i class="fas fa-check-circle text-emerald-600 mr-1.5"></i> பிராட்காஸ்ட் செயல்முறை முடிந்தது!';
+                if (statusStats) statusStats.textContent = 'Done';
 
                 const r = res.results || {};
-                let html = `<div class="font-bold text-slate-800">மொத்த வாடிக்கையாளர்கள்: ${res.totalClients || 0}</div>`;
+                let html = `<div class="font-bold text-slate-800 text-sm mb-3">மொத்த வாடிக்கையாளர்கள்: ${res.totalClients || 0}</div>`;
+
+                // 1. FCM Push
                 if (r.fcm) {
-                    html += `<div class="text-purple-700">🔔 Push Notifications: <b>${r.fcm.sent || 0}</b> சாதனங்களுக்குச் சென்றடைந்தது (தோல்வி: ${r.fcm.failed || 0}).</div>`;
+                    if (r.fcm.success && r.fcm.sent > 0) {
+                        html += `
+                        <div class="p-3 bg-purple-50 text-purple-900 rounded-xl border border-purple-200 text-xs font-semibold flex items-center justify-between gap-2 mb-2">
+                            <span class="flex items-center gap-2"><i class="fas fa-check-circle text-purple-600 text-sm"></i> 🔔 Push Notifications: <b>${r.fcm.sent}</b> மொபைல் சாதனங்களுக்கு சென்றடைந்தது.</span>
+                            <span class="text-[10px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full font-bold">Delivered</span>
+                        </div>`;
+                    } else {
+                        html += `
+                        <div class="p-2.5 bg-slate-50 text-slate-700 rounded-xl border border-slate-200 text-xs font-semibold flex items-center gap-2 mb-2">
+                            <i class="fas fa-info-circle text-slate-400"></i>
+                            <span>🔔 Push Notifications: செல்லுபடியாகும் டோக்கன்கள் இல்லை (${r.fcm.error || '0 Sent'}).</span>
+                        </div>`;
+                    }
                 }
+
+                // 2. WhatsApp
                 if (r.whatsapp) {
-                    html += `<div class="text-emerald-700">📱 WhatsApp: <b>${r.whatsapp.sent || 0}</b> பயனர்களுக்கு அனுப்பப்பட்டது ${r.whatsapp.simulated ? '(Simulation Mode)' : ''}.</div>`;
+                    if (r.whatsapp.success && r.whatsapp.sent > 0) {
+                        html += `
+                        <div class="p-3 bg-emerald-50 text-emerald-900 rounded-xl border border-emerald-200 text-xs font-semibold flex items-center justify-between gap-2 mb-2">
+                            <span class="flex items-center gap-2"><i class="fab fa-whatsapp text-emerald-600 text-base"></i> 📱 WhatsApp API: <b>${r.whatsapp.sent}</b> எண்களுக்கு அனுப்பப்பட்டது.</span>
+                            <span class="text-[10px] bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full font-bold">Sent</span>
+                        </div>`;
+                    } else {
+                        html += `
+                        <div class="p-3 bg-amber-50 text-amber-900 rounded-xl border border-amber-200 text-xs space-y-2 mb-2">
+                            <div class="font-bold flex items-center gap-1.5 text-amber-800">
+                                <i class="fab fa-whatsapp text-emerald-600 text-base"></i> 📱 WhatsApp API: அனுப்பப்படவில்லை (${r.whatsapp.error || 'API Not Integrated'})
+                            </div>
+                            <div class="text-[11px] text-emerald-900 bg-white/80 p-2.5 rounded-lg border border-emerald-200 flex items-center justify-between gap-2">
+                                <span>👉 வாடிக்கையாளர் பட்டியலில் உள்ள <b>"📱 வாட்ஸ்அப்"</b> பட்டனை கிளிக் செய்து இலவசமாக நேரடியாக வாட்ஸ்அப்பில் அனுப்பலாம்!</span>
+                                <button type="button" onclick="openWhatsAppForSelectedClients()" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black whitespace-nowrap shadow-sm">
+                                    Direct WhatsApp
+                                </button>
+                            </div>
+                        </div>`;
+                    }
                 }
+
+                // 3. SMS
                 if (r.sms) {
-                    html += `<div class="text-blue-700">💬 SMS: <b>${r.sms.sent || 0}</b> பயனர்களுக்கு அனுப்பப்பட்டது ${r.sms.simulated ? '(Simulation Mode)' : ''}.</div>`;
+                    if (r.sms.success && r.sms.sent > 0) {
+                        html += `
+                        <div class="p-3 bg-blue-50 text-blue-900 rounded-xl border border-blue-200 text-xs font-semibold flex items-center justify-between gap-2 mb-2">
+                            <span class="flex items-center gap-2"><i class="fas fa-comment-sms text-blue-600 text-sm"></i> 💬 SMS: <b>${r.sms.sent}</b> எண்களுக்கு அனுப்பப்பட்டது (${r.sms.provider || 'Gateway'}).</span>
+                            <span class="text-[10px] bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full font-bold">Sent</span>
+                        </div>`;
+                    } else {
+                        html += `
+                        <div class="p-3 bg-rose-50 text-rose-900 rounded-xl border border-rose-200 text-xs space-y-1 mb-2">
+                            <div class="font-bold flex items-center gap-1.5 text-rose-800">
+                                <i class="fas fa-exclamation-triangle text-rose-600 text-sm"></i> 💬 SMS: அனுப்பப்படவில்லை
+                            </div>
+                            <div class="text-[11px] text-rose-800">${r.sms.error || 'MSG91 DLT Template ID அமைக்கப்படவில்லை.'}</div>
+                            <div class="text-[10px] text-slate-500">விளக்கம்: இந்தியாவில் TRAI/DLT விதிப்படி பதிவு செய்யப்பட்ட Template ID (MSG91_NOTIFY_TEMPLATE_ID) இல்லாமல் SMS டெலிவரி ஆகாது.</div>
+                        </div>`;
+                    }
                 }
 
                 if (resultDetails) resultDetails.innerHTML = html;
-                alert(`✅ பிராட்காஸ்ட் வெற்றிகரமாக முடிக்கப்பட்டது! (${res.totalClients || 0} வாடிக்கையாளர்கள்)`);
+
+                let alertMsg = `பிராட்காஸ்ட் முடிக்கப்பட்டது! (${res.totalClients || 0} வாடிக்கையாளர்கள்)`;
+                if (r.fcm && r.fcm.sent > 0) alertMsg += `\n🔔 Push: ${r.fcm.sent} சென்றடைந்தது.`;
+                if (r.whatsapp && !r.whatsapp.success) alertMsg += `\n📱 WhatsApp: API இணைக்கப்படவில்லை. பட்டியலில் உள்ள 'வாட்ஸ்அப்' பட்டனை கிளிக் செய்து நேரடியாக அனுப்பலாம்.`;
+                if (r.sms && !r.sms.success) alertMsg += `\n💬 SMS: DLT Template ID தேவை.`;
+                alert(alertMsg);
             });
         }
 
