@@ -3963,7 +3963,7 @@
             if (kpiSpent) kpiSpent.innerText = `₹${(stats.totalSpentOnCalls || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
             const kpiCallsCount = document.getElementById('c360-kpi-calls-count');
-            if (kpiCallsCount) kpiCallsCount.innerText = `(${stats.totalConsultations || 0} calls, ${stats.totalCallMinutes || 0} mins)`;
+            if (kpiCallsCount) kpiCallsCount.innerText = `(${stats.totalConsultations || 0} அழைப்புகள், ${stats.totalCallMinutes || 0} நிமிடம்)`;
 
             // Tab Badges
             const bCons = document.getElementById('c360-badge-consultations');
@@ -4036,7 +4036,7 @@
                             <tr>
                                 <th class="px-3.5 py-2.5">ஜோதிடர் (Astrologer)</th>
                                 <th class="px-3.5 py-2.5">அழைப்பு வகை</th>
-                                <th class="px-3.5 py-2.5">கால அளவு</th>
+                                <th class="px-3.5 py-2.5">கால அளவு (பேசிய நேரம்)</th>
                                 <th class="px-3.5 py-2.5">கட்டணம் (Client)</th>
                                 <th class="px-3.5 py-2.5">ஜோதிடர் பங்கு</th>
                                 <th class="px-3.5 py-2.5">ஆடியோ பதிவு (Recording)</th>
@@ -4045,9 +4045,45 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             ${list.map(c => {
-                                const durationMins = Math.floor((c.duration || 0) / 60);
-                                const durationSecs = (c.duration || 0) % 60;
-                                const durationStr = durationMins > 0 ? `${durationMins}m ${durationSecs}s` : `${durationSecs}s`;
+                                const totalSeconds = c.duration || 0;
+                                const durationMins = Math.floor(totalSeconds / 60);
+                                const durationSecs = totalSeconds % 60;
+                                const billedMinutes = Math.ceil(totalSeconds / 60);
+
+                                let durationBadge = '';
+                                if (totalSeconds <= 0) {
+                                    durationBadge = `<span class="text-slate-400 font-medium text-xs">0 நொடி (பேசவில்லை)</span>`;
+                                } else if (durationMins > 0 && durationSecs > 0) {
+                                    durationBadge = `
+                                        <div class="font-black text-slate-800 text-xs flex items-center gap-1">
+                                            <i class="fas fa-stopwatch text-brand-green text-[10px]"></i>
+                                            <span>${durationMins} நிமிடம் ${durationSecs} நொடி</span>
+                                        </div>
+                                        <div class="text-[9px] text-emerald-700 font-mono font-bold mt-0.5">
+                                            ${durationMins}m ${durationSecs}s • (${billedMinutes} நிமிடம் கட்டணம்)
+                                        </div>
+                                    `;
+                                } else if (durationMins > 0) {
+                                    durationBadge = `
+                                        <div class="font-black text-slate-800 text-xs flex items-center gap-1">
+                                            <i class="fas fa-stopwatch text-brand-green text-[10px]"></i>
+                                            <span>${durationMins} நிமிடம்</span>
+                                        </div>
+                                        <div class="text-[9px] text-emerald-700 font-mono font-bold mt-0.5">
+                                            ${durationMins}m 00s • (${durationMins} நிமிடம் கட்டணம்)
+                                        </div>
+                                    `;
+                                } else {
+                                    durationBadge = `
+                                        <div class="font-black text-amber-700 text-xs flex items-center gap-1">
+                                            <i class="fas fa-stopwatch text-amber-500 text-[10px]"></i>
+                                            <span>${durationSecs} நொடிகள்</span>
+                                        </div>
+                                        <div class="text-[9px] text-amber-600 font-mono font-bold mt-0.5">
+                                            ${durationSecs}s • (1 நிமிடம் கட்டணம்)
+                                        </div>
+                                    `;
+                                }
                                 
                                 const callType = c.type === 'video' ? 'வீடியோ' : c.type === 'chat' ? 'சேட்' : 'ஆடியோ';
                                 const typeIcon = c.type === 'video' ? 'fa-video text-purple-500' : c.type === 'chat' ? 'fa-comment-dots text-blue-500' : 'fa-phone-alt text-brand-green';
@@ -4073,7 +4109,7 @@
                                                 <i class="fas ${typeIcon} text-[9px]"></i> ${callType}
                                             </span>
                                         </td>
-                                        <td class="px-3.5 py-2.5 font-mono font-bold text-slate-700 text-xs">${durationStr}</td>
+                                        <td class="px-3.5 py-2 whitespace-nowrap">${durationBadge}</td>
                                         <td class="px-3.5 py-2.5 font-black text-rose-600 text-xs">₹${(c.totalCharged || 0).toFixed(2)}</td>
                                         <td class="px-3.5 py-2.5 font-black text-brand-green text-xs">₹${(c.totalEarned || 0).toFixed(2)}</td>
                                         <td class="px-3.5 py-2.5">
