@@ -127,13 +127,15 @@ const verifyPaymentToken = async (req, res) => {
 
         if (tokenData.used) return res.json({ ok: false, valid: false, error: 'Token already used' });
 
-        const user = await User.findOne({ userId: tokenData.userId });
+        const user = await User.findOne({ userId: tokenData.userId }).select('name phone email').lean();
 
         res.json({
             ok: true,
             valid: true,
             amount: tokenData.amount,
             userName: user ? user.name : 'Cosmic User',
+            phone: user && user.phone ? String(user.phone).replace(/[^0-9]/g, '').slice(-10) : '',
+            email: user && user.email ? user.email : '',
             expiresIn: Math.floor((expiryTime - (Date.now() - tokenData.createdAt)) / 1000)
         });
     } catch (err) {

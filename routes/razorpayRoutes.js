@@ -88,6 +88,9 @@ router.post('/create-order', async (req, res) => {
             providerRefId: 'razorpay' // Tag to differentiate from PhonePe
         });
 
+        // Fetch user basic details for prefilling checkout modal (skips user having to type phone/email)
+        const user = await User.findOne({ userId }).select('name phone email').lean();
+
         console.log(`[Razorpay] Order ${orderResult.data.order_id} created for user ${userId} | ₹${totalAmount}`);
 
         res.json({
@@ -96,7 +99,12 @@ router.post('/create-order', async (req, res) => {
             amount: orderResult.data.amount,
             currency: orderResult.data.currency,
             key_id: getRazorpayKeyId(),
-            receipt: receiptId
+            receipt: receiptId,
+            prefill: {
+                name: user?.name || '',
+                contact: user?.phone ? String(user.phone).replace(/[^0-9]/g, '').slice(-10) : '',
+                email: user?.email || ''
+            }
         });
 
     } catch (err) {
@@ -128,7 +136,7 @@ router.post('/verify-payment', async (req, res) => {
             return res.status(400).json({ ok: false, error: 'Payment verification failed - signature mismatch' });
         }
 
-        // Find the pending payment by Razorpay order_id
+        // Find the pending payment by Razorpay order_id (indexed lookup)
         const payment = await Payment.findOne({ merchantTransactionId: razorpay_order_id });
 
         if (!payment) {
@@ -143,23 +151,25 @@ router.post('/verify-payment', async (req, res) => {
         // Mark payment as success
         payment.status = 'success';
         payment.providerRefId = razorpay_payment_id; // Store Razorpay payment ID
-        await payment.save();
 
         // Credit wallet (same atomic logic as PhonePe callback)
         const rechargeAmount = payment.creditedAmount || payment.baseAmount || 0;
         const bonusAmount = payment.couponBonus || 0;
 
-        await User.findOneAndUpdate(
-            { userId: payment.userId },
-            {
-                $inc: {
-                    walletBalance: rechargeAmount,
-                    superWalletBalance: bonusAmount
-                },
-                $set: { isNewUser: false }
-            },
-            { returnDocument: 'after' }
-        );
+        // Execute DB updates concurrently for maximum speed
+        await Promise.all([
+            payment.save(),
+            User.findOneAndUpdate(
+                { userId: payment.userId },
+                {
+                    $inc: {
+                        walletBalance: rechargeAmount,
+                        superWalletBalance: bonusAmount
+                    },
+                    $set: { isNewUser: false }
+                }
+            )
+        ]);
 
         console.log(`[Razorpay] Payment Verified: ${razorpay_payment_id} | Wallet +₹${rechargeAmount} (+₹${bonusAmount} bonus) for ${payment.userId}`);
 

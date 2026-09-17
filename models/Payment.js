@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const PaymentSchema = new mongoose.Schema({
     transactionId: { type: String, unique: true },
-    merchantTransactionId: String, // For PhonePe callback matching
+    merchantTransactionId: { type: String, index: true }, // Indexed for PhonePe and Razorpay callback matching
     userId: String,
     amount: Number, // Total amount paid (including GST)
     baseAmount: Number, // Original recharge amount (net of discounts)

@@ -12,6 +12,10 @@
   <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/smoothness/jquery-ui.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+  <link rel="preconnect" href="https://checkout.razorpay.com">
+  <link rel="preconnect" href="https://api.razorpay.com">
+  <link rel="dns-prefetch" href="https://checkout.razorpay.com">
+  <link rel="dns-prefetch" href="https://api.razorpay.com">
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script>
     // Redirect to desktop version if width > 1024px
@@ -8440,8 +8444,9 @@
             description: 'Wallet Recharge',
             order_id: orderData.order_id,
             prefill: {
-              contact: (state.me && state.me.phone) ? String(state.me.phone).replace(/[^0-9]/g, '').slice(-10) : '',
-              name: (state.me && state.me.name) || ''
+              contact: (orderData.prefill && orderData.prefill.contact) || (state.me && state.me.phone ? String(state.me.phone).replace(/[^0-9]/g, '').slice(-10) : ''),
+              name: (orderData.prefill && orderData.prefill.name) || (state.me && state.me.name) || '',
+              email: (orderData.prefill && orderData.prefill.email) || (state.me && state.me.email) || ''
             },
             theme: {
               color: '#059669',

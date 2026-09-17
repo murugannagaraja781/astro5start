@@ -5,7 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="/favicon.png">
-    <link rel="apple-touch-icon" href="/images/astro_5_star_logo.png">
+    <link rel="preconnect" href="https://checkout.razorpay.com">
+    <link rel="preconnect" href="https://api.razorpay.com">
+    <link rel="dns-prefetch" href="https://checkout.razorpay.com">
+    <link rel="dns-prefetch" href="https://api.razorpay.com">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <style>
@@ -329,6 +332,7 @@
 
         // Show Payment Form
         function showPaymentForm(data) {
+            window.paymentUserData = data;
             document.getElementById('paymentContainer').style.display = 'block';
             document.getElementById('errorContainer').style.display = 'none';
             document.getElementById('userName').textContent = data.userName || 'User';
@@ -461,6 +465,9 @@
 
                 showLoading(false);
 
+                const userData = window.paymentUserData || {};
+                const prefillData = orderData.prefill || {};
+
                 const options = {
                     key: orderData.key_id,
                     amount: orderData.amount,
@@ -469,7 +476,9 @@
                     description: 'Wallet Recharge',
                     order_id: orderData.order_id,
                     prefill: {
-                        name: document.getElementById('userName').textContent || ''
+                        name: prefillData.name || userData.userName || document.getElementById('userName').textContent || '',
+                        contact: prefillData.contact || userData.phone || '',
+                        email: prefillData.email || userData.email || ''
                     },
                     theme: {
                         color: '#059669',
@@ -508,7 +517,7 @@
                                 } else {
                                     setTimeout(() => {
                                         window.location.href = `/payment-success?amount=${verifyData.credited}&txnId=${response.razorpay_payment_id}`;
-                                    }, 1500);
+                                    }, 200);
                                 }
                             } else {
                                 showLoading(false);
