@@ -25,7 +25,7 @@ const checkAdmin = async (sid) => {
 
 const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => {
 
-    socket.on('get-all-users', async (data, cb) => {
+    const getAllUsersHandler = async (data, cb) => {
         if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false });
         try {
             const { page = 1, limit = 50, search = '', role, filter } = data || {};
@@ -84,7 +84,10 @@ const handleAdmin = (socket, io, broadcastAstroUpdate, broadcastAdminUpdate) => 
 
             if (typeof cb === "function") cb({ ok: true, users, total, totalPages: Math.ceil(total / limit), currentPage: parseInt(page) });
         } catch (e) { if (typeof cb === "function") cb({ ok: false }); }
-    });
+    };
+
+    socket.on('get-all-users', getAllUsersHandler);
+    socket.on('admin-get-users', getAllUsersHandler);
 
     socket.on('admin-delete-user', async (data, cb) => {
         if (!await checkAdmin(socket.id)) if (typeof cb === "function") return cb({ ok: false, error: 'Unauthorized' });

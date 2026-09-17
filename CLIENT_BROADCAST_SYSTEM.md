@@ -481,15 +481,37 @@ module.exports = {
                     </div>
                 </label>
 
-                <!-- User Selection List (Hidden by default) -->
+                <!-- User Selection List (11-per-page Pagination Concept) -->
                 <div id="selectedUsersContainer" class="hidden space-y-3 pt-2">
-                    <input type="text" id="broadcastUserSearch" placeholder="Search clients by name or phone..."
-                        oninput="filterBroadcastUsers()" class="w-full bg-slate-50 px-4 py-3 border border-slate-200 rounded-xl text-xs font-bold">
-                    <div id="broadcastUserList" class="max-h-[220px] overflow-y-auto space-y-1.5 p-2 bg-slate-50 rounded-xl border border-slate-100 text-xs">
-                        <div class="text-slate-400 text-center py-4">Click "Load Clients" below...</div>
+                    <div class="flex items-center justify-between gap-2 px-1">
+                        <span class="text-xs font-bold text-slate-500">வாடிக்கையாளர் பட்டியல் (11 வீதம்):</span>
+                        <span id="broadcastSelectedBadge" class="text-[11px] font-black bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">0 தேர்வு</span>
                     </div>
-                    <button type="button" onclick="loadBroadcastClientsList()" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-xs text-slate-700">
-                        <i class="fas fa-sync-alt mr-1"></i> Load Client List
+                    <div class="flex gap-2">
+                        <input type="text" id="broadcastUserSearch" placeholder="பெயர் அல்லது போன் எண் தேடுக..."
+                            oninput="onBroadcastSearchInput(this.value)" class="flex-1 bg-slate-50 px-3.5 py-2 border border-slate-200 focus:border-brand-green rounded-xl text-xs font-bold outline-none">
+                        <button type="button" onclick="selectCurrentBroadcastPageClients(true)" class="px-2.5 py-2 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-[11px] font-black hover:bg-emerald-100">
+                            + பக்கம் (11)
+                        </button>
+                        <button type="button" onclick="clearAllBroadcastSelection()" class="px-2.5 py-2 bg-slate-100 text-slate-600 rounded-xl text-[11px] font-bold hover:bg-slate-200">
+                            Clear
+                        </button>
+                    </div>
+                    <div id="broadcastUserList" class="max-h-[360px] overflow-y-auto space-y-1.5 p-2 bg-slate-50 rounded-2xl border border-slate-100 text-xs">
+                        <div class="text-slate-400 text-center py-4">வாடிக்கையாளர்கள் ஏற்றப்படவில்லை...</div>
+                    </div>
+                    <!-- 11 Items Pagination Controls -->
+                    <div id="broadcastPaginationBar" class="flex items-center justify-between px-1 py-1 text-xs">
+                        <button type="button" id="broadcastPrevBtn" onclick="changeBroadcastPage(-1)" disabled class="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 text-[11px]">
+                            <i class="fas fa-chevron-left"></i> முந்தைய
+                        </button>
+                        <span id="broadcastPageInfo" class="font-bold text-slate-600 text-[11px]">பக்கம் 1 / 1 (மொத்தம்: 0)</span>
+                        <button type="button" id="broadcastNextBtn" onclick="changeBroadcastPage(1)" disabled class="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 text-[11px]">
+                            அடுத்தது <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <button type="button" onclick="loadBroadcastClientsPage(broadcastCurrentPage)" class="w-full py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-xs text-slate-700 flex items-center justify-center gap-2">
+                        <i class="fas fa-sync-alt"></i> Refresh Client List
                     </button>
                 </div>
             </div>

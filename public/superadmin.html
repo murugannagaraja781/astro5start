@@ -818,23 +818,37 @@
                             </div>
                         </label>
 
-                        <!-- User Selection Sub-box -->
+                        <!-- User Selection Sub-box (11 Items Pagination Concept) -->
                         <div id="selectedUsersContainer" class="hidden space-y-3 pt-2">
+                            <div class="flex items-center justify-between gap-2 px-1">
+                                <span class="text-xs font-bold text-slate-500">வாடிக்கையாளர் பட்டியல் (11 வீதம்):</span>
+                                <span id="broadcastSelectedBadge" class="text-[11px] font-black bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">0 தேர்வு</span>
+                            </div>
                             <div class="flex gap-2">
-                                <input type="text" id="broadcastUserSearch" placeholder="Search clients by name or phone..."
-                                    oninput="filterBroadcastUsers()" class="flex-1 bg-slate-50 px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-bold outline-none">
-                                <button type="button" onclick="selectAllBroadcastClients(true)" class="px-3 py-2 bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold hover:bg-emerald-200">
-                                    All
+                                <input type="text" id="broadcastUserSearch" placeholder="பெயர் அல்லது போன் எண் தேடுக..."
+                                    oninput="onBroadcastSearchInput(this.value)" class="flex-1 bg-slate-50 px-3.5 py-2 border border-slate-200 focus:border-brand-green rounded-xl text-xs font-bold outline-none transition-all">
+                                <button type="button" onclick="selectCurrentBroadcastPageClients(true)" title="இந்த பக்கத்தில் உள்ள 11 வாடிக்கையாளர்களையும் தேர்ந்தெடுக்கவும்" class="px-2.5 py-2 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-[11px] font-black hover:bg-emerald-100 transition-colors whitespace-nowrap">
+                                    + பக்கம் (11)
                                 </button>
-                                <button type="button" onclick="selectAllBroadcastClients(false)" class="px-3 py-2 bg-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-300">
-                                    None
+                                <button type="button" onclick="clearAllBroadcastSelection()" title="அனைத்து தேர்வுகளையும் ரத்து செய்" class="px-2.5 py-2 bg-slate-100 text-slate-600 rounded-xl text-[11px] font-bold hover:bg-slate-200 transition-colors whitespace-nowrap">
+                                    Clear
                                 </button>
                             </div>
-                            <div id="broadcastUserList" class="max-h-[220px] overflow-y-auto space-y-1.5 p-2 bg-slate-50 rounded-xl border border-slate-100 text-xs">
-                                <div class="text-slate-400 text-center py-4">Click "Load Client List" below...</div>
+                            <div id="broadcastUserList" class="max-h-[360px] overflow-y-auto space-y-1.5 p-2 bg-slate-50 rounded-2xl border border-slate-100 text-xs">
+                                <div class="text-slate-400 text-center py-4">வாடிக்கையாளர்கள் ஏற்றப்படவில்லை...</div>
                             </div>
-                            <button type="button" onclick="loadBroadcastClientsList()" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-xs text-slate-700 transition-all flex items-center justify-center gap-2">
-                                <i class="fas fa-sync-alt"></i> Load Client List
+                            <!-- 11 Items Pagination Controls -->
+                            <div id="broadcastPaginationBar" class="flex items-center justify-between px-1 py-1 text-xs">
+                                <button type="button" id="broadcastPrevBtn" onclick="changeBroadcastPage(-1)" disabled class="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 text-[11px] shadow-sm transition-all">
+                                    <i class="fas fa-chevron-left"></i> முந்தைய
+                                </button>
+                                <span id="broadcastPageInfo" class="font-bold text-slate-600 text-[11px]">பக்கம் 1 / 1 (மொத்தம்: 0)</span>
+                                <button type="button" id="broadcastNextBtn" onclick="changeBroadcastPage(1)" disabled class="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 text-[11px] shadow-sm transition-all">
+                                    அடுத்தது <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            <button type="button" onclick="loadBroadcastClientsPage(broadcastCurrentPage)" class="w-full py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-xs text-slate-700 transition-all flex items-center justify-center gap-2">
+                                <i class="fas fa-sync-alt"></i> Refresh Client List
                             </button>
                         </div>
                     </div>
@@ -3749,11 +3763,18 @@
         // =========================================================================
         // OMNICHANNEL BROADCAST CONTROLLER (Push Notifications + WhatsApp + SMS)
         // =========================================================================
-        let broadcastClientsCache = [];
+        let broadcastCurrentPage = 1;
+        const broadcastPageLimit = 11; // 11 clients per page
+        let broadcastTotalPages = 1;
+        let broadcastTotalClients = 0;
+        let broadcastSearchQuery = '';
+        let broadcastSearchDebounce = null;
+        const selectedBroadcastClientIds = new Set();
+        let broadcastCurrentPageUsers = [];
 
         function initBroadcastTab() {
-            // Update Client Count
-            socket.emit('admin-get-users', { role: 'client', limit: 1 }, (res) => {
+            // Update Total Client Count Badge
+            socket.emit('get-all-users', { role: 'client', limit: 1 }, (res) => {
                 const badge = document.getElementById('broadcastTotalClientCount');
                 if (badge) {
                     if (res && res.total !== undefined) {
@@ -3781,68 +3802,154 @@
             if (!container) return;
             if (isSelected) {
                 container.classList.remove('hidden');
-                if (broadcastClientsCache.length === 0) {
-                    loadBroadcastClientsList();
+                if (broadcastCurrentPageUsers.length === 0) {
+                    loadBroadcastClientsPage(1);
                 }
             } else {
                 container.classList.add('hidden');
             }
         }
 
-        function loadBroadcastClientsList() {
+        function loadBroadcastClientsPage(page = 1) {
+            broadcastCurrentPage = Math.max(1, page);
             const listEl = document.getElementById('broadcastUserList');
-            if (listEl) listEl.innerHTML = '<div class="text-slate-400 text-center py-4"><i class="fas fa-spinner fa-spin mr-1"></i> Loading clients...</div>';
+            if (listEl) {
+                listEl.innerHTML = '<div class="text-slate-400 text-center py-6"><i class="fas fa-spinner fa-spin mr-1.5 text-brand-green"></i> வாடிக்கையாளர்கள் ஏற்றப்படுகிறது...</div>';
+            }
 
-            socket.emit('admin-get-users', { role: 'client', limit: 1000 }, (res) => {
+            const queryPayload = {
+                role: 'client',
+                page: broadcastCurrentPage,
+                limit: broadcastPageLimit,
+                search: broadcastSearchQuery
+            };
+
+            socket.emit('get-all-users', queryPayload, (res) => {
                 if (res && res.ok && Array.isArray(res.users)) {
-                    broadcastClientsCache = res.users;
-                    renderBroadcastUsersList(broadcastClientsCache);
+                    broadcastCurrentPageUsers = res.users;
+                    broadcastTotalClients = Number(res.total || 0);
+                    broadcastTotalPages = Math.max(1, Number(res.totalPages) || Math.ceil(broadcastTotalClients / broadcastPageLimit));
+                    broadcastCurrentPage = Number(res.currentPage) || broadcastCurrentPage;
+                    renderBroadcastUsersList();
+                    updateBroadcastPaginationUI();
                 } else if (res && Array.isArray(res.users)) {
-                    broadcastClientsCache = res.users;
-                    renderBroadcastUsersList(broadcastClientsCache);
+                    broadcastCurrentPageUsers = res.users;
+                    broadcastTotalClients = res.total || broadcastCurrentPageUsers.length;
+                    broadcastTotalPages = Math.max(1, Math.ceil(broadcastTotalClients / broadcastPageLimit));
+                    renderBroadcastUsersList();
+                    updateBroadcastPaginationUI();
                 } else {
-                    if (listEl) listEl.innerHTML = '<div class="text-red-400 text-center py-4">Failed to load clients</div>';
+                    if (listEl) {
+                        listEl.innerHTML = '<div class="text-red-500 text-center py-4 font-bold"><i class="fas fa-exclamation-triangle mr-1"></i> பட்டியல் ஏற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.</div>';
+                    }
                 }
             });
         }
 
-        function renderBroadcastUsersList(users) {
+        function renderBroadcastUsersList() {
             const listEl = document.getElementById('broadcastUserList');
             if (!listEl) return;
-            if (!users || users.length === 0) {
-                listEl.innerHTML = '<div class="text-slate-400 text-center py-4">No clients found</div>';
+
+            if (!broadcastCurrentPageUsers || broadcastCurrentPageUsers.length === 0) {
+                listEl.innerHTML = '<div class="text-slate-400 text-center py-6 font-bold">வாடிக்கையாளர்கள் எவரும் இல்லை</div>';
                 return;
             }
 
-            listEl.innerHTML = users.map(u => `
-                <label class="flex items-center gap-2.5 p-2 bg-white rounded-xl border border-slate-100 hover:bg-emerald-50/50 cursor-pointer transition-colors">
-                    <input type="checkbox" class="broadcast-user-chk w-4 h-4 rounded text-brand-green focus:ring-brand-green border-slate-300" value="${u.userId}" checked>
+            listEl.innerHTML = broadcastCurrentPageUsers.map(u => {
+                const isChecked = selectedBroadcastClientIds.has(u.userId);
+                return `
+                <label class="flex items-center gap-2.5 p-2.5 bg-white rounded-xl border border-slate-100 hover:bg-emerald-50/50 cursor-pointer transition-colors">
+                    <input type="checkbox" class="broadcast-user-chk w-4 h-4 rounded text-brand-green focus:ring-brand-green border-slate-300"
+                        value="${u.userId}"
+                        ${isChecked ? 'checked' : ''}
+                        onchange="toggleBroadcastUserSelection('${u.userId}', this.checked)">
                     <div class="flex-1 min-w-0">
                         <div class="font-bold text-slate-800 text-xs truncate">${u.name || 'Unnamed Client'}</div>
                         <div class="text-[10px] text-slate-400 font-mono">${u.phone || 'No Phone'}</div>
                     </div>
                     ${u.fcmToken ? '<span class="text-[9px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded font-bold">App</span>' : ''}
                 </label>
-            `).join('');
+                `;
+            }).join('');
         }
 
-        function filterBroadcastUsers() {
-            const q = (document.getElementById('broadcastUserSearch')?.value || '').toLowerCase().trim();
-            if (!q) {
-                renderBroadcastUsersList(broadcastClientsCache);
-                return;
+        function toggleBroadcastUserSelection(userId, isChecked) {
+            if (isChecked) {
+                selectedBroadcastClientIds.add(userId);
+            } else {
+                selectedBroadcastClientIds.delete(userId);
             }
-            const filtered = broadcastClientsCache.filter(u =>
-                (u.name && u.name.toLowerCase().includes(q)) ||
-                (u.phone && u.phone.includes(q))
-            );
-            renderBroadcastUsersList(filtered);
+            updateBroadcastSelectedBadge();
+        }
+
+        function updateBroadcastSelectedBadge() {
+            const badge = document.getElementById('broadcastSelectedBadge');
+            if (badge) {
+                badge.textContent = `${selectedBroadcastClientIds.size} தேர்வு`;
+            }
+        }
+
+        function selectCurrentBroadcastPageClients(select) {
+            broadcastCurrentPageUsers.forEach(u => {
+                if (select) {
+                    selectedBroadcastClientIds.add(u.userId);
+                } else {
+                    selectedBroadcastClientIds.delete(u.userId);
+                }
+            });
+            renderBroadcastUsersList();
+            updateBroadcastSelectedBadge();
+        }
+
+        function clearAllBroadcastSelection() {
+            selectedBroadcastClientIds.clear();
+            renderBroadcastUsersList();
+            updateBroadcastSelectedBadge();
+        }
+
+        function onBroadcastSearchInput(val) {
+            clearTimeout(broadcastSearchDebounce);
+            broadcastSearchDebounce = setTimeout(() => {
+                broadcastSearchQuery = (val || '').trim();
+                loadBroadcastClientsPage(1);
+            }, 300);
+        }
+
+        function changeBroadcastPage(delta) {
+            const targetPage = broadcastCurrentPage + delta;
+            if (targetPage >= 1 && targetPage <= broadcastTotalPages) {
+                loadBroadcastClientsPage(targetPage);
+            }
+        }
+
+        function updateBroadcastPaginationUI() {
+            const pageInfo = document.getElementById('broadcastPageInfo');
+            const prevBtn = document.getElementById('broadcastPrevBtn');
+            const nextBtn = document.getElementById('broadcastNextBtn');
+
+            if (pageInfo) {
+                pageInfo.textContent = `பக்கம் ${broadcastCurrentPage} / ${broadcastTotalPages} (மொத்தம்: ${broadcastTotalClients})`;
+            }
+            if (prevBtn) {
+                prevBtn.disabled = (broadcastCurrentPage <= 1);
+            }
+            if (nextBtn) {
+                nextBtn.disabled = (broadcastCurrentPage >= broadcastTotalPages);
+            }
+        }
+
+        // Backward-compatible aliases
+        function filterBroadcastUsers() {
+            const q = (document.getElementById('broadcastUserSearch')?.value || '').trim();
+            onBroadcastSearchInput(q);
         }
 
         function selectAllBroadcastClients(select) {
-            document.querySelectorAll('.broadcast-user-chk').forEach(chk => {
-                chk.checked = select;
-            });
+            selectCurrentBroadcastPageClients(select);
+        }
+
+        function loadBroadcastClientsList() {
+            loadBroadcastClientsPage(broadcastCurrentPage);
         }
 
         function applyQuickTemplate(type) {
@@ -3914,7 +4021,7 @@
             let selectedUserIds = [];
 
             if (!allClients) {
-                selectedUserIds = Array.from(document.querySelectorAll('.broadcast-user-chk:checked')).map(el => el.value);
+                selectedUserIds = Array.from(selectedBroadcastClientIds);
                 if (selectedUserIds.length === 0) {
                     alert('குறைந்தது ஒரு வாடிக்கையாளரையாவது தேர்ந்தெடுக்கவும்!');
                     return;
@@ -4003,8 +4110,8 @@
 
         // Export WhatsApp Broadcast CSV
         function exportWhatsAppBroadcastCSV() {
-            socket.emit('admin-get-users', { role: 'client', limit: 5000 }, (res) => {
-                const users = (res && res.users) ? res.users : broadcastClientsCache;
+            socket.emit('get-all-users', { role: 'client', limit: 5000 }, (res) => {
+                const users = (res && res.users) ? res.users : broadcastCurrentPageUsers;
                 if (!users || users.length === 0) {
                     alert('No clients available to export');
                     return;
