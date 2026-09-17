@@ -741,6 +741,11 @@
                         class="bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-2xl font-bold text-xs flex items-center gap-2 shadow-sm transition-all">
                         <i class="fab fa-whatsapp text-emerald-600 text-sm"></i> Export WA List
                     </button>
+                    <!-- Header Quick SEND Button -->
+                    <button onclick="startOmnichannelBroadcast()" title="Send Broadcast Immediately"
+                        class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black px-5 py-2.5 rounded-2xl text-xs flex items-center gap-2 shadow-lg shadow-emerald-200/80 transition-all active:scale-95 cursor-pointer uppercase tracking-wider">
+                        <i class="fas fa-paper-plane animate-bounce"></i> SEND BROADCAST
+                    </button>
                 </div>
             </header>
 
@@ -947,7 +952,7 @@
                             <button id="btnDispatchBroadcast" onclick="startOmnichannelBroadcast()"
                                 class="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:via-teal-700 hover:to-emerald-800 text-white font-black py-5 px-6 rounded-2xl shadow-xl shadow-emerald-200/80 hover:shadow-2xl active:scale-[0.99] transition-all uppercase tracking-wider text-sm sm:text-base flex items-center justify-center gap-3 border-2 border-emerald-400/40 cursor-pointer">
                                 <i class="fas fa-paper-plane text-xl animate-bounce"></i>
-                                <span id="dispatchBtnText">அனைவர்க்கும் ஒரே நேரத்தில் அனுப்பு (SUBMIT BROADCAST)</span>
+                                <span id="dispatchBtnText">🚀 SEND BROADCAST NOW (அனைவருக்கும் அனுப்பு)</span>
                             </button>
                             <p id="dispatchBtnHint" class="text-center text-[11px] text-slate-500 font-bold mt-2.5">
                                 <i class="fas fa-info-circle mr-1 text-brand-green"></i> பதிவு செய்துள்ள அனைத்து வாடிக்கையாளர்களுக்கும் மெசேஜ் செல்லும்
@@ -3843,11 +3848,11 @@
             const btnHint = document.getElementById('dispatchBtnHint');
 
             if (isAll) {
-                if (btnText) btnText.textContent = 'அனைவர்க்கும் ஒரே நேரத்தில் அனுப்பு (SUBMIT BROADCAST)';
+                if (btnText) btnText.textContent = '🚀 SEND BROADCAST NOW (அனைவருக்கும் அனுப்பு)';
                 if (btnHint) btnHint.innerHTML = '<i class="fas fa-info-circle mr-1 text-brand-green"></i> பதிவு செய்துள்ள அனைத்து வாடிக்கையாளர்களுக்கும் மெசேஜ் செல்லும்';
             } else {
                 const count = selectedBroadcastClientIds.size;
-                if (btnText) btnText.textContent = `தேர்ந்தெடுத்த ${count} நபர்களுக்கு அனுப்பு (SUBMIT BROADCAST)`;
+                if (btnText) btnText.textContent = `🚀 SEND TO ${count} CLIENTS (தேர்ந்தெடுத்த ${count} நபர்களுக்கு அனுப்பு)`;
                 if (btnHint) btnHint.innerHTML = `<i class="fas fa-users-check mr-1 text-brand-green"></i> நீங்கள் தேர்வு செய்துள்ள <b>${count}</b> வாடிக்கையாளர்களுக்கு மட்டுமே மெசேஜ் செல்லும்`;
             }
         }
