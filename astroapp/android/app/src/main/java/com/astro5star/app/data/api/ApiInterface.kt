@@ -134,7 +134,7 @@ interface ApiInterface {
     suspend fun getFavorites(@retrofit2.http.Path("userId") userId: String): Response<com.google.gson.JsonObject>
 
     @retrofit2.http.GET("api/payment/recharge-packs")
-    suspend fun getRechargePacks(): Response<com.google.gson.JsonObject>
+    suspend fun getRechargePacks(@retrofit2.http.Query("currency") currency: String? = null): Response<com.google.gson.JsonObject>
 
     @POST("api/logs/ingest")
     suspend fun ingestLogs(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>

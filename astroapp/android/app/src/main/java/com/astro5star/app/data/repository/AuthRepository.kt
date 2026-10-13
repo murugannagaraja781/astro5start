@@ -8,9 +8,9 @@ import retrofit2.Response
 
 class AuthRepository {
 
-    suspend fun sendOtp(phone: String): Result<String> {
+    suspend fun sendOtp(phone: String, countryCode: String = "+91"): Result<String> {
         return try {
-            val response = ApiClient.api.sendOtp(SendOtpRequest(phone))
+            val response = ApiClient.api.sendOtp(SendOtpRequest(phone, countryCode))
             if (response.isSuccessful && response.body()?.get("ok")?.asBoolean == true) {
                 Result.success("OTP Sent")
             } else {
@@ -26,9 +26,9 @@ class AuthRepository {
         }
     }
 
-    suspend fun verifyOtp(phone: String, otp: String, referralCode: String? = null): Result<AuthResponse> {
+    suspend fun verifyOtp(phone: String, otp: String, referralCode: String? = null, countryCode: String = "+91"): Result<AuthResponse> {
         return try {
-            val response = ApiClient.api.verifyOtp(VerifyOtpRequest(phone, otp, referralCode))
+            val response = ApiClient.api.verifyOtp(VerifyOtpRequest(phone, countryCode, otp, referralCode))
             if (response.isSuccessful && response.body()?.ok == true) {
                 Result.success(response.body()!!)
             } else {

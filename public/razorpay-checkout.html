@@ -299,10 +299,10 @@
 
         <!-- Amount Input -->
         <div class="input-card">
-            <label>Enter Recharge Amount (₹)</label>
-            <input type="number" id="amountInput" placeholder="Enter amount in ₹" min="1" step="1"
+            <label id="amountLabel">Enter Recharge Amount (₹)</label>
+            <input type="number" id="amountInput" placeholder="Enter amount in ₹" min="1" step="any"
                 oninput="updateDisplay()">
-            <div class="quick-amounts">
+            <div class="quick-amounts" id="quickAmountsContainer">
                 <button class="quick-btn" onclick="setAmount(100)">₹100</button>
                 <button class="quick-btn" onclick="setAmount(250)">₹250</button>
                 <button class="quick-btn" onclick="setAmount(500)">₹500</button>
@@ -331,16 +331,61 @@
     </div>
 
     <script>
-        // Read userId from URL params (passed by mobile app / recharge page)
+        // Read params from URL
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId') || urlParams.get('uid') || '';
         const presetAmount = urlParams.get('amount') || '';
+        let currentCurrency = urlParams.get('currency') || 'INR';
+        let currencySymbol = currentCurrency === 'USD' ? '$' : '₹';
+
+        // Auto-fetch user currency if user profile is known
+        if (userId && !urlParams.has('currency')) {
+            fetch(`/api/user/${userId}`)
+                .then(r => r.json())
+                .then(u => {
+                    if (u.ok && u.currency) {
+                        currentCurrency = u.currency;
+                        currencySymbol = u.currencySymbol || (currentCurrency === 'USD' ? '$' : '₹');
+                        renderCurrencyUI();
+                        updateDisplay();
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function renderCurrencyUI() {
+            const isUsd = currentCurrency === 'USD';
+            currencySymbol = isUsd ? '$' : '₹';
+            document.getElementById('amountLabel').textContent = `Enter Recharge Amount (${currencySymbol})`;
+            document.getElementById('amountInput').placeholder = `Enter amount in ${currencySymbol}`;
+
+            const container = document.getElementById('quickAmountsContainer');
+            if (isUsd) {
+                container.innerHTML = `
+                    <button class="quick-btn" onclick="setAmount(5)">$5</button>
+                    <button class="quick-btn" onclick="setAmount(10)">$10</button>
+                    <button class="quick-btn" onclick="setAmount(25)">$25</button>
+                    <button class="quick-btn" onclick="setAmount(50)">$50</button>
+                    <button class="quick-btn" onclick="setAmount(100)">$100</button>
+                `;
+            } else {
+                container.innerHTML = `
+                    <button class="quick-btn" onclick="setAmount(100)">₹100</button>
+                    <button class="quick-btn" onclick="setAmount(250)">₹250</button>
+                    <button class="quick-btn" onclick="setAmount(500)">₹500</button>
+                    <button class="quick-btn" onclick="setAmount(1000)">₹1000</button>
+                    <button class="quick-btn" onclick="setAmount(2000)">₹2000</button>
+                    <button class="quick-btn" onclick="setAmount(5000)">₹5000</button>
+                `;
+            }
+        }
+
+        renderCurrencyUI();
 
         // Set user ID
         if (userId) {
             document.getElementById('userIdInput').value = userId;
         } else {
-            // Show manual input if no userId in URL
             const card = document.getElementById('userIdCard');
             card.style.display = 'block';
             card.querySelector('input').removeAttribute('readonly');
@@ -356,19 +401,23 @@
         function setAmount(val) {
             document.getElementById('amountInput').value = val;
             updateDisplay();
-
-            // Highlight selected
             document.querySelectorAll('.quick-btn').forEach(btn => btn.classList.remove('selected'));
-            event.target.classList.add('selected');
+            if (event && event.target) event.target.classList.add('selected');
         }
 
         function updateDisplay() {
             const base = parseFloat(document.getElementById('amountInput').value) || 0;
-            const gst = base * 0.18;
+            const isUsd = currentCurrency === 'USD';
+            const gst = isUsd ? 0 : base * 0.18;
             const total = base + gst;
 
-            document.getElementById('totalDisplay').textContent = '₹' + total.toFixed(2);
-            document.getElementById('gstNote').textContent = `₹${base} + ₹${gst.toFixed(2)} GST`;
+            if (isUsd) {
+                document.getElementById('totalDisplay').textContent = '$' + total.toFixed(2);
+                document.getElementById('gstNote').textContent = 'International Payment (0% Tax)';
+            } else {
+                document.getElementById('totalDisplay').textContent = '₹' + total.toFixed(2);
+                document.getElementById('gstNote').textContent = `₹${base} + ₹${gst.toFixed(2)} GST`;
+            }
             document.getElementById('payButton').disabled = base <= 0;
         }
 
@@ -406,11 +455,11 @@
             document.getElementById('payButton').disabled = true;
 
             try {
-                // Step 1: Create order on backend
+                // Step 1: Create order on backend with user currency
                 const orderRes = await fetch('/api/payment/razorpay/create-order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount, userId: uid })
+                    body: JSON.stringify({ amount, userId: uid, currency: currentCurrency })
                 });
 
                 const orderData = await orderRes.json();
@@ -459,11 +508,16 @@
                             const verifyData = await verifyRes.json();
 
                             if (verifyData.ok) {
-                                showStatus('success', `Payment successful! ₹${verifyData.credited} credited to wallet.`);
+                                const sym = verifyData.currencySymbol || (verifyData.currency === 'USD' ? '$' : '₹');
+                                showStatus('success', `Payment successful! ${sym}${verifyData.credited} credited to wallet.`);
+
+                                if (window.AndroidBridge && window.AndroidBridge.onPaymentComplete) {
+                                    try { window.AndroidBridge.onPaymentComplete('success'); } catch (e) { console.log(e); }
+                                }
 
                                 // Redirect to success page immediately with short visual confirmation
                                 setTimeout(() => {
-                                    window.location.href = `/payment-success?amount=${verifyData.credited}&txnId=${response.razorpay_payment_id}`;
+                                    window.location.href = `/payment-success?amount=${verifyData.credited}&currency=${verifyData.currency || currentCurrency}&txnId=${response.razorpay_payment_id}`;
                                 }, 200);
                             } else {
                                 showStatus('error', verifyData.error || 'Payment verification failed');

@@ -1,4 +1,5 @@
 // controllers/userController.js
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Session = require('../models/Session');
 const { formatImageUrl } = require('../utils/formatImage');
@@ -10,6 +11,17 @@ const CallRequest = require('../models/CallRequest');
 const { sendMsg91 } = require('../services/otpService');
 const { otpStore } = require('../services/sharedState');
 const Notification = require('../models/Notification');
+const CountryConfig = require('../models/CountryConfig');
+const {
+    normalizePhoneNumber,
+    validatePhoneNumber,
+    getCurrencyInfoByCode,
+    convertInrToTarget,
+    formatPrice,
+    getRechargePackages,
+    COUNTRY_CONFIG,
+    DEFAULT_RATES
+} = require('../utils/currencyHelper');
 
 const getUserProfile = async (req, res) => {
     try {
@@ -25,6 +37,11 @@ const getUserProfile = async (req, res) => {
             userId: user.userId,
             name: user.name,
             phone: user.phone,
+            fullPhone: user.fullPhone || (user.phone ? (user.phone.startsWith('+') ? user.phone : `+91${user.phone}`) : ''),
+            countryCode: user.countryCode || '+91',
+            country: user.country || 'IN',
+            currency: user.currency || 'INR',
+            currencySymbol: user.currencySymbol || '₹',
             role: user.role,
             walletBalance: user.walletBalance,
             superWalletBalance: user.superWalletBalance || 0,
@@ -59,6 +76,7 @@ const getAstrologers = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
         const skip = (page - 1) * limit;
+        const targetCurrency = req.query.currency || 'INR';
 
         // PERFORMANCE: Use lean() and only select necessary fields
         const astros = await User.find({ 
@@ -76,14 +94,35 @@ const getAstrologers = async (req, res) => {
         const currentUserId = req.query.currentUserId || null;
         let userFavorites = [];
         if (currentUserId) {
-            const user = await User.findOne({ userId: currentUserId }).select('favorites').lean();
+            const user = await User.findOne({ userId: currentUserId }).select('favorites currency').lean();
             userFavorites = user?.favorites || [];
         }
 
         const formatted = astros.map(a => {
             const isOnlineCalculated = !!(a.isOnline || a.isAudioOnline || a.isChatOnline || a.isVideoOnline);
+            const rawPrice = a.price || 20;
+            const rawChatPrice = a.chatPrice || 10;
+            const rawAudioPrice = a.audioPrice || 20;
+            const rawVideoPrice = a.videoPrice || 30;
+            const rawUnlimitedPrice = a.unlimitedPrice || 299;
+
+            const convertedPrice = convertInrToTarget(rawPrice, targetCurrency);
+            const convertedChatPrice = convertInrToTarget(rawChatPrice, targetCurrency);
+            const convertedAudioPrice = convertInrToTarget(rawAudioPrice, targetCurrency);
+            const convertedVideoPrice = convertInrToTarget(rawVideoPrice, targetCurrency);
+            const convertedUnlimitedPrice = convertInrToTarget(rawUnlimitedPrice, targetCurrency);
+
             return {
                 ...a,
+                rawPriceInr: rawPrice,
+                price: targetCurrency !== 'INR' ? convertedPrice : rawPrice,
+                chatPrice: targetCurrency !== 'INR' ? convertedChatPrice : rawChatPrice,
+                audioPrice: targetCurrency !== 'INR' ? convertedAudioPrice : rawAudioPrice,
+                videoPrice: targetCurrency !== 'INR' ? convertedVideoPrice : rawVideoPrice,
+                unlimitedPrice: targetCurrency !== 'INR' ? convertedUnlimitedPrice : rawUnlimitedPrice,
+                displayPrice: convertedPrice,
+                displayCurrency: targetCurrency,
+                displaySymbol: targetCurrency === 'USD' ? '$' : '₹',
                 isOnline: isOnlineCalculated,
                 isFavorite: userFavorites.includes(a.userId),
                 image: formatImageUrl(a.image, a.name),
@@ -95,6 +134,7 @@ const getAstrologers = async (req, res) => {
 
         res.json({
             ok: true,
+            currency: targetCurrency,
             astrologers: formatted,
             pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
         });
@@ -143,26 +183,42 @@ const getSessionHistory = async (req, res) => {
             
             const cName = client ? client.name : 'User';
             const aName = astro ? astro.name : 'Astrologer';
-            const durationSec = s.duration || 0;
-            const totalCharged = s.totalCharged || 0;
-            const totalEarned = s.totalEarned || 0;
-            const adminProfit = totalCharged - totalEarned;
-
+            let durationSec = s.duration || 0;
+            // Duration in DB is stored in milliseconds (e.g. 754000 ms = 754 sec = 12m 34s)
+            if (durationSec >= 1000) {
+                durationSec = Math.round(durationSec / 1000);
+            }
             const minutes = Math.floor(durationSec / 60);
             const seconds = durationSec % 60;
             const durationFormatted = `${minutes}m ${seconds}s`;
 
-            return {
+            const sessionObj = {
                 ...s, // Includes recordingUrl from DB
                 recordingUrl: s.recordingUrl ? formatImageUrl(s.recordingUrl, 'Recording') : null,
                 clientName: cName,
                 astrologerName: aName,
-                totalAmount: totalCharged,
-                astroProfit: totalEarned,
-                adminProfit: adminProfit,
-                durationFormatted: durationFormatted,
-                readableSummary: `${s.type === 'chat' ? 'Chat' : 'Call'}: ${aName} (${durationFormatted}) | Charge: ₹${totalCharged.toFixed(2)}`
+                durationFormatted: durationFormatted
             };
+
+            if (isCallerAstrologer) {
+                // Astrologer view: Never expose admin profit or client charge
+                sessionObj.totalAmount = totalEarned;
+                sessionObj.totalEarned = totalEarned;
+                sessionObj.astroProfit = totalEarned;
+                delete sessionObj.totalCharged;
+                delete sessionObj.adminProfit;
+                sessionObj.readableSummary = `${s.type === 'chat' ? 'Chat' : 'Call'}: ${cName} (${durationFormatted}) | Earned: ₹${totalEarned.toFixed(2)}`;
+            } else {
+                // Client view: Client sees what they paid
+                sessionObj.totalAmount = totalCharged;
+                sessionObj.totalCharged = totalCharged;
+                delete sessionObj.astroProfit;
+                delete sessionObj.adminProfit;
+                delete sessionObj.totalEarned;
+                sessionObj.readableSummary = `${s.type === 'chat' ? 'Chat' : 'Call'}: ${aName} (${durationFormatted}) | Paid: ₹${totalCharged.toFixed(2)}`;
+            }
+
+            return sessionObj;
         });
 
         res.json({ ok: true, sessions: populatedSessions });
@@ -224,32 +280,73 @@ const saveUserIntake = async (req, res) => {
 
 const sendOtp = async (req, res) => {
     try {
-        const { phone } = req.body;
+        const { phone, countryCode, isoCode } = req.body;
         if (!phone) return res.status(400).json({ ok: false, error: 'Phone is required' });
 
-        // Clean phone: Remove all non-digits and normalize to 10 digits
-        let cleanPhone = phone.replace(/\D/g, '');
-        if (cleanPhone.length > 10) {
-            if (cleanPhone.startsWith('91')) cleanPhone = cleanPhone.slice(2);
-            else if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.slice(1);
+        const validation = validatePhoneNumber(phone, countryCode, isoCode);
+        if (!validation) return res.status(400).json({ ok: false, error: 'Invalid phone number' });
+
+        const { cleanPhone, fullPhone, country, currency, symbol } = validation;
+
+        // Check if country is enabled in CountryConfig
+        const targetIso = (isoCode || country || '').toUpperCase();
+        const countryRecord = await CountryConfig.findOne({
+            $or: [
+                { isoCode: targetIso },
+                { dialingCode: validation.countryCode }
+            ]
+        }).lean();
+
+        if (countryRecord && !countryRecord.enabled) {
+            return res.status(403).json({
+                ok: false,
+                error: `${countryRecord.countryName || 'Selected country'} is currently not enabled for phone login`
+            });
         }
 
-        // Test numbers
-        if (['8000000001', '9000000001', '9876543210'].includes(cleanPhone)) {
-            return res.json({ ok: true, message: 'OTP Sent (Test Account)' });
+        // Test numbers (India & USA test numbers supported)
+        const isTestPhone = ['8000000001', '9000000001', '9876543210'].includes(cleanPhone) ||
+                            fullPhone === '+18000000001' || fullPhone === '+12125551234' ||
+                            cleanPhone === '8000000001' || cleanPhone === '2125551234';
+
+        if (isTestPhone) {
+            return res.json({ 
+                ok: true, 
+                message: 'OTP Sent (Test Account)',
+                countryCode: validation.countryCode,
+                currency: validation.currency,
+                currencySymbol: validation.symbol,
+                fullPhone: validation.fullPhone
+            });
+        }
+
+        if (!validation.isValid) {
+            return res.status(400).json({
+                ok: false,
+                error: validation.error || `Please enter a valid phone number for ${countryRecord?.countryName || validation.country || 'selected country'}`
+            });
         }
 
         const otp = Math.floor(1000 + Math.random() * 9000).toString();
+        otpStore.set(fullPhone, { otp, expires: Date.now() + 5 * 60 * 1000 });
         otpStore.set(cleanPhone, { otp, expires: Date.now() + 5 * 60 * 1000 });
 
-        console.log(`[OTP] Generated for ${cleanPhone}: ${otp}`);
+        console.log(`[OTP] Generated for ${fullPhone} (${validation.country}): ${otp}`);
 
         // Send via MSG91
         if (process.env.MSG91_AUTH_KEY) {
-            sendMsg91(cleanPhone, otp);
+            const msg91Recipient = fullPhone.replace('+', '');
+            sendMsg91(msg91Recipient, otp);
         }
 
-        res.json({ ok: true, message: 'OTP Sent' });
+        res.json({ 
+            ok: true, 
+            message: 'OTP Sent',
+            countryCode: validation.countryCode,
+            currency: validation.currency,
+            currencySymbol: validation.symbol,
+            fullPhone: validation.fullPhone
+        });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
     }
@@ -257,32 +354,57 @@ const sendOtp = async (req, res) => {
 
 const verifyOtp = async (req, res) => {
     try {
-        const { phone, otp, referralCode } = req.body;
+        const { phone, countryCode, isoCode, otp, referralCode } = req.body;
         if (!phone || !otp) return res.status(400).json({ ok: false, error: 'Phone and OTP are required' });
 
-        let cleanPhone = phone.replace(/\D/g, '');
-        if (cleanPhone.length > 10) {
-            if (cleanPhone.startsWith('91')) cleanPhone = cleanPhone.slice(2);
-            else if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.slice(1);
+        const validation = validatePhoneNumber(phone, countryCode, isoCode);
+        if (!validation) return res.status(400).json({ ok: false, error: 'Invalid phone format' });
+
+        const { cleanPhone, fullPhone, country, currency, symbol } = validation;
+
+        // Check if country is enabled in CountryConfig
+        const targetIso = (isoCode || country || '').toUpperCase();
+        const countryRecord = await CountryConfig.findOne({
+            $or: [
+                { isoCode: targetIso },
+                { dialingCode: validation.countryCode }
+            ]
+        }).lean();
+
+        if (countryRecord && !countryRecord.enabled) {
+            return res.status(403).json({
+                ok: false,
+                error: `${countryRecord.countryName || 'Selected country'} is currently not enabled for phone login`
+            });
         }
+
         let isValid = false;
 
         // Test mode
-        if (cleanPhone === '8000000001' && otp === '0101') isValid = true;
-        if (cleanPhone === '9000000001' && otp === '0101') isValid = true;
-        if (cleanPhone === '9876543210' && otp === '1369') isValid = true;
+        if ((cleanPhone === '8000000001' || fullPhone === '+18000000001') && otp === '0101') isValid = true;
+        if ((cleanPhone === '9000000001') && otp === '0101') isValid = true;
+        if ((cleanPhone === '9876543210') && otp === '1369') isValid = true;
+        if ((cleanPhone === '2125551234' || fullPhone === '+12125551234') && otp === '0101') isValid = true;
 
         if (!isValid) {
-            const entry = otpStore.get(cleanPhone);
+            const entry = otpStore.get(fullPhone) || otpStore.get(cleanPhone);
             if (entry && entry.otp === otp && entry.expires > Date.now()) {
                 isValid = true;
+                otpStore.delete(fullPhone);
                 otpStore.delete(cleanPhone);
             }
         }
 
         if (!isValid) return res.status(400).json({ ok: false, error: 'Invalid or expired OTP' });
 
-        let user = await User.findOne({ phone: cleanPhone });
+        // Lookup existing user by fullPhone, cleanPhone, or raw phone
+        let user = await User.findOne({
+            $or: [
+                { phone: fullPhone },
+                { phone: cleanPhone },
+                { fullPhone: fullPhone }
+            ]
+        });
         let isNewSignup = false;
 
         if (!user) {
@@ -292,7 +414,11 @@ const verifyOtp = async (req, res) => {
             const { REFERRAL_CONFIG, SYSTEM_RULES } = require('../services/sharedState');
             let initialBonus = 0;
             if (SYSTEM_RULES && SYSTEM_RULES.ENABLE_WELCOME_BONUS !== false) {
-                initialBonus = REFERRAL_CONFIG.INITIAL_BONUS_AMOUNT || 108;
+                if (currency === 'USD') {
+                    initialBonus = 1.50; // $1.50 for USD users
+                } else {
+                    initialBonus = REFERRAL_CONFIG.INITIAL_BONUS_AMOUNT || 108;
+                }
             }
             let referredBy = null;
 
@@ -300,8 +426,7 @@ const verifyOtp = async (req, res) => {
                 const referrer = await User.findOne({ referralCode: referralCode.toUpperCase() });
                 if (referrer) {
                     referredBy = referrer.userId;
-                    // User A gets 50 Bonus immediately when User B (this user) signs up with OTP
-                    const rewardAmount = REFERRAL_CONFIG.REFERRER_REWARD || 50;
+                    const rewardAmount = referrer.currency === 'USD' ? 0.60 : (REFERRAL_CONFIG.REFERRER_REWARD || 50);
                     await User.updateOne(
                         { userId: referrer.userId },
                         { $inc: { superWalletBalance: rewardAmount, referralCount: 1 } }
@@ -309,18 +434,42 @@ const verifyOtp = async (req, res) => {
                 }
             }
 
+            // Stored phone:
+            // For Indian users, keep 10-digit cleanPhone for full backward compatibility.
+            // For International users, store full international number with + prefix.
+            const storedPhone = parsed.countryCode === '+91' ? cleanPhone : fullPhone;
+
             user = await User.create({
                 userId,
-                phone: cleanPhone,
+                phone: storedPhone,
+                fullPhone: fullPhone,
+                countryCode: parsed.countryCode,
+                country: country,
+                currency: currency,
+                currencySymbol: symbol,
                 role: cleanPhone === '9876543210' ? 'superadmin' : (cleanPhone === '8000000001' ? 'astrologer' : 'client'),
                 name: 'User ' + cleanPhone.slice(-4),
-                walletBalance: initialBonus, // Welcome bonus credited directly to main balance
+                walletBalance: initialBonus,
                 superWalletBalance: 0,
                 referredBy,
                 approvalStatus: cleanPhone === '8000000001' ? 'approved' : 'pending'
             });
             user.referralCode = await generateUniqueReferralCode(user.name);
             await user.save();
+        } else {
+            // Update currency / country if not present or changed
+            let needsSave = false;
+            if (!user.countryCode || user.countryCode !== parsed.countryCode) {
+                user.countryCode = parsed.countryCode;
+                user.country = country;
+                user.currency = currency;
+                user.currencySymbol = symbol;
+                user.fullPhone = fullPhone;
+                needsSave = true;
+            }
+            if (needsSave) {
+                await user.save();
+            }
         }
 
         if (user.role === 'astrologer') {
@@ -337,11 +486,33 @@ const verifyOtp = async (req, res) => {
             userId: user.userId,
             name: user.name,
             phone: user.phone,
+            fullPhone: user.fullPhone || fullPhone,
+            countryCode: user.countryCode || parsed.countryCode,
+            country: user.country || country,
+            currency: user.currency || currency,
+            currencySymbol: user.currencySymbol || symbol,
             role: user.role,
             walletBalance: user.walletBalance,
             superWalletBalance: user.superWalletBalance || 0,
             isNewUser: user.isNewUser,
             approvalStatus: user.approvalStatus
+        });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
+const getCurrencyConfig = async (req, res) => {
+    try {
+        const currency = req.query.currency || 'INR';
+        res.json({
+            ok: true,
+            supportedCountries: Object.entries(COUNTRY_CONFIG).map(([dialCode, cfg]) => ({
+                dialCode,
+                ...cfg
+            })),
+            exchangeRates: DEFAULT_RATES,
+            rechargePackages: getRechargePackages(currency)
         });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
@@ -431,14 +602,24 @@ const updateUserProfile = async (req, res) => {
         const user = await User.findOne({ userId });
         if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
 
+        const isAstrologer = user.role === 'astrologer';
         const data = req.body;
-        // Don't allow updating sensitive fields like balance or role via this basic endpoint
+
+        // Base fields allowed for profile editing
+        // NOTE: Rates & Pricing (chatPrice, audioPrice, videoPrice, unlimitedPrice) are strictly
+        // controlled by Admin and CANNOT be edited by astrologers or users here.
         const allowedUpdates = [
-            'name', 'realName', 'email', 'gender', 'dob', 'tob', 'pob', 
+            'email', 'gender', 'dob', 'tob', 'pob', 
             'cellNumber2', 'whatsAppNumber', 'address', 'aadharNumber', 'panNumber',
             'astrologyExperience', 'profession', 'bankDetails', 'upiId', 'upiNumber',
-            'chatPrice', 'audioPrice', 'videoPrice', 'unlimitedPrice', 'languages', 'skills'
+            'languages', 'skills'
         ];
+
+        // Name and realName (pseudonym/real name) are strictly admin-controlled for astrologers!
+        // Only regular clients are allowed to change their name.
+        if (!isAstrologer) {
+            allowedUpdates.push('name', 'realName');
+        }
 
         allowedUpdates.forEach(field => {
             if (data[field] !== undefined) {
@@ -446,7 +627,10 @@ const updateUserProfile = async (req, res) => {
             }
         });
 
-        if (data.name) user.name = data.name; // Display name sync
+        // Display name sync only for non-astrologers
+        if (!isAstrologer && data.name) {
+            user.name = data.name;
+        }
 
         await user.save();
         res.json({ ok: true, message: 'Profile updated successfully' });
@@ -529,9 +713,33 @@ const getCityTimezone = async (req, res) => {
 const getChatHistory = async (req, res) => {
     try {
         const { sessionId } = req.params;
-        const messages = await ChatMessage.find({ sessionId }).sort({ createdAt: 1 });
+        if (!sessionId) {
+            return res.json({ ok: true, messages: [] });
+        }
+
+        const sessionIdsToSearch = new Set([sessionId]);
+
+        try {
+            const query = [{ sessionId }];
+            if (mongoose.isValidObjectId(sessionId)) {
+                query.push({ _id: sessionId });
+            }
+            const session = await Session.findOne({ $or: query }).lean();
+            if (session) {
+                if (session.sessionId) sessionIdsToSearch.add(session.sessionId);
+                if (session._id) sessionIdsToSearch.add(session._id.toString());
+            }
+        } catch (e) {
+            // ignore lookup error
+        }
+
+        const messages = await ChatMessage.find({
+            sessionId: { $in: Array.from(sessionIdsToSearch) }
+        }).sort({ timestamp: 1, createdAt: 1 }).lean();
+
         res.json({ ok: true, messages });
     } catch (err) {
+        console.error('[getChatHistory Error]', err);
         res.status(500).json({ ok: false, error: err.message });
     }
 };
@@ -729,6 +937,101 @@ const getSessionStatus = async (req, res) => {
     }
 };
 
+const getAstrologerEarnings = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) return res.status(400).json({ ok: false, error: 'UserId is required' });
+
+        const astrologer = await User.findOne({ userId }).select('name walletBalance totalEarnings role').lean();
+        if (!astrologer) return res.status(404).json({ ok: false, error: 'User not found' });
+
+        // Query all ended or completed sessions where user was astrologer
+        const sessions = await Session.find({
+            $or: [{ astrologerId: userId }, { toUserId: userId }],
+            status: { $in: ['ended', 'completed'] }
+        })
+        .sort({ actualBillingStart: -1, startTime: -1, createdAt: -1 })
+        .limit(100)
+        .lean();
+
+        // Get aggregate true total sessions and total earned across ALL sessions
+        const agg = await Session.aggregate([
+            { $match: { $or: [{ astrologerId: userId }, { toUserId: userId }], status: { $in: ['ended', 'completed'] } } },
+            { $group: { _id: null, totalEarned: { $sum: '$totalEarned' }, count: { $sum: 1 } } }
+        ]);
+        const totalSessionsCount = agg[0]?.count || sessions.length;
+        const totalEarnedAllSessions = agg[0]?.totalEarned || 0;
+        const finalTotalEarnings = Math.max(astrologer.totalEarnings || 0, totalEarnedAllSessions, astrologer.walletBalance || 0);
+
+        // Get unique client IDs
+        const clientIds = new Set();
+        sessions.forEach(s => {
+            const cId = s.clientId || s.fromUserId;
+            if (cId) clientIds.add(cId);
+        });
+
+        const clientDocs = await User.find({ userId: { $in: Array.from(clientIds) } })
+            .select('userId name image')
+            .lean();
+        const clientMap = {};
+        clientDocs.forEach(c => { clientMap[c.userId] = c; });
+
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+        let todayEarnings = 0;
+        let monthEarnings = 0;
+
+        const sessionList = sessions.map(s => {
+            const client = clientMap[s.clientId || s.fromUserId];
+            const earned = s.totalEarned || 0;
+            let durationSec = s.duration || 0;
+            if (durationSec >= 1000) {
+                durationSec = Math.round(durationSec / 1000);
+            }
+            const minutes = Math.floor(durationSec / 60);
+            const seconds = durationSec % 60;
+            const durationFormatted = `${minutes}m ${seconds}s`;
+            const sessionTime = s.actualBillingStart || s.startTime || (s.createdAt ? new Date(s.createdAt).getTime() : 0);
+
+            if (sessionTime >= startOfToday) {
+                todayEarnings += earned;
+            }
+            if (sessionTime >= startOfMonth) {
+                monthEarnings += earned;
+            }
+
+            return {
+                sessionId: s.sessionId,
+                clientName: client ? client.name : 'Client',
+                clientImage: client?.image ? formatImageUrl(client.image, client.name) : null,
+                type: s.type || 'call',
+                duration: durationSec,
+                durationFormatted,
+                totalEarned: Number(earned.toFixed(2)),
+                time: sessionTime,
+                date: sessionTime ? new Date(sessionTime).toISOString() : new Date().toISOString()
+            };
+        });
+
+        res.json({
+            ok: true,
+            summary: {
+                walletBalance: Number((astrologer.walletBalance || 0).toFixed(2)),
+                todayEarnings: Number(todayEarnings.toFixed(2)),
+                monthEarnings: Number(monthEarnings.toFixed(2)),
+                totalEarnings: Number(finalTotalEarnings.toFixed(2)),
+                totalSessions: totalSessionsCount
+            },
+            sessions: sessionList
+        });
+    } catch (err) {
+        console.error('[Astrologer Earnings Error]', err);
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
 module.exports = {
     getUserProfile,
     getAstrologers,
@@ -750,5 +1053,7 @@ module.exports = {
     initiateCall,
     applyReferral,
     uploadRecording,
-    uploadChatMedia
+    uploadChatMedia,
+    getAstrologerEarnings,
+    getCurrencyConfig
 };

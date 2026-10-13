@@ -29,6 +29,9 @@ import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.ui.theme.CosmicAppTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import android.content.Intent
+import androidx.compose.foundation.clickable
+import com.astro5star.app.ui.history.ChatHistoryActivity
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -40,10 +43,11 @@ class AstrologerHistoryActivity : ComponentActivity() {
         val tokenManager = TokenManager(this)
         val session = tokenManager.getUserSession()
         val userId = session?.userId ?: ""
+        val initialTab = intent.getIntExtra("initialTab", 0)
 
         setContent {
             CosmicAppTheme {
-                HistoryScreen(userId = userId, onBack = { finish() })
+                HistoryScreen(userId = userId, initialTab = initialTab, onBack = { finish() })
             }
         }
     }
@@ -51,14 +55,14 @@ class AstrologerHistoryActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HistoryScreen(userId: String, onBack: () -> Unit) {
+fun HistoryScreen(userId: String, initialTab: Int = 0, onBack: () -> Unit) {
     val context = LocalContext.current
     var sessions by remember { mutableStateOf<List<SessionHistoryItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     
     // Tab State
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by remember { mutableIntStateOf(initialTab) }
     val tabs = listOf("Calling History", "Chat History")
 
     LaunchedEffect(userId) {
@@ -82,16 +86,23 @@ fun HistoryScreen(userId: String, onBack: () -> Unit) {
 
                             val obj = array.getJSONObject(i)
                             val isAstro = myRole == "astrologer"
+                            val sId = if (obj.has("sessionId") && obj.optString("sessionId").isNotEmpty()) obj.optString("sessionId") else obj.optString("_id", "Unknown")
+                            val cName = if (isAstro) {
+                                val n = obj.optString("clientName", "")
+                                if (n.isNotEmpty() && n != "Unknown") n else obj.optString("callerName", "Client")
+                            } else {
+                                obj.optString("astrologerName", "Astrologer")
+                            }
                             list.add(
                                 SessionHistoryItem(
-                                    id = obj.optString("sessionId", "Unknown"),
-                                    partnerName = if (isAstro) obj.optString("clientName", "Unknown") else obj.optString("astrologerName", "Unknown"),
+                                    id = sId,
+                                    partnerName = cName,
                                     type = obj.optString("type", "call"),
                                     startTime = if (obj.has("actualBillingStart") && obj.optLong("actualBillingStart") > 0) obj.optLong("actualBillingStart") else obj.optLong("startTime", System.currentTimeMillis()),
                                     endTime = if (obj.has("sessionEndAt") && obj.optLong("sessionEndAt") > 0) obj.optLong("sessionEndAt") else obj.optLong("endTime", System.currentTimeMillis()),
                                     duration = obj.optInt("duration", 0),
-                                    amount = if (isAstro) obj.optDouble("totalEarned", 0.0) else obj.optDouble("totalCharged", 0.0),
-                                    isEarned = isAstro,
+                                    amount = obj.optDouble("totalEarned", obj.optDouble("astroProfit", 0.0)),
+                                    isEarned = true,
                                     status = if (obj.optBoolean("success", true)) "Completed" else "CANCELLED"
                                 )
                             )
@@ -199,6 +210,17 @@ fun HistoryScreen(userId: String, onBack: () -> Unit) {
 
 @Composable
 fun HistoryDetailedCard(item: SessionHistoryItem) {
+    val context = LocalContext.current
+    val isChat = item.type.equals("chat", ignoreCase = true)
+
+    val openChat = {
+        val intent = Intent(context, ChatHistoryActivity::class.java).apply {
+            putExtra("sessionId", item.id)
+            putExtra("partnerName", item.partnerName)
+        }
+        context.startActivity(intent)
+    }
+
     val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
     val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
     val startStr = if (item.startTime > 0) "${dateFormat.format(Date(item.startTime))} (${timeFormat.format(Date(item.startTime))} - ${timeFormat.format(Date(item.endTime))})" else "N/A"
@@ -207,7 +229,11 @@ fun HistoryDetailedCard(item: SessionHistoryItem) {
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (isChat) Modifier.clickable { openChat() } else Modifier
+            )
     ) {
         Column {
             // Header Row
@@ -225,11 +251,52 @@ fun HistoryDetailedCard(item: SessionHistoryItem) {
 
                 Spacer(modifier = Modifier.weight(1f))
                 
-                // Action Icons
-                Icon(Icons.Default.Assignment, contentDescription = "Notes", tint = Color(0xFFFF8A80), modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(12.dp))
-                Icon(Icons.Default.MoreVert, contentDescription = "More", tint = Color.Gray, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(12.dp))
+                // Action Icons on the side
+                if (isChat) {
+                    // Distinct Chat Icon button
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFFFFEBEE),
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clickable { openChat() }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Chat,
+                                contentDescription = "Open Chat Details",
+                                tint = Color(0xFFFF5722),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
+                IconButton(
+                    onClick = { if (isChat) openChat() },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Assignment,
+                        contentDescription = "Notes",
+                        tint = if (isChat) Color(0xFFFF5722) else Color(0xFFFF8A80),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                IconButton(
+                    onClick = { if (isChat) openChat() },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = "More",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(6.dp))
                 Icon(Icons.Default.FavoriteBorder, contentDescription = "Like", tint = Color.Gray, modifier = Modifier.size(20.dp))
             }
 
@@ -269,10 +336,48 @@ fun HistoryDetailedCard(item: SessionHistoryItem) {
                 val duraText = if (mins > 0) "${mins}m ${secs}s" else "${secs}s"
                 DetailRow("Duration", duraText)
                 
-                DetailRow("Amount", "₹ ${item.amount}")
+                DetailRow("Earned", "₹ ${item.amount}", valueColor = Color(0xFF2E7D32))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Bottom action banner for chat sessions
+            if (isChat) {
+                Divider(color = Color(0xFFEEEEEE))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFFFF3E0))
+                        .clickable { openChat() }
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Chat,
+                            contentDescription = null,
+                            tint = Color(0xFFE65100),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "முழு சாட் உரையாடலைக் காண்க (View Full Chat)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFE65100)
+                        )
+                    }
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = Color(0xFFE65100),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.height(4.dp))
+            }
         }
     }
 }

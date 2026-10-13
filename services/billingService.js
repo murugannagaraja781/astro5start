@@ -89,9 +89,13 @@ async function tickSessions(io) {
                 if (session.type === 'unlimited') {
                     remainingSeconds = 2400 - secondsElapsed;
                 } else {
-                    const price = session.pricePerMin || 10;
+                    let effectivePrice = session.pricePerMin || 10;
+                    if (client.currency === 'USD') {
+                        const { convertInrToTarget } = require('../utils/currencyHelper');
+                        effectivePrice = convertInrToTarget(effectivePrice, 'USD');
+                    }
                     const totalBalance = (client.walletBalance || 0) + (client.superWalletBalance || 0);
-                    remainingSeconds = Math.floor((totalBalance / price) * 60);
+                    remainingSeconds = Math.floor((totalBalance / effectivePrice) * 60);
                 }
 
                 const timerPayload = {
@@ -176,8 +180,13 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
 
         if (isUnlimited) {
             if (type === 'client_full_charge' && minuteIndex === 1) {
-                totalToClientDeduct = pricePerMin;
-                adminAmount = pricePerMin;
+                if (client.currency === 'USD') {
+                    const { convertInrToTarget } = require('../utils/currencyHelper');
+                    totalToClientDeduct = convertInrToTarget(pricePerMin, 'USD');
+                } else {
+                    totalToClientDeduct = pricePerMin;
+                }
+                adminAmount = totalToClientDeduct;
                 reason = `unlimited_${session.offerType || 'normal'}_full_upfront`;
             } else if (type === 'astro_share_payout') {
                 // RULE: 30% to Astrologer for all call/chat in UNLIMITED.
@@ -195,8 +204,13 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
         } else {
             // STANDARD LOGIC
             if (type === 'client_full_charge') {
-                totalToClientDeduct = pricePerMin;
-                adminAmount = pricePerMin;
+                if (client.currency === 'USD') {
+                    const { convertInrToTarget } = require('../utils/currencyHelper');
+                    totalToClientDeduct = convertInrToTarget(pricePerMin, 'USD');
+                } else {
+                    totalToClientDeduct = pricePerMin;
+                }
+                adminAmount = totalToClientDeduct;
                 reason = (minuteIndex === 1) ? 'first_minute_admin' : 'minute_start_admin';
             } else if (type === 'astro_share_payout') {
                 const activeSess = activeSessions.get(sessionId);

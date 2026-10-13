@@ -40,18 +40,19 @@ class OtpVerificationActivity : AppCompatActivity() {
             finish()
             return
         }
+        val countryCode = intent.getStringExtra("countryCode") ?: "+91"
 
         setContent {
             CosmicAppTheme {
                 OtpScreen(
                     phone = phone,
-                    onVerifyOtp = { otp -> verifyOtp(phone, otp) }
+                    onVerifyOtp = { otp -> verifyOtp(phone, otp, countryCode) }
                 )
             }
         }
     }
 
-    private fun verifyOtp(phone: String, otp: String) {
+    private fun verifyOtp(phone: String, otp: String, countryCode: String = "+91") {
         if (otp.length != 4) {
             Toast.makeText(this, "Enter 4 digit OTP", Toast.LENGTH_SHORT).show()
             return
@@ -89,7 +90,7 @@ class OtpVerificationActivity : AppCompatActivity() {
         val referralCode = tokenManager.getPendingReferralCode()
 
         lifecycleScope.launch {
-            val result = repository.verifyOtp(phone, otp, referralCode)
+            val result = repository.verifyOtp(phone, otp, referralCode, countryCode)
             if (result.isSuccess) {
                 tokenManager.clearPendingReferralCode()
                 val user = result.getOrThrow()

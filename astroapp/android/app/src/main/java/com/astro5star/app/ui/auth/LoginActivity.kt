@@ -61,6 +61,9 @@ fun LoginScreen() {
     val repository = remember { AuthRepository() }
     val scope = rememberCoroutineScope()
 
+    var selectedCountry by remember { mutableStateOf(com.astro5star.app.utils.CurrencyHelper.SUPPORTED_COUNTRIES[0]) }
+    var showCountryDropdown by remember { mutableStateOf(false) }
+
     var phoneNumber by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
@@ -71,7 +74,8 @@ fun LoginScreen() {
     val glowPrimary = Color(0xFF6BE6FF).copy(alpha = 0.35f)
     val glowSecondary = Color(0xFF9B7BFF).copy(alpha = 0.28f)
 
-    val canSubmit = phoneNumber.length == 10 && !isLoading
+    val isValidLength = phoneNumber.length >= selectedCountry.minLength && phoneNumber.length <= selectedCountry.maxLength
+    val canSubmit = isValidLength && !isLoading
 
     Box(
         modifier = Modifier
@@ -184,63 +188,122 @@ fun LoginScreen() {
                     modifier = Modifier.padding(bottom = 32.dp)
                 )
 
-                OutlinedTextField(
-                    value = phoneNumber,
-                    onValueChange = {
-                        val digits = it.filter { ch -> ch.isDigit() }
-                        phoneNumber = digits.take(10)
-                        if (showError && phoneNumber.length == 10) {
-                            showError = false
-                        }
-                    },
-                    label = { Text("Enter Mobile Number", color = Color.White.copy(alpha = 0.6f)) },
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 20.dp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    textStyle = TextStyle(
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 2.sp
-                    ),
-                    isError = showError && phoneNumber.length != 10,
-                    supportingText = {
-                        val count = min(phoneNumber.length, 10)
-                        val helper = if (showError && phoneNumber.length != 10) {
-                            "10 digits required"
-                        } else {
-                            "$count / 10"
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box {
+                        Surface(
+                            onClick = { showCountryDropdown = true },
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color.White.copy(alpha = 0.08f),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+                            modifier = Modifier.height(56.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(selectedCountry.flag, fontSize = 20.sp)
+                                Text(
+                                    selectedCountry.code,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                                Text("▼", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
+                            }
                         }
-                        Text(helper, color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
-                    },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF6BE6FF),
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
-                        errorBorderColor = Color(0xFFFF4D4D),
-                        focusedContainerColor = Color.White.copy(alpha = 0.08f),
-                        unfocusedContainerColor = Color.White.copy(alpha = 0.04f),
-                        errorContainerColor = Color.White.copy(alpha = 0.06f),
-                        cursorColor = Color(0xFF6BE6FF)
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                )
+
+                        DropdownMenu(
+                            expanded = showCountryDropdown,
+                            onDismissRequest = { showCountryDropdown = false },
+                            modifier = Modifier.background(Color(0xFF1A1E3A))
+                        ) {
+                            com.astro5star.app.utils.CurrencyHelper.SUPPORTED_COUNTRIES.forEach { country ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Text(country.flag, fontSize = 18.sp)
+                                            Text(
+                                                "${country.countryName} (${country.code})",
+                                                color = Color.White,
+                                                fontSize = 14.sp
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        selectedCountry = country
+                                        showCountryDropdown = false
+                                        if (phoneNumber.length > country.maxLength) {
+                                            phoneNumber = phoneNumber.take(country.maxLength)
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = phoneNumber,
+                        onValueChange = {
+                            val digits = it.filter { ch -> ch.isDigit() }
+                            phoneNumber = digits.take(selectedCountry.maxLength)
+                            if (showError && isValidLength) {
+                                showError = false
+                            }
+                        },
+                        label = { Text("Mobile Number", color = Color.White.copy(alpha = 0.6f)) },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 2.sp
+                        ),
+                        isError = showError && !isValidLength,
+                        supportingText = {
+                            val helper = if (showError && !isValidLength) {
+                                "${selectedCountry.minLength} digits required"
+                            } else {
+                                "${phoneNumber.length} / ${selectedCountry.maxLength}"
+                            }
+                            Text(helper, color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFF6BE6FF),
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
+                            errorBorderColor = Color(0xFFFF4D4D),
+                            focusedContainerColor = Color.White.copy(alpha = 0.08f),
+                            unfocusedContainerColor = Color.White.copy(alpha = 0.04f),
+                            errorContainerColor = Color.White.copy(alpha = 0.06f),
+                            cursorColor = Color(0xFF6BE6FF)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                }
 
                 Button(
                     onClick = {
-                        if (phoneNumber.length != 10) {
+                        if (!isValidLength) {
                             showError = true
                             return@Button
                         }
                         isLoading = true
                         scope.launch {
                             try {
-                                val result = repository.sendOtp(phoneNumber.trim())
+                                val result = repository.sendOtp(phoneNumber.trim(), selectedCountry.code)
                                 if (result.isSuccess) {
                                     val intent = Intent(context, OtpVerificationActivity::class.java)
                                     intent.putExtra("phone", phoneNumber.trim())
+                                    intent.putExtra("countryCode", selectedCountry.code)
                                     context.startActivity(intent)
                                     (context as? AppCompatActivity)?.finish()
                                 } else {

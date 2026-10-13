@@ -177,8 +177,24 @@ fun EditAstrologerProfileScreen(onBack: () -> Unit) {
 
                 // 1. Identity Section
                 EditSectionCard(title = "Identity & Display", icon = Icons.Default.Person) {
-                    ProfileTextField(value = displayName, onValueChange = { displayName = it }, label = "Display Name (Public)", icon = Icons.Default.Face)
-                    ProfileTextField(value = realName, onValueChange = { realName = it }, label = "Real Name (Private)", icon = Icons.Default.Badge)
+                    ProfileTextField(
+                        value = displayName,
+                        onValueChange = {},
+                        label = "Display Name (Public)",
+                        icon = Icons.Default.Face,
+                        enabled = false,
+                        isLocked = true,
+                        helperText = "பெயர் மாற்ற அட்மினை தொடர்பு கொள்ளவும் (Admin Only)"
+                    )
+                    ProfileTextField(
+                        value = realName,
+                        onValueChange = {},
+                        label = "Real Name (Private)",
+                        icon = Icons.Default.Badge,
+                        enabled = false,
+                        isLocked = true,
+                        helperText = "புனைப்பெயர் மாற்ற அட்மினை தொடர்பு கொள்ளவும் (Admin Only)"
+                    )
                     ProfileTextField(value = email, onValueChange = { email = it }, label = "Email Address", icon = Icons.Default.Email)
                 }
 
@@ -196,15 +212,37 @@ fun EditAstrologerProfileScreen(onBack: () -> Unit) {
                     ProfileTextField(value = address, onValueChange = { address = it }, label = "Full Address", icon = Icons.Default.LocationOn, singleLine = false)
                 }
 
-                // 4. Pricing details
-                EditSectionCard(title = "Rates & Pricing (₹)", icon = Icons.Default.Payments) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ProfileTextField(value = chatPrice, onValueChange = { chatPrice = it }, label = "Chat/m", icon = Icons.Default.Message, modifier = Modifier.weight(1f))
-                        ProfileTextField(value = audioPrice, onValueChange = { audioPrice = it }, label = "Audio/m", icon = Icons.Default.Call, modifier = Modifier.weight(1f))
+                // 4. Pricing details (Admin-controlled - read only for astrologer)
+                EditSectionCard(title = "Rates & Pricing (₹) - Admin Managed", icon = Icons.Default.Lock) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF81C784).copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = PeacockGreen, modifier = Modifier.size(22.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "கட்டணங்கள் அட்மினால் நிர்ணயிக்கப்படுகின்றன. மாற்ற அட்மினை அணுகவும்.",
+                                fontSize = 12.sp,
+                                color = Color(0xFF2E7D32),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
+
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ProfileTextField(value = videoPrice, onValueChange = { videoPrice = it }, label = "Video/m", icon = Icons.Default.Videocam, modifier = Modifier.weight(1f))
-                        ProfileTextField(value = unlimitedPrice, onValueChange = { unlimitedPrice = it }, label = "Unlimited", icon = Icons.Default.AllInclusive, modifier = Modifier.weight(1f))
+                        PriceBadgeBox(label = "Chat Rate", value = "₹$chatPrice/min", modifier = Modifier.weight(1f))
+                        PriceBadgeBox(label = "Audio Rate", value = "₹$audioPrice/min", modifier = Modifier.weight(1f))
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PriceBadgeBox(label = "Video Rate", value = "₹$videoPrice/min", modifier = Modifier.weight(1f))
+                        PriceBadgeBox(label = "Unlimited", value = "₹$unlimitedPrice", modifier = Modifier.weight(1f))
                     }
                 }
 
@@ -227,8 +265,7 @@ fun EditAstrologerProfileScreen(onBack: () -> Unit) {
                             try {
                                 val json = JsonObject().apply {
                                     addProperty("userId", userId)
-                                    addProperty("name", displayName)
-                                    addProperty("realName", realName)
+                                    // Astrologer cannot modify name or realName; prices are admin-only
                                     addProperty("email", email)
                                     addProperty("astrologyExperience", experience)
                                     addProperty("skills", skills)
@@ -241,19 +278,10 @@ fun EditAstrologerProfileScreen(onBack: () -> Unit) {
                                     addProperty("bankDetails", bankDetails)
                                     addProperty("aadharNumber", aadhar)
                                     addProperty("panNumber", pan)
-                                    addProperty("chatPrice", chatPrice.toIntOrNull() ?: 10)
-                                    addProperty("audioPrice", audioPrice.toIntOrNull() ?: 20)
-                                    addProperty("videoPrice", videoPrice.toIntOrNull() ?: 30)
-                                    addProperty("unlimitedPrice", unlimitedPrice.toIntOrNull() ?: 299)
                                 }
                                 val res = ApiClient.api.updateAstrologerProfile(json)
                                 if (res.isSuccessful) {
                                     Toast.makeText(context, "Profile Saved Successfully!", Toast.LENGTH_SHORT).show()
-                                    // Update local session
-                                    val session = tokenManager.getUserSession()
-                                    if (session != null) {
-                                        tokenManager.saveUserSession(session.copy(name = displayName))
-                                    }
                                     onBack()
                                 } else {
                                     Toast.makeText(context, "Update failed: ${res.code()}", Toast.LENGTH_SHORT).show()
@@ -274,13 +302,10 @@ fun EditAstrologerProfileScreen(onBack: () -> Unit) {
                     if (isSaving) {
                         CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                     } else {
-                        Icon(Icons.Default.Save, contentDescription = null)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("SAVE PROFESSIONAL PROFILE", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                        Text("Save Profile Changes", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
                     }
                 }
-
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(30.dp))
             }
         }
     }
@@ -314,21 +339,62 @@ fun ProfileTextField(
     label: String,
     icon: ImageVector,
     modifier: Modifier = Modifier,
-    singleLine: Boolean = true
+    singleLine: Boolean = true,
+    enabled: Boolean = true,
+    isLocked: Boolean = false,
+    helperText: String? = null
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label, fontSize = 12.sp) },
-        leadingIcon = { Icon(icon, null, tint = Color.Gray.copy(alpha = 0.6f), modifier = Modifier.size(20.dp)) },
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
-            focusedBorderColor = PeacockGreen
-        ),
-        singleLine = singleLine,
-        maxLines = if (singleLine) 1 else 3
-    )
+    Column(modifier = modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label, fontSize = 12.sp) },
+            leadingIcon = { Icon(icon, null, tint = if (isLocked) Color.Gray else Color.Gray.copy(alpha = 0.6f), modifier = Modifier.size(20.dp)) },
+            trailingIcon = if (isLocked) {
+                { Icon(Icons.Default.Lock, contentDescription = "Locked", tint = Color(0xFFE53935), modifier = Modifier.size(18.dp)) }
+            } else null,
+            enabled = enabled,
+            readOnly = isLocked,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = if (isLocked) Color.LightGray.copy(alpha = 0.3f) else Color.LightGray.copy(alpha = 0.5f),
+                focusedBorderColor = PeacockGreen,
+                disabledBorderColor = Color.LightGray.copy(alpha = 0.3f),
+                disabledTextColor = Color.DarkGray,
+                disabledLabelColor = Color.Gray
+            ),
+            singleLine = singleLine,
+            maxLines = if (singleLine) 1 else 3
+        )
+        if (helperText != null) {
+            Text(
+                text = helperText,
+                fontSize = 11.sp,
+                color = if (isLocked) Color(0xFFD32F2F) else Color.Gray,
+                modifier = Modifier.padding(start = 8.dp, top = 2.dp)
+            )
+        }
+    }
     Spacer(modifier = Modifier.height(10.dp))
+}
+
+@Composable
+fun PriceBadgeBox(label: String, value: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(label, fontSize = 11.sp, color = Color.Gray)
+                Spacer(Modifier.weight(1f))
+                Icon(Icons.Default.Lock, null, tint = Color.Gray, modifier = Modifier.size(14.dp))
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PeacockGreen)
+        }
+    }
 }

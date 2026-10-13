@@ -64,7 +64,7 @@ val planetTamil = mapOf(
 val planetAbbrTamil = mapOf(
     "Sun" to "சூரி", "Moon" to "சந்", "Mars" to "செவ்", "Mercury" to "புத",
     "Jupiter" to "குரு", "Venus" to "சுக்", "Saturn" to "சனி", "Rahu" to "ராகு",
-    "Ketu" to "கேது", "Ascendant" to "லக்", "As" to "லக்", "Mandi" to "மாந்தி"
+    "Ketu" to "கேது", "Ascendant" to "லக்", "As" to "லக்", "Lagna" to "லக்", "Mandi" to "மாந்தி"
 )
 
 val naksTamil = mapOf(
@@ -133,7 +133,8 @@ data class Planet(
 data class HouseData(
     val cusps: List<Double>,
     val details: List<HouseDetail>,
-    val ascendantDetails: HouseDetail
+    val ascendantDetails: HouseDetail,
+    val ascendant: Double? = null
 )
 
 data class HouseDetail(
@@ -144,7 +145,8 @@ data class HouseDetail(
     val signLord: String? = null,
     val starLord: String? = null,
     val subLord: String? = null,
-    val degreeFormatted: String? = null
+    val degreeFormatted: String? = null,
+    val nakshatraIndex: Int = 0
 )
 
 data class Panchanga(
@@ -173,7 +175,7 @@ data class DashaPeriod(
 )
 data class Transit(val name: String, val signName: String, val isRetrograde: Boolean)
 data class TamilDate(val day: Int, val month: String, val year: String)
-data class NavamsaData(val planets: List<Planet>? = null)
+data class NavamsaData(val planets: List<Planet>? = null, val ascendant: String? = null, val lagna: String? = null, val ascendantDetails: HouseDetail? = null)
 data class KPSignificators(val planetView: List<KPPlanet>?, val houseView: List<KPHouse>?)
 data class KPPlanet(val name: String, val levelA: List<Int>, val levelB: List<Int>, val levelC: List<Int>, val levelD: List<Int>)
 data class KPHouse(val house: Int, val level1: List<String>, val level2: List<String>, val level3: List<String>, val level4: List<String>, val lord: String)
@@ -351,7 +353,44 @@ fun ChartsTab(data: ChartData, birthData: JSONObject) {
             Spacer(Modifier.height(32.dp))
             Text("நவாம்ச கட்டம் (Navamsa Chart)", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TraditionalRed)
             Spacer(Modifier.height(8.dp))
-            SouthIndianGridEnhanced(navPlanets, null, "Navamsa", birthData, "")
+            val signNames = listOf("Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces")
+
+            // Multi-tiered Navamsa Lagna resolution:
+            val navAscSign = data.navamsa.ascendantDetails?.signName?.takeIf { it.isNotBlank() }
+                ?: data.navamsa.ascendant?.takeIf { it.isNotBlank() }
+                ?: data.navamsa.lagna?.takeIf { it.isNotBlank() }
+                ?: data.houses.ascendant?.let { ascLon ->
+                    val navLon = (ascLon * 9) % 360
+                    val navIdx = (Math.floor(navLon / 30).toInt()) % 12
+                    signNames.getOrNull(navIdx)
+                }
+                ?: run {
+                    val nakIdx = data.houses.ascendantDetails.nakshatraIndex
+                    val pada = data.houses.ascendantDetails.nakshatraPada
+                    if (nakIdx in 0..26 && pada in 1..4) {
+                        val padaIdx = nakIdx * 4 + (pada - 1)
+                        signNames.getOrNull(padaIdx % 12)
+                    } else null
+                }
+
+            val navAscDegree = data.navamsa.ascendantDetails?.degreeFormatted?.takeIf { it.isNotBlank() }
+                ?: data.houses.ascendant?.let { ascLon ->
+                    val navLon = (ascLon * 9) % 360
+                    val degInSign = navLon % 30
+                    val d = Math.floor(degInSign).toInt()
+                    val m = Math.floor((degInSign - d) * 60).toInt()
+                    String.format("%02d:%02d", d, m)
+                }
+                ?: ""
+
+            val navAsc = if (!navAscSign.isNullOrEmpty()) {
+                HouseDetail(
+                    signName = navAscSign,
+                    signAbbr = data.navamsa.ascendantDetails?.signAbbr ?: navAscSign.take(3),
+                    degreeFormatted = navAscDegree
+                )
+            } else null
+            SouthIndianGridEnhanced(navPlanets, navAsc, "Navamsa", birthData, "")
         }
 
         Spacer(Modifier.height(40.dp))
@@ -469,8 +508,15 @@ fun SouthIndianGridEnhanced(planets: List<Planet>, ascDetails: HouseDetail?, tit
                             if (signIdx != -1) {
                                  val signEn = signNames[signIdx]
                                  val occupants = mutableListOf<Pair<String, String>>()
-                                 if (signEn == ascSign) occupants.add("As" to (ascDetails?.degreeFormatted ?: ""))
-                                 planets.filter { it.signName == signEn }.forEach { 
+                                 val isAscHere = signEn.equals(ascSign, ignoreCase = true) ||
+                                     signTamil[signEn].equals(ascSign, ignoreCase = true) ||
+                                     (ascSign.toIntOrNull() == signIdx)
+                                 if (isAscHere) occupants.add("As" to (ascDetails?.degreeFormatted ?: ""))
+                                 planets.filter { 
+                                     it.signName.equals(signEn, ignoreCase = true) || 
+                                     signTamil[signEn].equals(it.signName, ignoreCase = true) ||
+                                     (it.signName.toIntOrNull() == signIdx)
+                                 }.forEach { 
                                      occupants.add(it.name to (it.degreeFormatted ?: "")) 
                                  }
 
@@ -483,22 +529,26 @@ fun SouthIndianGridEnhanced(planets: List<Planet>, ascDetails: HouseDetail?, tit
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
                                          occupants.forEach { (pName, deg) ->
-                                            val pAbbr = planetAbbrTamil[pName] ?: pName.take(3)
-                                            val degreeShort = deg.take(5) // Just Deg:Min (e.g. 10:24)
-                                            
+                                             val isLagna = pName == "As" || pName == "Ascendant" || pName == "Lagna"
+                                             val pAbbr = planetAbbrTamil[pName] ?: (if (isLagna) "லக்" else pName.take(3))
+                                             val degreeClean = if (deg.isNotBlank()) {
+                                                 val match = Regex("""(\d+[:°]\d+)""").find(deg)
+                                                 match?.value ?: deg.take(5)
+                                             } else ""
+                                             
                                              Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Text(
                                                     text = pAbbr,
                                                     fontSize = fontSize,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = if(pName == "As") Color.Blue else Color.Black,
+                                                    color = if (isLagna) Color(0xFFD32F2F) else Color.Black,
                                                     lineHeight = lineHeight
                                                 )
-                                                if (degreeShort.isNotEmpty()) {
+                                                if (degreeClean.isNotEmpty()) {
                                                     Text(
-                                                        text = " $degreeShort",
+                                                        text = " $degreeClean",
                                                         fontSize = (fontSize.value - 2).sp,
-                                                        color = Color.DarkGray,
+                                                        color = if (isLagna) Color(0xFFC62828) else Color.DarkGray,
                                                         lineHeight = lineHeight
                                                     )
                                                 }

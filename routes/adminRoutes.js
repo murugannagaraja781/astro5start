@@ -210,6 +210,11 @@ router.post('/env-config', envConfigController.updateEnvConfig);
 router.get('/env-config/backups', envConfigController.getEnvBackups);
 router.post('/env-config/restore', envConfigController.restoreEnvBackup);
 router.get('/env-config/download', envConfigController.downloadEnvFile);
-router.get('/env-config/status', envConfigController.getDiagnostics);
+// Country Management Routes
+const countryController = require('../controllers/countryController');
+router.get('/countries', countryController.getAdminCountries);
+router.patch('/countries/:isoCode/toggle', countryController.toggleCountryStatus);
+router.post('/countries/bulk', countryController.bulkUpdateCountries);
+router.put('/countries/settings/max-limit', countryController.updateMaxLimitSetting);
 
 module.exports = router;

@@ -47,6 +47,7 @@ import kotlinx.coroutines.launch
 import com.astro5star.app.ui.theme.CosmicAppTheme
 import coil.compose.AsyncImage
 import com.astro5star.app.data.api.ApiClient
+import com.astro5star.app.utils.CurrencyHelper
 
 class AstrologerProfileActivity : ComponentActivity() {
 
@@ -129,6 +130,14 @@ fun AstrologerProfileScreen(
     val context = LocalContext.current
     val tokenManager = remember { com.astro5star.app.data.local.TokenManager(context) }
     val currentUser = remember { tokenManager.getUserSession() }
+    val isUsdUser = tokenManager.isUsdUser()
+
+    val mainPriceLabel = if (isUsdUser) "${CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(price.toDouble(), "USD"), "USD")}/min" else "₹$price/min"
+    val chatPriceLabel = if (isUsdUser) "${CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(chatPrice.toDouble(), "USD"), "USD")}/m" else "₹$chatPrice/m"
+    val audioPriceLabel = if (isUsdUser) "${CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(audioPrice.toDouble(), "USD"), "USD")}/m" else "₹$audioPrice/m"
+    val videoPriceLabel = if (isUsdUser) "${CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(videoPrice.toDouble(), "USD"), "USD")}/m" else "₹$videoPrice/m"
+    val unlimitedPriceLabel = if (isUsdUser) CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(unlimitedPrice.toDouble(), "USD"), "USD") else "₹$unlimitedPrice"
+
     val scope = rememberCoroutineScope()
 
     var pendingActionType by remember { mutableStateOf<String?>(null) }
@@ -189,24 +198,33 @@ fun AstrologerProfileScreen(
             return
         }
 
-        // --- NEW: BALANCE CHECK BEFORE PERMISSIONS ---
+        val isUsd = tokenManager.isUsdUser()
+        val currency = tokenManager.getUserCurrency()
+
+        val displayPrice = if (isUsd) CurrencyHelper.convertInrToTarget(price.toDouble(), "USD") else price.toDouble()
+        val displayChatPrice = if (isUsd) CurrencyHelper.convertInrToTarget(chatPrice.toDouble(), "USD") else chatPrice.toDouble()
+        val displayAudioPrice = if (isUsd) CurrencyHelper.convertInrToTarget(audioPrice.toDouble(), "USD") else audioPrice.toDouble()
+        val displayVideoPrice = if (isUsd) CurrencyHelper.convertInrToTarget(videoPrice.toDouble(), "USD") else videoPrice.toDouble()
+        val displayUnlimitedPrice = if (isUsd) CurrencyHelper.convertInrToTarget(unlimitedPrice.toDouble(), "USD") else unlimitedPrice.toDouble()
+
+        // --- BALANCE CHECK BEFORE PERMISSIONS ---
         val totalBal = walletBalance + superBalance
         
         // Use a 5-minute minimum rule for regular calls, upfront for unlimited
-        // Exception: New user offer might allow a 1-rupee start (if applicable in your business logic)
         val minMins = if (type == "unlimited") 1 else 5
         val rate = when(type) {
-            "chat" -> chatPrice
-            "audio" -> audioPrice
-            "video" -> videoPrice
-            "unlimited" -> unlimitedPrice
-            else -> price
+            "chat" -> displayChatPrice
+            "audio" -> displayAudioPrice
+            "video" -> displayVideoPrice
+            "unlimited" -> displayUnlimitedPrice
+            else -> displayPrice
         }
-        val minRequired = (rate * minMins).toDouble()
+        val minRequired = rate * minMins
 
         if (totalBal < minRequired && superBalance <= 0) {
             // User has insufficient regular balance and no bonus credits
-            Toast.makeText(context, "Insufficient balance! Please recharge (Min ₹${minRequired.toInt()} required).", Toast.LENGTH_LONG).show()
+            val minText = CurrencyHelper.formatPrice(minRequired, currency)
+            Toast.makeText(context, "Insufficient balance! Please recharge (Min $minText required).", Toast.LENGTH_LONG).show()
             return
         }
 
@@ -410,7 +428,7 @@ fun AstrologerProfileScreen(
                     modifier = Modifier.padding(top = 10.dp)
                 ) {
                     Text(
-                        text = "₹$price/min",
+                        text = mainPriceLabel,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color(0xFFD32F2F),
@@ -463,7 +481,7 @@ fun AstrologerProfileScreen(
                     ActionButton(
                         icon = Icons.Default.Chat,
                         label = "Chat",
-                        priceLabel = "₹$chatPrice/m",
+                        priceLabel = chatPriceLabel,
                         color = Color(0xFF00BCD4),
                         isEnabled = isChatOnline,
                         onClick = { checkAndProceed("chat") }
@@ -472,7 +490,7 @@ fun AstrologerProfileScreen(
                     ActionButton(
                         icon = Icons.Default.Call,
                         label = "Call",
-                        priceLabel = "₹$audioPrice/m",
+                        priceLabel = audioPriceLabel,
                         color = Color(0xFF00796B),
                         isEnabled = isAudioOnline,
                         onClick = { checkAndProceed("audio") }
@@ -481,7 +499,7 @@ fun AstrologerProfileScreen(
                     ActionButton(
                         icon = androidx.compose.material.icons.Icons.Rounded.VideoCall,
                         label = "Video",
-                        priceLabel = "₹$videoPrice/m",
+                        priceLabel = videoPriceLabel,
                         color = Color(0xFFD32F2F),
                         isEnabled = isVideoOnline,
                         onClick = { checkAndProceed("video") }
@@ -498,7 +516,7 @@ fun AstrologerProfileScreen(
                     ) {
                         Icon(Icons.Default.Star, null, tint = Color.White)
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text("Unlimited Horoscope (40 Min) - ₹$unlimitedPrice", fontWeight = FontWeight.Bold)
+                        Text("Unlimited Horoscope (40 Min) - $unlimitedPriceLabel", fontWeight = FontWeight.Bold)
                     }
                 }
 

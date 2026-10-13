@@ -39,8 +39,10 @@ class AstrologerAdapter(
             binding.apply {
                 tvName.text = item.name
                 tvSkills.text = item.skills.joinToString(", ")
-                tvExp.text = "${item.experience}+ Years"
-                tvPrice.text = "₹${item.chatPrice}/min"
+                val tokenManager = com.astro5star.app.data.local.TokenManager(binding.root.context)
+                val isUsd = tokenManager.isUsdUser()
+                val rateText = if (isUsd) "${com.astro5star.app.utils.CurrencyHelper.formatPrice(com.astro5star.app.utils.CurrencyHelper.convertInrToTarget(item.chatPrice.toDouble(), "USD"), "USD")}/min" else "₹${item.chatPrice}/min"
+                tvPrice.text = rateText
                 
                 // Coil for optimized image loading with placeholder
                 ivUser.load(item.image) {

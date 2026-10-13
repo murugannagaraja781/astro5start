@@ -60,6 +60,10 @@ connectDB().then(async () => {
   loadRechargePacks();
   loadSystemRules();
 
+  // Seed Country Configuration dataset
+  const { seedCountryConfigs } = require('./utils/countrySeeder');
+  seedCountryConfigs();
+
   // Cleanup: Reset isBusy for all users on startup to prevent stale states
   setTimeout(async () => {
     const User = require('./models/User');
@@ -193,9 +197,11 @@ policies.forEach(policy => {
 app.get(['/payment-success', '/wallet'], (req, res) => {
   const amount = req.query.amount || '';
   const txnId = req.query.txnId || '';
+  const currency = req.query.currency || 'INR';
+  const sym = currency === 'USD' ? '$' : '₹';
 
-  const intentUrl = `intent://payment-success?status=success&amount=${amount}&txnId=${txnId}#Intent;scheme=astro5;package=com.astro5star.app;end`;
-  const deepLink = `astro5://payment-success?status=success&amount=${amount}&txnId=${txnId}`;
+  const intentUrl = `intent://payment-success?status=success&amount=${amount}&currency=${currency}&txnId=${txnId}#Intent;scheme=astro5;package=com.astro5star.app;end`;
+  const deepLink = `astro5://payment-success?status=success&amount=${amount}&currency=${currency}&txnId=${txnId}`;
 
   res.send(`
     <html>
@@ -213,7 +219,7 @@ app.get(['/payment-success', '/wallet'], (req, res) => {
       <body>
         <div class="icon">✓</div>
         <h3>Payment Successful!</h3>
-        <p>₹${amount} has been added to your wallet.<br>Transaction ID: ${txnId}</p>
+        <p>${sym}${amount} has been added to your wallet.<br>Transaction ID: ${txnId}</p>
         <a href="${deepLink}" class="btn">Return to App</a>
         <script>
           setTimeout(() => { window.location.href = "${intentUrl}"; }, 500);

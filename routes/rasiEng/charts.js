@@ -118,13 +118,37 @@ router.post('/full', async (req, res) => {
         });
 
         // Calculate Navamsa Data
+        const { getNavamsaSign } = require('../../utils/rasiEng/calculations');
         const navamsaPlanets = planets.map(p => {
-            const { getNavamsaSign } = require('../../utils/rasiEng/calculations');
+            const navSign = getNavamsaSign(p.longitude);
+            const navLon = (p.longitude * 9) % 360;
             return {
                 name: p.name,
-                signName: getNavamsaSign(p.longitude)
+                signName: navSign,
+                signIndex: Math.floor(navLon / 30) % 12,
+                navamsaSign: navSign,
+                degreeFormatted: formatLongitude(navLon)
             };
         });
+
+        // Calculate Navamsa Lagna / Ascendant
+        const navamsaAscSign = getNavamsaSign(houses.ascendant);
+        const navamsaAscLon = (houses.ascendant * 9) % 360;
+        const signsList = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+        const signAbbrList = ['Ari', 'Tau', 'Gem', 'Can', 'Leo', 'Vir', 'Lib', 'Sco', 'Sag', 'Cap', 'Aqu', 'Pis'];
+        const ascIdx = signsList.indexOf(navamsaAscSign);
+
+        const navamsaData = {
+            ascendant: navamsaAscSign,
+            lagna: navamsaAscSign,
+            ascendantDetails: {
+                signName: navamsaAscSign,
+                signAbbr: signAbbrList[ascIdx] || 'Ari',
+                longitude: navamsaAscLon,
+                degreeFormatted: formatLongitude(navamsaAscLon)
+            },
+            planets: navamsaPlanets
+        };
 
         const chartData = {
             planets,
@@ -136,7 +160,7 @@ router.post('/full', async (req, res) => {
             dasha: dashaMD,
             transits,
             tamilDate: tamilDateData,
-            navamsa: { planets: navamsaPlanets }
+            navamsa: navamsaData
         };
 
         res.json({

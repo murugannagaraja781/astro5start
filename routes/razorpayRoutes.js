@@ -37,39 +37,54 @@ router.post('/create-order', async (req, res) => {
             return res.status(400).json({ ok: false, error: 'Invalid amount' });
         }
 
-        // GST calculation (same as existing PhonePe flow)
-        const gstAmount = baseAmount * 0.18;
-        const totalAmount = baseAmount + gstAmount;
-        const amountInPaise = Math.round(totalAmount * 100);
-
-        if (amountInPaise < 100) {
-            return res.status(400).json({ ok: false, error: 'Amount must be at least ₹1 (100 paise)' });
+        let userCurrency = 'INR';
+        let userCurrencySymbol = '₹';
+        const user = await User.findOne({ userId }).select('name phone email currency currencySymbol').lean();
+        if (user && user.currency) {
+            userCurrency = user.currency;
+            userCurrencySymbol = user.currencySymbol || (userCurrency === 'USD' ? '$' : '₹');
+        }
+        if (req.body.currency) {
+            userCurrency = req.body.currency;
+            userCurrencySymbol = userCurrency === 'USD' ? '$' : '₹';
         }
 
-        // Coupon / Offer bonus (same logic as PhonePe flow)
+        const isUsd = userCurrency === 'USD';
+        // GST is 18% for INR domestic, 0% for international cross-border (USD)
+        const gstAmount = isUsd ? 0 : baseAmount * 0.18;
+        const totalAmount = baseAmount + gstAmount;
+        // In Razorpay: paise for INR, cents for USD
+        const amountInSubunits = Math.round(totalAmount * 100);
+
+        if (amountInSubunits < 100) {
+            return res.status(400).json({ ok: false, error: `Amount must be at least ${userCurrencySymbol}1` });
+        }
+
+        // Coupon / Offer bonus
         let couponBonus = 0;
         const internalOfferPercentage = parseFloat(offerPercentage || 0);
         if (couponCode) {
             const code = couponCode.toUpperCase().trim();
-            if (code === 'WELCOME50') couponBonus = baseAmount * 0.50;
+            if (code === 'WELCOME50') couponBonus = isUsd ? Math.round(baseAmount * 0.50 * 100) / 100 : baseAmount * 0.50;
         } else if (internalOfferPercentage > 0) {
-            couponBonus = baseAmount * (internalOfferPercentage / 100);
+            couponBonus = isUsd ? Math.round(baseAmount * (internalOfferPercentage / 100) * 100) / 100 : baseAmount * (internalOfferPercentage / 100);
         }
 
         // Generate unique receipt ID
         const receiptId = 'RZP_' + uuidv4().replace(/-/g, '').substring(0, 18);
 
-        // Create Razorpay order via API
-        const orderResult = await createRazorpayOrder(amountInPaise, 'INR', receiptId, {
+        // Create Razorpay order via API in the user's currency!
+        const orderResult = await createRazorpayOrder(amountInSubunits, userCurrency, receiptId, {
             userId,
-            baseAmount: String(baseAmount)
+            baseAmount: String(baseAmount),
+            currency: userCurrency
         });
 
         if (!orderResult.success) {
             return res.status(500).json({ ok: false, error: orderResult.error || 'Failed to create Razorpay order' });
         }
 
-        // Store pending payment record in MongoDB
+        // Store pending payment record in MongoDB with accurate currency info
         await Payment.create({
             transactionId: receiptId,
             merchantTransactionId: orderResult.data.order_id, // Razorpay order_id
@@ -78,26 +93,26 @@ router.post('/create-order', async (req, res) => {
             baseAmount,
             creditedAmount: baseAmount,
             gstAmount,
+            currency: userCurrency,
+            currencySymbol: userCurrencySymbol,
             status: 'pending',
-            withGst: true,
+            withGst: !isUsd,
             isApp: false,
             isSuperWallet: !!couponBonus,
             offerPercentage: internalOfferPercentage,
             couponCode: couponCode || null,
             couponBonus,
-            providerRefId: 'razorpay' // Tag to differentiate from PhonePe
+            providerRefId: 'razorpay'
         });
 
-        // Fetch user basic details for prefilling checkout modal (skips user having to type phone/email)
-        const user = await User.findOne({ userId }).select('name phone email').lean();
-
-        console.log(`[Razorpay] Order ${orderResult.data.order_id} created for user ${userId} | ₹${totalAmount}`);
+        console.log(`[Razorpay] Order ${orderResult.data.order_id} created for user ${userId} | ${userCurrencySymbol}${totalAmount} (${userCurrency})`);
 
         res.json({
             ok: true,
             order_id: orderResult.data.order_id,
             amount: orderResult.data.amount,
             currency: orderResult.data.currency,
+            currencySymbol: userCurrencySymbol,
             key_id: getRazorpayKeyId(),
             receipt: receiptId,
             prefill: {
@@ -179,7 +194,9 @@ router.post('/verify-payment', async (req, res) => {
             payment_id: razorpay_payment_id,
             amount: payment.amount,
             credited: rechargeAmount,
-            bonus: bonusAmount
+            bonus: bonusAmount,
+            currency: payment.currency || 'INR',
+            currencySymbol: payment.currencySymbol || (payment.currency === 'USD' ? '$' : '₹')
         });
 
     } catch (err) {

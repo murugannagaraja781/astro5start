@@ -38,6 +38,7 @@ import com.astro5star.app.R
 import com.astro5star.app.data.api.ApiClient
 import com.astro5star.app.data.local.TokenManager
 import com.astro5star.app.ui.theme.CosmicAppTheme
+import com.astro5star.app.utils.CurrencyHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -70,18 +71,20 @@ class WalletActivity : ComponentActivity() {
 
         setContent {
             CosmicAppTheme {
-                        WalletScreen(
-                            balance = balanceState,
-                            superBalance = superBalanceState,
-                            transactions = transactionsState,
-                            rechargePacks = rechargePacksState,
-                            bannerTitle = bannerTitle,
-                            bannerSubtitle = bannerSubtitle,
-                            ctaText = ctaText,
-                            onAddMoney = { amount, promo, percentage ->
-                                if (amount < 1) {
-                                    Toast.makeText(this, getString(R.string.enter_valid_amount), Toast.LENGTH_SHORT).show()
-                                } else {
+                WalletScreen(
+                    balance = balanceState,
+                    superBalance = superBalanceState,
+                    currency = tokenManager.getUserCurrency(),
+                    currencySymbol = tokenManager.getUserCurrencySymbol(),
+                    transactions = transactionsState,
+                    rechargePacks = rechargePacksState,
+                    bannerTitle = bannerTitle,
+                    bannerSubtitle = bannerSubtitle,
+                    ctaText = ctaText,
+                    onAddMoney = { amount, promo, percentage ->
+                        if (amount < 1) {
+                            Toast.makeText(this, getString(R.string.enter_valid_amount), Toast.LENGTH_SHORT).show()
+                        } else {
                             val intent = Intent(this, com.astro5star.app.ui.payment.PaymentActivity::class.java)
                             intent.putExtra("amount", amount.toDouble())
                             intent.putExtra("offerPercentage", percentage)
@@ -103,7 +106,8 @@ class WalletActivity : ComponentActivity() {
     private fun loadRechargePacks() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val response = ApiClient.api.getRechargePacks()
+                val currency = tokenManager.getUserCurrency()
+                val response = ApiClient.api.getRechargePacks(currency)
                 if (response.isSuccessful && response.body() != null) {
                     val bodyJson = JSONObject(response.body()!!.toString())
                     val packs = bodyJson.optJSONArray("packs")
@@ -124,17 +128,27 @@ class WalletActivity : ComponentActivity() {
                 Log.e("WalletActivity", "Failed to load packs", e)
                 withContext(Dispatchers.Main) {
                     if (rechargePacksState.isEmpty()) {
-                        rechargePacksState.addAll(listOf(
-                            RechargePack(50, "Get 5% Extra", 5.0),
-                            RechargePack(100, "Get 5% Extra", 5.0),
-                            RechargePack(500, "Get 10% Extra", 10.0),
-                            RechargePack(1000, "Get 10% Extra", 10.0),
-                            RechargePack(200, "Get 10% Extra", 10.0),
-                            RechargePack(5000, "Get 20% Extra", 20.0),
-                            RechargePack(2000, "Get 15% Extra", 15.0),
-                            RechargePack(20, "Get 5% Extra", 5.0),
-                            RechargePack(1, "Get 1% Extra", 1.0)
-                        ))
+                        if (tokenManager.isUsdUser()) {
+                            rechargePacksState.addAll(listOf(
+                                RechargePack(5, "Get $5 Talktime", 0.0),
+                                RechargePack(10, "Get 10% Extra ($1 Bonus)", 10.0),
+                                RechargePack(25, "Get 12% Extra ($3 Bonus)", 12.0),
+                                RechargePack(50, "Get 20% Extra ($10 Bonus)", 20.0),
+                                RechargePack(100, "Get 25% Extra ($25 Bonus)", 25.0)
+                            ))
+                        } else {
+                            rechargePacksState.addAll(listOf(
+                                RechargePack(50, "Get 5% Extra", 5.0),
+                                RechargePack(100, "Get 5% Extra", 5.0),
+                                RechargePack(500, "Get 10% Extra", 10.0),
+                                RechargePack(1000, "Get 10% Extra", 10.0),
+                                RechargePack(200, "Get 10% Extra", 10.0),
+                                RechargePack(5000, "Get 20% Extra", 20.0),
+                                RechargePack(2000, "Get 15% Extra", 15.0),
+                                RechargePack(20, "Get 5% Extra", 5.0),
+                                RechargePack(1, "Get 1% Extra", 1.0)
+                            ))
+                        }
                     }
                 }
             }
@@ -234,6 +248,8 @@ data class RechargePack(val amount: Int, val bonusText: String, val percentage: 
 fun WalletScreen(
     balance: Double,
     superBalance: Double = 0.0,
+    currency: String = "INR",
+    currencySymbol: String = "₹",
     transactions: List<JSONObject>,
     rechargePacks: List<RechargePack>,
     bannerTitle: String? = null,
@@ -245,6 +261,7 @@ fun WalletScreen(
     val context = LocalContext.current
     val astroYellow = Color(0xFFFFEB3B) // Bright Yellow from screenshot
     val astroBlack = Color(0xFF1A1A1A)
+    val isUsd = currency == "USD"
 
     // Using the rechargePacks passed from the activity
     // val rechargePacks = listOf(...) // removed hardcoded list
@@ -291,18 +308,21 @@ fun WalletScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
 
-            // USER REQUEST: Highlight referral/cashback offer
+            // Highlight referral/cashback offer
+            val referralTitle = if (isUsd) "Refer & Earn $1.00 FREE!" else "Refer & Earn ₹50 FREE!"
+            val referralDesc = if (isUsd) "Introduce a friend and get $1.00 free wallet balance." else "Introduce a friend and get ₹50 free wallet balance."
+            val shareBonus = if (isUsd) "$1.00 FREE" else "₹50 FREE"
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .shadow(8.dp, RoundedCornerShape(12.dp))
                     .clickable {
-                        // Implement Referral Share Logic
                         val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                             type = "text/plain"
                             val appLink = "https://play.google.com/store/apps/details?id=${context.packageName}"
                             putExtra(android.content.Intent.EXTRA_SUBJECT, "Astro 5 Star Referral")
-                            val shareMessage = "Hey! I'm using Astro 5 Star for accurate astrology consultations. Join using my referral to get ₹50 FREE wallet balance! \nDownload now: $appLink"
+                            val shareMessage = "Hey! I'm using Astro 5 Star for accurate astrology consultations. Join using my referral to get $shareBonus wallet balance! \nDownload now: $appLink"
                             putExtra(android.content.Intent.EXTRA_TEXT, shareMessage)
                         }
                         context.startActivity(android.content.Intent.createChooser(shareIntent, "Refer a Friend"))
@@ -325,13 +345,13 @@ fun WalletScreen(
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
                         Text(
-                            "Refer & Earn ₹50 FREE!",
+                            referralTitle,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             color = Color(0xFF1976D2)
                         )
                         Text(
-                            "Introduce a friend and get ₹50 free wallet balance.",
+                            referralDesc,
                             fontSize = 12.sp,
                             color = Color.Black.copy(alpha = 0.7f)
                         )
@@ -350,14 +370,16 @@ fun WalletScreen(
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    "₹ ${balance + superBalance}",
+                    CurrencyHelper.formatPrice(balance + superBalance, currency),
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Black,
                     color = astroBlack
                 )
                 if (superBalance > 0) {
+                    val formattedMain = CurrencyHelper.formatPrice(balance, currency)
+                    val formattedBonus = CurrencyHelper.formatPrice(superBalance, currency)
                     Text(
-                        "(Main: ₹$balance + Bonus: ₹$superBalance)",
+                        "(Main: $formattedMain + Bonus: $formattedBonus)",
                         fontSize = 12.sp,
                         color = Color.Gray,
                         fontWeight = FontWeight.Bold
@@ -376,6 +398,7 @@ fun WalletScreen(
                     rowPacks.forEach { pack ->
                         RechargeCard(
                             pack = pack,
+                            currencySymbol = currencySymbol,
                             modifier = Modifier.weight(1f),
                             onClick = { onAddMoney(pack.amount, null, pack.percentage) }
                         )
@@ -400,7 +423,7 @@ fun WalletScreen(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 transactions.take(5).forEach { tx ->
-                    TransactionItem(tx)
+                    TransactionItem(tx, currency)
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
@@ -411,7 +434,7 @@ fun WalletScreen(
 // RechargeCard component below
 
 @Composable
-fun RechargeCard(pack: RechargePack, modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun RechargeCard(pack: RechargePack, currencySymbol: String = "₹", modifier: Modifier = Modifier, onClick: () -> Unit) {
     val astroYellow = Color(0xFFFFEB3B)
     
     Card(
@@ -432,7 +455,7 @@ fun RechargeCard(pack: RechargePack, modifier: Modifier = Modifier, onClick: () 
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "₹ ${pack.amount}",
+                    "$currencySymbol${pack.amount}",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     color = Color.Black
@@ -458,10 +481,13 @@ fun RechargeCard(pack: RechargePack, modifier: Modifier = Modifier, onClick: () 
 }
 
 @Composable
-fun TransactionItem(tx: JSONObject) {
+fun TransactionItem(tx: JSONObject, defaultCurrency: String = "INR") {
     val amt = tx.optDouble("amount", 0.0)
     val status = tx.optString("status", "pending")
     val date = tx.optString("createdAt", "").take(10)
+    val txCurrency = tx.optString("currency", defaultCurrency)
+    val sym = if (txCurrency == "USD") "$" else tx.optString("currencySymbol", "₹")
+    val displayAmt = if (txCurrency == "USD") String.format("%.2f", amt) else amt.toInt().toString()
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -477,7 +503,7 @@ fun TransactionItem(tx: JSONObject) {
                 Text(if (status == "success") "Recharge Successful" else "Payment $status", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Text(date, fontSize = 12.sp, color = Color.Gray)
             }
-            Text("₹ ${amt.toInt()}", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+            Text("$sym $displayAmt", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
         }
     }
 }

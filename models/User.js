@@ -3,6 +3,11 @@ const mongoose = require('mongoose');
 const UserSchema = new mongoose.Schema({
     userId: { type: String, unique: true },
     phone: { type: String, unique: true },
+    fullPhone: { type: String, default: '' },
+    countryCode: { type: String, default: '+91' },
+    country: { type: String, default: 'IN' },
+    currency: { type: String, default: 'INR' },
+    currencySymbol: { type: String, default: '₹' },
     email: { type: String, default: '' },
     name: String,
     realName: String,

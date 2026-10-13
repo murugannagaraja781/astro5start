@@ -86,6 +86,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.astro5star.app.data.local.TokenManager
+import com.astro5star.app.utils.CurrencyHelper
 import com.google.gson.JsonObject
 import com.google.gson.JsonArray
 import org.json.JSONObject
@@ -401,6 +402,8 @@ fun HomeScreen(
 
     val tokenManager = remember { TokenManager(context) }
     val userSession by remember { mutableStateOf(tokenManager.getUserSession()) }
+    val isUsdUser = remember { tokenManager.isUsdUser() }
+    val userCurrency = remember { tokenManager.getUserCurrency() }
 
     // Fetch History and Reviews
     LaunchedEffect(selectedTab) {
@@ -480,7 +483,8 @@ fun HomeScreen(
                 Column {
                     Text(com.astro5star.app.utils.Localization.get("low_balance_desc", isTamil), color = CosmicAppTheme.colors.textPrimary)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Current Balance: ₹${(walletBalance + superWalletBalance).toInt()}", fontWeight = FontWeight.Bold, color = CosmicAppTheme.colors.accent)
+                    val curBal = CurrencyHelper.formatPrice(walletBalance + superWalletBalance, userCurrency)
+                    Text("Current Balance: $curBal", fontWeight = FontWeight.Bold, color = CosmicAppTheme.colors.accent)
                 }
             },
             confirmButton = {
@@ -504,17 +508,19 @@ fun HomeScreen(
         )
     }
     if (showReferralDialog) {
-        val uiTitle = appConfig?.optString("REFERRAL_TITLE_TA") ?: "🎁 பரிசு வெல்லுங்கள்!"
-        val uiSubtitle = appConfig?.optString("REFERRAL_SUBTITLE_TA") ?: "நண்பர்களை அழைத்து வாலட் பணத்தை அள்ளுங்கள்"
-        val uiStep1 = appConfig?.optString("REFERRAL_STEP1_TA") ?: "உங்கள் Referral Code-ஐ நண்பர்களுக்கு பகிருங்கள்."
-        val uiStep2 = appConfig?.optString("REFERRAL_STEP2_TA") ?: "உங்கள் நண்பர் இணைந்தவுடன் உங்களுக்கு ₹81 போனஸ் கிடைக்கும்!"
+        val uiTitle = if (isUsdUser) "🎁 Win Rewards!" else (appConfig?.optString("REFERRAL_TITLE_TA") ?: "🎁 பரிசு வெல்லுங்கள்!")
+        val uiSubtitle = if (isUsdUser) "Invite friends and earn free wallet credits" else (appConfig?.optString("REFERRAL_SUBTITLE_TA") ?: "நண்பர்களை அழைத்து வாலட் பணத்தை அள்ளுங்கள்")
+        val uiStep1 = if (isUsdUser) "Share your Referral Code with friends." else (appConfig?.optString("REFERRAL_STEP1_TA") ?: "உங்கள் Referral Code-ஐ நண்பர்களுக்கு பகிருங்கள்.")
+        val defaultStep2 = if (isUsdUser) "Get $1.00 FREE bonus when your friend joins!" else "உங்கள் நண்பர் இணைந்தவுடன் உங்களுக்கு ₹81 போனஸ் கிடைக்கும்!"
+        val uiStep2 = if (isUsdUser) defaultStep2 else (appConfig?.optString("REFERRAL_STEP2_TA") ?: defaultStep2)
         val rawBaseUrl = appConfig?.optString("APP_BASE_URL")
         val baseAppUrl = if (rawBaseUrl.isNullOrEmpty()) "https://play.google.com/store/apps/details?id=com.astro5star.app" else rawBaseUrl
         
         val myCode = if (referralCode.isNullOrEmpty()) "ASTRO55" else referralCode
 
+        val defaultRawMsg = if (isUsdUser) "Join Astro 5 Star! Use my referral code to get $1.50 FREE bonus: " else "Astro 5 Star செயலியில் இணையுங்கள்! இணைந்து ₹188 போனஸ் பெறுங்கள்: "
         val rawUiMsg = appConfig?.optString("REFERRAL_WHATSAPP_MSG_TA")
-        val uiRawMsg = if (rawUiMsg.isNullOrEmpty()) "Astro 5 Star செயலியில் இணையுங்கள்! இணைந்து ₹188 போனஸ் பெறுங்கள்: " else rawUiMsg
+        val uiRawMsg = if (isUsdUser) defaultRawMsg else (if (rawUiMsg.isNullOrEmpty()) defaultRawMsg else rawUiMsg)
 
         // AUTO-REFERRAL: Append &referrer=CODE to the Play Store URL
         val appUrl = if (baseAppUrl.contains("play.google.com")) {
@@ -1175,6 +1181,11 @@ fun HomeTopBar(
                 }
 
 
+                val context = LocalContext.current
+                val tokenManager = remember { TokenManager(context) }
+                val isUsdUser = tokenManager.isUsdUser()
+                val userCurrency = tokenManager.getUserCurrency()
+
                 Row(
                     modifier = Modifier.clickable { onWalletClick() },
                     verticalAlignment = Alignment.CenterVertically
@@ -1186,8 +1197,9 @@ fun HomeTopBar(
                             border = BorderStroke(1.dp, Color(0xFFFF4081)),
                             modifier = Modifier.padding(end = 4.dp)
                         ) {
+                            val bonusFormatted = if (isUsdUser) "Bonus: " + CurrencyHelper.formatPrice(superBalance, userCurrency) else "Bonus: ₹${"%.1f".format(superBalance)}"
                             Text(
-                                text = "Bonus: ₹${"%.1f".format(superBalance)}",
+                                text = bonusFormatted,
                                 color = Color(0xFFFF4081),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 9.sp,
@@ -1202,8 +1214,9 @@ fun HomeTopBar(
                         modifier = Modifier.padding(start = 4.dp).size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
+                    val mainFormatted = if (isUsdUser) CurrencyHelper.formatPrice(balance, userCurrency) else "₹${balance.toInt()}"
                     Text(
-                        text = "₹${balance.toInt()}",
+                        text = mainFormatted,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
                         color = Color.White
                     )
@@ -1458,12 +1471,15 @@ fun AstrologerCard(
                             )
                         }
                         Spacer(modifier = Modifier.width(4.dp))
+                        val isCardUsd = tokenManager.isUsdUser()
                         val dp = when(selectedTab) { 1->astro.chatPrice; 2->astro.videoPrice; 3->astro.audioPrice; else->astro.chatPrice }
-                        Text("₹ $dp", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp), color = Color.Red)
+                        val displayRate = if (isCardUsd) CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(dp.toDouble(), "USD"), "USD") else "₹ $dp"
+                        Text(displayRate, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp), color = Color.Red)
                         Spacer(modifier = Modifier.width(4.dp))
                         if (astro.price > dp) {
+                            val origRate = if (isCardUsd) "${CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(astro.price.toDouble(), "USD"), "USD")}/Min" else "${astro.price}/Min"
                             Text(
-                                text = "${astro.price}/Min",
+                                text = origRate,
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     color = Color.Gray,
                                     fontSize = 11.sp,
@@ -2196,8 +2212,11 @@ fun ConsultationHistoryCard(item: SessionHistoryItem) {
                     )
                     Text(text = startTimeStr, fontSize = 12.sp, color = Color.Gray)
                 }
+                val context = LocalContext.current
+                val tokenManager = remember { TokenManager(context) }
+                val userCurrency = tokenManager.getUserCurrency()
                 Text(
-                    text = "₹${String.format("%.2f", item.amount)}",
+                    text = CurrencyHelper.formatPrice(item.amount, userCurrency),
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 18.sp,
                     color = if (item.isEarned) Color(0xFF4CAF50) else Color(0xFF1E3A8A)

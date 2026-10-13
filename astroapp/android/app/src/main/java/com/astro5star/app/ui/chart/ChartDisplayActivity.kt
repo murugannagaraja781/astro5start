@@ -95,7 +95,6 @@ class ChartDisplayActivity : ComponentActivity() {
         val panchangam = data.getJSONObject("panchangam")
         val dasha = data.optJSONObject("dasha")
         val lagna = data.getJSONObject("lagna")
-        val navamsa = data.getJSONObject("navamsa").getJSONObject("planets")
 
         val signMap = mapOf(
             "Pisces" to 0, "Aries" to 1, "Taurus" to 2, "Gemini" to 3,
@@ -120,15 +119,63 @@ class ChartDisplayActivity : ComponentActivity() {
         }
 
         val navamsaBoxes = Array(12) { StringBuilder() }
-        val nKeys = navamsa.keys()
-        while(nKeys.hasNext()) {
-             val pName = nKeys.next() as String
-             val pData = navamsa.getJSONObject(pName)
-             val pSign = pData.getString("navamsaSign")
-             val pNameTamil = planets.optJSONObject(pName)?.optString("nameTamil", pName)?.take(2) ?: pName.take(2)
-             signMap[pSign]?.let { idx ->
-                 navamsaBoxes[idx].append("<div class='planet'>$pNameTamil</div>")
-             }
+        val navamsaObj = data.optJSONObject("navamsa")
+        val housesObj = data.optJSONObject("houses")
+        val signsList = listOf("Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces")
+
+        val rawNavAsc = navamsaObj?.optString("ascendant")?.takeIf { it.isNotBlank() }
+            ?: navamsaObj?.optJSONObject("ascendantDetails")?.optString("signName")?.takeIf { it.isNotBlank() }
+            ?: navamsaObj?.optString("lagna")?.takeIf { it.isNotBlank() }
+            ?: housesObj?.let { h ->
+                if (h.has("ascendant")) {
+                    val ascLon = h.optDouble("ascendant")
+                    val navLon = (ascLon * 9) % 360
+                    val navIdx = (Math.floor(navLon / 30).toInt()) % 12
+                    signsList.getOrNull(navIdx)
+                } else null
+            }
+            ?: data.optJSONObject("lagna")?.let { l ->
+                if (l.has("longitude")) {
+                    val ascLon = l.optDouble("longitude")
+                    val navLon = (ascLon * 9) % 360
+                    val navIdx = (Math.floor(navLon / 30).toInt()) % 12
+                    signsList.getOrNull(navIdx)
+                } else null
+            }
+
+        if (!rawNavAsc.isNullOrEmpty()) {
+            signMap[rawNavAsc]?.let { idx ->
+                navamsaBoxes[idx].append("<div class='planet lagna'>லக்</div>")
+            }
+        }
+
+        if (navamsaObj != null) {
+            val planetsArray = navamsaObj.optJSONArray("planets")
+            if (planetsArray != null) {
+                for (i in 0 until planetsArray.length()) {
+                    val pData = planetsArray.optJSONObject(i) ?: continue
+                    val pName = pData.optString("name")
+                    val pSign = pData.optString("signName", pData.optString("navamsaSign"))
+                    val pNameTamil = planets.optJSONObject(pName)?.optString("nameTamil", pName)?.take(2) ?: pName.take(2)
+                    signMap[pSign]?.let { idx ->
+                        navamsaBoxes[idx].append("<div class='planet'>$pNameTamil</div>")
+                    }
+                }
+            } else {
+                val planetsObj = navamsaObj.optJSONObject("planets")
+                if (planetsObj != null) {
+                    val nKeys = planetsObj.keys()
+                    while (nKeys.hasNext()) {
+                        val pName = nKeys.next() as String
+                        val pData = planetsObj.getJSONObject(pName)
+                        val pSign = pData.optString("navamsaSign", pData.optString("signName"))
+                        val pNameTamil = planets.optJSONObject(pName)?.optString("nameTamil", pName)?.take(2) ?: pName.take(2)
+                        signMap[pSign]?.let { idx ->
+                            navamsaBoxes[idx].append("<div class='planet'>$pNameTamil</div>")
+                        }
+                    }
+                }
+            }
         }
 
         return """

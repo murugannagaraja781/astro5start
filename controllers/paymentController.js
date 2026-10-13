@@ -310,8 +310,19 @@ const getPaymentHistory = async (req, res) => {
 
 const getRechargePacks = async (req, res) => {
     try {
+        const currency = (req.query.currency || req.headers['x-user-currency'] || 'INR').toUpperCase();
+        if (currency === 'USD') {
+            const usdPacks = [
+                { amount: 5, bonusText: "Get $5 Talktime", percentage: 0.0, offerPercentage: 0.0 },
+                { amount: 10, bonusText: "Get 10% Extra ($1 Bonus)", percentage: 10.0, offerPercentage: 10.0 },
+                { amount: 25, bonusText: "Get 12% Extra ($3 Bonus)", percentage: 12.0, offerPercentage: 12.0 },
+                { amount: 50, bonusText: "Get 20% Extra ($10 Bonus)", percentage: 20.0, offerPercentage: 20.0 },
+                { amount: 100, bonusText: "Get 25% Extra ($25 Bonus)", percentage: 25.0, offerPercentage: 25.0 }
+            ];
+            return res.json({ ok: true, packs: usdPacks, currency: 'USD' });
+        }
         const { RECHARGE_PACKS } = require('../services/sharedState');
-        res.json({ ok: true, packs: RECHARGE_PACKS });
+        res.json({ ok: true, packs: RECHARGE_PACKS, currency: 'INR' });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
     }

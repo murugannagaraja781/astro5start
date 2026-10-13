@@ -6,6 +6,7 @@ const userController = require('../controllers/userController');
 router.get('/user/:userId', userController.getUserProfile);
 router.get('/astrology/astrologers', userController.getAstrologers);
 router.get('/astrology/history/:userId', userController.getSessionHistory);
+router.get('/astrologer/earnings/:userId', userController.getAstrologerEarnings);
 router.post('/register', userController.registerDevice);
 router.get('/user/:userId/intake', userController.getIntakeDetails);
 router.post('/user/intake', userController.saveUserIntake);
@@ -24,6 +25,9 @@ router.post('/city-timezone', userController.getCityTimezone);
 router.get('/chat/history/:sessionId', userController.getChatHistory);
 router.get('/session/status/:sessionId', userController.getSessionStatus);
 router.post('/referral/apply', userController.applyReferral);
+router.get('/config/currency', userController.getCurrencyConfig);
+const countryController = require('../controllers/countryController');
+router.get('/countries/enabled', countryController.getEnabledCountries);
 
 const { upload } = require('../config/multer');
 const compressImage = require('../middleware/imageCompressor');

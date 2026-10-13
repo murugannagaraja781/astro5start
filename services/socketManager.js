@@ -41,10 +41,34 @@ const getFormattedAstrologers = async () => {
     })
     .lean();
 
+    const { convertInrToTarget } = require('../utils/currencyHelper');
+
     return astros.map(a => {
         const isOnlineCalculated = !!(a.isOnline || a.isChatOnline || a.isAudioOnline || a.isVideoOnline);
+        const rawPrice = a.price || 20;
+        const rawChat = a.chatPrice || 10;
+        const rawAudio = a.audioPrice || 20;
+        const rawVideo = a.videoPrice || 30;
+        const rawUnlimited = a.unlimitedPrice || 299;
+
+        const priceUsd = convertInrToTarget(rawPrice, 'USD');
+        const chatPriceUsd = convertInrToTarget(rawChat, 'USD');
+        const audioPriceUsd = convertInrToTarget(rawAudio, 'USD');
+        const videoPriceUsd = convertInrToTarget(rawVideo, 'USD');
+        const unlimitedPriceUsd = convertInrToTarget(rawUnlimited, 'USD');
+
         return {
             ...a,
+            rawPriceInr: rawPrice,
+            priceUsd,
+            chatPriceUsd,
+            audioPriceUsd,
+            videoPriceUsd,
+            unlimitedPriceUsd,
+            rates: {
+                INR: { symbol: '₹', price: rawPrice, chatPrice: rawChat, audioPrice: rawAudio, videoPrice: rawVideo, unlimitedPrice: rawUnlimited },
+                USD: { symbol: '$', price: priceUsd, chatPrice: chatPriceUsd, audioPrice: audioPriceUsd, videoPrice: videoPriceUsd, unlimitedPrice: unlimitedPriceUsd }
+            },
             isOnline: isOnlineCalculated, // Override DB field for consistency
             image: formatImageUrl(a.image, a.name),
             // Mobile app helper flags

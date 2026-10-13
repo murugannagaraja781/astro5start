@@ -53,7 +53,7 @@ class TokenManager(context: Context) {
     }
 
     fun clearSession() {
-        sharedPreferences.edit().clear().apply()
+        sharedPreferences.edit().remove("user_session").apply()
     }
 
     fun isLoggedIn(): Boolean {
@@ -109,5 +109,17 @@ class TokenManager(context: Context) {
 
     fun saveLastVersionCode(version: Long) {
         sharedPreferences.edit().putLong("last_version_code", version).apply()
+    }
+
+    fun getUserCurrency(): String {
+        return getUserSession()?.currency ?: "INR"
+    }
+
+    fun getUserCurrencySymbol(): String {
+        return getUserSession()?.currencySymbol ?: if (getUserCurrency() == "USD") "$" else "₹"
+    }
+
+    fun isUsdUser(): Boolean {
+        return getUserCurrency() == "USD"
     }
 }

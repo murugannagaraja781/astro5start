@@ -5,12 +5,14 @@ import com.google.gson.annotations.SerializedName
 
 @Keep
 data class SendOtpRequest(
-    val phone: String
+    val phone: String,
+    val countryCode: String? = "+91"
 )
 
 @Keep
 data class VerifyOtpRequest(
     val phone: String,
+    val countryCode: String? = "+91",
     val otp: String,
     val referralCode: String? = null
 )
@@ -22,6 +24,11 @@ data class AuthResponse(
     val name: String?,
     val role: String?,
     val phone: String?,
+    val fullPhone: String? = null,
+    val countryCode: String? = "+91",
+    val country: String? = "IN",
+    val currency: String? = "INR",
+    val currencySymbol: String? = "₹",
     val walletBalance: Double? = 0.0,
     val superWalletBalance: Double? = 0.0,
     val image: String?,

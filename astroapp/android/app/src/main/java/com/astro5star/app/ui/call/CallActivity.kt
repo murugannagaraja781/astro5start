@@ -1777,6 +1777,27 @@ class CallActivity : ComponentActivity() {
         CallState.isCallActive = false
         CallState.currentSessionId = null
         stopBackgroundService()
+
+        try {
+            val notificationManager = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
+            notificationManager?.cancelAll()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to cancel notifications", e)
+        }
+
+        try {
+            val userSession = TokenManager(this).getUserSession()
+            val targetIntent = if (userSession?.role == "astrologer") {
+                android.content.Intent(this, com.astro5star.app.ui.astro.AstrologerDashboardActivity::class.java)
+            } else {
+                android.content.Intent(this, com.astro5star.app.ui.home.HomeActivity::class.java)
+            }
+            targetIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
+            startActivity(targetIntent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to navigate back after call", e)
+        }
+
         super.finish()
     }
 

@@ -29,14 +29,46 @@ function calculateBirthChart(date, lat, lng, timezone = 'Asia/Kolkata') {
     // 4. Get Panchanga Data
     const panchanga = getPanchanga(jd, lat, lng, 'Lahiri');
 
-    // 5. Structure final response
+    // 5. Calculate Navamsa
+    const { getNavamsaSign, formatLongitude } = require('./rasiEng/calculations');
+    const navamsaPlanets = planets.map(p => {
+        const navSign = getNavamsaSign(p.longitude);
+        const navLon = (p.longitude * 9) % 360;
+        return {
+            name: p.name,
+            signName: navSign,
+            signIndex: Math.floor(navLon / 30) % 12,
+            navamsaSign: navSign,
+            degreeFormatted: formatLongitude ? formatLongitude(navLon) : ''
+        };
+    });
+    const navamsaAscSign = getNavamsaSign(houseData.ascendant);
+    const navamsaAscLon = (houseData.ascendant * 9) % 360;
+    const signsList = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+    const signAbbrList = ['Ari', 'Tau', 'Gem', 'Can', 'Leo', 'Vir', 'Lib', 'Sco', 'Sag', 'Cap', 'Aqu', 'Pis'];
+    const ascIdx = signsList.indexOf(navamsaAscSign);
+
+    const navamsaData = {
+        ascendant: navamsaAscSign,
+        lagna: navamsaAscSign,
+        ascendantDetails: {
+            signName: navamsaAscSign,
+            signAbbr: signAbbrList[ascIdx] || 'Ari',
+            longitude: navamsaAscLon,
+            degreeFormatted: formatLongitude ? formatLongitude(navamsaAscLon) : ''
+        },
+        planets: navamsaPlanets
+    };
+
+    // 6. Structure final response
     return {
         julianDay: jd,
         ayanamsa: houseData.ayanamsaValue,
         ascendant: houseData.ascendantDetails,
         planets: planets,
         houses: houseData.details,
-        panchanga: panchanga
+        panchanga: panchanga,
+        navamsa: navamsaData
     };
 }
 

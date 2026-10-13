@@ -5,6 +5,9 @@ const PaymentSchema = new mongoose.Schema({
     merchantTransactionId: { type: String, index: true }, // Indexed for PhonePe and Razorpay callback matching
     userId: String,
     amount: Number, // Total amount paid (including GST)
+    currency: { type: String, default: 'INR' },
+    currencySymbol: { type: String, default: '₹' },
+    exchangeRate: { type: Number, default: 1 },
     baseAmount: Number, // Original recharge amount (net of discounts)
     creditedAmount: Number, // The actual balance to add to wallet (e.g. 50 even if user paid 45)
     gstAmount: Number, // GST @ 18%

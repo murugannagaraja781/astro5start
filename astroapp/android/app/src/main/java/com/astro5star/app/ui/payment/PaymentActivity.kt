@@ -238,13 +238,29 @@ class PaymentActivity : AppCompatActivity() {
             showError("User not logged in")
             return
         }
+        val isUsd = tokenManager.isUsdUser()
+        val userCurrency = tokenManager.getUserCurrency()
+
+        if (isUsd) {
+            // Route USD/international users directly to Razorpay Multi-Currency Checkout
+            val paymentPageUrl = "$SERVER_URL/razorpay-checkout.html?userId=$userId&amount=$amount&currency=$userCurrency&isApp=true"
+            Log.d(TAG, "Opening Razorpay Multi-Currency Checkout in WebView: $paymentPageUrl")
+
+            runOnUiThread {
+                statusText.visibility = android.view.View.GONE
+                webView.visibility = android.view.View.VISIBLE
+                webView.loadUrl(paymentPageUrl)
+            }
+            return
+        }
 
         statusText.text = "Securing Payment Session..."
 
         lifecycleScope.launch {
             try {
                 // 1. Get Payment Token (Secure Session)
-                Log.d(TAG, "Requesting token for ₹$amount with promo: $promoCode, superWallet: $isSuperWallet")
+                val sym = tokenManager.getUserCurrencySymbol()
+                Log.d(TAG, "Requesting token for $sym$amount with promo: $promoCode, superWallet: $isSuperWallet")
                 val request = PaymentInitiateRequest(
                     userId = userId,
                     amount = amount.toInt(),

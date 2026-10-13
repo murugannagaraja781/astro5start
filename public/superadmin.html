@@ -150,6 +150,12 @@
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">System Rules</span>
             </div>
             <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="country-management" onclick="showTab('country-management')" id="menu-country-management">
+                <i class="fas fa-globe text-lg lg:w-5 text-center text-teal-400 group-hover:text-white"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Countries</span>
+                <span id="side-country-badge" class="lg:ml-auto bg-teal-500/20 text-teal-300 text-[0.6rem] font-bold px-2 py-0.5 rounded-full border border-teal-500/30">10/10</span>
+            </div>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
                 data-tab="env-config" onclick="showTab('env-config')" id="menu-env-config">
                 <i class="fas fa-sliders text-lg lg:w-5 text-center text-emerald-400 group-hover:text-white"></i>
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">.ENV Config</span>
@@ -2047,7 +2053,202 @@
                     </div>
                 </div>
             </div>
-        </div>
+        <!-- Country Management Tab -->
+        <section id="tab-country-management" class="tab-content hidden animate-up space-y-6">
+            <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <button onclick="showTab('dashboard')"
+                        class="lg:hidden w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:text-brand-green shadow-sm">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h1 class="text-2xl lg:text-3xl font-extrabold tracking-tight text-deep-green">Country Management</h1>
+                            <span id="country-enabled-ratio-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                <span class="h-2 w-2 rounded-full bg-accent-green animate-pulse"></span>
+                                10 of 10 Enabled
+                            </span>
+                        </div>
+                        <p class="text-slate-500 font-medium text-xs lg:text-sm mt-0.5">
+                            Configure international dialing codes & public phone login availability (நாட்டு மேலாண்மை)
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Global Action: Reload & Settings -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="fetchAdminCountries(1)"
+                        class="bg-white hover:bg-slate-50 text-slate-700 font-bold px-3.5 py-2.5 rounded-2xl border border-slate-200 shadow-sm transition-all flex items-center gap-2 text-xs">
+                        <i class="fas fa-rotate text-teal-600"></i>
+                        <span>Refresh</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Metrics & Max Limit Settings Bar -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Card 1: Total Supported -->
+                <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Supported</p>
+                        <h3 id="stat-total-supported" class="text-2xl font-black text-slate-800 mt-1">245</h3>
+                        <p class="text-[11px] text-slate-400 mt-0.5">libphonenumber-js/max</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shadow-inner">
+                        <i class="fas fa-earth-americas"></i>
+                    </div>
+                </div>
+
+                <!-- Card 2: Enabled Countries -->
+                <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Public Login Enabled</p>
+                        <h3 id="stat-total-enabled" class="text-2xl font-black text-emerald-600 mt-1">10</h3>
+                        <p class="text-[11px] text-emerald-600/80 font-semibold mt-0.5" id="stat-enabled-subtitle">Active on login screen</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-inner">
+                        <i class="fas fa-circle-check"></i>
+                    </div>
+                </div>
+
+                <!-- Card 3: Disabled Countries -->
+                <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Disabled Countries</p>
+                        <h3 id="stat-total-disabled" class="text-2xl font-black text-slate-500 mt-1">235</h3>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Hidden from login</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center text-xl shadow-inner">
+                        <i class="fas fa-ban"></i>
+                    </div>
+                </div>
+
+                <!-- Card 4: Configurable Max Allowed Countries Setting -->
+                <div class="bg-gradient-to-br from-teal-900 to-emerald-950 text-white rounded-3xl p-5 border border-teal-700/50 shadow-md flex flex-col justify-between relative overflow-hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-[11px] font-bold text-teal-300 uppercase tracking-wider">Max Allowed Limit</p>
+                            <h3 id="stat-max-limit-display" class="text-2xl font-black text-white mt-0.5">10</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-white/10 text-teal-300 flex items-center justify-center text-lg">
+                            <i class="fas fa-sliders"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center gap-2">
+                        <input type="number" id="inputMaxCountryLimit" min="1" max="245" value="10"
+                            class="w-20 bg-white/10 border border-teal-400/30 rounded-xl px-2.5 py-1.5 text-sm font-black text-white text-center focus:outline-none focus:ring-2 focus:ring-teal-400">
+                        <button onclick="saveMaxCountryLimit()"
+                            class="flex-1 bg-teal-400 hover:bg-teal-300 text-teal-950 font-black px-3 py-1.5 rounded-xl text-xs transition-all shadow-sm active:scale-95">
+                            Update
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Toolbar: Search, Filters, Bulk Actions -->
+            <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4">
+                <div class="flex flex-col lg:flex-row items-center justify-between gap-4">
+                    <!-- Search Input -->
+                    <div class="relative w-full lg:w-96">
+                        <i class="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="text" id="countrySearchInput" oninput="onCountrySearchChange(event)"
+                            placeholder="Search by country, code (+91), or ISO (IN)..."
+                            class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs lg:text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-green/30">
+                    </div>
+
+                    <!-- Filter Tabs -->
+                    <div class="flex items-center gap-2 w-full lg:w-auto overflow-x-auto">
+                        <div class="bg-slate-100 p-1 rounded-2xl flex items-center border border-slate-200 shrink-0">
+                            <button id="filter-btn-all" onclick="setCountryFilter('all')"
+                                class="country-filter-btn px-4 py-1.5 rounded-xl text-xs font-bold transition-all bg-white text-deep-green shadow-sm">
+                                All (<span id="filter-count-all">245</span>)
+                            </button>
+                            <button id="filter-btn-enabled" onclick="setCountryFilter('enabled')"
+                                class="country-filter-btn px-4 py-1.5 rounded-xl text-xs font-bold transition-all text-slate-500 hover:text-slate-800">
+                                Enabled (<span id="filter-count-enabled">10</span>)
+                            </button>
+                            <button id="filter-btn-disabled" onclick="setCountryFilter('disabled')"
+                                class="country-filter-btn px-4 py-1.5 rounded-xl text-xs font-bold transition-all text-slate-500 hover:text-slate-800">
+                                Disabled (<span id="filter-count-disabled">235</span>)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bulk Selection & Bulk Action Bar -->
+                <div id="country-bulk-bar" class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                    <div class="flex items-center gap-3">
+                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-600 select-none">
+                            <input type="checkbox" id="countrySelectAll" onchange="toggleSelectAllCountries(this)"
+                                class="w-4 h-4 rounded text-brand-green focus:ring-brand-green border-slate-300">
+                            <span>Select All on Page</span>
+                        </label>
+                        <span id="country-selected-count" class="text-xs font-bold text-teal-600 hidden">
+                            (<span id="country-selected-number">0</span> selected)
+                        </span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="confirmBulkCountryAction('enable')"
+                            class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-3.5 py-1.5 rounded-xl border border-emerald-200 text-xs transition-all flex items-center gap-1.5">
+                            <i class="fas fa-check"></i>
+                            <span>Enable Selected</span>
+                        </button>
+                        <button onclick="confirmBulkCountryAction('disable')"
+                            class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3.5 py-1.5 rounded-xl border border-slate-200 text-xs transition-all flex items-center gap-1.5">
+                            <i class="fas fa-ban"></i>
+                            <span>Disable Selected</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table of Countries -->
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/80 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                                <th class="p-4 w-10 text-center">#</th>
+                                <th class="p-4">Country</th>
+                                <th class="p-4 text-center">ISO</th>
+                                <th class="p-4 text-center">Dial Code</th>
+                                <th class="p-4 text-center">Currency</th>
+                                <th class="p-4">Example Format</th>
+                                <th class="p-4 text-center">Status</th>
+                                <th class="p-4 text-center">Public Login</th>
+                                <th class="p-4">Updated By</th>
+                                <th class="p-4 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="country-table-body" class="divide-y divide-slate-50 text-xs text-slate-700 font-medium">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Footer -->
+                <div class="p-4 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-semibold">
+                    <div class="flex items-center gap-2">
+                        <span>Showing</span>
+                        <select id="countryPageSize" onchange="changeCountryPageSize(this.value)"
+                            class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none">
+                            <option value="15">15</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="all">All (245)</option>
+                        </select>
+                        <span>entries</span>
+                        <span id="country-pagination-info" class="ml-2 font-bold text-slate-700">Page 1 of 10</span>
+                    </div>
+
+                    <div id="country-pagination-controls" class="flex items-center gap-1">
+                        <!-- Buttons rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Corrected Fixed-Footer Compact Modal -->
@@ -3110,6 +3311,7 @@
             if (id === 'recharge-settings') fetchRechargeSettings();
             if (id === 'astro-wallets') renderAstroWallets();
             if (id === 'env-config') loadEnvConfig();
+            if (id === 'country-management') fetchAdminCountries(1);
             if (id === 'live-calls') {
                 fetchLiveCalls();
             } else {
@@ -7140,7 +7342,429 @@
         function downloadCurrentEnv() {
             window.open(`/api/admin/env-config/download?adminKey=${encodeURIComponent(ADMIN_SECRET_KEY)}`, '_blank');
         }
+
+        // ==========================================
+        // Country Management System
+        // ==========================================
+        let adminCountriesState = {
+            page: 1,
+            limit: 25,
+            search: '',
+            filter: 'all',
+            totalPages: 1,
+            totalCount: 0,
+            countries: [],
+            selectedIsoCodes: new Set(),
+            stats: {
+                totalSupported: 245,
+                totalEnabled: 10,
+                totalDisabled: 235,
+                maxAllowedCountries: 10
+            }
+        };
+
+        function escapeCountryHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        let countrySearchDebounceTimer = null;
+        function onCountrySearchChange(e) {
+            clearTimeout(countrySearchDebounceTimer);
+            adminCountriesState.search = e.target.value.trim();
+            countrySearchDebounceTimer = setTimeout(() => {
+                fetchAdminCountries(1);
+            }, 300);
+        }
+
+        function setCountryFilter(filterType) {
+            adminCountriesState.filter = filterType;
+            document.querySelectorAll('.country-filter-btn').forEach(btn => {
+                btn.className = 'country-filter-btn px-4 py-1.5 rounded-xl text-xs font-bold transition-all text-slate-500 hover:text-slate-800';
+            });
+            const activeBtn = document.getElementById(`filter-btn-${filterType}`);
+            if (activeBtn) {
+                activeBtn.className = 'country-filter-btn px-4 py-1.5 rounded-xl text-xs font-bold transition-all bg-white text-deep-green shadow-sm';
+            }
+            fetchAdminCountries(1);
+        }
+
+        function changeCountryPageSize(size) {
+            adminCountriesState.limit = size === 'all' ? 'all' : parseInt(size);
+            fetchAdminCountries(1);
+        }
+
+        async function fetchAdminCountries(page = 1) {
+            adminCountriesState.page = page;
+            const tbody = document.getElementById('country-table-body');
+            if (tbody && adminCountriesState.countries.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-slate-400 font-semibold"><i class="fas fa-spinner fa-spin text-lg mr-2 text-teal-600"></i> Loading countries...</td></tr>`;
+            }
+
+            try {
+                const queryParams = new URLSearchParams({
+                    page: adminCountriesState.page,
+                    limit: adminCountriesState.limit,
+                    search: adminCountriesState.search,
+                    filter: adminCountriesState.filter
+                });
+
+                const res = await fetch(`/api/admin/countries?${queryParams}`, {
+                    headers: { 'x-admin-key': ADMIN_SECRET_KEY }
+                });
+                const data = await res.json();
+
+                if (!data.ok) {
+                    showToast(data.error || 'Failed to load countries', 'error');
+                    return;
+                }
+
+                adminCountriesState.countries = data.countries || [];
+                adminCountriesState.stats = data.stats || adminCountriesState.stats;
+                adminCountriesState.totalPages = data.pagination?.totalPages || 1;
+                adminCountriesState.totalCount = data.pagination?.totalCount || 0;
+
+                renderCountryMetrics();
+                renderCountryTable();
+                renderCountryPagination();
+            } catch (err) {
+                console.error('[CountryAdmin] Error fetching countries:', err);
+                showToast('Network error loading countries', 'error');
+            }
+        }
+
+        function renderCountryMetrics() {
+            const { totalSupported, totalEnabled, totalDisabled, maxAllowedCountries } = adminCountriesState.stats;
+
+            const statSup = document.getElementById('stat-total-supported');
+            if (statSup) statSup.textContent = totalSupported;
+
+            const statEn = document.getElementById('stat-total-enabled');
+            if (statEn) statEn.textContent = totalEnabled;
+
+            const statDis = document.getElementById('stat-total-disabled');
+            if (statDis) statDis.textContent = totalDisabled;
+
+            const statMax = document.getElementById('stat-max-limit-display');
+            if (statMax) statMax.textContent = maxAllowedCountries;
+
+            const inputMax = document.getElementById('inputMaxCountryLimit');
+            if (inputMax && document.activeElement !== inputMax) {
+                inputMax.value = maxAllowedCountries;
+            }
+
+            const ratioBadge = document.getElementById('country-enabled-ratio-badge');
+            if (ratioBadge) {
+                ratioBadge.innerHTML = `<span class="h-2 w-2 rounded-full ${totalEnabled >= maxAllowedCountries ? 'bg-amber-500' : 'bg-accent-green'} animate-pulse"></span> ${totalEnabled} of ${maxAllowedCountries} Enabled`;
+            }
+
+            const sideBadge = document.getElementById('side-country-badge');
+            if (sideBadge) {
+                sideBadge.textContent = `${totalEnabled}/${maxAllowedCountries}`;
+            }
+
+            const fAll = document.getElementById('filter-count-all');
+            if (fAll) fAll.textContent = totalSupported;
+            const fEn = document.getElementById('filter-count-enabled');
+            if (fEn) fEn.textContent = totalEnabled;
+            const fDis = document.getElementById('filter-count-disabled');
+            if (fDis) fDis.textContent = totalDisabled;
+        }
+
+        function renderCountryTable() {
+            const tbody = document.getElementById('country-table-body');
+            if (!tbody) return;
+
+            const list = adminCountriesState.countries;
+            if (!list || list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-slate-400 font-semibold"><i class="fas fa-inbox text-2xl mb-2 text-slate-300 block"></i> No countries found matching criteria</td></tr>`;
+                return;
+            }
+
+            const startIndex = adminCountriesState.limit === 'all' ? 0 : (adminCountriesState.page - 1) * adminCountriesState.limit;
+
+            tbody.innerHTML = list.map((c, idx) => {
+                const isSelected = adminCountriesState.selectedIsoCodes.has(c.isoCode);
+                const isEnabled = !!c.enabled;
+                const updatedTime = c.updatedAt ? new Date(c.updatedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Initial';
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition-colors ${isEnabled ? 'bg-emerald-50/15' : ''}">
+                        <td class="p-4 text-center">
+                            <input type="checkbox" data-iso="${c.isoCode}" ${isSelected ? 'checked' : ''} onchange="toggleSelectCountry('${c.isoCode}', this.checked)"
+                                class="country-row-checkbox w-4 h-4 rounded text-brand-green focus:ring-brand-green border-slate-300">
+                        </td>
+                        <td class="p-4">
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl drop-shadow-sm select-none">${c.flag || '🌐'}</span>
+                                <div>
+                                    <span class="font-bold text-slate-900 block leading-tight">${escapeCountryHtml(c.countryName)}</span>
+                                    <span class="text-[10px] text-slate-400 font-medium">Index: ${startIndex + idx + 1}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-4 text-center">
+                            <span class="px-2 py-0.5 rounded-lg bg-slate-100 font-mono font-black text-[11px] text-slate-700 border border-slate-200">
+                                ${c.isoCode}
+                            </span>
+                        </td>
+                        <td class="p-4 text-center">
+                            <span class="px-2 py-0.5 rounded-lg font-mono font-black text-xs ${isEnabled ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}">
+                                ${c.dialingCode}
+                            </span>
+                        </td>
+                        <td class="p-4 text-center">
+                            <span class="font-bold text-slate-700 text-[11px]">
+                                ${c.currency || 'USD'} (${c.currencySymbol || '$'})
+                            </span>
+                        </td>
+                        <td class="p-4 font-mono text-slate-500 text-[11px]">
+                            ${escapeCountryHtml(c.exampleNumber || '—')}
+                        </td>
+                        <td class="p-4 text-center">
+                            ${isEnabled 
+                                ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200"><i class="fas fa-check-circle text-[9px]"></i> Enabled</span>`
+                                : `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200"><i class="fas fa-circle-xmark text-[9px]"></i> Disabled</span>`
+                            }
+                        </td>
+                        <td class="p-4 text-center">
+                            ${isEnabled 
+                                ? `<span class="text-emerald-600 font-black text-xs flex items-center justify-center gap-1"><i class="fas fa-unlock text-[10px]"></i> Active</span>`
+                                : `<span class="text-slate-400 font-semibold text-xs flex items-center justify-center gap-1"><i class="fas fa-lock text-[10px]"></i> Blocked</span>`
+                            }
+                        </td>
+                        <td class="p-4">
+                            <div class="text-[11px]">
+                                <span class="font-bold text-slate-700 block">${escapeCountryHtml(c.updatedBy || 'System')}</span>
+                                <span class="text-slate-400 text-[10px]">${updatedTime}</span>
+                            </div>
+                        </td>
+                        <td class="p-4 text-center">
+                            <button onclick="toggleSingleCountry('${c.isoCode}', ${isEnabled})"
+                                class="px-3 py-1.5 rounded-xl font-bold text-xs transition-all shadow-sm active:scale-95 flex items-center gap-1.5 mx-auto ${isEnabled 
+                                    ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200' 
+                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'}">
+                                <i class="fas ${isEnabled ? 'fa-toggle-on text-rose-500' : 'fa-toggle-off'}"></i>
+                                <span>${isEnabled ? 'Disable' : 'Enable'}</span>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            updateCountrySelectionUI();
+        }
+
+        function renderCountryPagination() {
+            const info = document.getElementById('country-pagination-info');
+            const controls = document.getElementById('country-pagination-controls');
+            if (!info || !controls) return;
+
+            const { page, totalPages, totalCount, limit } = adminCountriesState;
+            info.textContent = `Page ${page} of ${totalPages} (${totalCount} total)`;
+
+            if (totalPages <= 1) {
+                controls.innerHTML = '';
+                return;
+            }
+
+            let html = `
+                <button onclick="fetchAdminCountries(${page - 1})" ${page <= 1 ? 'disabled class="opacity-40 cursor-not-allowed"' : 'class="hover:bg-slate-200"'}
+                    class="px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 transition-all">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            `;
+
+            for (let p = Math.max(1, page - 2); p <= Math.min(totalPages, page + 2); p++) {
+                html += `
+                    <button onclick="fetchAdminCountries(${p})"
+                        class="px-2.5 py-1 rounded-lg border text-xs font-bold transition-all ${p === page ? 'bg-deep-green text-white border-deep-green shadow-sm' : 'border-slate-200 text-slate-700 hover:bg-slate-200'}">
+                        ${p}
+                    </button>
+                `;
+            }
+
+            html += `
+                <button onclick="fetchAdminCountries(${page + 1})" ${page >= totalPages ? 'disabled class="opacity-40 cursor-not-allowed"' : 'class="hover:bg-slate-200"'}
+                    class="px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 transition-all">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            `;
+
+            controls.innerHTML = html;
+        }
+
+        async function toggleSingleCountry(isoCode, currentEnabled) {
+            const targetState = !currentEnabled;
+            const country = adminCountriesState.countries.find(c => c.isoCode === isoCode);
+            const countryName = country?.countryName || isoCode;
+
+            // Check if enabling exceeds limit
+            if (targetState && adminCountriesState.stats.totalEnabled >= adminCountriesState.stats.maxAllowedCountries) {
+                showToast(`Limit Exceeded: Maximum ${adminCountriesState.stats.maxAllowedCountries} countries allowed. Please disable another country first.`, 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/admin/countries/${isoCode}/toggle`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-key': ADMIN_SECRET_KEY
+                    },
+                    body: JSON.stringify({
+                        enabled: targetState,
+                        updatedBy: 'Super Admin'
+                    })
+                });
+
+                const data = await res.json();
+                if (data.ok) {
+                    showToast(data.message || `Country ${countryName} updated`, 'success');
+                    await fetchAdminCountries(adminCountriesState.page);
+                } else {
+                    showToast(data.error || 'Failed to update country', 'error');
+                }
+            } catch (err) {
+                showToast('Network error updating country status', 'error');
+            }
+        }
+
+        async function saveMaxCountryLimit() {
+            const input = document.getElementById('inputMaxCountryLimit');
+            const newLimit = parseInt(input?.value, 10);
+
+            if (isNaN(newLimit) || newLimit < 1) {
+                showToast('Maximum allowed countries must be a positive integer', 'error');
+                return;
+            }
+
+            if (newLimit < adminCountriesState.stats.totalEnabled) {
+                showToast(`Conflict: Limit cannot be less than currently enabled count (${adminCountriesState.stats.totalEnabled}). Disable countries first.`, 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/admin/countries/settings/max-limit', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-key': ADMIN_SECRET_KEY
+                    },
+                    body: JSON.stringify({
+                        limit: newLimit,
+                        updatedBy: 'Super Admin'
+                    })
+                });
+
+                const data = await res.json();
+                if (data.ok) {
+                    showToast(`Max allowed countries updated to ${newLimit}`, 'success');
+                    adminCountriesState.stats.maxAllowedCountries = newLimit;
+                    renderCountryMetrics();
+                } else {
+                    showToast(data.error || 'Failed to update limit', 'error');
+                }
+            } catch (err) {
+                showToast('Network error saving limit', 'error');
+            }
+        }
+
+        function toggleSelectCountry(isoCode, isChecked) {
+            if (isChecked) {
+                adminCountriesState.selectedIsoCodes.add(isoCode);
+            } else {
+                adminCountriesState.selectedIsoCodes.delete(isoCode);
+            }
+            updateCountrySelectionUI();
+        }
+
+        function toggleSelectAllCountries(checkbox) {
+            const isChecked = checkbox.checked;
+            adminCountriesState.countries.forEach(c => {
+                if (isChecked) {
+                    adminCountriesState.selectedIsoCodes.add(c.isoCode);
+                } else {
+                    adminCountriesState.selectedIsoCodes.delete(c.isoCode);
+                }
+            });
+            document.querySelectorAll('.country-row-checkbox').forEach(cb => {
+                cb.checked = isChecked;
+            });
+            updateCountrySelectionUI();
+        }
+
+        function updateCountrySelectionUI() {
+            const count = adminCountriesState.selectedIsoCodes.size;
+            const countBadge = document.getElementById('country-selected-count');
+            const countNum = document.getElementById('country-selected-number');
+            if (countBadge && countNum) {
+                if (count > 0) {
+                    countBadge.classList.remove('hidden');
+                    countNum.textContent = count;
+                } else {
+                    countBadge.classList.add('hidden');
+                }
+            }
+        }
+
+        async function confirmBulkCountryAction(action) {
+            const selectedList = Array.from(adminCountriesState.selectedIsoCodes);
+            if (selectedList.length === 0) {
+                showToast('Please select at least one country using the checkboxes', 'info');
+                return;
+            }
+
+            const actionVerb = action === 'enable' ? 'ENABLE' : 'DISABLE';
+            const confirmed = confirm(
+                `CONFIRM BULK ACTION\n\n` +
+                `Are you sure you want to ${actionVerb} ${selectedList.length} selected countries for public phone login?\n\n` +
+                `Selected countries: ${selectedList.slice(0, 10).join(', ')}${selectedList.length > 10 ? '...' : ''}\n\n` +
+                `Click OK to proceed.`
+            );
+
+            if (!confirmed) return;
+
+            try {
+                const res = await fetch('/api/admin/countries/bulk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-key': ADMIN_SECRET_KEY
+                    },
+                    body: JSON.stringify({
+                        isoCodes: selectedList,
+                        action: action,
+                        updatedBy: 'Super Admin'
+                    })
+                });
+
+                const data = await res.json();
+                if (data.ok) {
+                    showToast(data.message || `Bulk update applied successfully`, 'success');
+                    adminCountriesState.selectedIsoCodes.clear();
+                    const allCb = document.getElementById('countrySelectAll');
+                    if (allCb) allCb.checked = false;
+                    await fetchAdminCountries(adminCountriesState.page);
+                } else {
+                    showToast(data.error || 'Bulk update rejected by server', 'error');
+                }
+            } catch (err) {
+                showToast('Network error during bulk operation', 'error');
+            }
+        }
+
+        // On document load, also fetch country stats for the sidebar badge
+        setTimeout(() => {
+            fetchAdminCountries(1);
+        }, 1500);
     </script>
+
 </body>
 
 </html>

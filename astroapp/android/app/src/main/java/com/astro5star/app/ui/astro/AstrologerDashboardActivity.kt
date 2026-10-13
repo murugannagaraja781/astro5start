@@ -587,20 +587,21 @@ fun AstrologerDashboardScreen(
     }
 
     val dashColors = object {
-        val accent = Color(0xFF00E676) // Bright Green
-        val cardBg = Color(0xFF004D40) // Tealish Green
-        val cardStroke = Color.White.copy(alpha = 0.12f)
-        val textPrimary = Color.White
-        val textSecondary = Color(0xFFA5D6A7) // Light Sage
-        val headerStart = Color(0xFF1B5E20)
-        val headerEnd = Color(0xFF00382E)
-        val bgStart = Color(0xFF1B5E20)
-        val bgEnd = Color(0xFF002115)
+        val accent = Color(0xFF059669) // Crisp Vivid Emerald
+        val cardBg = Color.White // Crisp White Card
+        val cardStroke = Color(0xFF86EFAC).copy(alpha = 0.8f) // Soft Milk Green Stroke
+        val textPrimary = Color(0xFF064E3B) // Deep Forest Pine
+        val textSecondary = Color(0xFF047857) // Muted Emerald
+        val headerStart = Color(0xFF059669) // Fresh Emerald
+        val headerEnd = Color(0xFF047857) // Deep Forest
+        val bgStart = Color(0xFFE8F7EE) // Light Milk Green
+        val bgMid = Color(0xFFF2FAF5) // Pale Milky Mint
+        val bgEnd = Color(0xFFE3F5EB) // Soothing Milk Sage
         val headerGradient = Brush.verticalGradient(
             colors = listOf(headerStart, headerEnd)
         )
         val bgGradient = Brush.verticalGradient(
-            colors = listOf(bgStart, Color(0xFF00332B), bgEnd)
+            colors = listOf(bgStart, bgMid, bgEnd)
         )
     }
 
@@ -684,13 +685,10 @@ fun AstrologerDashboardScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    val whatsappNum = "919080061700"
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        data = Uri.parse("https://wa.me/$whatsappNum?text=Hi, I am an astrologer and I need help with Astro 5 Star app.")
-                    }
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/919080061700"))
                     context.startActivity(intent)
                 },
-                containerColor = Color(0xFF25D366),
+                containerColor = Color(0xFF059669),
                 contentColor = Color.White,
                 shape = CircleShape
             ) {
@@ -831,22 +829,22 @@ fun AstrologerDashboardScreen(
         ) {
             // 1. Emergency Banner (Skeuomorphic)
             Card(
-                colors = CardDefaults.cardColors(containerColor = dashColors.headerStart),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFDCFCE7)),
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(16.dp)),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
+                modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(16.dp), spotColor = Color(0xFF059669).copy(alpha = 0.15f)),
+                border = BorderStroke(1.5.dp, Color(0xFF86EFAC))
             ) {
                 Column(
                     modifier = Modifier
                         .background(
                             Brush.linearGradient(
-                                colors = listOf(dashColors.headerStart, dashColors.headerEnd.copy(alpha = 0.8f))
+                                colors = listOf(Color(0xFFE2F9EB), Color(0xFFD1FAE5))
                             )
                         )
                         .padding(20.dp)
                 ) {
-                    Text(com.astro5star.app.utils.Localization.get("emergency_banner_title", isTamil), color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                    Text(com.astro5star.app.utils.Localization.get("emergency_banner_desc", isTamil), color = Color.White.copy(alpha=0.9f), fontSize = 13.sp)
+                    Text(com.astro5star.app.utils.Localization.get("emergency_banner_title", isTamil), color = Color(0xFF065F46), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                    Text(com.astro5star.app.utils.Localization.get("emergency_banner_desc", isTamil), color = Color(0xFF047857), fontSize = 13.sp)
                 }
             }
 
@@ -874,46 +872,44 @@ fun AstrologerDashboardScreen(
 
             // 2. Earnings Card (Skeuomorphic)
             Card(
-                colors = CardDefaults.cardColors(containerColor = dashColors.cardBg),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(24.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(12.dp, RoundedCornerShape(24.dp), spotColor = dashColors.accent.copy(alpha = 0.2f)),
+                    .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0xFF059669).copy(alpha = 0.15f)),
                 border = BorderStroke(
-                    2.dp,
-                    Brush.linearGradient(
-                        colors = listOf(Color.White, dashColors.cardStroke.copy(alpha = 0.3f))
-                    )
+                    1.5.dp,
+                    Color(0xFF86EFAC)
                 )
             ) {
                 Column(
                     modifier = Modifier
                         .background(
                             Brush.linearGradient(
-                                colors = listOf(Color(0xFF00332B), Color(0xFF004D40))
+                                colors = listOf(Color.White, Color(0xFFF0FDF4))
                             )
                         )
                         .padding(24.dp)
                 ) {
-                    Text(com.astro5star.app.utils.Localization.get("total_earnings", isTamil), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(com.astro5star.app.utils.Localization.get("total_earnings", isTamil), color = Color(0xFF065F46), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "₹${String.format("%.2f", walletBalance)}",
                             fontSize = 32.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = dashColors.accent
+                            color = Color(0xFF059669)
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         Button(
                             onClick = { showWithdrawDialog = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = dashColors.accent),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669)),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(com.astro5star.app.utils.Localization.get("withdraw", isTamil), color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
-                    Text(com.astro5star.app.utils.Localization.get("min_withdrawal_desc", isTamil), color = dashColors.textSecondary.copy(alpha = 0.6f), fontSize = 11.sp)
+                    Text(com.astro5star.app.utils.Localization.get("min_withdrawal_desc", isTamil), color = Color(0xFF047857).copy(alpha = 0.8f), fontSize = 11.sp)
                 }
             }
 
@@ -991,36 +987,36 @@ fun AstrologerDashboardScreen(
 
             // 3. Today's Progress (Skeuomorphic)
             Card(
-                colors = CardDefaults.cardColors(containerColor = dashColors.cardBg),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(20.dp)),
-                border = BorderStroke(1.dp, dashColors.cardStroke.copy(alpha = 0.2f))
+                modifier = Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(20.dp), spotColor = Color(0xFF059669).copy(alpha = 0.12f)),
+                border = BorderStroke(1.dp, Color(0xFF86EFAC).copy(alpha = 0.8f))
             ) {
                 Row(
-                   modifier = Modifier
-                       .background(
-                           Brush.verticalGradient(
-                               colors = listOf(Color.White, dashColors.cardBg)
-                           )
-                       )
-                       .padding(20.dp),
-                   verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(Color.White, Color(0xFFF0FDF4))
+                            )
+                        )
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(com.astro5star.app.utils.Localization.get("today_progress", isTamil), fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = dashColors.textPrimary)
+                        Text(com.astro5star.app.utils.Localization.get("today_progress", isTamil), fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF064E3B))
                         val totalHours = 12.0
                         val completedHours = (todayProgress / 100.0) * totalHours
-                        Text("$todayProgress% completed (${String.format("%.1f", completedHours)} hours)", fontSize = 12.sp, color = dashColors.textSecondary)
+                        Text("$todayProgress% completed (${String.format("%.1f", completedHours)} hours)", fontSize = 12.sp, color = Color(0xFF047857))
                     }
                     Box(contentAlignment = Alignment.Center) {
                          CircularProgressIndicator(
                              progress = todayProgress / 100f,
-                             trackColor = dashColors.bgEnd,
-                             color = dashColors.accent,
+                             trackColor = Color(0xFFDCFCE7),
+                             color = Color(0xFF059669),
                              modifier = Modifier.size(54.dp),
                              strokeWidth = 6.dp
                          )
-                         Text("$todayProgress%", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = dashColors.textPrimary)
+                         Text("$todayProgress%", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF064E3B))
                     }
                 }
             }
@@ -1172,15 +1168,15 @@ fun AstrologerDashboardScreen(
                     ) {
                         rowItems.forEach { (label, icon) ->
                              Card(
-                                 colors = CardDefaults.cardColors(containerColor = Color(0xFF004D40).copy(alpha = 0.5f)),
+                                 colors = CardDefaults.cardColors(containerColor = Color.White),
                                  shape = RoundedCornerShape(20.dp),
                                  modifier = Modifier
                                      .weight(1f)
                                      .aspectRatio(1f)
-                                     .shadow(12.dp, RoundedCornerShape(20.dp))
+                                     .shadow(6.dp, RoundedCornerShape(20.dp), spotColor = Color(0xFF059669).copy(alpha = 0.1f))
                                      .border(
                                          1.dp,
-                                         Color.White.copy(alpha = 0.12f),
+                                         Color(0xFF86EFAC).copy(alpha = 0.8f),
                                          RoundedCornerShape(20.dp)
                                      )
                                      .clickable {
@@ -1189,10 +1185,14 @@ fun AstrologerDashboardScreen(
                                              com.astro5star.app.utils.Localization.get("profile", isTamil) -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.EditAstrologerProfileActivity::class.java))
                                              com.astro5star.app.utils.Localization.get("history", isTamil) -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.AstrologerHistoryActivity::class.java))
                                              "Reviews" -> context.startActivity(Intent(context, com.astro5star.app.ui.astro.AstrologerReviewsActivity::class.java))
-                                             com.astro5star.app.utils.Localization.get("earnings", isTamil) -> Toast.makeText(context, "Balance: ₹${String.format("%.2f", walletBalance)}", Toast.LENGTH_SHORT).show()
+                                             com.astro5star.app.utils.Localization.get("earnings", isTamil) -> {
+                                                 context.startActivity(Intent(context, com.astro5star.app.ui.astro.EarningsHistoryActivity::class.java))
+                                             }
                                              com.astro5star.app.utils.Localization.get("chat", isTamil) -> {
-                                                 // Check Chat Status or open help
-                                                 Toast.makeText(context, "Check Chat Requests in Real-time!", Toast.LENGTH_SHORT).show()
+                                                 val intent = Intent(context, com.astro5star.app.ui.astro.AstrologerHistoryActivity::class.java).apply {
+                                                     putExtra("initialTab", 1) // 1 = Chat History tab
+                                                 }
+                                                 context.startActivity(intent)
                                              }
                                          }
                                      }
@@ -1208,24 +1208,20 @@ fun AstrologerDashboardScreen(
                                      Box(
                                          modifier = Modifier
                                              .size(44.dp)
-                                             .shadow(4.dp, CircleShape)
+                                             .shadow(2.dp, CircleShape)
                                              .background(
-                                                 Brush.radialGradient(
-                                                     colors = listOf(Color(0xFF00E676).copy(alpha = 0.2f), Color.Transparent),
-                                                     center = Offset(15f, 15f)
-                                                 ),
+                                                 Color(0xFFECFDF5),
                                                  CircleShape
                                              ),
                                          contentAlignment = Alignment.Center
                                      ) {
-                                         Icon(icon, null, tint = dashColors.accent, modifier = Modifier.size(24.dp))
+                                         Icon(icon, null, tint = Color(0xFF059669), modifier = Modifier.size(24.dp))
                                      }
                                      Spacer(modifier = Modifier.height(10.dp))
-                                     Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = dashColors.textPrimary)
+                                     Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF064E3B))
                                  }
                              }
                         }
-                        // Handle incomplete rows if any (not needed for 6 items / 3 cols)
                     }
                 }
             }
@@ -1261,24 +1257,18 @@ fun ServiceTogglesCard(
     onUnlimitedToggle: (Boolean) -> Unit,
     isTamil: Boolean = true
 ) {
-    val dashColors = object {
-        val accent = Color(0xFF00E676)
-        val cardBg = Color(0xFF004D40)
-        val textPrimary = Color.White
-        val textSecondary = Color(0xFFA5D6A7)
-    }
     Card(
-        colors = CardDefaults.cardColors(containerColor = dashColors.cardBg.copy(alpha = 0.6f)),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(16.dp)),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
+        modifier = Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(16.dp), spotColor = Color(0xFF059669).copy(alpha = 0.12f)),
+        border = BorderStroke(1.dp, Color(0xFF86EFAC).copy(alpha = 0.8f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 com.astro5star.app.utils.Localization.get("service_availability", isTamil),
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
-                color = dashColors.textPrimary
+                color = Color(0xFF064E3B)
             )
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -1314,7 +1304,7 @@ fun ServiceTogglesCard(
             )
 
             Spacer(modifier = Modifier.height(12.dp))
-            Divider(color = Color.White.copy(alpha = 0.1f))
+            Divider(color = Color(0xFF86EFAC).copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(12.dp))
 
             // Unlimited Offer Toggle
@@ -1337,16 +1327,12 @@ fun ServiceToggleRow(
     isEnabled: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
-    val dashColors = object {
-        val accent = Color(0xFF00E676)
-        val textPrimary = Color.White
-    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                if (isEnabled) Color(0xFF4CAF50).copy(alpha = 0.08f)
-                else Color.Gray.copy(alpha = 0.05f),
+                if (isEnabled) Color(0xFFECFDF5)
+                else Color(0xFFF3F4F6),
                 RoundedCornerShape(12.dp)
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -1355,7 +1341,7 @@ fun ServiceToggleRow(
         Icon(
             icon,
             contentDescription = label,
-            tint = if (isEnabled) Color(0xFF4CAF50) else Color.Gray,
+            tint = if (isEnabled) Color(0xFF059669) else Color.Gray,
             modifier = Modifier.size(22.dp)
         )
         Spacer(modifier = Modifier.width(10.dp))
@@ -1364,13 +1350,13 @@ fun ServiceToggleRow(
                 label,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = dashColors.textPrimary
+                color = if (isEnabled) Color(0xFF064E3B) else Color(0xFF4B5563)
             )
             if (subLabel.isNotEmpty()) {
                 Text(
                     subLabel,
                     fontSize = 11.sp,
-                    color = if (isEnabled) Color(0xFFA5D6A7) else Color.Gray
+                    color = if (isEnabled) Color(0xFF047857) else Color.Gray
                 )
             }
         }

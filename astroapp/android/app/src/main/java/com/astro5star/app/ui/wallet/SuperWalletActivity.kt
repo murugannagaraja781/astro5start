@@ -48,12 +48,18 @@ class SuperWalletActivity : ComponentActivity() {
 
         offerPercentage = intent.getDoubleExtra("offerPercentage", 0.0)
         bannerTitle = intent.getStringExtra("bannerTitle") ?: "Super Wallet Offer"
+        val currency = tokenManager.getUserCurrency()
+        val currencySymbol = tokenManager.getUserCurrencySymbol()
+        val isUsd = tokenManager.isUsdUser()
 
         setContent {
             CosmicAppTheme {
                 SuperWalletScreen(
                     title = bannerTitle,
                     offerPercent = offerPercentage,
+                    currency = currency,
+                    currencySymbol = currencySymbol,
+                    isUsd = isUsd,
                     onBack = { finish() },
                     onPay = { amount ->
                         initiatePayment(amount)
@@ -83,6 +89,9 @@ class SuperWalletActivity : ComponentActivity() {
 fun SuperWalletScreen(
     title: String,
     offerPercent: Double,
+    currency: String = "INR",
+    currencySymbol: String = "₹",
+    isUsd: Boolean = false,
     onBack: () -> Unit,
     onPay: (Int) -> Unit
 ) {
@@ -90,8 +99,8 @@ fun SuperWalletScreen(
     val pinkLight = Color(0xFFFDF2F8)
     val pinkGradient = Brush.verticalGradient(listOf(Color(0xFFDB2777), Color(0xFFF472B6)))
 
-    val rechargeOptions = listOf(100, 500, 1000, 2000)
-    var selectedAmount by remember { mutableIntStateOf(100) }
+    val rechargeOptions = if (isUsd) listOf(5, 10, 25, 50) else listOf(100, 500, 1000, 2000)
+    var selectedAmount by remember { mutableIntStateOf(if (isUsd) 10 else 100) }
 
     Scaffold(
         topBar = {
@@ -178,7 +187,7 @@ fun SuperWalletScreen(
                             ) {
                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                     Text(
-                                        "₹$amount",
+                                        "$currencySymbol$amount",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 18.sp,
                                         color = if (selected) Color.White else Color.Black
@@ -203,26 +212,28 @@ fun SuperWalletScreen(
                 Column(Modifier.padding(20.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Base Recharge")
-                        Text("₹$selectedAmount", fontWeight = FontWeight.SemiBold)
+                        Text("$currencySymbol$selectedAmount", fontWeight = FontWeight.SemiBold)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Promotion Bonus", color = pinkDeep)
                         val bonus = (selectedAmount * offerPercent / 100).toInt()
-                        Text("+₹$bonus", color = pinkDeep, fontWeight = FontWeight.Bold)
+                        Text("+$currencySymbol$bonus", color = pinkDeep, fontWeight = FontWeight.Bold)
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("GST (18%)", color = Color.Gray)
-                        val gst = (selectedAmount * 0.18).toInt()
-                        Text("+₹$gst", color = Color.Gray, fontWeight = FontWeight.SemiBold)
+                    val gstPercent = if (isUsd) 0.0 else 0.18
+                    val gst = (selectedAmount * gstPercent).toInt()
+                    if (!isUsd) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("GST (18%)", color = Color.Gray)
+                            Text("+$currencySymbol$gst", color = Color.Gray, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                     HorizontalDivider(Modifier.padding(vertical = 12.dp), color = Color(0xFFEEEEEE))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        val gst = (selectedAmount * 0.18).toInt()
                         val totalPayable = selectedAmount + gst
                         Text("Total Payable", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text("₹$totalPayable", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color.Black)
+                        Text("$currencySymbol$totalPayable", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color.Black)
                     }
                 }
             }
@@ -241,10 +252,11 @@ fun SuperWalletScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = pinkDeep)
             ) {
                 val totalCredit = selectedAmount + (selectedAmount * offerPercent / 100).toInt()
-                val gst = (selectedAmount * 0.18).toInt()
+                val gstPercent = if (isUsd) 0.0 else 0.18
+                val gst = (selectedAmount * gstPercent).toInt()
                 val totalPayable = selectedAmount + gst
 
-                Text("PAY ₹$totalPayable & GET ₹$totalCredit", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("PAY $currencySymbol$totalPayable & GET $currencySymbol$totalCredit", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
 
             Spacer(modifier = Modifier.height(16.dp))

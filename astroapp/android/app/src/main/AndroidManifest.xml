@@ -93,9 +93,8 @@
         android:theme="@style/Theme.FCMCallApp"
         android:name=".AstrologerApp"
         android:resizeableActivity="true"
-        android:extractNativeLibs="false"
         android:networkSecurityConfig="@xml/network_security_config"
-        tools:targetApi="35">
+        tools:targetApi="36">
 
         <!--
             MainActivity: Entry point for user registration
@@ -127,6 +126,7 @@
         <activity android:name=".ui.astro.AstrologerDashboardActivity" />
         <activity android:name=".ui.astro.AstrologerHistoryActivity" />
         <activity android:name=".ui.astro.AstrologerReviewsActivity" />
+        <activity android:name=".ui.astro.EarningsHistoryActivity" />
         <activity android:name=".ui.admin.SuperPowerAdminDashboardActivity" android:exported="false" android:theme="@style/Theme.FCMCallApp"/>
         <activity android:name=".ui.admin.MissedCallNotificationsActivity" android:exported="false" android:theme="@style/Theme.FCMCallApp"/>
         <activity android:name=".ui.admin.AppUpdateSettingsActivity" android:exported="false" android:theme="@style/Theme.FCMCallApp"/>

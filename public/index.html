@@ -17,6 +17,9 @@
   <link rel="dns-prefetch" href="https://checkout.razorpay.com">
   <link rel="dns-prefetch" href="https://api.razorpay.com">
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <link rel="stylesheet" href="/css/cosmic-login.css">
+  <script src="/js/libphonenumber-max.js"></script>
+  <script src="/js/cosmic-login.js"></script>
   <script>
     // Redirect to desktop version if width > 1024px
     if (window.innerWidth >= 1024 && !window.location.href.includes('desktop-view.html')) {
@@ -1809,28 +1812,104 @@
     </div>
   </div>
 
-  <!-- Screen: Login -->
-  <div id="screen-login" style="padding-top: 60px;">
-    <div class="form-box">
-      <h2>✨Astro5 Login</h2>
-      <div id="step-phone">
-        <input id="inputPhone" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="10" class="cosmic-input"
-          placeholder="10 Digit Mobile Number" value="" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-        <button id="btnSendOtp" class="cosmic-btn">Get OTP</button>
+  <!-- Screen: Login (Redesigned Premium Cosmic Experience) -->
+  <div id="screen-login" class="cosmic-login-screen">
+    <!-- Ambient glowing nebulas & cosmic accents -->
+    <div class="cosmic-orb cosmic-orb-1"></div>
+    <div class="cosmic-orb cosmic-orb-2"></div>
+    <div class="cosmic-orb cosmic-orb-3"></div>
+    <div class="cosmic-stars-bg"></div>
+    <div class="cosmic-zodiac-ring"></div>
 
+    <div class="cosmic-login-card">
+      <!-- Centered Branding Logo -->
+      <div class="cosmic-logo-wrap">
+        <img src="/images/astro_5_star_logo.png" alt="Astro5Star Logo" class="cosmic-logo-img" onerror="this.src='/favicon.png'">
       </div>
+
+      <!-- Heading & Subtitle -->
+      <h1 class="cosmic-login-title">Sign In</h1>
+      <p class="cosmic-login-subtitle">Welcome back to Astro5Star</p>
+
+      <!-- Step 1: Phone Authentication -->
+      <div id="step-phone">
+        <div class="cosmic-phone-group">
+          <!-- Interactive Country Selector Trigger -->
+          <div id="cosmicCountryTrigger" class="cosmic-country-trigger" title="Select Country">
+            <span id="cosmicSelectedFlag" class="trigger-flag">🇮🇳</span>
+            <span id="cosmicSelectedCode" class="trigger-code">+91</span>
+            <i class="fas fa-chevron-down trigger-arrow"></i>
+          </div>
+
+          <!-- Hidden legacy select for compatibility -->
+          <select id="countrySelect" style="display: none;">
+            <option value="+91" selected>+91</option>
+          </select>
+
+          <!-- Complete Phone Input without fixed maxlength -->
+          <input id="inputPhone" type="tel" inputmode="numeric" class="cosmic-phone-input"
+            placeholder="e.g. 98765 43210" value="" autocomplete="tel">
+        </div>
+
+        <!-- Dynamic Country-Specific Validation Guidance -->
+        <div id="cosmicPhoneHint" class="cosmic-phone-hint">
+          Enter mobile number for India
+        </div>
+
+        <!-- Premium Green Gradient Action Button -->
+        <button id="btnSendOtp" class="cosmic-btn-primary">
+          <span>Get OTP</span>
+          <i class="fas fa-arrow-right text-xs"></i>
+        </button>
+      </div>
+
+      <!-- Step 2: OTP Verification -->
       <div id="step-otp" class="hidden">
-        <input id="inputOtp" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" class="cosmic-input"
-          placeholder="Enter 4-digit OTP" value="" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-        <button id="btnVerifyOtp" class="cosmic-btn">Verify</button>
+        <div class="cosmic-otp-msg">
+          <span>Code sent to <span id="cosmicTargetPhoneDisplay" class="cosmic-otp-phone-display">+91</span></span>
+          <button type="button" id="cosmicChangeNumberBtn" class="cosmic-otp-change-btn">Change</button>
+        </div>
+
+        <input id="inputOtp" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" class="cosmic-otp-input"
+          placeholder="••••" value="" autocomplete="one-time-code" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+
+        <button id="btnVerifyOtp" class="cosmic-btn-primary">
+          <span>Verify & Sign In</span>
+          <i class="fas fa-circle-check text-xs"></i>
+        </button>
+
+        <div class="cosmic-resend-row">
+          <span>Didn't receive code?</span>
+          <button type="button" id="cosmicResendOtpBtn" class="cosmic-resend-btn" disabled>
+            Resend OTP<span id="cosmicResendTimer"> (30s)</span>
+          </button>
+        </div>
       </div>
-      <div style="margin-top: 20px; font-size: 0.9rem;">
-        <a href="astro-register.html" style="color: #F59E0B; text-decoration: none; border-bottom: 1px dashed #F59E0B;">
+
+      <!-- Astrologer Register Link -->
+      <div class="cosmic-astro-link">
+        <a href="astro-register.html">
           <i class="fas fa-user-plus"></i> New Astrologer Register
         </a>
       </div>
     </div>
 
+    <!-- Searchable Country Picker Modal -->
+    <div id="cosmicCountryModal" class="cosmic-country-modal">
+      <div class="cosmic-country-dialog">
+        <div class="cosmic-country-header">
+          <h3>Select Country</h3>
+          <button type="button" id="cosmicCountryClose" class="cosmic-country-close">&times;</button>
+        </div>
+        <div class="cosmic-country-search-wrap">
+          <i class="fas fa-magnifying-glass cosmic-country-search-icon"></i>
+          <input type="text" id="cosmicCountrySearch" class="cosmic-country-search-input" placeholder="Search country name or code...">
+        </div>
+        <div id="cosmicCountryList" class="cosmic-country-list">
+          <!-- Populated dynamically via cosmic-login.js -->
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="app-footer">
@@ -2323,7 +2402,7 @@
           <i class="fas fa-wallet"></i>
           <span id="swHeaderBadge"
             style="display:none; font-size:0.65rem; background:#FFF1F2; color:#E11D48; border:1px solid #FDA4AF; padding:1px 4px; border-radius:4px; font-weight:bold; margin-right:2px;">Bonus</span>
-          ₹<span id="clientWallet">0</span>
+          <span class="user-currency-symbol">₹</span><span id="clientWallet">0</span>
           <i id="walletSpinner" class="fas fa-sync-alt"
             style="display: none; font-size: 0.8rem; animation: spin 1s linear infinite;"></i>
         </span>
@@ -2595,13 +2674,13 @@
           style="background:linear-gradient(135deg, #F59E0B 0%, #D97706 100%); padding:25px; border-radius:15px; color:white; margin-bottom:20px; text-align:center; box-shadow:0 10px 15px -3px rgba(245, 158, 11, 0.3);">
           <div style="opacity:0.9; font-size:0.9rem; margin-bottom:5px;">Available Wallet Balance</div>
           <div style="font-size:2.8rem; font-weight:bold; margin-bottom:10px;">
-            ₹<span id="dashWalletBalance">0.00</span>
+            <span id="dashCurrencySymbol" class="user-currency-symbol">₹</span><span id="dashWalletBalance">0.00</span>
             <i id="dashWalletSpinner" class="fas fa-sync-alt"
               style="display:none; font-size:1.2rem; animation: spin 1s linear infinite;"></i>
           </div>
           <div id="superWalletContainer"
             style="display:none; margin-top: 10px; background: #FFF1F2; border: 1px solid #FDA4AF; color: #E11D48; padding: 8px 15px; border-radius: 10px; font-size: 0.9rem; font-weight: bold; box-shadow: 0 2px 4px rgba(225, 29, 72, 0.1);">
-            <i class="fas fa-magic"></i> Super Wallet: ₹<span id="dashSuperWalletBalance">0.00</span>
+            <i class="fas fa-magic"></i> Super Wallet: <span id="dashSuperCurrencySymbol" class="user-currency-symbol">₹</span><span id="dashSuperWalletBalance">0.00</span>
           </div>
           <div style="margin-top:15px; font-size: 0.75rem; opacity: 0.8; line-height: 1.4;">
             * Rule: 70% from Main, 30% from Super Wallet. <br> Main Balance required to start.
@@ -4167,6 +4246,24 @@
       window.location.reload();
     }
 
+    function getCurrencySymbol() {
+      if (state.me && state.me.currencySymbol) return state.me.currencySymbol;
+      if (state.me && state.me.currency === 'USD') return '$';
+      const stored = localStorage.getItem('userCurrencySymbol');
+      if (stored) return stored;
+      if (localStorage.getItem('userCurrency') === 'USD') return '$';
+      return '₹';
+    }
+
+    function applyCurrencyToUI() {
+      const sym = getCurrencySymbol();
+      document.querySelectorAll('.user-currency-symbol').forEach(el => el.textContent = sym);
+      const dashCur = document.getElementById('dashCurrencySymbol');
+      if (dashCur) dashCur.textContent = sym;
+      const superCur = document.getElementById('dashSuperCurrencySymbol');
+      if (superCur) superCur.textContent = sym;
+    }
+
     // Initialize Socket
     const socket = io();
     state.socket = socket;
@@ -4665,44 +4762,116 @@
 
     // Login Handlers
     document.getElementById('btnSendOtp').onclick = async () => {
+      const country = (window.CosmicLogin && window.CosmicLogin.getSelectedCountry) 
+        ? window.CosmicLogin.getSelectedCountry() 
+        : { isoCode: 'IN', dialingCode: '+91', countryName: 'India' };
+      
+      const countryCode = country.dialingCode || '+91';
+      const isoCode = country.isoCode || 'IN';
       const phone = document.getElementById('inputPhone').value.replace(/[^0-9]/g, '');
-      if (!phone) { alert('Enter Phone Number'); return; }
-      if (phone.length !== 10) { alert('Please enter a valid 10-digit mobile number'); return; }
+
+      if (!phone) {
+        alert('Please enter your mobile number');
+        document.getElementById('inputPhone').focus();
+        return;
+      }
+
+      // Dynamic validation using libphonenumber metadata
+      if (window.CosmicLogin && window.CosmicLogin.validatePhone) {
+        const valRes = window.CosmicLogin.validatePhone(phone, isoCode, countryCode);
+        if (!valRes.isValid && !['8000000001', '9000000001', '9876543210', '2125551234'].includes(phone)) {
+          alert(`Please enter a valid phone number for ${country.countryName} (${valRes.message})`);
+          document.getElementById('inputPhone').focus();
+          return;
+        }
+      }
 
       const btn = document.getElementById('btnSendOtp');
-      const original = btn.textContent;
-      btn.textContent = 'Sending...';
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Sending...</span>';
       btn.disabled = true;
 
       try {
         const res = await fetch('/api/send-otp', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone })
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, countryCode, isoCode })
         }).then(r => r.json());
 
         if (res.ok) {
+          const displayEl = document.getElementById('cosmicTargetPhoneDisplay');
+          if (displayEl) displayEl.textContent = res.fullPhone || `${countryCode} ${phone}`;
+
           document.getElementById('step-phone').classList.add('hidden');
           document.getElementById('step-otp').classList.remove('hidden');
-        } else {
-          alert(res.error || 'Failed');
-        }
-      } catch (e) { alert('Network Error'); }
 
-      btn.textContent = original;
-      btn.disabled = false;
+          if (window.CosmicLogin && window.CosmicLogin.startResendCountdown) {
+            window.CosmicLogin.startResendCountdown();
+          }
+
+          const otpInput = document.getElementById('inputOtp');
+          if (otpInput) {
+            otpInput.value = '';
+            otpInput.focus();
+          }
+        } else {
+          alert(res.error || 'Failed to send OTP. Please try again.');
+        }
+      } catch (e) {
+        alert('Network Error. Please check your internet connection.');
+      } finally {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+      }
     };
 
     document.getElementById('btnVerifyOtp').onclick = async () => {
-      const phone = document.getElementById('inputPhone').value;
-      const otp = document.getElementById('inputOtp').value;
-      const res = await fetch('/api/verify-otp', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, otp })
-      }).then(r => r.json());
+      const country = (window.CosmicLogin && window.CosmicLogin.getSelectedCountry) 
+        ? window.CosmicLogin.getSelectedCountry() 
+        : { isoCode: 'IN', dialingCode: '+91' };
+      
+      const countryCode = country.dialingCode || '+91';
+      const isoCode = country.isoCode || 'IN';
+      const phone = document.getElementById('inputPhone').value.replace(/[^0-9]/g, '');
+      const otp = document.getElementById('inputOtp').value.trim();
 
-      if (res.ok) {
+      if (!otp) {
+        alert('Please enter the 4-digit OTP');
+        document.getElementById('inputOtp').focus();
+        return;
+      }
+
+      const verifyBtn = document.getElementById('btnVerifyOtp');
+      const origVerifyHtml = verifyBtn.innerHTML;
+      verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Verifying...</span>';
+      verifyBtn.disabled = true;
+
+      let res;
+      try {
+        res = await fetch('/api/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, countryCode, isoCode, otp })
+        }).then(r => r.json());
+      } catch (e) {
+        alert('Network Error during verification. Please try again.');
+        verifyBtn.innerHTML = origVerifyHtml;
+        verifyBtn.disabled = false;
+        return;
+      }
+
+      verifyBtn.innerHTML = origVerifyHtml;
+      verifyBtn.disabled = false;
+
+      if (res && res.ok) {
         state.me = res;
         saveSession(res);
+        if (res.currency) {
+          localStorage.setItem('userCurrency', res.currency);
+          localStorage.setItem('userCurrencySymbol', res.currencySymbol || (res.currency === 'USD' ? '$' : '₹'));
+        }
+        applyCurrencyToUI();
+        if (typeof fetchAstrologers === 'function') fetchAstrologers();
 
         socket.emit('register', { name: res.name, phone: phone, userId: res.userId }, (ack) => {
           // Send FCM token to server for push notifications
@@ -5352,6 +5521,10 @@
         if (a.isBusy) div.classList.add('is-busy');
         if (isOffline) div.classList.add('is-offline');
 
+        const isUsd = (state.me && state.me.currency === 'USD') || localStorage.getItem('userCurrency') === 'USD';
+        const displayPrice = isUsd ? (a.priceUsd || (a.price / 85).toFixed(2)) : a.price;
+        const displaySymbol = isUsd ? '$' : '₹';
+
         div.innerHTML = `
           <div class="at-card-inner">
             <div class="at-profile-col">
@@ -5375,7 +5548,7 @@
               <p class="at-lang">${languages.join(', ')}</p>
               <p class="at-exp">Exp: ${a.experience || 5} Years</p>
               <div class="at-price-row">
-                <span class="at-price">₹${a.price}/min</span>
+                <span class="at-price">${displaySymbol}${displayPrice}/min</span>
                 <span class="at-orders">${orderCount} orders</span>
               </div>
             </div>
@@ -7472,6 +7645,12 @@
                     planetsInSign.push(`<div style="font-size:0.75rem; color:${planetColors[p.name] || '#555'}">${shortName}</div>`);
                   }
                 });
+                const _zSigns = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+                const navAsc = d.navamsa.ascendant || d.navamsa.lagna || d.navamsa.ascendantDetails?.signName ||
+                  (d.houses?.ascendant ? _zSigns[Math.floor(((d.houses.ascendant * 9) % 360) / 30) % 12] : null);
+                if (navAsc && navAsc === sign) {
+                  planetsInSign.unshift(`<div style="font-weight:bold; color:red; font-size:0.8rem;">${t('Asc')}</div>`);
+                }
               }
 
               div.innerHTML = `<span style="font-size:0.65rem; color:#999; font-weight:bold;">${t(sign).substring(0, 3)}</span>
@@ -7638,7 +7817,10 @@
                   }
                 });
                 // Add Navamsa Ascendant if available
-                if (d.navamsa.ascendant && d.navamsa.ascendant === sign) {
+                const _zSigns2 = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+                const navAsc = d.navamsa.ascendant || d.navamsa.lagna || d.navamsa.ascendantDetails?.signName ||
+                  (d.houses?.ascendant ? _zSigns2[Math.floor(((d.houses.ascendant * 9) % 360) / 30) % 12] : null);
+                if (navAsc && navAsc === sign) {
                   planetsInSign.unshift(`<span style="color:red; font-weight:bold;">${t('Asc')}</span>`);
                 }
               }
@@ -8412,12 +8594,14 @@
       // Prioritize Razorpay Standard Web Checkout
       if (typeof Razorpay === 'function') {
         try {
+          const userCurrency = (state.me && state.me.currency) || localStorage.getItem('userCurrency') || 'INR';
           const orderRes = await fetch('/api/payment/razorpay/create-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               amount: amount,
               userId: state.me.userId,
+              currency: userCurrency,
               couponCode: couponCode
             })
           });
@@ -8467,7 +8651,8 @@
                 const verifyData = await verifyRes.json();
 
                 if (verifyData.ok) {
-                  const successMsg = `✅ Payment Successful! ₹${verifyData.credited} added to wallet.`;
+                  const sym = verifyData.currencySymbol || (verifyData.currency === 'USD' ? '$' : '₹');
+                  const successMsg = `✅ Payment Successful! ${sym}${verifyData.credited} added to wallet.`;
                   if (typeof showToast === 'function') {
                     showToast(successMsg);
                   } else {

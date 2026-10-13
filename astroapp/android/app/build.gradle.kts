@@ -11,13 +11,13 @@ plugins {
 
 android {
     namespace = "com.astro5star.app"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "com.astro5star.app"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 40
-        versionName = "6.3"
+        targetSdk = 36
+        versionCode = 46
+        versionName = "6.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
