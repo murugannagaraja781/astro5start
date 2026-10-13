@@ -2,108 +2,285 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="/favicon.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="apple-touch-icon" href="/images/astro_5_star_logo.png">
-  <title>Privacy Policy - Astro5Star</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #047857;
-            --bg: #F0FDF4;
-            --text: #1F2937;
-        }
+  <title>Privacy Policy — Astro 5 Star</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #059669;
+      --primary-dark: #064E3B;
+      --bg: #F0FDF4;
+      --card-bg: #FFFFFF;
+      --text: #1F2937;
+      --text-muted: #4B5563;
+      --border: rgba(5, 150, 105, 0.15);
+    }
 
-        body {
-            font-family: 'Outfit', sans-serif;
-            background: var(--bg);
-            margin: 0;
-            padding: 20px;
-            color: var(--text);
-            line-height: 1.6;
-        }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 20px;
+    }
 
-        h1 {
-            color: var(--primary);
-            text-align: center;
-            margin-bottom: 30px;
-            font-weight: 600;
-        }
+    .container {
+      max-width: 850px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border);
+    }
 
-        h2 {
-            color: var(--primary);
-            font-size: 1.2rem;
-            margin-top: 25px;
-            border-bottom: 2px solid #E5E7EB;
-            padding-bottom: 10px;
-        }
+    .header-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #E5E7EB;
+    }
 
-        ul {
-            padding-left: 20px;
-        }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--primary);
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
 
-        li {
-            margin-bottom: 10px;
-        }
+    .brand-logo img {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+    }
 
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            font-size: 0.8rem;
-            color: #6B7280;
-        }
-    </style>
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg);
+      color: var(--primary);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .back-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    h1 {
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 2.2rem;
+      font-weight: 700;
+    }
+
+    .last-updated {
+      text-align: center;
+      color: #6B7280;
+      font-size: 0.9rem;
+      margin-bottom: 30px;
+    }
+
+    h2 {
+      color: var(--primary-dark);
+      font-size: 1.25rem;
+      margin-top: 25px;
+      margin-bottom: 10px;
+      border-bottom: 2px solid #E5E7EB;
+      padding-bottom: 8px;
+      font-weight: 600;
+    }
+
+    ul, ol {
+      padding-left: 20px;
+      margin-bottom: 18px;
+    }
+
+    li {
+      margin-bottom: 10px;
+      color: var(--text-muted);
+    }
+
+    strong {
+      color: var(--text);
+    }
+
+    p {
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .notice-box {
+      background: #F0FDF4;
+      border: 1px solid #A7F3D0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 25px;
+      color: #065F46;
+      font-size: 0.95rem;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #E5E7EB;
+      font-size: 0.85rem;
+      color: #6B7280;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .footer-links a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .footer-links a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>🌙 Privacy Policy</h1>
-        <p><strong>Effective Date:</strong> February 7, 2026</p>
+  <div class="container">
+    <!-- Header Navigation -->
+    <header class="header-nav">
+      <a href="/desktop-view.html" class="brand-logo">
+        <img src="/favicon.png" alt="Astro 5 Star Logo" onerror="this.style.display='none'">
+        <span>Astro 5 Star</span>
+      </a>
+      <a href="/desktop-view.html" class="back-btn">
+        <i class="fas fa-arrow-left"></i> Back to Home
+      </a>
+    </header>
 
-        <p>At Astro5Star, we respect your privacy and are committed to protecting your personal data. This policy
-            explains how we handle your information when you use our mobile application and services.</p>
+    <h1>🔒 Privacy Policy</h1>
+    <div class="last-updated">Effective Date: October 2026</div>
 
-        <h2>1. Information We Collect</h2>
-        <ul>
-            <li><strong>Personal Details:</strong> Name, mobile number, and birth details (Date, Time, Location)
-                provided by you for astrology calculations.</li>
-            <li><strong>Sensitive Permissions:</strong>
-                <ul>
-                    <li><strong>Camera & Microphone:</strong> Used only during active video/audio consultations with
-                        astrologers.</li>
-                    <li><strong>Storage:</strong> To save consultation recordings and charts locally on your device.
-                    </li>
-                </ul>
-            </li>
-        </ul>
-
-        <h2>2. How We Use Data</h2>
-        <ul>
-            <li>To generate accurate Rasi charts and astrology predictions.</li>
-            <li>To facilitate real-time audio/video communication via WebRTC.</li>
-            <li>To process payments securely through our partners.</li>
-        </ul>
-
-        <h2>3. Data Security</h2>
-        <p>Your birth data is used solely for your personal reports. We do not sell or share your sensitive information
-            with third-party advertisers. All communication is encrypted to ensure privacy.</p>
-
-        <h2>4. Third-Party Services</h2>
-        <p>We use secure payment gateways (like PhonePe) and Firebase for notifications. These partners have their own
-            privacy policies governing your transaction data.</p>
-
-        <div class="footer">&copy; 2024 Astro5Star. All rights reserved.</div>
+    <div class="notice-box">
+      <strong>Your Privacy Matters:</strong> Astro 5 Star is committed to safeguarding your personal data and astrological information. We do not sell your personal data to third-party advertisers.
     </div>
+
+    <p>
+      This Privacy Policy outlines how Astro 5 Star ("we", "our", or "us", available via <strong>https://astro5star.com</strong> and the mobile application) collects, uses, stores, and protects your information when you access our services.
+    </p>
+
+    <h2>1. Information We Collect</h2>
+    <p>We only collect information necessary to provide authentication, astrological calculations, and consultation services:</p>
+    <ul>
+      <li>
+        <strong>Authentication Information:</strong> Your international phone number and dialing code used for OTP (One-Time Password) verification via our SMS gateway provider (MSG91). Optional profile name and avatar picture.
+      </li>
+      <li>
+        <strong>Birth & Astrological Details:</strong> Date of birth, time of birth, place of birth, geographic coordinates (latitude/longitude), and timezone offset. This data is required solely to compute Vedic Kundli, Rasi/Navamsa planetary positions, and Porutham compatibility.
+      </li>
+      <li>
+        <strong>Consultation & Communication Data:</strong> Audio and video consultations are transmitted in real time between clients and astrologers using secure WebRTC protocols. Microphone and Camera permissions are requested only during active consultation sessions.
+      </li>
+      <li>
+        <strong>Wallet & Transaction Records:</strong> Wallet balance, recharge package selections, bonus credits, and transaction identifiers. Payment card details or UPI credentials are handled securely by certified payment gateways (PhonePe, Razorpay); we do not store full card numbers or banking passwords.
+      </li>
+      <li>
+        <strong>Device & Notification Tokens:</strong> Firebase Cloud Messaging (FCM) device tokens to deliver call invitations, queue alerts, and consultation updates.
+      </li>
+    </ul>
+
+    <h2>2. How We Use Your Information</h2>
+    <ul>
+      <li>To authenticate your login via secure SMS OTP.</li>
+      <li>To generate accurate astronomical charts, planetary dasa tables, and horoscope predictions.</li>
+      <li>To facilitate real-time peer-to-peer audio and video consultations with astrologers.</li>
+      <li>To maintain transparent wallet accounting and per-minute consultation deductions.</li>
+      <li>To provide customer support and resolve technical or call quality inquiries.</li>
+    </ul>
+
+    <h2>3. Data Sharing & Third-Party Processors</h2>
+    <p>We only share data with essential infrastructure partners under strict confidentiality:</p>
+    <ul>
+      <li><strong>Payment Gateways:</strong> PhonePe & Razorpay for processing wallet recharges securely.</li>
+      <li><strong>SMS Gateways:</strong> MSG91 for delivering time-sensitive authentication OTPs.</li>
+      <li><strong>Push Notifications:</strong> Google Firebase for delivering instant service notifications.</li>
+    </ul>
+    <p>We do not sell, rent, or trade your personal or birth details to third-party marketing networks.</p>
+
+    <h2>4. Data Retention & User Rights</h2>
+    <p>
+      Your profile data and consultation history are retained as long as your account remains active. You possess the following rights regarding your personal information:
+    </p>
+    <ul>
+      <li><strong>Access & Correction:</strong> You can review and update your name and birth details through your profile screen.</li>
+      <li><strong>Account & Data Deletion:</strong> You can submit a permanent account deletion request anytime by visiting our dedicated <a href="/delete-account.html" style="color: var(--primary); font-weight: 600;">Account Deletion Page</a>. Upon processing, your profile, consultation history, and associated records will be permanently removed.</li>
+    </ul>
+
+    <h2>5. Security Safeguards</h2>
+    <p>
+      All data transmitted between your browser or mobile application and our servers is encrypted using standard HTTPS/TLS protocols. Real-time media streams utilize encrypted WebRTC protocols.
+    </p>
+
+    <h2>6. Contact & Grievances</h2>
+    <p>
+      For questions regarding this policy or to exercise your privacy rights, please contact our support team:
+    </p>
+    <ul>
+      <li><strong>Email:</strong> admin@astro5star.com / support@astro5star.com</li>
+      <li><strong>Phone / WhatsApp:</strong> +91 9080061700</li>
+      <li><strong>Helpdesk:</strong> <a href="/contact.html" style="color: var(--primary);">Contact Page</a></li>
+    </ul>
+
+    <!-- Footer Links -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="/desktop-view.html">Home</a>
+        <a href="/about.html">About Us</a>
+        <a href="/contact.html">Contact Support</a>
+        <a href="/blog.html">Blog</a>
+        <a href="/terms-condition.html">Terms & Conditions</a>
+        <a href="/refund-cancellation-policy.html">Refund Policy</a>
+      </div>
+      <div>&copy; 2024–2026 Astro 5 Star. All rights reserved.</div>
+    </footer>
+  </div>
 </body>
 
 </html>

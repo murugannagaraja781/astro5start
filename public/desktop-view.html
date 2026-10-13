@@ -2357,26 +2357,26 @@
                 <div class="brand-logo">Astro 5 Star</div>
                 <p>Your trusted guide to cosmic wisdom. Connect with expert astrologers 24/7.</p>
                 <div class="social-links">
-                  <a href="#"><i class="fab fa-facebook"></i></a>
-                  <a href="#"><i class="fab fa-instagram"></i></a>
-                  <a href="#"><i class="fab fa-youtube"></i></a>
+                  <a href="javascript:void(0)" onclick="handleSocialClick('facebook')" aria-label="Facebook" title="Astro 5 Star on Facebook"><i class="fab fa-facebook"></i></a>
+                  <a href="javascript:void(0)" onclick="handleSocialClick('instagram')" aria-label="Instagram" title="Astro 5 Star on Instagram"><i class="fab fa-instagram"></i></a>
+                  <a href="javascript:void(0)" onclick="handleSocialClick('youtube')" aria-label="YouTube" title="Astro 5 Star on YouTube"><i class="fab fa-youtube"></i></a>
                 </div>
               </div>
               <div class="footer-links-col">
                 <h4>Quick Links</h4>
-                <a href="#">About Us</a>
-                <a href="#">Contact</a>
-                <a href="#">Blog</a>
+                <a href="/about.html">About Us</a>
+                <a href="/contact.html">Contact</a>
+                <a href="/blog.html">Blog</a>
               </div>
               <div class="footer-links-col">
                 <h4>Legal</h4>
-                <a href="#">Terms & Conditions</a>
-                <a href="#">Privacy Policy</a>
-                <a href="#">Refund Policy</a>
+                <a href="/terms-condition.html">Terms & Conditions</a>
+                <a href="/privacy-policy.html">Privacy Policy</a>
+                <a href="/refund-cancellation-policy.html">Refund Policy</a>
               </div>
             </div>
             <div class="footer-bottom">
-              &copy; 2024 Astro 5 Star. All rights reserved.
+              &copy; 2024–2026 Astro 5 Star. All rights reserved.
             </div>
           </footer>
         </div>
@@ -9240,6 +9240,23 @@
       toast.innerText = msg;
       document.body.appendChild(toast);
       setTimeout(() => toast.remove(), 2500);
+    }
+
+    window.ASTRO_SOCIAL_LINKS = {
+      facebook: '',
+      instagram: '',
+      youtube: ''
+    };
+
+    function handleSocialClick(platform) {
+      const url = window.ASTRO_SOCIAL_LINKS && window.ASTRO_SOCIAL_LINKS[platform];
+      if (url && typeof url === 'string' && url.startsWith('http')) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      } else {
+        const platformNames = { facebook: 'Facebook', instagram: 'Instagram', youtube: 'YouTube' };
+        const name = platformNames[platform] || 'Social Media';
+        showToast(`🌟 Astro 5 Star ${name} profile is currently being verified. Follow us soon!`);
+      }
     }
 
     function startMoneyAnimation() {

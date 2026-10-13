@@ -100,7 +100,7 @@ app.use(compression());
 app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
-app.use(express.static('public'));
+app.use(express.static('public', { extensions: ['html', 'htm'] }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/download', express.static(path.join(__dirname, 'public/download')));
 

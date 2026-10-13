@@ -1032,6 +1032,47 @@ const getAstrologerEarnings = async (req, res) => {
     }
 };
 
+const submitContactMessage = async (req, res) => {
+    try {
+        const { name, contact, subject, message } = req.body;
+        if (!name || !name.trim()) {
+            return res.status(400).json({ ok: false, error: 'Name is required' });
+        }
+        if (!contact || !contact.trim()) {
+            return res.status(400).json({ ok: false, error: 'Email or phone number is required' });
+        }
+        if (!message || !message.trim() || message.trim().length < 5) {
+            return res.status(400).json({ ok: false, error: 'Please enter a message of at least 5 characters' });
+        }
+
+        const SystemLog = require('../models/SystemLog');
+        try {
+            await SystemLog.create({
+                level: 'info',
+                message: `Support inquiry from ${name.trim()} (${contact.trim()}): ${subject || 'General'}`,
+                path: '/api/contact',
+                metadata: {
+                    name: name.trim(),
+                    contact: contact.trim(),
+                    subject: subject || 'General',
+                    message: message.trim(),
+                    timestamp: new Date()
+                }
+            });
+        } catch (e) {
+            console.error('[Contact Log Error]', e);
+        }
+
+        res.json({
+            ok: true,
+            message: 'Thank you for reaching out! Your message has been received by Astro 5 Star Support. We will get back to you shortly.'
+        });
+    } catch (err) {
+        console.error('[Contact Submission Error]', err);
+        res.status(500).json({ ok: false, error: 'Failed to process inquiry. Please try again or WhatsApp us directly at +91 9080061700.' });
+    }
+};
+
 module.exports = {
     getUserProfile,
     getAstrologers,
@@ -1055,5 +1096,6 @@ module.exports = {
     uploadRecording,
     uploadChatMedia,
     getAstrologerEarnings,
-    getCurrencyConfig
+    getCurrencyConfig,
+    submitContactMessage
 };

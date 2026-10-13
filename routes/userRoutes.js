@@ -40,4 +40,7 @@ const appointmentController = require('../controllers/appointmentController');
 router.post('/appointment/join-queue', appointmentController.joinQueue);
 router.get('/appointment/status/:userId', appointmentController.getMyQueueStatus);
 
+// Contact / Support Inquiry
+router.post('/contact', userController.submitContactMessage);
+
 module.exports = router;

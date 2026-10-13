@@ -2,94 +2,251 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="/favicon.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="apple-touch-icon" href="/images/astro_5_star_logo.png">
-  <title>Refund & Cancellation Policy - Astro5Star</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #047857;
-            --bg: #F0FDF4;
-            --text: #1F2937;
-        }
+  <title>Refund & Cancellation Policy — Astro 5 Star</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #059669;
+      --primary-dark: #064E3B;
+      --bg: #F0FDF4;
+      --card-bg: #FFFFFF;
+      --text: #1F2937;
+      --text-muted: #4B5563;
+      --border: rgba(5, 150, 105, 0.15);
+    }
 
-        body {
-            font-family: 'Outfit', sans-serif;
-            background: var(--bg);
-            margin: 0;
-            padding: 20px;
-            color: var(--text);
-            line-height: 1.6;
-        }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 20px;
+    }
 
-        h1 {
-            color: var(--primary);
-            text-align: center;
-            margin-bottom: 30px;
-            font-weight: 600;
-        }
+    .container {
+      max-width: 850px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border);
+    }
 
-        h2 {
-            color: var(--primary);
-            font-size: 1.2rem;
-            margin-top: 25px;
-            border-bottom: 2px solid #E5E7EB;
-            padding-bottom: 10px;
-        }
+    .header-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #E5E7EB;
+    }
 
-        ul {
-            padding-left: 20px;
-        }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--primary);
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
 
-        li {
-            margin-bottom: 10px;
-        }
+    .brand-logo img {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+    }
 
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            font-size: 0.8rem;
-            color: #6B7280;
-        }
-    </style>
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg);
+      color: var(--primary);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .back-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    h1 {
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 2.2rem;
+      font-weight: 700;
+    }
+
+    .last-updated {
+      text-align: center;
+      color: #6B7280;
+      font-size: 0.9rem;
+      margin-bottom: 30px;
+    }
+
+    h2 {
+      color: var(--primary-dark);
+      font-size: 1.25rem;
+      margin-top: 25px;
+      margin-bottom: 10px;
+      border-bottom: 2px solid #E5E7EB;
+      padding-bottom: 8px;
+      font-weight: 600;
+    }
+
+    ul {
+      padding-left: 20px;
+      margin-bottom: 18px;
+    }
+
+    li {
+      margin-bottom: 10px;
+      color: var(--text-muted);
+    }
+
+    strong {
+      color: var(--text);
+    }
+
+    p {
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .highlight-box {
+      background: #F9FAFB;
+      border-left: 4px solid var(--primary);
+      padding: 16px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #E5E7EB;
+      font-size: 0.85rem;
+      color: #6B7280;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .footer-links a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .footer-links a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>🌙 Refund & Cancellation Policy</h1>
-        <p>We understand that situations may arise where you may request a refund or cancellation.</p>
+  <div class="container">
+    <!-- Header Navigation -->
+    <header class="header-nav">
+      <a href="/desktop-view.html" class="brand-logo">
+        <img src="/favicon.png" alt="Astro 5 Star Logo" onerror="this.style.display='none'">
+        <span>Astro 5 Star</span>
+      </a>
+      <a href="/desktop-view.html" class="back-btn">
+        <i class="fas fa-arrow-left"></i> Back to Home
+      </a>
+    </header>
 
-        <h2>Refund Policy</h2>
-        <p>Refunds may be issued under the following conditions:</p>
-        <ul>
-            <li>Technical issues affecting your consultation (e.g., call drop, inaudible astrologer).</li>
-            <li>Poor-quality service (irrelevant or inappropriate responses from the astrologer).</li>
-            <li>Service unavailability from Astro5Star’s side.</li>
-            <li>Errors in pricing or platform-related glitches.</li>
-        </ul>
+    <h1>🌙 Refund & Cancellation Policy</h1>
+    <div class="last-updated">Last Updated: October 2026</div>
 
-        <h2>Cancellation Policy</h2>
-        <ul>
-            <li>Consultations once booked cannot be cancelled by the customer.</li>
-            <li>Refunds are subject to Astro5Star’s discretion and generally issued as wallet credit (Astro5Star
-                wallet).</li>
-            <li>Refund requests must be made within 7 days of the transaction.</li>
-            <li>Astrology reports once in processing stage are non-refundable.</li>
-        </ul>
-
-        <div class="footer">&copy; 2024 Astro5Star. All rights reserved.</div>
+    <div class="highlight-box">
+      At Astro 5 Star, we strive to deliver transparent, reliable, and high-quality astrological consultation experiences. Please review our policies regarding consultation sessions, wallet transactions, and refund requests.
     </div>
+
+    <h2>1. Refund Eligibility & Conditions</h2>
+    <p>Refunds may be considered and approved under the following verified conditions:</p>
+    <ul>
+      <li><strong>Technical Malfunctions:</strong> Verified audio/video call drops, server disconnection, or inaudible astrologer connection resulting from system failure on Astro 5 Star's infrastructure.</li>
+      <li><strong>Service Unavailability:</strong> Inability of the platform to connect you with your requested astrologer while deductions occurred.</li>
+      <li><strong>Duplicate Billing or Payment Gateway Glitches:</strong> Where a payment gateway charged your account multiple times for a single recharge transaction.</li>
+      <li><strong>Quality Grievance:</strong> Where an astrologer acted inappropriately or violated platform conduct guidelines during a session (subject to quality audit).</li>
+    </ul>
+
+    <h2>2. Cancellation Policy</h2>
+    <ul>
+      <li><strong>Live Consultations:</strong> Consultations once actively commenced and accepted by both user and astrologer are billed per minute and cannot be retroactively cancelled for minutes already utilized.</li>
+      <li><strong>Astrology Reports:</strong> Customized horoscope reports or calculations once generated and processed are non-refundable.</li>
+      <li><strong>Failed Connections:</strong> If a call fails to connect within the initial connection grace period (e.g. within 50 seconds), no consultation charges are incurred.</li>
+    </ul>
+
+    <h2>3. Refund Processing & Mode</h2>
+    <ul>
+      <li>Refunds are approved at the discretion of the Astro 5 Star administration following internal session audit.</li>
+      <li>Approved consultation refunds are primarily credited back directly to your <strong>Astro 5 Star Wallet Balance</strong> for future use.</li>
+      <li>In cases of duplicate payment gateway deductions, refunds will be reversed to the original payment source (bank account / UPI / card) within 5–7 business days per banking settlement cycles.</li>
+    </ul>
+
+    <h2>4. How to Request a Refund</h2>
+    <p>
+      Refund claims must be submitted within <strong>7 days</strong> of the affected consultation or transaction:
+    </p>
+    <ul>
+      <li><strong>Via Contact Page:</strong> Submit an inquiry under "Wallet & Payment Inquiry" on our <a href="/contact.html" style="color: var(--primary);">Contact Page</a>.</li>
+      <li><strong>Via Email:</strong> Send your registered phone number, session date/time, and transaction ID to <strong>admin@astro5star.com</strong> or <strong>support@astro5star.com</strong>.</li>
+      <li><strong>Via WhatsApp:</strong> Contact our support team directly at <strong>+91 9080061700</strong>.</li>
+    </ul>
+
+    <!-- Footer Links -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="/desktop-view.html">Home</a>
+        <a href="/about.html">About Us</a>
+        <a href="/contact.html">Contact Support</a>
+        <a href="/blog.html">Blog</a>
+        <a href="/terms-condition.html">Terms & Conditions</a>
+        <a href="/privacy-policy.html">Privacy Policy</a>
+      </div>
+      <div>&copy; 2024–2026 Astro 5 Star. All rights reserved.</div>
+    </footer>
+  </div>
 </body>
 
 </html>

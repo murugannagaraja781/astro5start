@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/images/astro_5_star_logo.png">
+  <title>Blog & Astrology Insights — Astro 5 Star</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #059669;
+      --primary-dark: #064E3B;
+      --bg: #F0FDF4;
+      --card-bg: #FFFFFF;
+      --text: #1F2937;
+      --text-muted: #4B5563;
+      --border: rgba(5, 150, 105, 0.15);
+      --accent: #D97706;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border);
+    }
+
+    .header-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #E5E7EB;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--primary);
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .brand-logo img {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg);
+      color: var(--primary);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .back-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    h1 {
+      color: var(--primary);
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .hero-subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      margin-bottom: 30px;
+      max-width: 650px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .category-pills {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 35px;
+    }
+
+    .pill {
+      background: #F3F4F6;
+      color: var(--text-muted);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .pill.active,
+    .pill:hover {
+      background: #ECFDF5;
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .empty-state-card {
+      background: #F9FAFB;
+      border: 2px dashed #D1D5DB;
+      border-radius: 16px;
+      padding: 40px 20px;
+      text-align: center;
+      margin-bottom: 35px;
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      color: var(--primary);
+      margin-bottom: 15px;
+    }
+
+    .empty-state-card h2 {
+      color: var(--primary-dark);
+      font-size: 1.4rem;
+      margin-bottom: 10px;
+    }
+
+    .empty-state-card p {
+      color: var(--text-muted);
+      max-width: 550px;
+      margin: 0 auto 25px;
+      font-size: 0.95rem;
+    }
+
+    .features-heading {
+      color: var(--text);
+      font-size: 1.25rem;
+      margin-bottom: 18px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .live-features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 18px;
+      margin-bottom: 35px;
+    }
+
+    .feature-card {
+      background: white;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      padding: 20px;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--primary);
+      box-shadow: 0 4px 15px rgba(5, 150, 105, 0.1);
+    }
+
+    .feature-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .feature-icon {
+      font-size: 1.4rem;
+      color: var(--primary);
+      width: 36px;
+      height: 36px;
+      background: #ECFDF5;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .feature-card h3 {
+      font-size: 1rem;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .feature-card p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 15px;
+    }
+
+    .feature-link {
+      color: var(--primary);
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cta-consult {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      border-radius: 12px;
+      padding: 25px;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .cta-consult h3 {
+      font-size: 1.35rem;
+      margin-bottom: 8px;
+    }
+
+    .cta-consult p {
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 18px;
+      font-size: 0.95rem;
+    }
+
+    .cta-btn {
+      display: inline-block;
+      background: white;
+      color: var(--primary-dark);
+      padding: 10px 24px;
+      border-radius: 20px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: transform 0.2s;
+    }
+
+    .cta-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #E5E7EB;
+      font-size: 0.85rem;
+      color: #6B7280;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .footer-links a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .footer-links a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Header Navigation -->
+    <header class="header-nav">
+      <a href="/desktop-view.html" class="brand-logo">
+        <img src="/favicon.png" alt="Astro 5 Star Logo" onerror="this.style.display='none'">
+        <span>Astro 5 Star</span>
+      </a>
+      <a href="/desktop-view.html" class="back-btn">
+        <i class="fas fa-arrow-left"></i> Back to Home
+      </a>
+    </header>
+
+    <!-- Hero -->
+    <h1>🪐 Astrology Blog & Cosmic Insights</h1>
+    <p class="hero-subtitle">
+      Explore classical Vedic wisdom, planetary transits, remedies, and astrological guidance curated by Astro 5 Star.
+    </p>
+
+    <!-- Topic Pills -->
+    <div class="category-pills">
+      <span class="pill active">All Topics</span>
+      <span class="pill">Vedic Astrology</span>
+      <span class="pill">Planetary Transits (Gochara)</span>
+      <span class="pill">Kundli & Doshas</span>
+      <span class="pill">Marriage & Compatibility</span>
+      <span class="pill">Vedic Remedies</span>
+    </div>
+
+    <!-- Clean Empty State / Curating Announcement -->
+    <div class="empty-state-card">
+      <div class="empty-icon"><i class="fas fa-feather-alt"></i></div>
+      <h2>Articles Currently in Preparation</h2>
+      <p>
+        Our senior astrologers are writing comprehensive deep dives on upcoming planetary transits, Rahu-Ketu remedies, and birth chart analysis. Check back soon for fresh editorial posts!
+      </p>
+      <a href="/desktop-view.html" class="cta-btn" style="background: var(--primary); color: white;">
+        <i class="fas fa-phone-alt"></i> Consult Live Astrologers Now
+      </a>
+    </div>
+
+    <!-- Working Live Features -->
+    <h2 class="features-heading">Explore Live Astrological Tools on Astro 5 Star</h2>
+    <div class="live-features-grid">
+      <a href="/desktop-view.html" class="feature-card">
+        <div>
+          <div class="feature-card-header">
+            <div class="feature-icon"><i class="fas fa-chart-pie"></i></div>
+            <h3>Free Birth Chart</h3>
+          </div>
+          <p>Generate your complete Vedic Kundli with planetary positions and Lagna calculations instantly.</p>
+        </div>
+        <span class="feature-link">Open Tool <i class="fas fa-arrow-right"></i></span>
+      </a>
+
+      <a href="/desktop-view.html" class="feature-card">
+        <div>
+          <div class="feature-card-header">
+            <div class="feature-icon"><i class="fas fa-sun"></i></div>
+            <h3>Daily Rasi Palan</h3>
+          </div>
+          <p>Daily planetary forecasts and predictions for all 12 moon signs (Mesham to Meenam).</p>
+        </div>
+        <span class="feature-link">View Horoscope <i class="fas fa-arrow-right"></i></span>
+      </a>
+
+      <a href="/desktop-view.html" class="feature-card">
+        <div>
+          <div class="feature-card-header">
+            <div class="feature-icon"><i class="fas fa-heart"></i></div>
+            <h3>Porutham Matching</h3>
+          </div>
+          <p>Check marriage suitability using classical 10-Porutham compatibility calculations.</p>
+        </div>
+        <span class="feature-link">Check Match <i class="fas fa-arrow-right"></i></span>
+      </a>
+
+      <a href="/desktop-view.html" class="feature-card">
+        <div>
+          <div class="feature-card-header">
+            <div class="feature-icon"><i class="fas fa-graduation-cap"></i></div>
+            <h3>Astro Academy</h3>
+          </div>
+          <p>Watch foundational video lessons on Vedic astrology, planetary strengths, and predictions.</p>
+        </div>
+        <span class="feature-link">Watch Videos <i class="fas fa-arrow-right"></i></span>
+      </a>
+    </div>
+
+    <!-- Direct Consultation CTA -->
+    <div class="cta-consult">
+      <h3>Have Personal Astrological Questions?</h3>
+      <p>Connect with verified astrologers in real-time via audio or video call.</p>
+      <a href="/desktop-view.html" class="cta-btn">Connect With Astrologer <i class="fas fa-arrow-right"></i></a>
+    </div>
+
+    <!-- Footer Links -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="/desktop-view.html">Home</a>
+        <a href="/about.html">About Us</a>
+        <a href="/contact.html">Contact Support</a>
+        <a href="/terms-condition.html">Terms & Conditions</a>
+        <a href="/privacy-policy.html">Privacy Policy</a>
+        <a href="/refund-cancellation-policy.html">Refund Policy</a>
+      </div>
+      <div>&copy; 2024 Astro 5 Star. All rights reserved.</div>
+    </footer>
+  </div>
+</body>
+
+</html>

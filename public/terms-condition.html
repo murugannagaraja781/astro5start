@@ -2,93 +2,244 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="/favicon.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="apple-touch-icon" href="/images/astro_5_star_logo.png">
-  <title>Terms & Conditions - Astro5Star</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #047857;
-            --bg: #F0FDF4;
-            --text: #1F2937;
-        }
+  <title>Terms & Conditions — Astro 5 Star</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #059669;
+      --primary-dark: #064E3B;
+      --bg: #F0FDF4;
+      --card-bg: #FFFFFF;
+      --text: #1F2937;
+      --text-muted: #4B5563;
+      --border: rgba(5, 150, 105, 0.15);
+    }
 
-        body {
-            font-family: 'Outfit', sans-serif;
-            background: var(--bg);
-            margin: 0;
-            padding: 20px;
-            color: var(--text);
-            line-height: 1.6;
-        }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 20px;
+    }
 
-        h1 {
-            color: var(--primary);
-            text-align: center;
-            margin-bottom: 30px;
-            font-weight: 600;
-        }
+    .container {
+      max-width: 850px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border);
+    }
 
-        h2 {
-            color: var(--primary);
-            font-size: 1.2rem;
-            margin-top: 25px;
-            border-bottom: 2px solid #E5E7EB;
-            padding-bottom: 10px;
-        }
+    .header-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #E5E7EB;
+    }
 
-        ol {
-            padding-left: 20px;
-        }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--primary);
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
 
-        li {
-            margin-bottom: 15px;
-        }
+    .brand-logo img {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+    }
 
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            font-size: 0.8rem;
-            color: #6B7280;
-        }
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg);
+      color: var(--primary);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
 
-        strong {
-            color: var(--primary);
-        }
-    </style>
+    .back-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    h1 {
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 2.2rem;
+      font-weight: 700;
+    }
+
+    .last-updated {
+      text-align: center;
+      color: #6B7280;
+      font-size: 0.9rem;
+      margin-bottom: 30px;
+    }
+
+    h2 {
+      color: var(--primary-dark);
+      font-size: 1.25rem;
+      margin-top: 25px;
+      margin-bottom: 10px;
+      border-bottom: 2px solid #E5E7EB;
+      padding-bottom: 8px;
+      font-weight: 600;
+    }
+
+    ol {
+      padding-left: 20px;
+      margin-bottom: 20px;
+    }
+
+    li {
+      margin-bottom: 14px;
+      color: var(--text-muted);
+    }
+
+    strong {
+      color: var(--text);
+    }
+
+    p {
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #E5E7EB;
+      font-size: 0.85rem;
+      color: #6B7280;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .footer-links a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .footer-links a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>🌙 Terms & Conditions</h1>
-        <p>By accessing and using Astro5Star services, you agree to the following terms:</p>
+  <div class="container">
+    <!-- Header Navigation -->
+    <header class="header-nav">
+      <a href="/desktop-view.html" class="brand-logo">
+        <img src="/favicon.png" alt="Astro 5 Star Logo" onerror="this.style.display='none'">
+        <span>Astro 5 Star</span>
+      </a>
+      <a href="/desktop-view.html" class="back-btn">
+        <i class="fas fa-arrow-left"></i> Back to Home
+      </a>
+    </header>
 
-        <ol>
-            <li><strong>No Guarantees</strong> – Astrology is a guiding tool. We do not guarantee specific outcomes from
-                any consultation or report.</li>
-            <li><strong>User Responsibility</strong> – All consultations are accessed at the user’s own discretion and
-                risk.</li>
-            <li><strong>Refunds</strong> – Refunds are discretionary and depend on service quality audits.</li>
-            <li><strong>Intellectual Property</strong> – All content, logos, and materials on Astro5Star are owned by us
-                and cannot be copied without permission.</li>
-            <li><strong>Service Availability</strong> – We reserve the right to modify, suspend, or discontinue any
-                service without prior notice.</li>
-            <li><strong>Disputes</strong> – Any disputes are subject to applicable laws and jurisdiction.</li>
-        </ol>
+    <h1>🌙 Terms & Conditions</h1>
+    <div class="last-updated">Last Updated: October 2026</div>
 
-        <div class="footer">&copy; 2024 Astro5Star. All rights reserved.</div>
-    </div>
+    <p>
+      Welcome to Astro 5 Star (accessible via <strong>https://astro5star.com</strong> and our mobile application). By accessing our website, creating an account, or using our astrological consultation and calculation services, you agree to be bound by the following terms and conditions:
+    </p>
+
+    <ol>
+      <li>
+        <strong>Nature of Astrological Guidance & No Guarantees</strong> – Astrology is an ancient interpretive science and a philosophical guidance tool. Predictions, planetary analyses, and consultations are based on astrological principles and do not guarantee specific future outcomes, medical cures, legal decisions, or financial windfalls. Consultations are for guidance and personal insight only.
+      </li>
+
+      <li>
+        <strong>User Eligibility & Account Responsibility</strong> – You must be at least 18 years of age (or have parental/guardian consent) to use paid consultation features. You are responsible for maintaining the accuracy of your phone number login and ensuring that your account is not used for unauthorized purposes.
+      </li>
+
+      <li>
+        <strong>Wallet, Recharges & Consultations</strong> –
+        Consultations with astrologers are charged on a transparent per-minute rate basis deducted from your active Astro 5 Star wallet balance. Promotional welcome bonuses or referral credits are subject to platform usage rules (e.g. blended deduction rules between main balance and promotional bonus).
+      </li>
+
+      <li>
+        <strong>Code of Conduct</strong> – Users and astrologers are expected to maintain mutual respect. Any abusive language, harassment, obscenity, or inappropriate conduct during live audio/video calls or chats will result in immediate termination of the consultation and potential suspension of the user account without refund.
+      </li>
+
+      <li>
+        <strong>Refunds & Cancellations</strong> – Refund eligibility is governed by our dedicated <a href="/refund-cancellation-policy.html" style="color: var(--primary);">Refund & Cancellation Policy</a>. Refunds are discretionary and evaluated based on verified technical malfunctions, call drops, or system downtime.
+      </li>
+
+      <li>
+        <strong>Intellectual Property</strong> – All trademarks, logos, Vedic astrological algorithms, birth chart calculations, interface designs, and digital content on Astro 5 Star are the exclusive property of Astro 5 Star and may not be copied, reproduced, or scraped without prior written authorization.
+      </li>
+
+      <li>
+        <strong>Service Modifications</strong> – We reserve the right to improve, modify, suspend, or discontinue any feature, astrologer listing, or promotional discount at any time without prior liability.
+      </li>
+
+      <li>
+        <strong>Governing Law & Disputes</strong> – Any disputes arising from the use of Astro 5 Star shall be subject to applicable Indian laws and the jurisdiction of competent courts in Tamil Nadu, India.
+      </li>
+    </ol>
+
+    <!-- Footer Links -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="/desktop-view.html">Home</a>
+        <a href="/about.html">About Us</a>
+        <a href="/contact.html">Contact Support</a>
+        <a href="/blog.html">Blog</a>
+        <a href="/privacy-policy.html">Privacy Policy</a>
+        <a href="/refund-cancellation-policy.html">Refund Policy</a>
+      </div>
+      <div>&copy; 2024–2026 Astro 5 Star. All rights reserved.</div>
+    </footer>
+  </div>
 </body>
 
 </html>
