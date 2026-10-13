@@ -361,13 +361,14 @@ const verifyOtp = async (req, res) => {
         if (!validation) return res.status(400).json({ ok: false, error: 'Invalid phone format' });
 
         const { cleanPhone, fullPhone, country, currency, symbol } = validation;
+        const validCountryCode = validation.countryCode || countryCode || '+91';
 
         // Check if country is enabled in CountryConfig
         const targetIso = (isoCode || country || '').toUpperCase();
         const countryRecord = await CountryConfig.findOne({
             $or: [
                 { isoCode: targetIso },
-                { dialingCode: validation.countryCode }
+                { dialingCode: validCountryCode }
             ]
         }).lean();
 
@@ -437,13 +438,13 @@ const verifyOtp = async (req, res) => {
             // Stored phone:
             // For Indian users, keep 10-digit cleanPhone for full backward compatibility.
             // For International users, store full international number with + prefix.
-            const storedPhone = parsed.countryCode === '+91' ? cleanPhone : fullPhone;
+            const storedPhone = validCountryCode === '+91' ? cleanPhone : fullPhone;
 
             user = await User.create({
                 userId,
                 phone: storedPhone,
                 fullPhone: fullPhone,
-                countryCode: parsed.countryCode,
+                countryCode: validCountryCode,
                 country: country,
                 currency: currency,
                 currencySymbol: symbol,
@@ -459,8 +460,8 @@ const verifyOtp = async (req, res) => {
         } else {
             // Update currency / country if not present or changed
             let needsSave = false;
-            if (!user.countryCode || user.countryCode !== parsed.countryCode) {
-                user.countryCode = parsed.countryCode;
+            if (!user.countryCode || user.countryCode !== validCountryCode) {
+                user.countryCode = validCountryCode;
                 user.country = country;
                 user.currency = currency;
                 user.currencySymbol = symbol;
@@ -487,7 +488,7 @@ const verifyOtp = async (req, res) => {
             name: user.name,
             phone: user.phone,
             fullPhone: user.fullPhone || fullPhone,
-            countryCode: user.countryCode || parsed.countryCode,
+            countryCode: user.countryCode || validCountryCode,
             country: user.country || country,
             currency: user.currency || currency,
             currencySymbol: user.currencySymbol || symbol,
