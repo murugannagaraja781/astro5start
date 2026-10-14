@@ -321,41 +321,10 @@ class ChatActivity : ComponentActivity() {
                         remainingSeconds = remainingSeconds,
                         clientBirthData = clientBirthData,
                         onPickImage = {
-                            val permissions = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                                arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES, android.Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
-                            } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                                arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES)
-                            } else {
-                                arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-                            }
-                            
-                            val allGranted = permissions.all { 
-                                androidx.core.content.ContextCompat.checkSelfPermission(this, it) == android.content.pm.PackageManager.PERMISSION_GRANTED 
-                            }
-
-                            if (allGranted) {
-                                imagePickerLauncher.launch("image/*")
-                            } else {
-                                multiPermissionLauncher.launch(permissions)
-                            }
+                            imagePickerLauncher.launch("image/*")
                         },
                         onPickFile = {
-                            val permissions = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                                arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES, android.Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
-                            } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                                arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES)
-                            } else {
-                                arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-                            }
-                            
-                            val allGranted = permissions.all { 
-                                androidx.core.content.ContextCompat.checkSelfPermission(this, it) == android.content.pm.PackageManager.PERMISSION_GRANTED 
-                            }
-                            if (allGranted) {
-                                filePickerLauncher.launch("*/*")
-                            } else {
-                                multiPermissionLauncher.launch(permissions)
-                            }
+                            filePickerLauncher.launch("*/*")
                         },
                         summaryData = showSummaryData,
                         audioPlayer = audioPlayer,
