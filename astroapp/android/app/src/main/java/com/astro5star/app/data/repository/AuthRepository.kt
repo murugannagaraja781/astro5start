@@ -14,12 +14,20 @@ class AuthRepository {
             if (response.isSuccessful && response.body()?.get("ok")?.asBoolean == true) {
                 Result.success("OTP Sent")
             } else {
-                val errorMsg = if (response.body() != null && response.body()!!.has("error")) {
-                    response.body()!!.get("error").asString
-                } else {
-                    "Failed to send OTP"
+                var errorMsg: String? = null
+                if (response.body() != null && response.body()!!.has("error")) {
+                    errorMsg = response.body()!!.get("error").asString
+                } else if (response.errorBody() != null) {
+                    try {
+                        val errorJson = com.google.gson.JsonParser.parseString(response.errorBody()!!.string()).asJsonObject
+                        if (errorJson.has("error")) {
+                            errorMsg = errorJson.get("error").asString
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
-                Result.failure(Exception(errorMsg))
+                Result.failure(Exception(errorMsg ?: "Failed to send OTP"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -32,7 +40,18 @@ class AuthRepository {
             if (response.isSuccessful && response.body()?.ok == true) {
                 Result.success(response.body()!!)
             } else {
-                Result.failure(Exception(response.body()?.error ?: "Verification failed"))
+                var errorMsg = response.body()?.error
+                if (errorMsg.isNullOrEmpty() && response.errorBody() != null) {
+                    try {
+                        val errorJson = com.google.gson.JsonParser.parseString(response.errorBody()!!.string()).asJsonObject
+                        if (errorJson.has("error")) {
+                            errorMsg = errorJson.get("error").asString
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+                Result.failure(Exception(errorMsg ?: "Verification failed"))
             }
         } catch (e: Exception) {
             Result.failure(e)

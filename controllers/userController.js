@@ -10,6 +10,13 @@ const ChatMessage = require('../models/ChatMessage');
 const CallRequest = require('../models/CallRequest');
 const { sendMsg91 } = require('../services/otpService');
 const { otpStore } = require('../services/sharedState');
+const {
+    checkOtpRateLimit,
+    recordOtpSent,
+    recordOtpBlocked,
+    recordOtpVerified,
+    getSupportPhone
+} = require('../services/otpSecurityService');
 const Notification = require('../models/Notification');
 const CountryConfig = require('../models/CountryConfig');
 const {
@@ -327,16 +334,54 @@ const sendOtp = async (req, res) => {
             });
         }
 
+        // Security Layer: Enforce 3 OTPs daily limit, 60s cooldown, and anti-script bot protection
+        const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || req.ip;
+        const rateCheck = await checkOtpRateLimit({
+            cleanPhone,
+            fullPhone,
+            ip: clientIp,
+            isTestPhone
+        });
+
+        if (!rateCheck.allowed) {
+            await recordOtpBlocked({
+                cleanPhone,
+                fullPhone,
+                countryCode: validation.countryCode,
+                ip: clientIp,
+                userAgent: req.headers['user-agent'],
+                reason: rateCheck.code === 'DAILY_OTP_LIMIT_EXCEEDED' ? 'failed_limit' : (rateCheck.code === 'OTP_COOLDOWN' ? 'failed_cooldown' : 'failed_ip_limit')
+            });
+
+            return res.status(rateCheck.statusCode || 429).json({
+                ok: false,
+                code: rateCheck.code,
+                error: rateCheck.error,
+                remainingSeconds: rateCheck.remainingSeconds,
+                supportPhone: getSupportPhone()
+            });
+        }
+
         const otp = Math.floor(1000 + Math.random() * 9000).toString();
-        otpStore.set(fullPhone, { otp, expires: Date.now() + 5 * 60 * 1000 });
-        otpStore.set(cleanPhone, { otp, expires: Date.now() + 5 * 60 * 1000 });
+        otpStore.set(fullPhone, { otp, expires: Date.now() + 5 * 60 * 1000, failedAttempts: 0 });
+        otpStore.set(cleanPhone, { otp, expires: Date.now() + 5 * 60 * 1000, failedAttempts: 0 });
 
         console.log(`[OTP] Generated for ${fullPhone} (${validation.country}): ${otp}`);
 
-        // Send via MSG91
+        // Record successful OTP dispatch in MongoDB & in-memory cache
+        await recordOtpSent({
+            cleanPhone,
+            fullPhone,
+            countryCode: validation.countryCode,
+            ip: clientIp,
+            userAgent: req.headers['user-agent']
+        });
+
+        // Send via MSG91 (properly handles both Indian and International numbers)
         if (process.env.MSG91_AUTH_KEY) {
-            const msg91Recipient = fullPhone.replace('+', '');
-            sendMsg91(msg91Recipient, otp);
+            sendMsg91(fullPhone, otp, validation.countryCode).catch(err => {
+                console.error(`[OTP Error] Failed to send via MSG91 for ${fullPhone}:`, err.message);
+            });
         }
 
         res.json({ 
@@ -389,10 +434,35 @@ const verifyOtp = async (req, res) => {
 
         if (!isValid) {
             const entry = otpStore.get(fullPhone) || otpStore.get(cleanPhone);
-            if (entry && entry.otp === otp && entry.expires > Date.now()) {
-                isValid = true;
-                otpStore.delete(fullPhone);
-                otpStore.delete(cleanPhone);
+            if (entry) {
+                if (entry.expires < Date.now()) {
+                    otpStore.delete(fullPhone);
+                    otpStore.delete(cleanPhone);
+                    return res.status(400).json({ ok: false, error: 'OTP has expired. Please request a new OTP.' });
+                }
+
+                if (entry.otp === otp) {
+                    isValid = true;
+                    otpStore.delete(fullPhone);
+                    otpStore.delete(cleanPhone);
+                    recordOtpVerified({ cleanPhone, fullPhone });
+                } else {
+                    entry.failedAttempts = (entry.failedAttempts || 0) + 1;
+                    if (entry.failedAttempts >= 5) {
+                        otpStore.delete(fullPhone);
+                        otpStore.delete(cleanPhone);
+                        return res.status(400).json({
+                            ok: false,
+                            error: 'Too many incorrect attempts. For security reasons, this OTP has been blocked. Please request a new OTP.'
+                        });
+                    }
+                    return res.status(400).json({
+                        ok: false,
+                        error: `Invalid OTP. ${5 - entry.failedAttempts} attempt(s) remaining.`
+                    });
+                }
+            } else {
+                return res.status(400).json({ ok: false, error: 'Invalid or expired OTP' });
             }
         }
 

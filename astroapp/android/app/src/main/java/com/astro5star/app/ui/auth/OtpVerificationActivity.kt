@@ -121,7 +121,8 @@ class OtpVerificationActivity : AppCompatActivity() {
                 startActivity(intent)
                 finishAffinity()
             } else {
-                Toast.makeText(this@OtpVerificationActivity, "Invalid OTP", Toast.LENGTH_SHORT).show()
+                val err = result.exceptionOrNull()?.message ?: "Invalid OTP"
+                Toast.makeText(this@OtpVerificationActivity, err, Toast.LENGTH_SHORT).show()
             }
         }
     }

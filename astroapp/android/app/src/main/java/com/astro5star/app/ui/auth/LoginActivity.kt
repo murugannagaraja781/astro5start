@@ -2,6 +2,7 @@ package com.astro5star.app.ui.auth
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.core.LinearEasing
@@ -308,9 +309,12 @@ fun LoginScreen() {
                                     (context as? AppCompatActivity)?.finish()
                                 } else {
                                     showError = true
+                                    val err = result.exceptionOrNull()?.message ?: "Failed to send OTP"
+                                    Toast.makeText(context, err, Toast.LENGTH_LONG).show()
                                 }
                             } catch (e: Exception) {
                                 showError = true
+                                Toast.makeText(context, e.message ?: "Failed to send OTP", Toast.LENGTH_LONG).show()
                             } finally {
                                 isLoading = false
                             }

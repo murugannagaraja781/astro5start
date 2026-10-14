@@ -206,8 +206,8 @@
         }
     }
 
-    function startResendCountdown() {
-        resendSecondsRemaining = 30;
+    function startResendCountdown(seconds = 60) {
+        resendSecondsRemaining = seconds || 60;
         const resendBtn = document.getElementById('cosmicResendOtpBtn');
         const timerText = document.getElementById('cosmicResendTimer');
         if (!resendBtn) return;

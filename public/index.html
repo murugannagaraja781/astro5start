@@ -4806,7 +4806,7 @@
           document.getElementById('step-otp').classList.remove('hidden');
 
           if (window.CosmicLogin && window.CosmicLogin.startResendCountdown) {
-            window.CosmicLogin.startResendCountdown();
+            window.CosmicLogin.startResendCountdown(60);
           }
 
           const otpInput = document.getElementById('inputOtp');
@@ -4815,7 +4815,16 @@
             otpInput.focus();
           }
         } else {
-          alert(res.error || 'Failed to send OTP. Please try again.');
+          if (res.code === 'DAILY_OTP_LIMIT_EXCEEDED') {
+            alert(`⚠️ ${res.error}\n\nஉதவிக்கு வாடிக்கையாளர் சேவையைத் தொடர்பு கொள்ளவும்.`);
+          } else if (res.code === 'OTP_COOLDOWN') {
+            alert(`⏳ ${res.error}`);
+            if (window.CosmicLogin && window.CosmicLogin.startResendCountdown && res.remainingSeconds) {
+              window.CosmicLogin.startResendCountdown(res.remainingSeconds);
+            }
+          } else {
+            alert(res.error || 'Failed to send OTP. Please try again.');
+          }
         }
       } catch (e) {
         alert('Network Error. Please check your internet connection.');
