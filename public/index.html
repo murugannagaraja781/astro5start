@@ -3182,7 +3182,7 @@
           <div style="text-align: left;">
             <div style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">Main Wallet
             </div>
-            <div style="font-size: 1.5rem; font-weight: 800; color: #111827;">₹<span id="mainWalletVal">0.00</span>
+            <div style="font-size: 1.5rem; font-weight: 800; color: #111827;"><span class="user-currency-symbol">₹</span><span id="mainWalletVal">0.00</span>
             </div>
           </div>
           <i class="fas fa-wallet" style="color: #059669; font-size: 1.5rem; opacity: 0.2;"></i>
@@ -3193,7 +3193,7 @@
           <div style="text-align: left;">
             <div style="font-size: 0.75rem; color: #e11d48; font-weight: 600; text-transform: uppercase;">Super Wallet
             </div>
-            <div style="font-size: 1.5rem; font-weight: 800; color: #be123f;">₹<span id="superWalletVal">0.00</span>
+            <div style="font-size: 1.5rem; font-weight: 800; color: #be123f;"><span class="user-currency-symbol">₹</span><span id="superWalletVal">0.00</span>
             </div>
           </div>
           <i class="fas fa-magic" style="color: #e11d48; font-size: 1.5rem; opacity: 0.2;"></i>
@@ -3236,7 +3236,7 @@
           style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.8); display: block; margin-bottom: 8px;">Amount
           to be added</label>
         <div style="position: relative;">
-          <span
+          <span id="rechargeCurrencyPrefix" class="user-currency-symbol"
             style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-weight: bold; color: #FACC15; font-size: 1.2rem;">₹</span>
           <input type="number" id="rechargeInput" class="app-input"
             style="padding-left: 35px; font-size: 1.3rem; font-weight: bold; color: white; background: rgba(2, 6, 23, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; width: 100%; box-sizing: border-box;"
@@ -3244,7 +3244,7 @@
         </div>
       </div>
 
-      <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+      <div id="rechargeChipsContainer" style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
         <button onclick="setRechargeAmount(100)" class="chip-btn"
           style="background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1);">₹100</button>
         <button onclick="setRechargeAmount(500)" class="chip-btn"
@@ -4251,17 +4251,58 @@
       if (state.me && state.me.currency === 'USD') return '$';
       const stored = localStorage.getItem('userCurrencySymbol');
       if (stored) return stored;
-      if (localStorage.getItem('userCurrency') === 'USD') return '$';
+      const storedCur = localStorage.getItem('userCurrency');
+      if (storedCur === 'USD') return '$';
+      if (storedCur === 'GBP') return '£';
+      if (storedCur === 'SGD') return 'S$';
+      if (storedCur === 'MYR') return 'RM';
       return '₹';
+    }
+
+    function getUserCurrency() {
+      if (state.me && state.me.currency) return state.me.currency;
+      const stored = localStorage.getItem('userCurrency');
+      if (stored) return stored;
+      return 'INR';
+    }
+
+    function renderRechargeChips(currency, symbol) {
+      const container = document.getElementById('rechargeChipsContainer');
+      if (!container) return;
+      const cur = (currency || getUserCurrency()).toUpperCase();
+      const sym = symbol || getCurrencySymbol();
+
+      let amounts = [100, 500, 1000, 2000];
+      if (cur === 'USD') {
+        amounts = [2, 5, 10, 25, 50];
+      } else if (cur === 'GBP') {
+        amounts = [2, 5, 10, 20, 50];
+      } else if (cur === 'SGD' || cur === 'AUD' || cur === 'CAD') {
+        amounts = [5, 10, 20, 50, 100];
+      } else if (cur === 'MYR') {
+        amounts = [10, 20, 50, 100, 200];
+      }
+
+      container.innerHTML = amounts.map(amt => `
+        <button onclick="setRechargeAmount(${amt})" class="chip-btn"
+          style="background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1);">${sym}${amt}</button>
+      `).join('');
     }
 
     function applyCurrencyToUI() {
       const sym = getCurrencySymbol();
+      const cur = getUserCurrency();
+
       document.querySelectorAll('.user-currency-symbol').forEach(el => el.textContent = sym);
       const dashCur = document.getElementById('dashCurrencySymbol');
       if (dashCur) dashCur.textContent = sym;
       const superCur = document.getElementById('dashSuperCurrencySymbol');
       if (superCur) superCur.textContent = sym;
+      const rechargePrefix = document.getElementById('rechargeCurrencyPrefix');
+      if (rechargePrefix) rechargePrefix.textContent = sym;
+
+      renderRechargeChips(cur, sym);
+      if (typeof updateRechargeSummary === 'function') updateRechargeSummary();
     }
 
     // Initialize Socket
@@ -4592,7 +4633,13 @@
         socket.emit('register', { name: session.name, phone: session.phone, userId: session.userId }, (ack) => {
           if (ack.ok) {
             // Merge fresh data from server (wallet, earnings, etc.)
-            state.me = { ...session, ...ack };
+            const mergedUser = ack.user || ack;
+            state.me = { ...session, ...mergedUser };
+            if (state.me.currency) {
+              localStorage.setItem('userCurrency', state.me.currency);
+              localStorage.setItem('userCurrencySymbol', state.me.currencySymbol || (state.me.currency === 'USD' ? '$' : '₹'));
+            }
+            applyCurrencyToUI();
             saveSession(state.me); // Update localStorage with fresh data
 
             // Send FCM token to server for push notifications
@@ -4918,6 +4965,7 @@
     function loadClientDash(user) {
       hideAllScreens();
       sClient.classList.remove('hidden');
+      applyCurrencyToUI();
       // Hide static header as client dash has its own
       if (document.getElementById('staticHeader')) document.getElementById('staticHeader').style.display = 'none';
 
@@ -5530,9 +5578,10 @@
         if (a.isBusy) div.classList.add('is-busy');
         if (isOffline) div.classList.add('is-offline');
 
-        const isUsd = (state.me && state.me.currency === 'USD') || localStorage.getItem('userCurrency') === 'USD';
-        const displayPrice = isUsd ? (a.priceUsd || (a.price / 85).toFixed(2)) : a.price;
-        const displaySymbol = isUsd ? '$' : '₹';
+        const cur = getUserCurrency();
+        const displaySymbol = getCurrencySymbol();
+        const isForeign = cur !== 'INR';
+        const displayPrice = isForeign ? (a.priceUsd || (a.price / 85).toFixed(2)) : a.price;
 
         div.innerHTML = `
           <div class="at-card-inner">
@@ -8552,10 +8601,12 @@
       const msgElem = document.getElementById('couponMessage');
       if (msgElem) msgElem.innerText = '';
 
+      const cur = getUserCurrency();
       const rInp = document.getElementById('rechargeInput');
       if (rInp && (!rInp.value || parseFloat(rInp.value) < 1)) {
-        rInp.value = '500';
+        rInp.value = cur === 'USD' ? '10' : (cur === 'GBP' ? '10' : '500');
       }
+      applyCurrencyToUI();
       if (typeof updateRechargeSummary === 'function') {
         updateRechargeSummary();
       }
@@ -8811,27 +8862,24 @@
       const finalPayElem = document.getElementById('summaryFinalPay');
       const promoRow = document.getElementById('promoRow');
 
-      const targetCredit = parseInt(amtInput) || 0;
+      const sym = getCurrencySymbol();
+      const cur = getUserCurrency();
+      const targetCredit = parseFloat(amtInput) || 0;
       if (targetCredit > 0) {
         summaryElem.style.display = 'block';
-        walletValElem.innerText = '₹' + targetCredit;
+        walletValElem.innerText = sym + targetCredit;
 
         let bonusPercent = 0;
         if (state.appliedCoupon === 'WELCOME50') {
           bonusPercent = 0.5;
         }
 
-        const finalPay = targetCredit; // Total is always base + GST, but user recharges "Credit"
-        // Wait, the existing logic had: You Pay: ₹50 if Wallet Value is ₹100
-        // The user said: "Welcome Offer (50% Off): wallet la remove pany athu la ah copen code set panu"
-        // This means we should probably show the bonus value instead of "50% Off" price reduction
-        // Let's change the summary to reflect: Recharge ₹100 -> Get ₹100 Main + ₹50 Super
-
-        const bonusVal = Math.floor(targetCredit * bonusPercent);
-        discValueElem.innerText = bonusVal > 0 ? '+ ₹' + bonusVal + ' Bonus' : 'Apply coupon for bonus';
+        const bonusVal = Math.round(targetCredit * bonusPercent * 100) / 100;
+        discValueElem.innerText = bonusVal > 0 ? '+ ' + sym + bonusVal + ' Bonus' : 'Apply coupon for bonus';
         promoRow.style.color = bonusVal > 0 ? '#22C55E' : 'rgba(255,255,255,0.4)';
 
-        finalPayElem.innerText = '₹' + Math.floor(targetCredit * 1.18); // Show total with GST
+        const payVal = cur === 'INR' ? Math.floor(targetCredit * 1.18) : targetCredit;
+        finalPayElem.innerText = sym + payVal;
       } else {
         summaryElem.style.display = 'none';
       }
@@ -8839,8 +8887,9 @@
 
     window.submitRecharge = function () {
       const amtInput = document.getElementById('rechargeInput').value;
-      const targetCredit = parseInt(amtInput) || 0;
-      if (targetCredit < 1) return alert(state.language === 'ta' ? "குறைந்தபட்ச தொகை ₹1" : "Minimum amount is ₹1");
+      const targetCredit = parseFloat(amtInput) || 0;
+      const sym = getCurrencySymbol();
+      if (targetCredit < 1) return alert(state.language === 'ta' ? `குறைந்தபட்ச தொகை ${sym}1` : `Minimum amount is ${sym}1`);
 
       const isWelcomeOffer = true;
       const finalPayAmount = targetCredit;
@@ -9111,6 +9160,13 @@
           setTimeout(() => coin.remove(), 2000);
         }, i * 200);
       }
+    }
+
+    // Initialize currency on load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', applyCurrencyToUI);
+    } else {
+      applyCurrencyToUI();
     }
 
   </script>

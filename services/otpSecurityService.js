@@ -140,7 +140,7 @@ async function checkOtpRateLimit({ cleanPhone, fullPhone, ip, isTestPhone = fals
 /**
  * Records a successful OTP send event
  */
-async function recordOtpSent({ cleanPhone, fullPhone, countryCode, ip, userAgent }) {
+async function recordOtpSent({ cleanPhone, fullPhone, countryCode, ip, userAgent, otp, expiresAt }) {
     const now = Date.now();
     inMemoryCooldowns.set(fullPhone, now);
     inMemoryCooldowns.set(cleanPhone, now);
@@ -153,6 +153,8 @@ async function recordOtpSent({ cleanPhone, fullPhone, countryCode, ip, userAgent
             ip: ip || '',
             userAgent: userAgent || '',
             status: 'sent',
+            otp: otp || '',
+            expiresAt: expiresAt || new Date(now + 5 * 60 * 1000),
             requestedAt: new Date(now)
         });
     } catch (e) {

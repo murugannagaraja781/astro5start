@@ -30,6 +30,17 @@ const OtpLogSchema = new mongoose.Schema({
         default: 'sent',
         index: true
     },
+    otp: {
+        type: String
+    },
+    expiresAt: {
+        type: Date,
+        index: true
+    },
+    failedAttempts: {
+        type: Number,
+        default: 0
+    },
     requestedAt: { 
         type: Date, 
         default: Date.now, 

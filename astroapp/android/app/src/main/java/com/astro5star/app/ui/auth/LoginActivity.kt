@@ -253,7 +253,12 @@ fun LoginScreen() {
                         value = phoneNumber,
                         onValueChange = {
                             val digits = it.filter { ch -> ch.isDigit() }
-                            phoneNumber = digits.take(selectedCountry.maxLength)
+                            val dialCodeDigits = selectedCountry.code.replace("+", "")
+                            var cleanDigits = digits
+                            if (dialCodeDigits.isNotEmpty() && cleanDigits.startsWith(dialCodeDigits) && cleanDigits.length > selectedCountry.maxLength) {
+                                cleanDigits = cleanDigits.substring(dialCodeDigits.length)
+                            }
+                            phoneNumber = cleanDigits.take(selectedCountry.maxLength)
                             if (showError && isValidLength) {
                                 showError = false
                             }
@@ -300,10 +305,16 @@ fun LoginScreen() {
                         isLoading = true
                         scope.launch {
                             try {
-                                val result = repository.sendOtp(phoneNumber.trim(), selectedCountry.code)
+                                var sendNum = phoneNumber.trim()
+                                val dialCodeDigits = selectedCountry.code.replace("+", "")
+                                if (dialCodeDigits.isNotEmpty() && sendNum.startsWith(dialCodeDigits) && sendNum.length > selectedCountry.minLength) {
+                                    sendNum = sendNum.substring(dialCodeDigits.length)
+                                }
+
+                                val result = repository.sendOtp(sendNum, selectedCountry.code)
                                 if (result.isSuccess) {
                                     val intent = Intent(context, OtpVerificationActivity::class.java)
-                                    intent.putExtra("phone", phoneNumber.trim())
+                                    intent.putExtra("phone", sendNum)
                                     intent.putExtra("countryCode", selectedCountry.code)
                                     context.startActivity(intent)
                                     (context as? AppCompatActivity)?.finish()

@@ -19,6 +19,7 @@ const {
 } = require('../services/otpSecurityService');
 const Notification = require('../models/Notification');
 const CountryConfig = require('../models/CountryConfig');
+const OtpLog = require('../models/OtpLog');
 const {
     normalizePhoneNumber,
     validatePhoneNumber,
@@ -39,6 +40,14 @@ const getUserProfile = async (req, res) => {
         const isOnlineCalculated = !!(user.isOnline || user.isChatOnline || user.isAudioOnline || user.isVideoOnline);
         const isAvailableCalculated = user.isAvailable || isOnlineCalculated;
 
+        const countryInfo = getCurrencyInfoByCode(user.countryCode || '+91');
+        const resolvedCurrency = user.currency && (user.countryCode === '+91' || user.currency !== 'INR')
+            ? user.currency
+            : (user.countryCode && user.countryCode !== '+91' ? countryInfo.currency : (user.currency || 'INR'));
+        const resolvedSymbol = user.currencySymbol && (user.countryCode === '+91' || user.currencySymbol !== '₹')
+            ? user.currencySymbol
+            : (user.countryCode && user.countryCode !== '+91' ? countryInfo.symbol : (user.currencySymbol || '₹'));
+
         res.json({
             ok: true,
             userId: user.userId,
@@ -46,9 +55,9 @@ const getUserProfile = async (req, res) => {
             phone: user.phone,
             fullPhone: user.fullPhone || (user.phone ? (user.phone.startsWith('+') ? user.phone : `+91${user.phone}`) : ''),
             countryCode: user.countryCode || '+91',
-            country: user.country || 'IN',
-            currency: user.currency || 'INR',
-            currencySymbol: user.currencySymbol || '₹',
+            country: user.country || countryInfo.country || 'IN',
+            currency: resolvedCurrency,
+            currencySymbol: resolvedSymbol,
             role: user.role,
             walletBalance: user.walletBalance,
             superWalletBalance: user.superWalletBalance || 0,
@@ -363,18 +372,26 @@ const sendOtp = async (req, res) => {
         }
 
         const otp = Math.floor(1000 + Math.random() * 9000).toString();
-        otpStore.set(fullPhone, { otp, expires: Date.now() + 5 * 60 * 1000, failedAttempts: 0 });
-        otpStore.set(cleanPhone, { otp, expires: Date.now() + 5 * 60 * 1000, failedAttempts: 0 });
+        const expiresAtMs = Date.now() + 5 * 60 * 1000;
+        const rawDigits = phone.replace(/[^0-9]/g, '');
+
+        // Store in memory under all possible key formats for 100% match reliability
+        otpStore.set(fullPhone, { otp, expires: expiresAtMs, failedAttempts: 0 });
+        otpStore.set(cleanPhone, { otp, expires: expiresAtMs, failedAttempts: 0 });
+        if (rawDigits) otpStore.set(rawDigits, { otp, expires: expiresAtMs, failedAttempts: 0 });
+        otpStore.set(fullPhone.replace('+', ''), { otp, expires: expiresAtMs, failedAttempts: 0 });
 
         console.log(`[OTP] Generated for ${fullPhone} (${validation.country}): ${otp}`);
 
-        // Record successful OTP dispatch in MongoDB & in-memory cache
+        // Record successful OTP dispatch in MongoDB & in-memory cache with durable OTP
         await recordOtpSent({
             cleanPhone,
             fullPhone,
             countryCode: validation.countryCode,
             ip: clientIp,
-            userAgent: req.headers['user-agent']
+            userAgent: req.headers['user-agent'],
+            otp,
+            expiresAt: new Date(expiresAtMs)
         });
 
         // Send via MSG91 (properly handles both Indian and International numbers)
@@ -432,25 +449,70 @@ const verifyOtp = async (req, res) => {
         if ((cleanPhone === '9876543210') && otp === '1369') isValid = true;
         if ((cleanPhone === '2125551234' || fullPhone === '+12125551234') && otp === '0101') isValid = true;
 
+        const rawDigits = String(phone || '').replace(/[^0-9]/g, '');
+
         if (!isValid) {
-            const entry = otpStore.get(fullPhone) || otpStore.get(cleanPhone);
+            // 1. In-memory check (fast path)
+            let entry = otpStore.get(fullPhone) || 
+                        otpStore.get(cleanPhone) || 
+                        otpStore.get(rawDigits) || 
+                        otpStore.get(fullPhone.replace('+', ''));
+
+            // 2. Database fallback (preserves active OTPs across PM2 restarts/workers)
+            let dbOtpDoc = null;
+            if (!entry) {
+                dbOtpDoc = await OtpLog.findOne({
+                    $or: [
+                        { fullPhone: fullPhone },
+                        { phone: cleanPhone },
+                        { phone: rawDigits },
+                        { fullPhone: `+${rawDigits}` },
+                        { fullPhone: fullPhone.replace('+', '') }
+                    ],
+                    status: 'sent',
+                    expiresAt: { $gt: new Date() }
+                }).sort({ requestedAt: -1 });
+
+                if (dbOtpDoc && dbOtpDoc.otp) {
+                    entry = {
+                        otp: dbOtpDoc.otp,
+                        expires: new Date(dbOtpDoc.expiresAt).getTime(),
+                        failedAttempts: dbOtpDoc.failedAttempts || 0,
+                        isDbDoc: true
+                    };
+                }
+            }
+
             if (entry) {
                 if (entry.expires < Date.now()) {
                     otpStore.delete(fullPhone);
                     otpStore.delete(cleanPhone);
+                    otpStore.delete(rawDigits);
                     return res.status(400).json({ ok: false, error: 'OTP has expired. Please request a new OTP.' });
                 }
 
-                if (entry.otp === otp) {
+                if (String(entry.otp).trim() === String(otp).trim()) {
                     isValid = true;
                     otpStore.delete(fullPhone);
                     otpStore.delete(cleanPhone);
+                    otpStore.delete(rawDigits);
+                    otpStore.delete(fullPhone.replace('+', ''));
+                    if (dbOtpDoc) {
+                        dbOtpDoc.status = 'verified';
+                        await dbOtpDoc.save().catch(() => {});
+                    }
                     recordOtpVerified({ cleanPhone, fullPhone });
                 } else {
                     entry.failedAttempts = (entry.failedAttempts || 0) + 1;
+                    if (dbOtpDoc) {
+                        dbOtpDoc.failedAttempts = entry.failedAttempts;
+                        if (entry.failedAttempts >= 5) dbOtpDoc.status = 'failed_attempts';
+                        await dbOtpDoc.save().catch(() => {});
+                    }
                     if (entry.failedAttempts >= 5) {
                         otpStore.delete(fullPhone);
                         otpStore.delete(cleanPhone);
+                        otpStore.delete(rawDigits);
                         return res.status(400).json({
                             ok: false,
                             error: 'Too many incorrect attempts. For security reasons, this OTP has been blocked. Please request a new OTP.'
@@ -468,15 +530,20 @@ const verifyOtp = async (req, res) => {
 
         if (!isValid) return res.status(400).json({ ok: false, error: 'Invalid or expired OTP' });
 
-        // Lookup existing user by fullPhone, cleanPhone, or raw phone
+        // Lookup existing user by fullPhone, cleanPhone, rawDigits, or without +
         let user = await User.findOne({
             $or: [
                 { phone: fullPhone },
                 { phone: cleanPhone },
-                { fullPhone: fullPhone }
+                { phone: rawDigits },
+                { fullPhone: fullPhone },
+                { fullPhone: fullPhone.replace('+', '') }
             ]
         });
         let isNewSignup = false;
+
+        const expectedCurrency = currency || (validCountryCode === '+91' ? 'INR' : (validation?.currency || 'USD'));
+        const expectedSymbol = symbol || (validCountryCode === '+91' ? '₹' : (validation?.symbol || '$'));
 
         if (!user) {
             isNewSignup = true;
@@ -485,7 +552,7 @@ const verifyOtp = async (req, res) => {
             const { REFERRAL_CONFIG, SYSTEM_RULES } = require('../services/sharedState');
             let initialBonus = 0;
             if (SYSTEM_RULES && SYSTEM_RULES.ENABLE_WELCOME_BONUS !== false) {
-                if (currency === 'USD') {
+                if (expectedCurrency === 'USD') {
                     initialBonus = 1.50; // $1.50 for USD users
                 } else {
                     initialBonus = REFERRAL_CONFIG.INITIAL_BONUS_AMOUNT || 108;
@@ -515,9 +582,9 @@ const verifyOtp = async (req, res) => {
                 phone: storedPhone,
                 fullPhone: fullPhone,
                 countryCode: validCountryCode,
-                country: country,
-                currency: currency,
-                currencySymbol: symbol,
+                country: country || validation?.country || 'IN',
+                currency: expectedCurrency,
+                currencySymbol: expectedSymbol,
                 role: cleanPhone === '9876543210' ? 'superadmin' : (cleanPhone === '8000000001' ? 'astrologer' : 'client'),
                 name: 'User ' + cleanPhone.slice(-4),
                 walletBalance: initialBonus,
@@ -528,16 +595,26 @@ const verifyOtp = async (req, res) => {
             user.referralCode = await generateUniqueReferralCode(user.name);
             await user.save();
         } else {
-            // Update currency / country if not present or changed
+            // Update currency / country if not present or if user logged in with specific country dialing code
             let needsSave = false;
-            if (!user.countryCode || user.countryCode !== validCountryCode) {
+            if (!user.countryCode || user.countryCode !== validCountryCode || 
+                !user.currency || (validCountryCode !== '+91' && user.currency === 'INR') || user.currency !== expectedCurrency ||
+                !user.currencySymbol || (validCountryCode !== '+91' && user.currencySymbol === '₹') || user.currencySymbol !== expectedSymbol ||
+                !user.fullPhone) {
                 user.countryCode = validCountryCode;
-                user.country = country;
-                user.currency = currency;
-                user.currencySymbol = symbol;
+                user.country = country || validation?.country || user.country;
+                user.currency = expectedCurrency;
+                user.currencySymbol = expectedSymbol;
                 user.fullPhone = fullPhone;
                 needsSave = true;
             }
+
+            // If an international user had an unadjusted INR welcome bonus of 108, normalize it to $1.50
+            if (expectedCurrency === 'USD' && user.walletBalance === 108) {
+                user.walletBalance = 1.50;
+                needsSave = true;
+            }
+
             if (needsSave) {
                 await user.save();
             }
@@ -559,9 +636,9 @@ const verifyOtp = async (req, res) => {
             phone: user.phone,
             fullPhone: user.fullPhone || fullPhone,
             countryCode: user.countryCode || validCountryCode,
-            country: user.country || country,
-            currency: user.currency || currency,
-            currencySymbol: user.currencySymbol || symbol,
+            country: user.country || country || 'IN',
+            currency: user.currency || expectedCurrency,
+            currencySymbol: user.currencySymbol || expectedSymbol,
             role: user.role,
             walletBalance: user.walletBalance,
             superWalletBalance: user.superWalletBalance || 0,
