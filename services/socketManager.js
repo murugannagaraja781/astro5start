@@ -41,7 +41,7 @@ const getFormattedAstrologers = async () => {
     })
     .lean();
 
-    const { convertInrToTarget } = require('../utils/currencyHelper');
+    const { convertInrToTarget, calculateForeignPrice, getCurrencySetting } = require('../utils/currencyHelper');
 
     return astros.map(a => {
         const isOnlineCalculated = !!(a.isOnline || a.isChatOnline || a.isAudioOnline || a.isVideoOnline);
@@ -51,11 +51,28 @@ const getFormattedAstrologers = async () => {
         const rawVideo = a.videoPrice || 30;
         const rawUnlimited = a.unlimitedPrice || 299;
 
-        const priceUsd = convertInrToTarget(rawPrice, 'USD');
-        const chatPriceUsd = convertInrToTarget(rawChat, 'USD');
-        const audioPriceUsd = convertInrToTarget(rawAudio, 'USD');
-        const videoPriceUsd = convertInrToTarget(rawVideo, 'USD');
-        const unlimitedPriceUsd = convertInrToTarget(rawUnlimited, 'USD');
+        const priceUsd = calculateForeignPrice(rawPrice, 'USD');
+        const chatPriceUsd = calculateForeignPrice(rawChat, 'USD');
+        const audioPriceUsd = calculateForeignPrice(rawAudio, 'USD');
+        const videoPriceUsd = calculateForeignPrice(rawVideo, 'USD');
+        const unlimitedPriceUsd = calculateForeignPrice(rawUnlimited, 'USD');
+
+        const rates = {
+            INR: { symbol: '₹', price: rawPrice, chatPrice: rawChat, audioPrice: rawAudio, videoPrice: rawVideo, unlimitedPrice: rawUnlimited }
+        };
+
+        const activeCurrencies = ['USD', 'SGD', 'MYR', 'LKR'];
+        for (const cur of activeCurrencies) {
+            const curSetting = getCurrencySetting(cur);
+            rates[cur] = {
+                symbol: curSetting.currencySymbol || '$',
+                price: calculateForeignPrice(rawPrice, cur),
+                chatPrice: calculateForeignPrice(rawChat, cur),
+                audioPrice: calculateForeignPrice(rawAudio, cur),
+                videoPrice: calculateForeignPrice(rawVideo, cur),
+                unlimitedPrice: calculateForeignPrice(rawUnlimited, cur)
+            };
+        }
 
         return {
             ...a,
@@ -65,10 +82,7 @@ const getFormattedAstrologers = async () => {
             audioPriceUsd,
             videoPriceUsd,
             unlimitedPriceUsd,
-            rates: {
-                INR: { symbol: '₹', price: rawPrice, chatPrice: rawChat, audioPrice: rawAudio, videoPrice: rawVideo, unlimitedPrice: rawUnlimited },
-                USD: { symbol: '$', price: priceUsd, chatPrice: chatPriceUsd, audioPrice: audioPriceUsd, videoPrice: videoPriceUsd, unlimitedPrice: unlimitedPriceUsd }
-            },
+            rates,
             isOnline: isOnlineCalculated, // Override DB field for consistency
             image: formatImageUrl(a.image, a.name),
             // Mobile app helper flags

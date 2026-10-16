@@ -325,16 +325,18 @@ async function tryStartBilling(sessionId, io) {
             let finalPrice = 10;
             let availableMinutes = 40;
 
+            let clientPrice = finalPrice;
+            const clientCurrency = (client?.currency || 'INR').toUpperCase();
+            const { calculateForeignPrice, getCurrencySetting } = require('../utils/currencyHelper');
+            const curSetting = getCurrencySetting(clientCurrency);
+
             if (session.type === 'unlimited') {
-                if (session.offerType === 'silver') finalPrice = 350;
-                else if (session.offerType === 'gold') finalPrice = 500;
-                else if (session.offerType === 'diamond') finalPrice = 700;
-                else finalPrice = 200; // normal
+                clientPrice = calculateForeignPrice(finalPrice, clientCurrency);
                 availableMinutes = session.unlimitedDuration || 15;
             } else {
-                finalPrice = (session.type === 'chat' ? astro?.chatPrice : (session.type === 'audio' ? astro?.audioPrice : (session.type === 'video' ? astro?.videoPrice : astro?.price))) || 10;
+                clientPrice = calculateForeignPrice(finalPrice, clientCurrency);
                 const balance = (client?.walletBalance || 0) + (client?.superWalletBalance || 0);
-                availableMinutes = Math.floor(balance / finalPrice);
+                availableMinutes = Math.floor(balance / (clientPrice > 0 ? clientPrice : 1));
             }
 
             const billingPayload = { 
@@ -342,7 +344,9 @@ async function tryStartBilling(sessionId, io) {
                 elapsedSeconds: activeSession.elapsedBillableSeconds || 0,
                 availableMinutes: availableMinutes,
                 clientBalance: (client?.walletBalance || 0) + (client?.superWalletBalance || 0),
-                ratePerMinute: finalPrice
+                ratePerMinute: clientPrice,
+                currency: clientCurrency,
+                currencySymbol: curSetting.currencySymbol || (clientCurrency === 'INR' ? '₹' : '$')
             };
 
             const broadcast = () => {

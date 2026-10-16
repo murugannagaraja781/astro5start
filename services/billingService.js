@@ -89,13 +89,12 @@ async function tickSessions(io) {
                 if (session.type === 'unlimited') {
                     remainingSeconds = 2400 - secondsElapsed;
                 } else {
-                    let effectivePrice = session.pricePerMin || 10;
-                    if (client.currency === 'USD') {
-                        const { convertInrToTarget } = require('../utils/currencyHelper');
-                        effectivePrice = convertInrToTarget(effectivePrice, 'USD');
-                    }
+                    const basePrice = session.pricePerMin || 10;
+                    const clientCurrency = (client.currency || 'INR').toUpperCase();
+                    const { calculateForeignPrice } = require('../utils/currencyHelper');
+                    const effectivePrice = calculateForeignPrice(basePrice, clientCurrency);
                     const totalBalance = (client.walletBalance || 0) + (client.superWalletBalance || 0);
-                    remainingSeconds = Math.floor((totalBalance / effectivePrice) * 60);
+                    remainingSeconds = Math.floor((totalBalance / (effectivePrice > 0 ? effectivePrice : 1)) * 60);
                 }
 
                 const timerPayload = {
@@ -173,6 +172,12 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
             else pricePerMin = parseInt(astro.price) || 10;
         }
 
+        const clientCurrency = (client.currency || session.clientCurrency || 'INR').toUpperCase();
+        const { calculateForeignPrice, calculateEffectiveInr } = require('../utils/currencyHelper');
+
+        const clientDeductRate = calculateForeignPrice(pricePerMin, clientCurrency);
+        const effectiveInrPerMin = calculateEffectiveInr(pricePerMin, clientCurrency);
+
         let totalToClientDeduct = 0;
         let adminAmount = 0;
         let astroAmount = 0;
@@ -180,17 +185,13 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
 
         if (isUnlimited) {
             if (type === 'client_full_charge' && minuteIndex === 1) {
-                if (client.currency === 'USD') {
-                    const { convertInrToTarget } = require('../utils/currencyHelper');
-                    totalToClientDeduct = convertInrToTarget(pricePerMin, 'USD');
-                } else {
-                    totalToClientDeduct = pricePerMin;
-                }
+                totalToClientDeduct = clientDeductRate;
                 adminAmount = totalToClientDeduct;
                 reason = `unlimited_${session.offerType || 'normal'}_full_upfront`;
             } else if (type === 'astro_share_payout') {
                 // RULE: 30% to Astrologer for all call/chat in UNLIMITED.
-                const totalPackagePrice = pricePerMin;
+                // Payout calculated on Effective INR so international multiplier rewards astrologer proportionately
+                const totalPackagePrice = effectiveInrPerMin;
                 const totalDuration = session.unlimitedDuration || 15;
                 const virtualPricePerMin = totalPackagePrice / totalDuration;
                 
@@ -204,12 +205,7 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
         } else {
             // STANDARD LOGIC
             if (type === 'client_full_charge') {
-                if (client.currency === 'USD') {
-                    const { convertInrToTarget } = require('../utils/currencyHelper');
-                    totalToClientDeduct = convertInrToTarget(pricePerMin, 'USD');
-                } else {
-                    totalToClientDeduct = pricePerMin;
-                }
+                totalToClientDeduct = clientDeductRate;
                 adminAmount = totalToClientDeduct;
                 reason = (minuteIndex === 1) ? 'first_minute_admin' : 'minute_start_admin';
             } else if (type === 'astro_share_payout') {
@@ -218,7 +214,8 @@ async function processBillingCharge(sessionId, minuteIndex, type, io) {
                 let rate = SLAB_RATES[currentSlab] || 0.30;
                 if (rate > 1) rate = rate / 100;
 
-                astroAmount = pricePerMin * rate;
+                // Step C: Commission always calculated on Total Effective INR
+                astroAmount = effectiveInrPerMin * rate;
                 adminAmount = -astroAmount;
                 reason = `slab_${currentSlab}_payout`;
             } else {

@@ -6,7 +6,7 @@ const COUNTRY_CONFIG = {
     '+91': { country: 'IN', currency: 'INR', symbol: '₹', name: 'India', flag: '🇮🇳', defaultRate: 1 },
     '+1': { country: 'US', currency: 'USD', symbol: '$', name: 'USA / Canada', flag: '🇺🇸', defaultRate: 85 },
     '+44': { country: 'GB', currency: 'GBP', symbol: '£', name: 'United Kingdom', flag: '🇬🇧', defaultRate: 110 },
-    '+65': { country: 'SG', currency: 'SGD', symbol: 'S$', name: 'Singapore', flag: '🇸🇬', defaultRate: 64 },
+    '+65': { country: 'SG', currency: 'SGD', symbol: 'S$', name: 'Singapore', flag: '🇸🇬', defaultRate: 65 },
     '+60': { country: 'MY', currency: 'MYR', symbol: 'RM', name: 'Malaysia', flag: '🇲🇾', defaultRate: 19 },
     '+971': { country: 'AE', currency: 'AED', symbol: 'AED', name: 'UAE', flag: '🇦🇪', defaultRate: 23 },
     '+61': { country: 'AU', currency: 'AUD', symbol: 'A$', name: 'Australia', flag: '🇦🇺', defaultRate: 55 },
@@ -24,11 +24,19 @@ const DEFAULT_INTERNATIONAL_CONFIG = {
     defaultRate: 85
 };
 
+const DEFAULT_CURRENCY_SETTINGS = {
+    INR: { currencyCode: 'INR', currencySymbol: '₹', inrExchangeRate: 1.0, priceMultiplier: 1.0, isActive: true },
+    USD: { currencyCode: 'USD', currencySymbol: '$', inrExchangeRate: 85.0, priceMultiplier: 2.0, isActive: true },
+    SGD: { currencyCode: 'SGD', currencySymbol: 'S$', inrExchangeRate: 65.0, priceMultiplier: 2.0, isActive: true },
+    MYR: { currencyCode: 'MYR', currencySymbol: 'RM', inrExchangeRate: 19.0, priceMultiplier: 2.0, isActive: true },
+    LKR: { currencyCode: 'LKR', currencySymbol: 'Rs', inrExchangeRate: 0.28, priceMultiplier: 2.0, isActive: true }
+};
+
 const DEFAULT_RATES = {
     INR: 1,
     USD: 85,
     GBP: 110,
-    SGD: 64,
+    SGD: 65,
     MYR: 19,
     AED: 23,
     AUD: 55,
@@ -37,13 +45,96 @@ const DEFAULT_RATES = {
     CAD: 62.5
 };
 
+// In-memory cache for ultra-fast lookup during active billing calls & socket broadcasts
+const CURRENCY_SETTINGS_CACHE = new Map();
+
+// Initialize in-memory cache with defaults
+for (const [code, val] of Object.entries(DEFAULT_CURRENCY_SETTINGS)) {
+    CURRENCY_SETTINGS_CACHE.set(code, { ...val });
+}
+
 /**
- * Returns currency info for a given country code (e.g. '+1', '+91', '+44')
+ * Initializes and seeds CurrencySetting model in MongoDB if not already present
+ */
+async function initCurrencySettings() {
+    try {
+        const CurrencySetting = require('../models/CurrencySetting');
+        const count = await CurrencySetting.countDocuments({});
+        if (count === 0) {
+            console.log('[CurrencyHelper] Seeding default currency settings...');
+            for (const item of Object.values(DEFAULT_CURRENCY_SETTINGS)) {
+                await CurrencySetting.findOneAndUpdate(
+                    { currencyCode: item.currencyCode },
+                    { $set: item },
+                    { upsert: true, new: true }
+                );
+            }
+        }
+        await refreshCurrencySettings();
+    } catch (e) {
+        console.error('[CurrencyHelper] Error initializing currency settings:', e.message);
+    }
+}
+
+/**
+ * Reloads all CurrencySetting records from MongoDB into memory cache
+ */
+async function refreshCurrencySettings() {
+    try {
+        const CurrencySetting = require('../models/CurrencySetting');
+        const settings = await CurrencySetting.find({}).lean();
+        if (settings && settings.length > 0) {
+            for (const s of settings) {
+                CURRENCY_SETTINGS_CACHE.set(s.currencyCode.toUpperCase(), {
+                    currencyCode: s.currencyCode.toUpperCase(),
+                    currencySymbol: s.currencySymbol,
+                    inrExchangeRate: Number(s.inrExchangeRate) || 1.0,
+                    priceMultiplier: Number(s.priceMultiplier) !== undefined ? Number(s.priceMultiplier) : 2.0,
+                    isActive: s.isActive !== false
+                });
+            }
+        }
+    } catch (e) {
+        console.error('[CurrencyHelper] Error refreshing currency settings cache:', e.message);
+    }
+}
+
+/**
+ * Gets currency settings with inrExchangeRate and priceMultiplier
+ */
+function getCurrencySetting(currencyCode) {
+    if (!currencyCode) return CURRENCY_SETTINGS_CACHE.get('INR') || DEFAULT_CURRENCY_SETTINGS.INR;
+    const code = String(currencyCode).toUpperCase().trim();
+    if (CURRENCY_SETTINGS_CACHE.has(code)) {
+        return CURRENCY_SETTINGS_CACHE.get(code);
+    }
+    if (DEFAULT_CURRENCY_SETTINGS[code]) {
+        return DEFAULT_CURRENCY_SETTINGS[code];
+    }
+    // Fallback for foreign currencies not explicitly listed (e.g. GBP, AUD, etc.)
+    return {
+        currencyCode: code,
+        currencySymbol: DEFAULT_INTERNATIONAL_CONFIG.symbol,
+        inrExchangeRate: DEFAULT_RATES[code] || 85.0,
+        priceMultiplier: 2.0,
+        isActive: true
+    };
+}
+
+/**
+ * Returns currency info for a given country code (e.g. '+1', '+91', '+44', '+65', '+60', '+94')
  */
 function getCurrencyInfoByCode(countryCode) {
     if (!countryCode) return COUNTRY_CONFIG['+91'];
     const normalized = countryCode.startsWith('+') ? countryCode : `+${countryCode}`;
-    return COUNTRY_CONFIG[normalized] || DEFAULT_INTERNATIONAL_CONFIG;
+    const base = COUNTRY_CONFIG[normalized] || DEFAULT_INTERNATIONAL_CONFIG;
+    const setting = getCurrencySetting(base.currency);
+    return {
+        ...base,
+        symbol: setting.currencySymbol || base.symbol,
+        defaultRate: setting.inrExchangeRate || base.defaultRate,
+        priceMultiplier: setting.priceMultiplier || 2.0
+    };
 }
 
 /**
@@ -192,29 +283,77 @@ function validatePhoneNumber(rawPhone, rawCountryCode = null, rawIsoCode = null)
 }
 
 /**
- * Converts INR rate to User's target currency
- * e.g. 20 INR / 85 = $0.24
+ * Calculates foreign price per minute for a given base INR rate
+ * Formula:
+ * Effective INR = baseInrPrice * price_multiplier
+ * Foreign Rate = round(Effective INR / inr_exchange_rate, 2)
  */
-function convertInrToTarget(inrAmount, targetCurrency = 'INR', exchangeRate = null) {
+function calculateForeignPrice(inrAmount, targetCurrency = 'INR', exchangeRate = null, multiplierOverride = null) {
     const amt = parseFloat(inrAmount) || 0;
     if (targetCurrency === 'INR' || amt <= 0) return amt;
 
-    const rate = exchangeRate || DEFAULT_RATES[targetCurrency] || DEFAULT_RATES.USD;
+    const setting = getCurrencySetting(targetCurrency);
+    const multiplier = (multiplierOverride !== null && multiplierOverride !== undefined) 
+        ? Number(multiplierOverride) 
+        : (setting.priceMultiplier !== undefined ? Number(setting.priceMultiplier) : 2.0);
+    const rate = exchangeRate || setting.inrExchangeRate || DEFAULT_RATES[targetCurrency] || 85.0;
+
+    const effectiveInr = amt * multiplier;
+    const foreignRate = effectiveInr / rate;
+
+    return Math.round(foreignRate * 100) / 100;
+}
+
+/**
+ * Calculates Effective INR based on price multiplier
+ * Formula: Effective INR = inrAmount * price_multiplier
+ */
+function calculateEffectiveInr(inrAmount, targetCurrency = 'INR', multiplierOverride = null) {
+    const amt = parseFloat(inrAmount) || 0;
+    if (targetCurrency === 'INR' || amt <= 0) return amt;
+
+    const setting = getCurrencySetting(targetCurrency);
+    const multiplier = (multiplierOverride !== null && multiplierOverride !== undefined) 
+        ? Number(multiplierOverride) 
+        : (setting.priceMultiplier !== undefined ? Number(setting.priceMultiplier) : 2.0);
+
+    return Math.round(amt * multiplier * 100) / 100;
+}
+
+/**
+ * Converts INR rate to User's target currency.
+ * By default (applyMultiplier = true), uses the official price multiplier formula:
+ * (inrAmount * price_multiplier) / inr_exchange_rate
+ * If applyMultiplier = false, converts directly without multiplier:
+ * inrAmount / inr_exchange_rate
+ */
+function convertInrToTarget(inrAmount, targetCurrency = 'INR', exchangeRate = null, applyMultiplier = true) {
+    const amt = parseFloat(inrAmount) || 0;
+    if (targetCurrency === 'INR' || amt <= 0) return amt;
+
+    if (applyMultiplier) {
+        return calculateForeignPrice(amt, targetCurrency, exchangeRate);
+    }
+
+    const setting = getCurrencySetting(targetCurrency);
+    const rate = exchangeRate || setting.inrExchangeRate || DEFAULT_RATES[targetCurrency] || 85.0;
     const converted = amt / rate;
 
-    // Return with 2 decimal places for non-INR currencies
     return Math.round(converted * 100) / 100;
 }
 
 /**
- * Converts target currency amount to INR
+ * Converts target currency amount to INR (e.g. for Wallet Recharges)
+ * Requirement Step D: Recharge uses direct exchange rate without price_multiplier.
+ * Formula: targetAmount * inr_exchange_rate
  * e.g. $10 * 85 = 850 INR
  */
 function convertTargetToInr(targetAmount, sourceCurrency = 'USD', exchangeRate = null) {
     const amt = parseFloat(targetAmount) || 0;
     if (sourceCurrency === 'INR' || amt <= 0) return amt;
 
-    const rate = exchangeRate || DEFAULT_RATES[sourceCurrency] || DEFAULT_RATES.USD;
+    const setting = getCurrencySetting(sourceCurrency);
+    const rate = exchangeRate || setting.inrExchangeRate || DEFAULT_RATES[sourceCurrency] || 85.0;
     return Math.round(amt * rate * 100) / 100;
 }
 
@@ -224,18 +363,20 @@ function convertTargetToInr(targetAmount, sourceCurrency = 'USD', exchangeRate =
  */
 function formatPrice(amount, currency = 'INR') {
     const amt = parseFloat(amount) || 0;
-    const cfg = Object.values(COUNTRY_CONFIG).find(c => c.currency === currency) || DEFAULT_INTERNATIONAL_CONFIG;
+    const setting = getCurrencySetting(currency);
+    const sym = setting.currencySymbol || (currency === 'INR' ? '₹' : '$');
     if (currency === 'INR') {
-        return `${cfg.symbol}${Math.round(amt)}`;
+        return `${sym}${Math.round(amt)}`;
     }
-    return `${cfg.symbol}${amt.toFixed(2)}`;
+    return `${sym}${amt.toFixed(2)}`;
 }
 
 /**
  * Returns pre-configured recharge packages for the given currency
  */
 function getRechargePackages(currency = 'INR') {
-    if (currency === 'USD') {
+    const cur = String(currency).toUpperCase();
+    if (cur === 'USD') {
         return [
             { id: 'usd_2', amount: 2, talktime: 2, bonus: 0 },
             { id: 'usd_5', amount: 5, talktime: 5, bonus: 0 },
@@ -243,6 +384,30 @@ function getRechargePackages(currency = 'INR') {
             { id: 'usd_25', amount: 25, talktime: 28, bonus: 3, tag: 'Best Value' },
             { id: 'usd_50', amount: 50, talktime: 60, bonus: 10 },
             { id: 'usd_100', amount: 100, talktime: 125, bonus: 25 }
+        ];
+    } else if (cur === 'SGD') {
+        return [
+            { id: 'sgd_5', amount: 5, talktime: 5, bonus: 0 },
+            { id: 'sgd_10', amount: 10, talktime: 10, bonus: 0 },
+            { id: 'sgd_20', amount: 20, talktime: 22, bonus: 2, tag: 'Popular' },
+            { id: 'sgd_50', amount: 50, talktime: 58, bonus: 8, tag: 'Best Value' },
+            { id: 'sgd_100', amount: 100, talktime: 120, bonus: 20 }
+        ];
+    } else if (cur === 'MYR') {
+        return [
+            { id: 'myr_10', amount: 10, talktime: 10, bonus: 0 },
+            { id: 'myr_20', amount: 20, talktime: 20, bonus: 0 },
+            { id: 'myr_50', amount: 50, talktime: 55, bonus: 5, tag: 'Popular' },
+            { id: 'myr_100', amount: 100, talktime: 115, bonus: 15, tag: 'Best Value' },
+            { id: 'myr_200', amount: 200, talktime: 240, bonus: 40 }
+        ];
+    } else if (cur === 'LKR') {
+        return [
+            { id: 'lkr_500', amount: 500, talktime: 500, bonus: 0 },
+            { id: 'lkr_1000', amount: 1000, talktime: 1000, bonus: 0 },
+            { id: 'lkr_2500', amount: 2500, talktime: 2750, bonus: 250, tag: 'Popular' },
+            { id: 'lkr_5000', amount: 5000, talktime: 5750, bonus: 750, tag: 'Best Value' },
+            { id: 'lkr_10000', amount: 10000, talktime: 12000, bonus: 2000 }
         ];
     }
 
@@ -260,7 +425,14 @@ function getRechargePackages(currency = 'INR') {
 module.exports = {
     COUNTRY_CONFIG,
     DEFAULT_RATES,
+    DEFAULT_CURRENCY_SETTINGS,
     DEFAULT_INTERNATIONAL_CONFIG,
+    CURRENCY_SETTINGS_CACHE,
+    initCurrencySettings,
+    refreshCurrencySettings,
+    getCurrencySetting,
+    calculateForeignPrice,
+    calculateEffectiveInr,
     getCurrencyInfoByCode,
     detectCountryFromPhone,
     normalizePhoneNumber,

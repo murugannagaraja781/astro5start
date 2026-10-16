@@ -26,6 +26,8 @@ router.get('/chat/history/:sessionId', userController.getChatHistory);
 router.get('/session/status/:sessionId', userController.getSessionStatus);
 router.post('/referral/apply', userController.applyReferral);
 router.get('/config/currency', userController.getCurrencyConfig);
+const currencySettingController = require('../controllers/currencySettingController');
+router.get('/config/currency-settings', currencySettingController.getPublicCurrencyConfig);
 const countryController = require('../controllers/countryController');
 router.get('/countries/enabled', countryController.getEnabledCountries);
 

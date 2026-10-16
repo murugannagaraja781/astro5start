@@ -130,13 +130,14 @@ fun AstrologerProfileScreen(
     val context = LocalContext.current
     val tokenManager = remember { com.astro5star.app.data.local.TokenManager(context) }
     val currentUser = remember { tokenManager.getUserSession() }
-    val isUsdUser = tokenManager.isUsdUser()
+    val userCurrency = tokenManager.getUserCurrency()
+    val isForeignUser = userCurrency != "INR"
 
-    val mainPriceLabel = if (isUsdUser) "${CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(price.toDouble(), "USD"), "USD")}/min" else "₹$price/min"
-    val chatPriceLabel = if (isUsdUser) "${CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(chatPrice.toDouble(), "USD"), "USD")}/m" else "₹$chatPrice/m"
-    val audioPriceLabel = if (isUsdUser) "${CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(audioPrice.toDouble(), "USD"), "USD")}/m" else "₹$audioPrice/m"
-    val videoPriceLabel = if (isUsdUser) "${CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(videoPrice.toDouble(), "USD"), "USD")}/m" else "₹$videoPrice/m"
-    val unlimitedPriceLabel = if (isUsdUser) CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(unlimitedPrice.toDouble(), "USD"), "USD") else "₹$unlimitedPrice"
+    val mainPriceLabel = if (isForeignUser) "${CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(price.toDouble(), userCurrency), userCurrency)}/min" else "₹$price/min"
+    val chatPriceLabel = if (isForeignUser) "${CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(chatPrice.toDouble(), userCurrency), userCurrency)}/m" else "₹$chatPrice/m"
+    val audioPriceLabel = if (isForeignUser) "${CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(audioPrice.toDouble(), userCurrency), userCurrency)}/m" else "₹$audioPrice/m"
+    val videoPriceLabel = if (isForeignUser) "${CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(videoPrice.toDouble(), userCurrency), userCurrency)}/m" else "₹$videoPrice/m"
+    val unlimitedPriceLabel = if (isForeignUser) CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(unlimitedPrice.toDouble(), userCurrency), userCurrency) else "₹$unlimitedPrice"
 
     val scope = rememberCoroutineScope()
 
@@ -198,14 +199,14 @@ fun AstrologerProfileScreen(
             return
         }
 
-        val isUsd = tokenManager.isUsdUser()
         val currency = tokenManager.getUserCurrency()
+        val isForeign = currency != "INR"
 
-        val displayPrice = if (isUsd) CurrencyHelper.convertInrToTarget(price.toDouble(), "USD") else price.toDouble()
-        val displayChatPrice = if (isUsd) CurrencyHelper.convertInrToTarget(chatPrice.toDouble(), "USD") else chatPrice.toDouble()
-        val displayAudioPrice = if (isUsd) CurrencyHelper.convertInrToTarget(audioPrice.toDouble(), "USD") else audioPrice.toDouble()
-        val displayVideoPrice = if (isUsd) CurrencyHelper.convertInrToTarget(videoPrice.toDouble(), "USD") else videoPrice.toDouble()
-        val displayUnlimitedPrice = if (isUsd) CurrencyHelper.convertInrToTarget(unlimitedPrice.toDouble(), "USD") else unlimitedPrice.toDouble()
+        val displayPrice = if (isForeign) CurrencyHelper.convertInrToTarget(price.toDouble(), currency) else price.toDouble()
+        val displayChatPrice = if (isForeign) CurrencyHelper.convertInrToTarget(chatPrice.toDouble(), currency) else chatPrice.toDouble()
+        val displayAudioPrice = if (isForeign) CurrencyHelper.convertInrToTarget(audioPrice.toDouble(), currency) else audioPrice.toDouble()
+        val displayVideoPrice = if (isForeign) CurrencyHelper.convertInrToTarget(videoPrice.toDouble(), currency) else videoPrice.toDouble()
+        val displayUnlimitedPrice = if (isForeign) CurrencyHelper.convertInrToTarget(unlimitedPrice.toDouble(), currency) else unlimitedPrice.toDouble()
 
         // --- BALANCE CHECK BEFORE PERMISSIONS ---
         val totalBal = walletBalance + superBalance

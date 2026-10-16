@@ -1183,8 +1183,8 @@ fun HomeTopBar(
 
                 val context = LocalContext.current
                 val tokenManager = remember { TokenManager(context) }
-                val isUsdUser = tokenManager.isUsdUser()
                 val userCurrency = tokenManager.getUserCurrency()
+                val isForeignUser = userCurrency != "INR"
 
                 Row(
                     modifier = Modifier.clickable { onWalletClick() },
@@ -1197,7 +1197,7 @@ fun HomeTopBar(
                             border = BorderStroke(1.dp, Color(0xFFFF4081)),
                             modifier = Modifier.padding(end = 4.dp)
                         ) {
-                            val bonusFormatted = if (isUsdUser) "Bonus: " + CurrencyHelper.formatPrice(superBalance, userCurrency) else "Bonus: ₹${"%.1f".format(superBalance)}"
+                            val bonusFormatted = if (isForeignUser) "Bonus: " + CurrencyHelper.formatPrice(superBalance, userCurrency) else "Bonus: ₹${"%.1f".format(superBalance)}"
                             Text(
                                 text = bonusFormatted,
                                 color = Color(0xFFFF4081),
@@ -1214,7 +1214,7 @@ fun HomeTopBar(
                         modifier = Modifier.padding(start = 4.dp).size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    val mainFormatted = if (isUsdUser) CurrencyHelper.formatPrice(balance, userCurrency) else "₹${balance.toInt()}"
+                    val mainFormatted = if (isForeignUser) CurrencyHelper.formatPrice(balance, userCurrency) else "₹${balance.toInt()}"
                     Text(
                         text = mainFormatted,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
@@ -1471,13 +1471,14 @@ fun AstrologerCard(
                             )
                         }
                         Spacer(modifier = Modifier.width(4.dp))
-                        val isCardUsd = tokenManager.isUsdUser()
+                        val userCur = tokenManager.getUserCurrency()
+                        val isCardForeign = userCur != "INR"
                         val dp = when(selectedTab) { 1->astro.chatPrice; 2->astro.videoPrice; 3->astro.audioPrice; else->astro.chatPrice }
-                        val displayRate = if (isCardUsd) CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(dp.toDouble(), "USD"), "USD") else "₹ $dp"
+                        val displayRate = if (isCardForeign) CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(dp.toDouble(), userCur), userCur) else "₹ $dp"
                         Text(displayRate, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp), color = Color.Red)
                         Spacer(modifier = Modifier.width(4.dp))
                         if (astro.price > dp) {
-                            val origRate = if (isCardUsd) "${CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(astro.price.toDouble(), "USD"), "USD")}/Min" else "${astro.price}/Min"
+                            val origRate = if (isCardForeign) "${CurrencyHelper.formatPrice(CurrencyHelper.convertInrToTarget(astro.price.toDouble(), userCur), userCur)}/Min" else "${astro.price}/Min"
                             Text(
                                 text = origRate,
                                 style = MaterialTheme.typography.labelSmall.copy(

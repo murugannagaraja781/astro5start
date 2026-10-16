@@ -156,6 +156,12 @@
                 <span id="side-country-badge" class="lg:ml-auto bg-teal-500/20 text-teal-300 text-[0.6rem] font-bold px-2 py-0.5 rounded-full border border-teal-500/30">10/10</span>
             </div>
             <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
+                data-tab="currency-settings" onclick="showTab('currency-settings')" id="menu-currency-settings">
+                <i class="fas fa-coins text-lg lg:w-5 text-center text-amber-400 group-hover:text-white"></i>
+                <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">Currency & Multiplier</span>
+                <span id="side-currency-badge" class="lg:ml-auto bg-amber-500/20 text-amber-300 text-[0.6rem] font-bold px-2 py-0.5 rounded-full border border-amber-500/30">5 Rates</span>
+            </div>
+            <div class="nav-item group flex flex-col lg:flex-row items-center gap-1 lg:gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-white/5 text-white/60 hover:text-white min-w-[80px]"
                 data-tab="env-config" onclick="showTab('env-config')" id="menu-env-config">
                 <i class="fas fa-sliders text-lg lg:w-5 text-center text-emerald-400 group-hover:text-white"></i>
                 <span class="text-[0.6rem] lg:text-sm font-semibold whitespace-nowrap">.ENV Config</span>
@@ -2249,7 +2255,161 @@
                 </div>
             </div>
         </section>
+
+        <!-- Currency & International Multipliers Tab -->
+        <section id="tab-currency-settings" class="tab-content hidden animate-up space-y-6">
+            <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <button onclick="showTab('dashboard')"
+                        class="lg:hidden w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:text-brand-green shadow-sm">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h1 class="text-2xl lg:text-3xl font-extrabold tracking-tight text-deep-green">Currency & Multiplier Management</h1>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-200">
+                                <i class="fas fa-bolt text-amber-600"></i> Real-Time Multiplier System
+                            </span>
+                        </div>
+                        <p class="text-slate-500 font-medium text-xs lg:text-sm mt-0.5">
+                            சர்வதேச கரன்சி மாற்று மதிப்பு மற்றும் விலை பெருக்கல் காரணி மேலாண்மை (USD, SGD, MYR, LKR)
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="fetchAdminCurrencySettings()" class="px-4 py-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:shadow">
+                        <i class="fas fa-sync-alt"></i> Refresh Rates
+                    </button>
+                </div>
+            </header>
+
+            <!-- Technical Specification Formula Card -->
+            <div class="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-emerald-500/10 border border-amber-200/60 rounded-3xl p-6 shadow-sm">
+                <div class="flex items-center gap-2 text-amber-900 font-extrabold text-sm uppercase tracking-wide mb-3">
+                    <i class="fas fa-calculator text-amber-600"></i> Billing & Commission Split Rules (கட்டணக் கணக்கீட்டு சூத்திரம்)
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white/90 backdrop-blur rounded-2xl p-4 border border-amber-100 shadow-sm">
+                        <div class="text-[0.65rem] font-black text-slate-400 uppercase tracking-wider">Step 1: Effective INR</div>
+                        <div class="text-xs font-black text-slate-900 mt-1">Effective INR = Base INR × Multiplier</div>
+                        <p class="text-[11px] text-slate-500 mt-1">₹100/min × 2.0x = <span class="font-bold text-emerald-600">₹200/min</span></p>
+                    </div>
+                    <div class="bg-white/90 backdrop-blur rounded-2xl p-4 border border-amber-100 shadow-sm">
+                        <div class="text-[0.65rem] font-black text-slate-400 uppercase tracking-wider">Step 2: Foreign UI Display Rate</div>
+                        <div class="text-xs font-black text-slate-900 mt-1">Foreign Rate = Effective INR ÷ Exchange Rate</div>
+                        <p class="text-[11px] text-slate-500 mt-1">₹200 ÷ 85 = <span class="font-bold text-amber-600">$2.35/min</span> (USD)</p>
+                    </div>
+                    <div class="bg-white/90 backdrop-blur rounded-2xl p-4 border border-amber-100 shadow-sm">
+                        <div class="text-[0.65rem] font-black text-slate-400 uppercase tracking-wider">Step 3: Astrologer Commission Split</div>
+                        <div class="text-xs font-black text-slate-900 mt-1">Astro Payout = Effective INR × Slab Rate</div>
+                        <p class="text-[11px] text-slate-500 mt-1">₹200 × 50% = <span class="font-bold text-teal-600">₹100 to Astrologer</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Currency Settings Table -->
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-premium overflow-hidden">
+                <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-extrabold text-deep-green">Supported Currencies & Multipliers</h2>
+                        <p class="text-xs text-slate-500 font-medium">Click Edit to change exchange rates or price multipliers. Updates immediately on mobile & web.</p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-[0.7rem] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                                <th class="p-4">Currency</th>
+                                <th class="p-4">Symbol</th>
+                                <th class="p-4">Exchange Rate (1 Unit = INR)</th>
+                                <th class="p-4">Price Multiplier (காரணி)</th>
+                                <th class="p-4">Sample Rate (₹100 Astro)</th>
+                                <th class="p-4">Status</th>
+                                <th class="p-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="currency-table-body" class="divide-y divide-slate-50 text-xs text-slate-700 font-medium">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
     </main>
+
+    <!-- Edit Currency Setting Modal -->
+    <div id="modal-edit-currency" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 transition-all duration-300 hidden">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 border border-slate-100">
+            <header class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-md">
+                        <i class="fas fa-coins text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Edit Currency & Multiplier</h3>
+                        <p id="edit-currency-subtitle" class="text-[11px] text-slate-500">Update international pricing parameters</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('modal-edit-currency')" class="w-8 h-8 rounded-lg bg-white text-slate-400 hover:text-red-500 flex items-center justify-center text-xl shadow-sm border border-slate-200">&times;</button>
+            </header>
+
+            <form onsubmit="handleCurrencyFormSubmit(event)" class="p-6 space-y-4">
+                <input type="hidden" id="edit-currency-code">
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Currency Code</label>
+                        <input type="text" id="edit-currency-code-display" readonly
+                            class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-slate-700 outline-none cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Currency Symbol</label>
+                        <input type="text" id="edit-currency-symbol" required oninput="updateCurrencyLivePreview()"
+                            class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Exchange Rate (1 Unit = ₹ INR)</label>
+                        <input type="number" step="0.0001" min="0.0001" id="edit-currency-rate" required oninput="updateCurrencyLivePreview()"
+                            class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none">
+                        <span class="text-[10px] text-slate-400 mt-0.5 block">e.g. USD=85, SGD=65, MYR=19, LKR=0.28</span>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Price Multiplier (காரணி)</label>
+                        <input type="number" step="0.01" min="0.5" max="10.0" id="edit-currency-multiplier" required oninput="updateCurrencyLivePreview()"
+                            class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none">
+                        <span class="text-[10px] text-slate-400 mt-0.5 block">Default: 2.00x (INR is fixed at 1.00x)</span>
+                    </div>
+                </div>
+
+                <!-- Live Preview Calculation Box -->
+                <div class="bg-amber-50/70 border border-amber-200/70 rounded-2xl p-4 mt-2">
+                    <div class="text-[11px] font-extrabold text-amber-900 uppercase flex items-center gap-1.5 mb-1.5">
+                        <i class="fas fa-eye text-amber-600"></i> Live Calculation Preview (Base ₹100/min Astro)
+                    </div>
+                    <div class="flex items-center justify-between text-xs font-semibold text-slate-700">
+                        <span>Effective INR: <b id="preview-effective-inr" class="text-emerald-700">₹200/min</b></span>
+                        <span>Client Displays: <b id="preview-foreign-rate" class="text-amber-800 font-extrabold text-sm">$2.35/min</b></span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 pt-2">
+                    <input type="checkbox" id="edit-currency-active" class="w-4 h-4 text-emerald-600 rounded">
+                    <label for="edit-currency-active" class="text-xs font-bold text-slate-700 cursor-pointer">Active and enabled for international clients</label>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('modal-edit-currency')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" id="btn-save-currency" class="px-5 py-2 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-600 text-white shadow-md transition-all flex items-center gap-2">
+                        <i class="fas fa-check"></i> Save Currency Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Corrected Fixed-Footer Compact Modal -->
     <!-- Ultra-Compact 5-Column Micro-UI Modal -->
@@ -3312,6 +3472,7 @@
             if (id === 'astro-wallets') renderAstroWallets();
             if (id === 'env-config') loadEnvConfig();
             if (id === 'country-management') fetchAdminCountries(1);
+            if (id === 'currency-settings') fetchAdminCurrencySettings();
             if (id === 'live-calls') {
                 fetchLiveCalls();
             } else {
@@ -7759,9 +7920,178 @@
             }
         }
 
-        // On document load, also fetch country stats for the sidebar badge
+        // ==========================================
+        // Currency & Multiplier Settings Management
+        // ==========================================
+        let adminCurrencySettingsCache = [];
+
+        async function fetchAdminCurrencySettings() {
+            try {
+                const res = await fetch('/api/admin/currency-settings', {
+                    headers: { 'adminKey': ADMIN_SECRET_KEY }
+                });
+                const data = await res.json();
+                if (data.ok && Array.isArray(data.settings)) {
+                    adminCurrencySettingsCache = data.settings;
+                    renderCurrencyTable(data.settings);
+                    const activeCount = data.settings.filter(s => s.isActive !== false).length;
+                    const badge = document.getElementById('side-currency-badge');
+                    if (badge) badge.innerText = `${activeCount} Rates`;
+                } else {
+                    showToast(data.error || 'Failed to fetch currency settings', 'error');
+                }
+            } catch (err) {
+                console.error('[CurrencyAdmin] Error fetching settings:', err);
+                showToast('Failed to load currency settings', 'error');
+            }
+        }
+
+        function renderCurrencyTable(settings) {
+            const tbody = document.getElementById('currency-table-body');
+            if (!tbody) return;
+
+            const flags = {
+                INR: '🇮🇳 India',
+                USD: '🇺🇸 United States / Canada',
+                SGD: '🇸🇬 Singapore',
+                MYR: '🇲🇾 Malaysia',
+                LKR: '🇱🇰 Sri Lanka'
+            };
+
+            tbody.innerHTML = settings.map(s => {
+                const isBase = s.currencyCode === 'INR';
+                const flagName = flags[s.currencyCode] || s.currencyCode;
+                const statusBadge = s.isActive !== false
+                    ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active</span>'
+                    : '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Inactive</span>';
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="p-4">
+                            <div class="font-extrabold text-slate-900">${s.currencyCode}</div>
+                            <div class="text-[11px] text-slate-500">${flagName}</div>
+                        </td>
+                        <td class="p-4 font-black text-slate-800 text-sm">
+                            ${s.currencySymbol}
+                        </td>
+                        <td class="p-4">
+                            <div class="font-bold text-slate-800">${s.inrExchangeRate} INR</div>
+                            <div class="text-[10px] text-slate-400">1 ${s.currencyCode} = ₹${s.inrExchangeRate}</div>
+                        </td>
+                        <td class="p-4">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-black ${isBase ? 'bg-slate-100 text-slate-600' : 'bg-amber-100 text-amber-900 border border-amber-200'}">
+                                ${Number(s.priceMultiplier).toFixed(2)}x
+                            </span>
+                        </td>
+                        <td class="p-4">
+                            <div class="font-black text-emerald-700 text-sm">${s.previewFormatted || '-'}</div>
+                            <div class="text-[10px] text-slate-400">Effective INR: ₹${s.effectiveInr || 100}</div>
+                        </td>
+                        <td class="p-4">
+                            ${statusBadge}
+                        </td>
+                        <td class="p-4 text-right">
+                            <button onclick="openEditCurrencyModal('${s.currencyCode}')"
+                                class="px-3.5 py-1.5 bg-white border border-slate-200 hover:border-amber-400 hover:bg-amber-50 text-slate-700 hover:text-amber-900 rounded-xl text-xs font-bold transition-all shadow-sm">
+                                <i class="fas fa-pencil-alt text-amber-500 mr-1"></i> Edit
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openEditCurrencyModal(code) {
+            const item = adminCurrencySettingsCache.find(s => s.currencyCode === code);
+            if (!item) return;
+
+            document.getElementById('edit-currency-code').value = item.currencyCode;
+            document.getElementById('edit-currency-code-display').value = item.currencyCode;
+            document.getElementById('edit-currency-symbol').value = item.currencySymbol || '$';
+            document.getElementById('edit-currency-rate').value = item.inrExchangeRate;
+            document.getElementById('edit-currency-multiplier').value = item.priceMultiplier;
+            document.getElementById('edit-currency-active').checked = item.isActive !== false;
+
+            const isBase = item.currencyCode === 'INR';
+            document.getElementById('edit-currency-multiplier').disabled = isBase;
+            document.getElementById('edit-currency-rate').disabled = isBase;
+
+            updateCurrencyLivePreview();
+            openModal('modal-edit-currency');
+        }
+
+        function updateCurrencyLivePreview() {
+            const code = document.getElementById('edit-currency-code').value;
+            const sym = document.getElementById('edit-currency-symbol').value || '$';
+            const rate = parseFloat(document.getElementById('edit-currency-rate').value) || 1.0;
+            const mult = parseFloat(document.getElementById('edit-currency-multiplier').value) || 1.0;
+
+            const baseInr = 100;
+            if (code === 'INR') {
+                document.getElementById('preview-effective-inr').innerText = '₹100/min';
+                document.getElementById('preview-foreign-rate').innerText = '₹100/min';
+                return;
+            }
+
+            const effectiveInr = baseInr * mult;
+            const foreignRate = rate > 0 ? (effectiveInr / rate) : 0;
+            const roundedForeign = Math.round(foreignRate * 100) / 100;
+
+            document.getElementById('preview-effective-inr').innerText = `₹${Math.round(effectiveInr)}/min`;
+            document.getElementById('preview-foreign-rate').innerText = `${sym}${roundedForeign.toFixed(2)}/min`;
+        }
+
+        async function handleCurrencyFormSubmit(e) {
+            e.preventDefault();
+            const code = document.getElementById('edit-currency-code').value;
+            const sym = document.getElementById('edit-currency-symbol').value.trim();
+            const rate = parseFloat(document.getElementById('edit-currency-rate').value);
+            const mult = parseFloat(document.getElementById('edit-currency-multiplier').value);
+            const isActive = document.getElementById('edit-currency-active').checked;
+
+            if (isNaN(rate) || rate <= 0) return showToast('Exchange rate must be > 0', 'error');
+            if (isNaN(mult) || mult <= 0) return showToast('Multiplier must be > 0', 'error');
+
+            const btn = document.getElementById('btn-save-currency');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            try {
+                const res = await fetch(`/api/admin/currency-settings/${encodeURIComponent(code)}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'adminKey': ADMIN_SECRET_KEY
+                    },
+                    body: JSON.stringify({
+                        currencySymbol: sym,
+                        inrExchangeRate: rate,
+                        priceMultiplier: mult,
+                        isActive,
+                        updatedBy: 'Super Admin'
+                    })
+                });
+
+                const data = await res.json();
+                if (data.ok) {
+                    showToast(data.message || `Currency ${code} updated successfully`, 'success');
+                    closeModal('modal-edit-currency');
+                    await fetchAdminCurrencySettings();
+                } else {
+                    showToast(data.error || 'Failed to update currency setting', 'error');
+                }
+            } catch (err) {
+                showToast('Network error while updating currency setting', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i> Save Currency Settings';
+            }
+        }
+
+        // On document load, also fetch country stats & currency settings
         setTimeout(() => {
             fetchAdminCountries(1);
+            fetchAdminCurrencySettings();
         }, 1500);
     </script>
 

@@ -127,6 +127,24 @@ const getAstrologers = async (req, res) => {
             const convertedAudioPrice = convertInrToTarget(rawAudioPrice, targetCurrency);
             const convertedVideoPrice = convertInrToTarget(rawVideoPrice, targetCurrency);
             const convertedUnlimitedPrice = convertInrToTarget(rawUnlimitedPrice, targetCurrency);
+            const curSetting = getCurrencySetting(targetCurrency);
+            const displaySymbol = curSetting.currencySymbol || (targetCurrency === 'INR' ? '₹' : '$');
+
+            const rates = {
+                INR: { symbol: '₹', price: rawPrice, chatPrice: rawChatPrice, audioPrice: rawAudioPrice, videoPrice: rawVideoPrice, unlimitedPrice: rawUnlimitedPrice }
+            };
+            const activeCurrencies = ['USD', 'SGD', 'MYR', 'LKR'];
+            for (const cur of activeCurrencies) {
+                const setting = getCurrencySetting(cur);
+                rates[cur] = {
+                    symbol: setting.currencySymbol || '$',
+                    price: calculateForeignPrice(rawPrice, cur),
+                    chatPrice: calculateForeignPrice(rawChatPrice, cur),
+                    audioPrice: calculateForeignPrice(rawAudioPrice, cur),
+                    videoPrice: calculateForeignPrice(rawVideoPrice, cur),
+                    unlimitedPrice: calculateForeignPrice(rawUnlimitedPrice, cur)
+                };
+            }
 
             return {
                 ...a,
@@ -138,7 +156,8 @@ const getAstrologers = async (req, res) => {
                 unlimitedPrice: targetCurrency !== 'INR' ? convertedUnlimitedPrice : rawUnlimitedPrice,
                 displayPrice: convertedPrice,
                 displayCurrency: targetCurrency,
-                displaySymbol: targetCurrency === 'USD' ? '$' : '₹',
+                displaySymbol: displaySymbol,
+                rates,
                 isOnline: isOnlineCalculated,
                 isFavorite: userFavorites.includes(a.userId),
                 image: formatImageUrl(a.image, a.name),
@@ -148,9 +167,12 @@ const getAstrologers = async (req, res) => {
             };
         });
 
+        const activeSetting = getCurrencySetting(targetCurrency);
+
         res.json({
             ok: true,
             currency: targetCurrency,
+            currencySymbol: activeSetting.currencySymbol,
             astrologers: formatted,
             pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
         });

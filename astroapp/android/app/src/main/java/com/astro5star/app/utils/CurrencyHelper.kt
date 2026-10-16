@@ -45,19 +45,54 @@ object CurrencyHelper {
         }
     }
 
+    val DEFAULT_EXCHANGE_RATES = mapOf(
+        "INR" to 1.0,
+        "USD" to 85.0,
+        "SGD" to 65.0,
+        "MYR" to 19.0,
+        "LKR" to 0.28,
+        "GBP" to 110.0,
+        "AED" to 23.0,
+        "AUD" to 55.0,
+        "CAD" to 62.5
+    )
+
+    val DEFAULT_MULTIPLIERS = mapOf(
+        "INR" to 1.0,
+        "USD" to 2.0,
+        "SGD" to 2.0,
+        "MYR" to 2.0,
+        "LKR" to 2.0
+    )
+
     fun formatPrice(amount: Double, currency: String? = "INR"): String {
         val sym = getSymbol(currency)
-        return if (currency == "USD") {
-            "$sym${String.format(Locale.US, "%.2f", amount)}"
-        } else {
+        val cur = currency?.uppercase(Locale.ROOT) ?: "INR"
+        return if (cur == "INR") {
             "$sym${if (amount % 1.0 == 0.0) amount.toLong().toString() else String.format(Locale.US, "%.2f", amount)}"
+        } else {
+            "$sym${String.format(Locale.US, "%.2f", amount)}"
         }
     }
 
-    fun convertInrToTarget(inrAmount: Double, currency: String? = "INR", exchangeRate: Double = 85.0): Double {
-        if (currency == null || currency == "INR") return inrAmount
-        val rate = if (exchangeRate > 0) exchangeRate else 85.0
-        val converted = inrAmount / rate
+    /**
+     * Converts INR rate to Target Currency using International Price Multiplier:
+     * Effective INR = inrAmount * price_multiplier
+     * Foreign Rate = round(Effective INR / inr_exchange_rate, 2)
+     */
+    fun convertInrToTarget(
+        inrAmount: Double,
+        currency: String? = "INR",
+        exchangeRate: Double? = null,
+        multiplier: Double? = null
+    ): Double {
+        if (currency == null || currency.uppercase(Locale.ROOT) == "INR" || inrAmount <= 0.0) return inrAmount
+        val cur = currency.uppercase(Locale.ROOT)
+        val rate = exchangeRate ?: (DEFAULT_EXCHANGE_RATES[cur] ?: 85.0)
+        val mult = multiplier ?: (DEFAULT_MULTIPLIERS[cur] ?: 2.0)
+
+        val effectiveInr = inrAmount * mult
+        val converted = effectiveInr / rate
         return Math.round(converted * 100.0) / 100.0
     }
 }

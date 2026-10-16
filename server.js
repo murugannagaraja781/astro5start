@@ -64,6 +64,10 @@ connectDB().then(async () => {
   const { seedCountryConfigs } = require('./utils/countrySeeder');
   seedCountryConfigs();
 
+  // Initialize and seed Currency & International Multiplier Settings
+  const { initCurrencySettings } = require('./utils/currencyHelper');
+  initCurrencySettings();
+
   // Cleanup: Reset isBusy for all users on startup to prevent stale states
   setTimeout(async () => {
     const User = require('./models/User');

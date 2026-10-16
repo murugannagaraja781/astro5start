@@ -217,4 +217,11 @@ router.patch('/countries/:isoCode/toggle', countryController.toggleCountryStatus
 router.post('/countries/bulk', countryController.bulkUpdateCountries);
 router.put('/countries/settings/max-limit', countryController.updateMaxLimitSetting);
 
+// Currency Settings & International Price Multiplier Routes
+const currencySettingController = require('../controllers/currencySettingController');
+router.get('/currency-settings', currencySettingController.getAdminCurrencySettings);
+router.put('/currency-settings/:currencyCode', currencySettingController.updateCurrencySetting);
+router.post('/currency-settings/:currencyCode', currencySettingController.updateCurrencySetting);
+
 module.exports = router;
+

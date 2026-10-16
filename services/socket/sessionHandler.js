@@ -82,6 +82,13 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
             const client = (clientId === fromUserId) ? fromUser : toUser;
             const astro = (astrologerId === fromUserId) ? fromUser : toUser;
 
+            let effectiveInrPerMin = 10;
+            let clientRatePerMin = 10;
+            const clientCurrency = (client?.currency || 'INR').toUpperCase();
+            const { calculateForeignPrice, calculateEffectiveInr, getCurrencySetting } = require('../../utils/currencyHelper');
+            const curSetting = getCurrencySetting(clientCurrency);
+            const clientSymbol = curSetting.currencySymbol || (clientCurrency === 'INR' ? '₹' : '$');
+
             if (client && astro) {
                 let pricePerMin = 10;
                 const isUnlimited = type === 'unlimited';
@@ -98,19 +105,24 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                     else pricePerMin = parseInt(astro.price) || 10;
                 }
 
+                clientRatePerMin = calculateForeignPrice(pricePerMin, clientCurrency);
+                effectiveInrPerMin = calculateEffectiveInr(pricePerMin, clientCurrency);
+
                 const totalBalance = (client.walletBalance || 0) + (client.superWalletBalance || 0);
                 const isFirstCall = !client.isFirstCallDone && (SYSTEM_RULES.FREE_CALL_FOR_NEW_USERS !== false);
                 const allowBonusBypass = (SYSTEM_RULES.ALLOW_BONUS_CREDIT_CALLS !== false) && client.superWalletBalance > 0;
 
-                // Rule: If not first call and not bypassing via bonus, must have at least pricePerMin
-                if (!allowBonusBypass && !isFirstCall && totalBalance < pricePerMin) {
-                    const errorMsg = isUnlimited ? `Insufficient funds for this plan (Needs ₹${pricePerMin})` : `Insufficient balance. Please recharge to call (Needs ₹${pricePerMin})`;
+                const requiredMin = clientCurrency === 'INR' ? pricePerMin : clientRatePerMin;
+
+                // Rule: If not first call and not bypassing via bonus, must have at least requiredMin
+                if (!allowBonusBypass && !isFirstCall && totalBalance < requiredMin) {
+                    const errorMsg = isUnlimited ? `Insufficient funds for this plan (Needs ${clientSymbol}${requiredMin})` : `Insufficient balance. Please recharge to call (Needs ${clientSymbol}${requiredMin})`;
                     if (typeof cb === "function") return cb({ ok: false, error: errorMsg });
                 }
                 
                 // For Unlimited, they MUST have the full amount regardless of first call status
-                if (!allowBonusBypass && isUnlimited && totalBalance < pricePerMin) {
-                    if (typeof cb === "function") return cb({ ok: false, error: `Insufficient funds for ${offerType || 'unlimited'} plan (Needs ₹${pricePerMin})` });
+                if (!allowBonusBypass && isUnlimited && totalBalance < requiredMin) {
+                    if (typeof cb === "function") return cb({ ok: false, error: `Insufficient funds for ${offerType || 'unlimited'} plan (Needs ${clientSymbol}${requiredMin})` });
                 }
             }
 
@@ -126,7 +138,10 @@ const handleSession = (socket, io, broadcastAstroUpdate) => {
                 sessionId, fromUserId, toUserId, type, startTime: Date.now(),
                 clientId, astrologerId, status: 'requested',
                 offerType: offerType || (type === 'unlimited' ? 'normal' : null),
-                unlimitedDuration
+                unlimitedDuration,
+                clientCurrency,
+                clientRatePerMin,
+                effectiveInrPerMin
             });
 
             // QUEUE SYNC: If this call is from a waitlist, mark it as in-progress

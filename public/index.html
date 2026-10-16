@@ -5579,9 +5579,10 @@
         if (isOffline) div.classList.add('is-offline');
 
         const cur = getUserCurrency();
-        const displaySymbol = getCurrencySymbol();
+        const curRateObj = (a.rates && a.rates[cur]) ? a.rates[cur] : null;
+        const displaySymbol = curRateObj ? curRateObj.symbol : getCurrencySymbol();
         const isForeign = cur !== 'INR';
-        const displayPrice = isForeign ? (a.priceUsd || (a.price / 85).toFixed(2)) : a.price;
+        const displayPrice = curRateObj ? curRateObj.price : (isForeign ? (a.priceUsd || (a.price / 85).toFixed(2)) : a.price);
 
         div.innerHTML = `
           <div class="at-card-inner">

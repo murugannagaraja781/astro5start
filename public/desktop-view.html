@@ -5459,9 +5459,10 @@
         const statusLabel = isOnline ? 'Online' : (a.isBusy ? 'Busy' : 'Offline');
 
         const cur = getUserCurrency();
-        const sym = getCurrencySymbol();
+        const curRateObj = (a.rates && a.rates[cur]) ? a.rates[cur] : null;
+        const sym = curRateObj ? curRateObj.symbol : getCurrencySymbol();
         const isForeign = cur !== 'INR';
-        const displayPrice = isForeign ? (a.priceUsd || (a.price / 85).toFixed(2)) : a.price;
+        const displayPrice = curRateObj ? curRateObj.price : (isForeign ? (a.priceUsd || (a.price / 85).toFixed(2)) : a.price);
 
         div.innerHTML = `
           <div class="at-card-inner">

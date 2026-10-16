@@ -28,7 +28,10 @@ const SessionSchema = new mongoose.Schema({
     totalCharged: Number,
     offerType: { type: String, enum: ['normal', 'silver', 'gold', 'diamond', null], default: null },
     unlimitedDuration: { type: Number, default: 0 }, // in minutes
-    recordingUrl: { type: String } // URL to call recording audio file
+    recordingUrl: { type: String }, // URL to call recording audio file
+    clientCurrency: { type: String, default: 'INR' },
+    effectiveInrPerMin: { type: Number, default: 0 },
+    clientRatePerMin: { type: Number, default: 0 }
 }, { timestamps: true });
 
 SessionSchema.index({ clientId: 1 }, { background: true });
