@@ -2279,7 +2279,11 @@
                         </p>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button type="button" onclick="openLiveRateSyncModal()" id="btn-open-sync-modal"
+                        class="px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black rounded-xl text-xs transition-all flex items-center gap-2 shadow-sm hover:shadow active:scale-95">
+                        <i class="fas fa-bolt text-slate-950"></i> ⚡ Sync Live Market Rates
+                    </button>
                     <button onclick="fetchAdminCurrencySettings()" class="px-4 py-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:shadow active:scale-95">
                         <i class="fas fa-sync-alt text-amber-500"></i> Refresh Rates
                     </button>
@@ -2482,9 +2486,15 @@
                     <!-- Row 2: Exchange Rate & Price Multiplier -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
-                                Exchange Rate (1 Unit = ₹ INR)
-                            </label>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="block text-xs font-bold text-slate-700 uppercase">
+                                    Exchange Rate (1 Unit = ₹ INR)
+                                </label>
+                                <button type="button" id="btn-fetch-individual-rate" onclick="fillIndividualLiveRate()"
+                                    class="hidden text-[10px] font-black text-amber-950 bg-amber-200/80 hover:bg-amber-300 px-2 py-0.5 rounded-lg border border-amber-300 transition-all items-center gap-1 active:scale-95 shadow-xs">
+                                    <i class="fas fa-bolt text-amber-700 text-[9px]"></i> Get Live Rate
+                                </button>
+                            </div>
                             <div class="relative">
                                 <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-sm">₹</span>
                                 <input type="number" step="0.0001" min="0.0001" inputmode="decimal" id="edit-currency-rate" required oninput="updateCurrencyLivePreview()"
@@ -2569,6 +2579,67 @@
                 <button type="submit" form="form-edit-currency" onclick="document.getElementById('form-edit-currency').requestSubmit()" id="btn-save-currency"
                     class="px-6 py-2.5 rounded-xl text-xs font-black bg-amber-400 hover:bg-amber-500 text-slate-950 shadow-md transition-all flex items-center gap-2 active:scale-95">
                     <i class="fas fa-check"></i> Save Currency Settings
+                </button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Sync Live Forex Market Rates Modal (Preview & Confirm) -->
+    <div id="modal-sync-live-rates" onclick="if(event.target === this) closeModal('modal-sync-live-rates')"
+        class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-3 sm:p-4 transition-all duration-300 hidden">
+        <div class="bg-white w-full max-w-lg max-h-[92vh] flex flex-col rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 border border-slate-200">
+            
+            <!-- Modal Header -->
+            <header class="px-5 sm:px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center shadow-md text-xl shrink-0 font-black">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-black text-slate-950 uppercase tracking-tight flex items-center gap-2">
+                            <span>Sync Live Forex Rates</span>
+                        </h3>
+                        <p class="text-xs text-slate-600 font-medium mt-0.5">நேரடி சர்வதேச கரன்சி சந்தை விகிதங்கள்</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModal('modal-sync-live-rates')"
+                    class="w-9 h-9 rounded-xl bg-white text-slate-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center text-xl shadow-sm border border-slate-200 transition-all active:scale-95">&times;</button>
+            </header>
+
+            <!-- Modal Body -->
+            <div class="overflow-y-auto flex-1 custom-scrollbar p-5 sm:p-6 space-y-4" style="min-height: 0;">
+                <!-- Loading State -->
+                <div id="sync-rates-loading" class="py-10 text-center space-y-3">
+                    <div class="inline-block w-10 h-10 border-4 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+                    <p class="text-xs font-bold text-slate-600">Connecting to Live Exchange Rate Service...</p>
+                </div>
+
+                <!-- Content State -->
+                <div id="sync-rates-content" class="hidden space-y-4">
+                    <div class="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-950 font-semibold flex items-start gap-2.5">
+                        <i class="fas fa-info-circle text-amber-600 text-base mt-0.5 shrink-0"></i>
+                        <div>
+                            <span>தற்போதைய நேரடி சந்தை விகிதங்கள் பெறப்பட்டுள்ளது. <b>"Apply Live Rates"</b> கிளிக் செய்தால் ஆப்பில் புதிய விகிதங்கள் உடனே நடைமுறைக்கு வரும்.</span>
+                            <span id="sync-rates-timestamp" class="block text-[10px] text-amber-800 font-mono mt-1 font-bold"></span>
+                        </div>
+                    </div>
+
+                    <!-- Comparison List -->
+                    <div id="sync-rates-comparison-list" class="space-y-2.5">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sticky Modal Footer -->
+            <footer class="p-4 sm:p-5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
+                <button type="button" onclick="closeModal('modal-sync-live-rates')"
+                    class="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200 bg-white border border-slate-200 transition-all shadow-xs active:scale-95">
+                    Cancel
+                </button>
+                <button type="button" id="btn-confirm-sync-rates" onclick="confirmApplyLiveRates()"
+                    class="px-6 py-2.5 rounded-xl text-xs font-black bg-amber-400 hover:bg-amber-500 text-slate-950 shadow-md transition-all flex items-center gap-2 active:scale-95">
+                    <i class="fas fa-bolt"></i> Apply Live Rates
                 </button>
             </footer>
         </div>
@@ -8394,6 +8465,11 @@
                 highlightMultiplierPill(item.priceMultiplier);
             }
 
+            const btnIndLive = document.getElementById('btn-fetch-individual-rate');
+            if (btnIndLive) {
+                btnIndLive.style.display = isBase ? 'none' : 'inline-flex';
+            }
+
             updateCurrencyLivePreview();
             openModal('modal-edit-currency');
         }
@@ -8520,6 +8596,157 @@
                 if (btn) {
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-check mr-1"></i> Save Currency Settings';
+                }
+            }
+        }
+
+        // ==========================================
+        // Live Forex Market Rate Sync Logic
+        // ==========================================
+        async function fillIndividualLiveRate() {
+            const code = document.getElementById('edit-currency-code')?.value;
+            if (!code || code === 'INR') return;
+
+            const btn = document.getElementById('btn-fetch-individual-rate');
+            const oldHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin text-[9px]"></i> Fetching...';
+            }
+
+            try {
+                const res = await fetch('/api/admin/currency-settings/live-forex-rates', {
+                    headers: { 'x-admin-key': ADMIN_SECRET_KEY, 'adminKey': ADMIN_SECRET_KEY }
+                });
+                const data = await res.json();
+                if (data.ok && data.rates && data.rates[code]) {
+                    const liveRate = data.rates[code];
+                    const rateInput = document.getElementById('edit-currency-rate');
+                    if (rateInput) {
+                        rateInput.value = liveRate;
+                        updateCurrencyLivePreview();
+                        showToast(`Live market rate ₹${liveRate} loaded for ${code}!`, 'success');
+                    }
+                } else {
+                    showToast(data.error || 'Failed to fetch live market rate', 'error');
+                }
+            } catch (e) {
+                console.error('[LiveForex] Individual fetch error:', e);
+                showToast('Network error fetching live rate', 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = oldHtml;
+                }
+            }
+        }
+
+        async function openLiveRateSyncModal() {
+            openModal('modal-sync-live-rates');
+            const loadingEl = document.getElementById('sync-rates-loading');
+            const contentEl = document.getElementById('sync-rates-content');
+            const listEl = document.getElementById('sync-rates-comparison-list');
+            const timeEl = document.getElementById('sync-rates-timestamp');
+            const confirmBtn = document.getElementById('btn-confirm-sync-rates');
+
+            if (loadingEl) loadingEl.classList.remove('hidden');
+            if (contentEl) contentEl.classList.add('hidden');
+            if (confirmBtn) confirmBtn.disabled = true;
+
+            try {
+                const res = await fetch('/api/admin/currency-settings/live-forex-rates', {
+                    headers: { 'x-admin-key': ADMIN_SECRET_KEY, 'adminKey': ADMIN_SECRET_KEY }
+                });
+                const data = await res.json();
+                if (!data.ok || !data.rates) {
+                    if (loadingEl) loadingEl.innerHTML = `<div class="text-rose-600 font-bold text-xs"><i class="fas fa-exclamation-triangle text-xl block mb-2"></i> ${data.error || 'Failed to connect to Forex service'}</div>`;
+                    return;
+                }
+
+                const comp = data.comparison || {};
+                const codes = ['USD', 'SGD', 'MYR', 'LKR'];
+
+                if (listEl) {
+                    listEl.innerHTML = codes.map(code => {
+                        const meta = CURRENCY_META[code] || { flag: '🌐', name: code };
+                        const c = comp[code] || {};
+                        const current = Number(c.currentRate) || 0;
+                        const live = Number(c.liveRate) || 0;
+                        const diff = Math.round((live - current) * 100) / 100;
+                        const diffBadge = diff === 0
+                            ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-slate-100 text-slate-600">No change</span>'
+                            : (diff > 0
+                                ? `<span class="text-[10px] font-black px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-800">+₹${diff.toFixed(2)}</span>`
+                                : `<span class="text-[10px] font-black px-2 py-0.5 rounded-lg bg-rose-100 text-rose-800">-₹${Math.abs(diff).toFixed(2)}</span>`);
+
+                        return `
+                            <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="text-2xl select-none">${meta.flag}</span>
+                                    <div>
+                                        <div class="text-xs font-black text-slate-950">${code} (${meta.name})</div>
+                                        <div class="text-[11px] text-slate-600 font-medium">Current DB: <b>₹${current}</b></div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm font-black text-amber-950 flex items-center gap-1.5 justify-end">
+                                        <span>₹${live}</span>
+                                        ${diffBadge}
+                                    </div>
+                                    <div class="text-[10px] text-slate-500 font-semibold mt-0.5">Live Forex Market</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                if (timeEl) {
+                    const timeStr = new Date(data.timestamp || Date.now()).toLocaleTimeString();
+                    timeEl.textContent = `Provider: ${data.provider || 'Live Forex API'} • Checked at ${timeStr}`;
+                }
+
+                if (loadingEl) loadingEl.classList.add('hidden');
+                if (contentEl) contentEl.classList.remove('hidden');
+                if (confirmBtn) confirmBtn.disabled = false;
+
+            } catch (e) {
+                console.error('[LiveForex] Error:', e);
+                if (loadingEl) loadingEl.innerHTML = `<div class="text-rose-600 font-bold text-xs"><i class="fas fa-exclamation-triangle text-xl block mb-2"></i> Network error fetching live rates</div>`;
+            }
+        }
+
+        async function confirmApplyLiveRates() {
+            const btn = document.getElementById('btn-confirm-sync-rates');
+            const oldHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Applying Live Rates...';
+            }
+
+            try {
+                const res = await fetch('/api/admin/currency-settings/sync-live-rates', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-key': ADMIN_SECRET_KEY,
+                        'adminKey': ADMIN_SECRET_KEY
+                    }
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    showToast('🎉 All currency exchange rates synchronized with live market rates!', 'success');
+                    closeModal('modal-sync-live-rates');
+                    await fetchAdminCurrencySettings();
+                } else {
+                    showToast(data.error || 'Failed to sync live rates', 'error');
+                }
+            } catch (e) {
+                console.error('[LiveForex] Sync error:', e);
+                showToast('Network error during live rates sync', 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = oldHtml;
                 }
             }
         }

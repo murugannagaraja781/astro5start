@@ -152,6 +152,153 @@ const updateCurrencySetting = async (req, res) => {
 };
 
 /**
+ * Helper to fetch live forex market rates (1 Unit foreign = ? INR)
+ */
+async function fetchMarketRates() {
+    let rawRates = null;
+    let provider = '';
+
+    // Primary: open.er-api.com
+    try {
+        const res = await fetch('https://open.er-api.com/v6/latest/USD', { timeout: 8000 });
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.rates && data.rates.INR) {
+                rawRates = data.rates;
+                provider = 'open.er-api.com';
+            }
+        }
+    } catch (e) {
+        console.warn('[Forex] Primary provider failed, trying backup:', e.message);
+    }
+
+    // Fallback: api.exchangerate-api.com
+    if (!rawRates) {
+        try {
+            const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD', { timeout: 8000 });
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.rates && data.rates.INR) {
+                    rawRates = data.rates;
+                    provider = 'exchangerate-api.com';
+                }
+            }
+        } catch (e) {
+            console.error('[Forex] Backup provider failed:', e.message);
+        }
+    }
+
+    if (!rawRates || !rawRates.INR) {
+        throw new Error('Unable to connect to live exchange rate service. Please check network.');
+    }
+
+    const inr = rawRates.INR;
+    return {
+        provider,
+        timestamp: new Date(),
+        rates: {
+            USD: Math.round(inr * 100) / 100,
+            SGD: Math.round((inr / rawRates.SGD) * 100) / 100,
+            MYR: Math.round((inr / rawRates.MYR) * 100) / 100,
+            LKR: Math.round((inr / rawRates.LKR) * 10000) / 10000
+        }
+    };
+}
+
+/**
+ * Super Admin Endpoint: Get Live Forex Rates & Comparison with Current Database Rates
+ * GET /api/admin/currency-settings/live-forex-rates
+ */
+const getLiveForexRates = async (req, res) => {
+    try {
+        const live = await fetchMarketRates();
+        const currentSettings = await CurrencySetting.find({}).lean();
+        const comparison = {};
+
+        ['USD', 'SGD', 'MYR', 'LKR'].forEach(code => {
+            const current = currentSettings.find(s => s.currencyCode === code);
+            const currentRate = current ? Number(current.inrExchangeRate) : null;
+            const liveRate = live.rates[code] || null;
+            comparison[code] = {
+                currentRate,
+                liveRate,
+                difference: (currentRate && liveRate) ? Math.round((liveRate - currentRate) * 100) / 100 : 0
+            };
+        });
+
+        res.json({
+            ok: true,
+            provider: live.provider,
+            timestamp: live.timestamp,
+            rates: live.rates,
+            comparison
+        });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
+/**
+ * Super Admin Endpoint: Sync All Currency Settings to Live Market Rates
+ * POST /api/admin/currency-settings/sync-live-rates
+ */
+const syncLiveForexRates = async (req, res) => {
+    try {
+        const live = await fetchMarketRates();
+        const updatedList = [];
+
+        for (const [code, liveRate] of Object.entries(live.rates)) {
+            const setting = await CurrencySetting.findOneAndUpdate(
+                { currencyCode: code },
+                {
+                    $set: {
+                        inrExchangeRate: liveRate,
+                        updatedAt: new Date(),
+                        updatedBy: 'Live Forex Sync'
+                    }
+                },
+                { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+            updatedList.push({
+                currencyCode: code,
+                inrExchangeRate: setting.inrExchangeRate,
+                priceMultiplier: setting.priceMultiplier
+            });
+        }
+
+        // Refresh in-memory cache
+        await refreshCurrencySettings();
+
+        // Broadcast change via Socket.io
+        try {
+            const { getIoInstance, broadcastAstroUpdate } = require('../services/socketManager');
+            const io = (typeof getIoInstance === 'function') ? getIoInstance() : null;
+            if (io) {
+                io.emit('currency-settings-updated', {
+                    syncedAt: new Date(),
+                    rates: live.rates
+                });
+            }
+            if (typeof broadcastAstroUpdate === 'function') {
+                broadcastAstroUpdate();
+            }
+        } catch (sockErr) {
+            console.error('[CurrencyAdmin] Socket broadcast error:', sockErr.message);
+        }
+
+        res.json({
+            ok: true,
+            message: 'All exchange rates successfully synchronized with live market rates!',
+            provider: live.provider,
+            timestamp: live.timestamp,
+            updatedCurrencies: updatedList
+        });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
+/**
  * Public Endpoint: Get active currency settings for client apps & websites
  * GET /api/config/currency-settings
  */
@@ -173,5 +320,7 @@ const getPublicCurrencyConfig = async (req, res) => {
 module.exports = {
     getAdminCurrencySettings,
     updateCurrencySetting,
+    getLiveForexRates,
+    syncLiveForexRates,
     getPublicCurrencyConfig
 };

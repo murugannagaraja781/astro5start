@@ -220,6 +220,8 @@ router.put('/countries/settings/max-limit', countryController.updateMaxLimitSett
 // Currency Settings & International Price Multiplier Routes
 const currencySettingController = require('../controllers/currencySettingController');
 router.get('/currency-settings', currencySettingController.getAdminCurrencySettings);
+router.get('/currency-settings/live-forex-rates', currencySettingController.getLiveForexRates);
+router.post('/currency-settings/sync-live-rates', currencySettingController.syncLiveForexRates);
 router.put('/currency-settings/:currencyCode', currencySettingController.updateCurrencySetting);
 router.post('/currency-settings/:currencyCode', currencySettingController.updateCurrencySetting);
 
