@@ -359,4 +359,4 @@ const initSocket = (io) => {
     });
 };
 
-module.exports = { initSocket, broadcastAstroUpdate, broadcastReviewUpdate, broadcastAdminUpdate, handleUserConnection, getFormattedAstrologers };
+module.exports = { initSocket, getIoInstance: () => ioInstance, broadcastAstroUpdate, broadcastReviewUpdate, broadcastAdminUpdate, handleUserConnection, getFormattedAstrologers };
