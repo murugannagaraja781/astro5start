@@ -27,6 +27,7 @@ const {
     convertInrToTarget,
     formatPrice,
     getRechargePackages,
+    getCurrencySetting,
     COUNTRY_CONFIG,
     DEFAULT_RATES
 } = require('../utils/currencyHelper');
