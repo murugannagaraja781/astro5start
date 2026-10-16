@@ -2431,7 +2431,7 @@
     </main>
 
     <!-- Edit Currency Setting Modal -->
-    <div id="modal-edit-currency" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 transition-all duration-300 hidden">
+    <div id="modal-edit-currency" onclick="if(event.target === this) closeModal('modal-edit-currency')" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 transition-all duration-300 hidden">
         <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 border border-slate-100">
             <header class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <div class="flex items-center gap-3">
@@ -6292,8 +6292,17 @@
             }
         }
 
+        function openModal(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.remove('hidden');
+                document.body.classList.add('modal-active');
+            }
+        }
+
         function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
             const openModals = document.querySelectorAll('.fixed:not(.hidden)');
             if (openModals.length === 0) {
                 document.body.classList.remove('modal-active');
@@ -8252,26 +8261,45 @@
         }
 
         function openEditCurrencyModal(code) {
-            const item = adminCurrencySettingsCache.find(s => s.currencyCode === code);
-            if (!item) return;
+            let item = adminCurrencySettingsCache.find(s => s.currencyCode === code);
+            const meta = CURRENCY_META[code] || { flag: '🌐', name: code, defaultRate: 1, defaultMult: 2 };
+            if (!item) {
+                item = {
+                    currencyCode: code,
+                    currencySymbol: code === 'INR' ? '₹' : (code === 'USD' ? '$' : (code === 'SGD' ? 'S$' : (code === 'MYR' ? 'RM' : 'Rs'))),
+                    inrExchangeRate: meta.defaultRate || 1,
+                    priceMultiplier: code === 'INR' ? 1.0 : (meta.defaultMult || 2.0),
+                    isActive: true
+                };
+            }
 
-            const meta = CURRENCY_META[code] || { flag: '🌐', name: code };
             const flagEl = document.getElementById('edit-currency-flag');
             if (flagEl) flagEl.textContent = meta.flag;
 
             const titleEl = document.getElementById('edit-currency-title-code');
             if (titleEl) titleEl.textContent = `${code} (${meta.name})`;
 
-            document.getElementById('edit-currency-code').value = item.currencyCode;
-            document.getElementById('edit-currency-code-display').value = `${item.currencyCode} - ${meta.name}`;
-            document.getElementById('edit-currency-symbol').value = item.currencySymbol || '$';
-            document.getElementById('edit-currency-rate').value = item.inrExchangeRate;
-            document.getElementById('edit-currency-multiplier').value = item.priceMultiplier;
-            document.getElementById('edit-currency-active').checked = item.isActive !== false;
+            const codeInput = document.getElementById('edit-currency-code');
+            if (codeInput) codeInput.value = item.currencyCode;
+
+            const codeDisplay = document.getElementById('edit-currency-code-display');
+            if (codeDisplay) codeDisplay.value = `${item.currencyCode} - ${meta.name}`;
+
+            const symInput = document.getElementById('edit-currency-symbol');
+            if (symInput) symInput.value = item.currencySymbol || '$';
+
+            const rateInput = document.getElementById('edit-currency-rate');
+            if (rateInput) rateInput.value = item.inrExchangeRate;
+
+            const multInput = document.getElementById('edit-currency-multiplier');
+            if (multInput) multInput.value = item.priceMultiplier;
+
+            const activeInput = document.getElementById('edit-currency-active');
+            if (activeInput) activeInput.checked = item.isActive !== false;
 
             const isBase = item.currencyCode === 'INR';
-            document.getElementById('edit-currency-multiplier').disabled = isBase;
-            document.getElementById('edit-currency-rate').disabled = isBase;
+            if (multInput) multInput.disabled = isBase;
+            if (rateInput) rateInput.disabled = isBase;
             const presetsBar = document.getElementById('multiplier-presets-bar');
             if (presetsBar) presetsBar.style.display = isBase ? 'none' : 'flex';
 
