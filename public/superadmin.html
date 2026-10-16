@@ -2430,105 +2430,147 @@
         </section>
     </main>
 
-    <!-- Edit Currency Setting Modal -->
-    <div id="modal-edit-currency" onclick="if(event.target === this) closeModal('modal-edit-currency')" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 transition-all duration-300 hidden">
-        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 border border-slate-100">
-            <header class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+    <!-- Edit Currency Setting Modal (Fully Responsive & Touch-Friendly) -->
+    <div id="modal-edit-currency" onclick="if(event.target === this) closeModal('modal-edit-currency')"
+        class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-3 sm:p-4 transition-all duration-300 hidden">
+        <div class="bg-white w-full max-w-xl max-h-[92vh] flex flex-col rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 border border-slate-200">
+            
+            <!-- Sticky Modal Header -->
+            <header class="px-5 sm:px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center shadow-md text-lg">
+                    <div class="w-11 h-11 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center shadow-md text-xl shrink-0 font-black">
                         <i class="fas fa-coins"></i>
                     </div>
                     <div>
-                        <h3 class="text-sm font-extrabold text-slate-800 uppercase tracking-tight flex items-center gap-2">
-                            <span id="edit-currency-flag" class="text-xl">🌐</span>
-                            <span>Edit <span id="edit-currency-title-code">USD</span> Settings</span>
+                        <h3 class="text-base font-black text-slate-950 uppercase tracking-tight flex items-center gap-2">
+                            <span id="edit-currency-flag" class="text-2xl select-none">🌐</span>
+                            <span>Edit <span id="edit-currency-title-code" class="text-amber-900">USD</span> Settings</span>
                         </h3>
-                        <p id="edit-currency-subtitle" class="text-[11px] text-slate-500">Update international exchange rate & price multiplier</p>
+                        <p id="edit-currency-subtitle" class="text-xs text-slate-600 font-medium mt-0.5">Update international exchange rate & price multiplier</p>
                     </div>
                 </div>
-                <button onclick="closeModal('modal-edit-currency')" class="w-8 h-8 rounded-lg bg-white text-slate-400 hover:text-red-500 flex items-center justify-center text-xl shadow-sm border border-slate-200">&times;</button>
+                <button type="button" onclick="closeModal('modal-edit-currency')"
+                    class="w-9 h-9 rounded-xl bg-white text-slate-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center text-xl shadow-sm border border-slate-200 transition-all active:scale-95">&times;</button>
             </header>
 
-            <form onsubmit="handleCurrencyFormSubmit(event)" class="p-6 space-y-4">
-                <input type="hidden" id="edit-currency-code">
+            <!-- Scrollable Modal Body -->
+            <div class="overflow-y-auto flex-1 custom-scrollbar p-5 sm:p-6" style="min-height: 0;">
+                <form id="form-edit-currency" onsubmit="handleCurrencyFormSubmit(event)" class="space-y-4">
+                    <input type="hidden" id="edit-currency-code">
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Currency Code</label>
-                        <input type="text" id="edit-currency-code-display" readonly
-                            class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-slate-700 outline-none cursor-not-allowed">
+                    <!-- Info Alert Banner (Dynamic for INR vs Foreign) -->
+                    <div id="edit-currency-info-box" class="p-3.5 rounded-2xl border text-xs font-semibold flex items-start gap-2.5 bg-amber-50 border-amber-200 text-amber-950">
+                        <i class="fas fa-info-circle text-amber-600 text-base mt-0.5 shrink-0"></i>
+                        <span id="edit-currency-info-text">Configure exchange rate and multiplier. Changes update live across all apps and web checkout.</span>
                     </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Currency Symbol</label>
-                        <input type="text" id="edit-currency-symbol" required oninput="updateCurrencyLivePreview()"
-                            class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none">
-                    </div>
-                </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Exchange Rate (1 Unit = ₹ INR)</label>
-                        <input type="number" step="0.0001" min="0.0001" id="edit-currency-rate" required oninput="updateCurrencyLivePreview()"
-                            class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none">
-                        <span class="text-[10px] text-slate-400 mt-1 block">e.g. USD=85, SGD=65, MYR=19, LKR=0.28</span>
+                    <!-- Row 1: Currency Code & Symbol -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Currency & Region</label>
+                            <input type="text" id="edit-currency-code-display" readonly
+                                class="w-full bg-slate-100 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs font-black text-slate-800 outline-none cursor-not-allowed">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Currency Symbol</label>
+                            <input type="text" id="edit-currency-symbol" required oninput="updateCurrencyLivePreview()"
+                                class="w-full bg-white border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-black text-slate-950 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none shadow-sm transition-all"
+                                placeholder="e.g. $, S$, RM">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Price Multiplier (காரணி)</label>
-                        <input type="number" step="0.01" min="0.5" max="10.0" id="edit-currency-multiplier" required oninput="updateCurrencyLivePreview()"
-                            class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none">
+
+                    <!-- Row 2: Exchange Rate & Price Multiplier -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                                Exchange Rate (1 Unit = ₹ INR)
+                            </label>
+                            <div class="relative">
+                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-sm">₹</span>
+                                <input type="number" step="0.0001" min="0.0001" inputmode="decimal" id="edit-currency-rate" required oninput="updateCurrencyLivePreview()"
+                                    class="w-full bg-white border border-slate-300 rounded-2xl pl-8 pr-3.5 py-2.5 text-sm font-black text-slate-950 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none shadow-sm transition-all"
+                                    placeholder="85.00">
+                            </div>
+                            <span class="text-[11px] text-slate-600 font-medium mt-1 block">e.g. USD=85, SGD=65, MYR=19, LKR=0.28</span>
+                        </div>
                         
-                        <!-- Quick multiplier preset buttons -->
-                        <div class="flex items-center gap-1.5 mt-1.5" id="multiplier-presets-bar">
-                            <button type="button" onclick="setPresetMultiplier(1.50)" class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 hover:bg-amber-100 text-slate-900 transition-all border border-slate-200">1.5x</button>
-                            <button type="button" onclick="setPresetMultiplier(2.00)" class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-400 text-slate-950 transition-all shadow-sm">2.0x (Standard)</button>
-                            <button type="button" onclick="setPresetMultiplier(2.50)" class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 hover:bg-amber-100 text-slate-900 transition-all border border-slate-200">2.5x</button>
-                            <button type="button" onclick="setPresetMultiplier(3.00)" class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 hover:bg-amber-100 text-slate-900 transition-all border border-slate-200">3.0x</button>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5 flex items-center justify-between">
+                                <span>Price Multiplier (காரணி)</span>
+                                <span id="mult-lock-label" class="hidden text-[10px] font-bold text-slate-500 uppercase">Fixed Base</span>
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="stepMultiplier(-0.1)" id="btn-step-minus"
+                                    class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-base flex items-center justify-center border border-slate-200 transition-all shrink-0 active:scale-95">-</button>
+                                <input type="number" step="0.05" min="0.5" max="10.0" inputmode="decimal" id="edit-currency-multiplier" required oninput="updateCurrencyLivePreview()"
+                                    class="w-full bg-white border border-slate-300 rounded-2xl px-3 py-2.5 text-center text-sm font-black text-slate-950 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none shadow-sm transition-all"
+                                    placeholder="2.00">
+                                <button type="button" onclick="stepMultiplier(0.1)" id="btn-step-plus"
+                                    class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-base flex items-center justify-center border border-slate-200 transition-all shrink-0 active:scale-95">+</button>
+                            </div>
+
+                            <!-- Quick multiplier preset buttons -->
+                            <div class="flex flex-wrap items-center gap-1.5 mt-2" id="multiplier-presets-bar">
+                                <button type="button" data-val="1.50" onclick="setPresetMultiplier(1.50)" class="preset-mult-pill px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 transition-all">1.5x</button>
+                                <button type="button" data-val="1.80" onclick="setPresetMultiplier(1.80)" class="preset-mult-pill px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 transition-all">1.8x</button>
+                                <button type="button" data-val="2.00" onclick="setPresetMultiplier(2.00)" class="preset-mult-pill px-2.5 py-1 rounded-xl text-xs font-black bg-amber-400 text-slate-950 border border-amber-500 shadow-sm transition-all">2.0x (Standard)</button>
+                                <button type="button" data-val="2.50" onclick="setPresetMultiplier(2.50)" class="preset-mult-pill px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 transition-all">2.5x</button>
+                                <button type="button" data-val="3.00" onclick="setPresetMultiplier(3.00)" class="preset-mult-pill px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 transition-all">3.0x</button>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Real-Time Live Preview Box -->
-                <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 mt-2 shadow-sm space-y-2">
-                    <div class="text-[11px] font-extrabold text-amber-900 uppercase flex items-center justify-between">
-                        <span class="flex items-center gap-1.5"><i class="fas fa-eye text-amber-600"></i> Live Calculation Breakdown</span>
-                        <span class="text-[10px] text-amber-700 bg-amber-200/60 px-2 py-0.5 rounded-full font-bold">Tested on Base ₹20 Astro</span>
+                    <!-- Real-Time Live Preview Breakdown Box -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm space-y-2.5">
+                        <div class="text-xs font-black text-slate-900 uppercase flex items-center justify-between">
+                            <span class="flex items-center gap-1.5"><i class="fas fa-eye text-amber-600"></i> Live Calculation Breakdown</span>
+                            <span class="text-[10px] text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded-full font-bold">Base Astrologer Rate ₹20</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2.5 pt-1">
+                            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+                                <span class="text-[10px] font-bold text-slate-600 block uppercase">Client Pays</span>
+                                <span id="preview-foreign-rate" class="text-base sm:text-lg font-black text-slate-950 block mt-0.5">$0.47 / min</span>
+                            </div>
+                            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+                                <span class="text-[10px] font-bold text-slate-600 block uppercase">Effective INR</span>
+                                <span id="preview-effective-inr" class="text-base sm:text-lg font-black text-emerald-800 block mt-0.5">₹40.00 / min</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2.5 pt-0.5">
+                            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+                                <span class="text-[10px] font-bold text-slate-600 block uppercase">Astro Earnings (50% Slab)</span>
+                                <span id="preview-astro-share" class="text-sm sm:text-base font-black text-teal-800 block mt-0.5">₹20.00 INR</span>
+                            </div>
+                            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+                                <span class="text-[10px] font-bold text-slate-600 block uppercase">Admin Profit</span>
+                                <span id="preview-admin-share" class="text-sm sm:text-base font-black text-emerald-800 block mt-0.5">₹20.00 INR</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3 pt-1">
-                        <div class="bg-white/80 p-2.5 rounded-xl border border-amber-100">
-                            <span class="text-[10px] font-bold text-slate-400 block uppercase">Client Pays</span>
-                            <span id="preview-foreign-rate" class="text-base font-black text-amber-800">$0.47/min</span>
-                        </div>
-                        <div class="bg-white/80 p-2.5 rounded-xl border border-amber-100">
-                            <span class="text-[10px] font-bold text-slate-400 block uppercase">Effective INR</span>
-                            <span id="preview-effective-inr" class="text-base font-black text-emerald-700">₹40.00/min</span>
-                        </div>
+                    <!-- Active Toggle -->
+                    <div class="flex items-center gap-3 pt-1 bg-white p-3.5 rounded-2xl border border-slate-200">
+                        <input type="checkbox" id="edit-currency-active" class="w-5 h-5 text-emerald-600 rounded-lg cursor-pointer">
+                        <label for="edit-currency-active" class="text-xs font-bold text-slate-800 cursor-pointer select-none">
+                            Active and enabled for international clients & currency switchers
+                        </label>
                     </div>
+                </form>
+            </div>
 
-                    <div class="grid grid-cols-2 gap-3 pt-1">
-                        <div class="bg-white/80 p-2.5 rounded-xl border border-amber-100">
-                            <span class="text-[10px] font-bold text-slate-400 block uppercase">Astro Earnings (50% Slab)</span>
-                            <span id="preview-astro-share" class="text-sm font-black text-teal-700">₹20.00 INR</span>
-                        </div>
-                        <div class="bg-white/80 p-2.5 rounded-xl border border-amber-100">
-                            <span class="text-[10px] font-bold text-slate-400 block uppercase">Admin Margin</span>
-                            <span id="preview-admin-share" class="text-sm font-black text-slate-800">₹20.00 INR</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-2 pt-2">
-                    <input type="checkbox" id="edit-currency-active" class="w-4 h-4 text-emerald-600 rounded">
-                    <label for="edit-currency-active" class="text-xs font-bold text-slate-700 cursor-pointer">Active and enabled for international clients</label>
-                </div>
-
-                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                    <button type="button" onclick="closeModal('modal-edit-currency')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">Cancel</button>
-                    <button type="submit" id="btn-save-currency" class="px-5 py-2.5 rounded-xl text-xs font-black bg-amber-400 hover:bg-amber-500 text-slate-950 shadow-md transition-all flex items-center gap-2 active:scale-95">
-                        <i class="fas fa-check"></i> Save Currency Settings
-                    </button>
-                </div>
-            </form>
+            <!-- Sticky Modal Footer (Always visible on any device) -->
+            <footer class="p-4 sm:p-5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
+                <button type="button" onclick="closeModal('modal-edit-currency')"
+                    class="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200 bg-white border border-slate-200 transition-all shadow-xs active:scale-95">
+                    Cancel
+                </button>
+                <button type="submit" form="form-edit-currency" onclick="document.getElementById('form-edit-currency').requestSubmit()" id="btn-save-currency"
+                    class="px-6 py-2.5 rounded-xl text-xs font-black bg-amber-400 hover:bg-amber-500 text-slate-950 shadow-md transition-all flex items-center gap-2 active:scale-95">
+                    <i class="fas fa-check"></i> Save Currency Settings
+                </button>
+            </footer>
         </div>
     </div>
 
@@ -8298,10 +8340,59 @@
             if (activeInput) activeInput.checked = item.isActive !== false;
 
             const isBase = item.currencyCode === 'INR';
-            if (multInput) multInput.disabled = isBase;
-            if (rateInput) rateInput.disabled = isBase;
+            const stepMinus = document.getElementById('btn-step-minus');
+            const stepPlus = document.getElementById('btn-step-plus');
             const presetsBar = document.getElementById('multiplier-presets-bar');
-            if (presetsBar) presetsBar.style.display = isBase ? 'none' : 'flex';
+            const lockLabel = document.getElementById('mult-lock-label');
+            const infoBox = document.getElementById('edit-currency-info-box');
+            const infoText = document.getElementById('edit-currency-info-text');
+
+            if (isBase) {
+                if (multInput) {
+                    multInput.readOnly = true;
+                    multInput.classList.add('bg-slate-100', 'text-slate-500', 'cursor-not-allowed');
+                    multInput.classList.remove('bg-white', 'text-slate-950');
+                }
+                if (rateInput) {
+                    rateInput.readOnly = true;
+                    rateInput.classList.add('bg-slate-100', 'text-slate-500', 'cursor-not-allowed');
+                    rateInput.classList.remove('bg-white', 'text-slate-950');
+                }
+                if (stepMinus) stepMinus.style.display = 'none';
+                if (stepPlus) stepPlus.style.display = 'none';
+                if (presetsBar) presetsBar.style.display = 'none';
+                if (lockLabel) lockLabel.classList.remove('hidden');
+                if (infoBox) {
+                    infoBox.className = 'p-3.5 rounded-2xl border text-xs font-semibold flex items-start gap-2.5 bg-blue-50 border-blue-200 text-blue-950';
+                }
+                if (infoText) {
+                    infoText.innerHTML = '<b>🇮🇳 Base Currency (INR):</b> Exchange rate and price multiplier are fixed at <b>1.00x</b> as the domestic baseline. You can customize the symbol (₹) and toggle active status.';
+                }
+            } else {
+                if (multInput) {
+                    multInput.readOnly = false;
+                    multInput.disabled = false;
+                    multInput.classList.remove('bg-slate-100', 'text-slate-500', 'cursor-not-allowed');
+                    multInput.classList.add('bg-white', 'text-slate-950');
+                }
+                if (rateInput) {
+                    rateInput.readOnly = false;
+                    rateInput.disabled = false;
+                    rateInput.classList.remove('bg-slate-100', 'text-slate-500', 'cursor-not-allowed');
+                    rateInput.classList.add('bg-white', 'text-slate-950');
+                }
+                if (stepMinus) stepMinus.style.display = 'flex';
+                if (stepPlus) stepPlus.style.display = 'flex';
+                if (presetsBar) presetsBar.style.display = 'flex';
+                if (lockLabel) lockLabel.classList.add('hidden');
+                if (infoBox) {
+                    infoBox.className = 'p-3.5 rounded-2xl border text-xs font-semibold flex items-start gap-2.5 bg-amber-50 border-amber-200 text-amber-950';
+                }
+                if (infoText) {
+                    infoText.innerHTML = `<b>🌍 ${code} Multiplier & Rate:</b> International users pay <b>(Base Rate × Multiplier)</b> converted into ${code}. Use the buttons or tap inputs to customize.`;
+                }
+                highlightMultiplierPill(item.priceMultiplier);
+            }
 
             updateCurrencyLivePreview();
             openModal('modal-edit-currency');
@@ -8309,24 +8400,55 @@
 
         function setPresetMultiplier(mult) {
             const multInput = document.getElementById('edit-currency-multiplier');
-            if (multInput && !multInput.disabled) {
-                multInput.value = mult.toFixed(2);
+            if (multInput && !multInput.readOnly && !multInput.disabled) {
+                const val = parseFloat(mult) || 2.0;
+                multInput.value = val.toFixed(2);
+                highlightMultiplierPill(val);
                 updateCurrencyLivePreview();
             }
         }
 
+        function stepMultiplier(delta) {
+            const multInput = document.getElementById('edit-currency-multiplier');
+            if (multInput && !multInput.readOnly && !multInput.disabled) {
+                let current = parseFloat(multInput.value) || 2.0;
+                current = Math.max(0.5, Math.min(10.0, Math.round((current + delta) * 10) / 10));
+                multInput.value = current.toFixed(2);
+                highlightMultiplierPill(current);
+                updateCurrencyLivePreview();
+            }
+        }
+
+        function highlightMultiplierPill(val) {
+            const targetVal = parseFloat(val) || 0;
+            document.querySelectorAll('#multiplier-presets-bar button').forEach(btn => {
+                const pVal = parseFloat(btn.dataset.val || btn.innerText);
+                if (Math.abs(pVal - targetVal) < 0.05) {
+                    btn.className = 'preset-mult-pill px-2.5 py-1 rounded-xl text-xs font-black bg-amber-400 text-slate-950 border border-amber-500 shadow-sm transition-all';
+                } else {
+                    btn.className = 'preset-mult-pill px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 transition-all';
+                }
+            });
+        }
+
         function updateCurrencyLivePreview() {
-            const code = document.getElementById('edit-currency-code').value;
-            const sym = document.getElementById('edit-currency-symbol').value || '$';
-            const rate = parseFloat(document.getElementById('edit-currency-rate').value) || 1.0;
-            const mult = parseFloat(document.getElementById('edit-currency-multiplier').value) || 1.0;
+            const code = document.getElementById('edit-currency-code')?.value || 'USD';
+            const sym = document.getElementById('edit-currency-symbol')?.value || '$';
+            const rateInputVal = document.getElementById('edit-currency-rate')?.value;
+            const multInputVal = document.getElementById('edit-currency-multiplier')?.value;
+            const rate = parseFloat(rateInputVal) || 1.0;
+            const mult = parseFloat(multInputVal) || 1.0;
 
             const baseInr = 20; // Standard testing base
             if (code === 'INR') {
-                document.getElementById('preview-foreign-rate').innerText = '₹20.00/min';
-                document.getElementById('preview-effective-inr').innerText = '₹20.00/min';
-                document.getElementById('preview-astro-share').innerText = '₹10.00 INR';
-                document.getElementById('preview-admin-share').innerText = '₹10.00 INR';
+                const previewFor = document.getElementById('preview-foreign-rate');
+                if (previewFor) previewFor.innerText = '₹20.00 / min';
+                const previewEff = document.getElementById('preview-effective-inr');
+                if (previewEff) previewEff.innerText = '₹20.00 / min';
+                const previewAstro = document.getElementById('preview-astro-share');
+                if (previewAstro) previewAstro.innerText = '₹10.00 INR';
+                const previewAdmin = document.getElementById('preview-admin-share');
+                if (previewAdmin) previewAdmin.innerText = '₹10.00 INR';
                 return;
             }
 
@@ -8336,26 +8458,35 @@
             const astroShare = Math.round(effectiveInr * 0.50 * 100) / 100;
             const adminMargin = Math.round((effectiveInr - astroShare) * 100) / 100;
 
-            document.getElementById('preview-foreign-rate').innerText = `${sym}${roundedForeign.toFixed(2)}/min`;
-            document.getElementById('preview-effective-inr').innerText = `₹${effectiveInr.toFixed(2)}/min`;
-            document.getElementById('preview-astro-share').innerText = `₹${astroShare.toFixed(2)} INR`;
-            document.getElementById('preview-admin-share').innerText = `₹${adminMargin.toFixed(2)} INR`;
+            const previewFor = document.getElementById('preview-foreign-rate');
+            if (previewFor) previewFor.innerText = `${sym}${roundedForeign.toFixed(2)} / min`;
+            const previewEff = document.getElementById('preview-effective-inr');
+            if (previewEff) previewEff.innerText = `₹${effectiveInr.toFixed(2)} / min`;
+            const previewAstro = document.getElementById('preview-astro-share');
+            if (previewAstro) previewAstro.innerText = `₹${astroShare.toFixed(2)} INR`;
+            const previewAdmin = document.getElementById('preview-admin-share');
+            if (previewAdmin) previewAdmin.innerText = `₹${adminMargin.toFixed(2)} INR`;
         }
 
         async function handleCurrencyFormSubmit(e) {
             e.preventDefault();
-            const code = document.getElementById('edit-currency-code').value;
-            const sym = document.getElementById('edit-currency-symbol').value.trim();
-            const rate = parseFloat(document.getElementById('edit-currency-rate').value);
-            const mult = parseFloat(document.getElementById('edit-currency-multiplier').value);
-            const isActive = document.getElementById('edit-currency-active').checked;
+            const code = document.getElementById('edit-currency-code')?.value;
+            if (!code) return;
+
+            const sym = (document.getElementById('edit-currency-symbol')?.value || '$').trim();
+            const isBase = (code === 'INR');
+            const rate = isBase ? 1.0 : parseFloat(document.getElementById('edit-currency-rate')?.value);
+            const mult = isBase ? 1.0 : parseFloat(document.getElementById('edit-currency-multiplier')?.value);
+            const isActive = document.getElementById('edit-currency-active')?.checked !== false;
 
             if (isNaN(rate) || rate <= 0) return showToast('Exchange rate must be > 0', 'error');
-            if (isNaN(mult) || mult <= 0) return showToast('Multiplier must be > 0', 'error');
+            if (isNaN(mult) || mult <= 0) return showToast('Price multiplier must be > 0', 'error');
 
             const btn = document.getElementById('btn-save-currency');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+            }
 
             try {
                 const res = await fetch(`/api/admin/currency-settings/${encodeURIComponent(code)}`, {
@@ -8383,10 +8514,13 @@
                     showToast(data.error || 'Failed to update currency setting', 'error');
                 }
             } catch (err) {
+                console.error('[CurrencyAdmin] Submit error:', err);
                 showToast('Network error while updating currency setting', 'error');
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-check"></i> Save Currency Settings';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-check mr-1"></i> Save Currency Settings';
+                }
             }
         }
 
