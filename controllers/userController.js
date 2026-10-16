@@ -218,6 +218,9 @@ const getSessionHistory = async (req, res) => {
             .lean();
         userDocs.forEach(u => { usersMap[u.userId] = u; });
 
+        const callerDoc = usersMap[userId] || await User.findOne({ userId }).select('role').lean();
+        const isCallerAstrologer = callerDoc?.role === 'astrologer';
+
         // 3. Map names efficiently in memory (No extra DB calls)
         const populatedSessions = sessions.map(s => {
             const client = usersMap[s.clientId || s.fromUserId];
@@ -233,6 +236,9 @@ const getSessionHistory = async (req, res) => {
             const minutes = Math.floor(durationSec / 60);
             const seconds = durationSec % 60;
             const durationFormatted = `${minutes}m ${seconds}s`;
+
+            const totalCharged = s.totalCharged !== undefined ? s.totalCharged : (s.totalAmount || 0);
+            const totalEarned = s.totalEarned !== undefined ? s.totalEarned : (s.astroProfit || 0);
 
             const sessionObj = {
                 ...s, // Includes recordingUrl from DB
