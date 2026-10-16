@@ -191,22 +191,9 @@ body {
     transform: translateY(-2px);
 }
 
-/* Modal Active State - Hide Nav Overlay and Lock Scroll */
+/* Modal Active State - Safe Scroll Lock (Sidebar remains intact under backdrop) */
 body.modal-active {
     overflow: hidden !important;
-}
-
-body.modal-active aside {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateX(-10px);
-    transition: all 0.3s ease;
-}
-
-@media (max-width: 1024px) {
-    body.modal-active aside {
-        display: none !important;
-    }
 }
 
 /* Fix for mobile navigation safe area */
