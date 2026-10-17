@@ -7,10 +7,51 @@
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="apple-touch-icon" href="/images/astro_5_star_logo.png">
     <title>Astro5Star | Super Admin Control</title>
-    <link rel="stylesheet" href="superadmin.css">
+    <link rel="stylesheet" href="superadmin.css?v=3.4.1">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="tailwind-admin-built.css">
+    <style>
+        /* Zero-Overlap Modal & High Z-Index Suite (Ensures dialogs always stay in front of sidebar) */
+        .modal-fixed, [id^="modal-"], div[id^="modal-"] {
+            z-index: 99999 !important;
+        }
+        [id^="modal-"]:not(.hidden) {
+            display: flex !important;
+            position: fixed !important;
+            top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+            width: 100vw !important; height: 100vh !important;
+            background-color: rgba(15, 23, 42, 0.75) !important;
+            backdrop-filter: blur(6px) !important;
+            -webkit-backdrop-filter: blur(6px) !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 1rem !important;
+            box-sizing: border-box !important;
+        }
+        [id^="modal-"].hidden { display: none !important; }
+        body.modal-active aside { z-index: 40 !important; }
+        .max-w-xs { max-width: 20rem !important; }
+        .max-w-sm { max-width: 24rem !important; }
+        .max-w-md { max-width: 28rem !important; }
+        .max-w-lg { max-width: 32rem !important; }
+        .max-w-xl { max-width: 38rem !important; }
+        .max-w-2xl { max-width: 44rem !important; }
+        .max-w-3xl { max-width: 50rem !important; }
+        .max-w-4xl { max-width: 56rem !important; }
+        .max-w-5xl { max-width: 64rem !important; }
+        .max-w-6xl { max-width: 72rem !important; }
+        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+        .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+        .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+        .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+        @media (min-width: 640px) {
+            .sm\:grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+            .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+            .sm\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+            .sm\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+        }
+    </style>
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
@@ -2436,8 +2477,10 @@
 
     <!-- Edit Currency Setting Modal (Zero-Overlap Responsive UI) -->
     <div id="modal-edit-currency" onclick="if(event.target === this) closeModal('modal-edit-currency')"
+        style="z-index: 99999;"
         class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-2.5 sm:p-4 transition-all duration-300 hidden">
-        <div class="bg-white w-full max-w-xl max-h-[94vh] sm:max-h-[90vh] flex flex-col rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 border border-slate-200">
+        <div style="max-width: 580px; width: 100%; margin: auto;"
+            class="bg-white w-full max-w-xl max-h-[94vh] sm:max-h-[90vh] flex flex-col rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 border border-slate-200">
             
             <!-- Sticky Modal Header -->
             <header class="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50 shrink-0">
@@ -2473,7 +2516,7 @@
                     </div>
 
                     <!-- Row 1: Currency Code & Symbol -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-tight mb-1.5">Currency & Region</label>
                             <input type="text" id="edit-currency-code-display" readonly
@@ -2488,7 +2531,7 @@
                     </div>
 
                     <!-- Row 2: Exchange Rate & Price Multiplier -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
                         <!-- Exchange Rate Column -->
                         <div class="space-y-1.5">
                             <div class="flex items-center justify-between gap-1.5">
@@ -2528,7 +2571,7 @@
                             </div>
 
                             <!-- Quick multiplier preset pills: 5-column grid -->
-                            <div class="grid grid-cols-5 gap-1 pt-1" id="multiplier-presets-bar">
+                            <div class="grid grid-cols-5 gap-1 pt-1" id="multiplier-presets-bar" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.25rem;">
                                 <button type="button" data-val="1.50" onclick="setPresetMultiplier(1.50)" class="preset-mult-pill py-1 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200 transition-all text-center">1.5x</button>
                                 <button type="button" data-val="1.80" onclick="setPresetMultiplier(1.80)" class="preset-mult-pill py-1 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200 transition-all text-center">1.8x</button>
                                 <button type="button" data-val="2.00" onclick="setPresetMultiplier(2.00)" class="preset-mult-pill py-1 rounded-lg text-xs font-black bg-amber-400 text-slate-950 border border-amber-500 shadow-sm transition-all text-center">2.0x</button>
@@ -2549,7 +2592,7 @@
                             </span>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-2 sm:gap-2.5 pt-1">
+                        <div class="grid grid-cols-2 gap-2 sm:gap-2.5 pt-1" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                             <div class="bg-white p-2.5 sm:p-3 rounded-xl border border-slate-200 shadow-xs">
                                 <span class="text-[10px] font-bold text-slate-600 block uppercase truncate">Client Pays</span>
                                 <span id="preview-foreign-rate" class="text-sm sm:text-base font-black text-slate-950 block mt-0.5 truncate">$0.47 / min</span>
@@ -2560,7 +2603,7 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-2 sm:gap-2.5">
+                        <div class="grid grid-cols-2 gap-2 sm:gap-2.5" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                             <div class="bg-white p-2.5 sm:p-3 rounded-xl border border-slate-200 shadow-xs">
                                 <span class="text-[10px] font-bold text-slate-600 block uppercase truncate">Astro Share (50%)</span>
                                 <span id="preview-astro-share" class="text-xs sm:text-sm font-black text-teal-800 block mt-0.5 truncate">₹20.00 INR</span>
@@ -2598,8 +2641,10 @@
 
     <!-- Sync Live Forex Market Rates Modal (Preview & Confirm) -->
     <div id="modal-sync-live-rates" onclick="if(event.target === this) closeModal('modal-sync-live-rates')"
+        style="z-index: 99999;"
         class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-2.5 sm:p-4 transition-all duration-300 hidden">
-        <div class="bg-white w-full max-w-lg max-h-[94vh] sm:max-h-[90vh] flex flex-col rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 border border-slate-200">
+        <div style="max-width: 540px; width: 100%; margin: auto;"
+            class="bg-white w-full max-w-lg max-h-[94vh] sm:max-h-[90vh] flex flex-col rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 border border-slate-200">
             
             <!-- Modal Header -->
             <header class="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50 shrink-0">
