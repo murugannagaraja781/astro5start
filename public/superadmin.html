@@ -1084,7 +1084,7 @@
                                     <tr
                                         class="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-50">
                                         <th class="pb-6 px-4">Pay Amount (₹)</th>
-                                        <th class="pb-6 px-4">Bonus / Cashback (%)</th>
+                                        <th class="pb-6 px-4">Bonus / Cashback (%) <span class="text-rose-500 font-bold lowercase tracking-normal">(max 99%)</span></th>
                                         <th class="pb-6 px-4">Box UI Label (e.g. "Get 10% Extra")</th>
                                         <th class="pb-6 px-4 text-center">Preview</th>
                                         <th class="pb-6 px-4 text-right">Remove</th>
@@ -7015,11 +7015,28 @@
             }
         }
 
+        function handleOfferPercentageChange(el) {
+            let val = parseFloat(el.value);
+            if (isNaN(val)) {
+                updateRowPreview(el);
+                return;
+            }
+            if (val > 99) {
+                alert('⚠️ எச்சரிக்கை: அதிகபட்ச ஆஃபர் சதவீதம் 99% மட்டுமே வழங்க முடியும்!\n(Maximum offer percentage cannot exceed 99%)');
+                el.value = 99;
+            } else if (val < 0) {
+                alert('⚠️ எச்சரிக்கை: ஆஃபர் சதவீதம் 0% அல்லது அதற்கு மேல் மட்டுமே இருக்க வேண்டும்.');
+                el.value = 0;
+            }
+            updateRowPreview(el);
+        }
+
         function addRechargePackRow(data = { amount: 0, percentage: 0, bonusText: '' }) {
             const tbody = document.getElementById('recharge-packs-body');
             const row = document.createElement('tr');
             row.className = 'hover:bg-slate-50/50 transition-colors border-b border-slate-50/50 rp-row group';
-            const displayPercentage = data.percentage || data.offerPercentage || 0;
+            let displayPercentage = data.percentage !== undefined ? data.percentage : (data.offerPercentage || 0);
+            displayPercentage = Math.min(99, Math.max(0, parseFloat(displayPercentage) || 0));
 
             row.innerHTML = `
                 <td class="py-6 px-4">
@@ -7031,7 +7048,7 @@
                 <td class="py-6 px-4">
                     <div class="relative">
                         <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">%</span>
-                        <input type="number" oninput="updateRowPreview(this)" class="rp-offer w-28 bg-slate-50 px-4 py-3 rounded-xl border-0 focus:ring-2 focus:ring-blue-500 font-black text-sm text-blue-600 shadow-inner" value="${displayPercentage}">
+                        <input type="number" min="0" max="99" step="any" oninput="handleOfferPercentageChange(this)" onchange="handleOfferPercentageChange(this)" class="rp-offer w-28 bg-slate-50 px-4 py-3 rounded-xl border-0 focus:ring-2 focus:ring-blue-500 font-black text-sm text-blue-600 shadow-inner" value="${displayPercentage}">
                     </div>
                 </td>
                 <td class="py-6 px-4">
@@ -7071,6 +7088,28 @@
 
         async function saveRechargeSettings() {
             const rows = document.querySelectorAll('#recharge-packs-body tr');
+            
+            // Step 1: Pre-validation of each row before proceeding
+            for (const r of rows) {
+                const amtInput = r.querySelector('.rp-amount');
+                const offerInput = r.querySelector('.rp-offer');
+                const amt = parseInt(amtInput.value);
+                const offerVal = parseFloat(offerInput.value);
+
+                if (isNaN(amt) || amt <= 0) {
+                    alert('⚠️ தயவுசெய்து சரியான ரீசார்ஜ் தொகையை (Amount) உள்ளிடவும்.');
+                    amtInput.focus();
+                    return;
+                }
+
+                if (isNaN(offerVal) || offerVal < 0 || offerVal > 99) {
+                    alert(`⚠️ ஆஃபர் சதவீதம் தவறாக உள்ளது!\nஅதிகபட்சம் 99% மட்டுமே அனுமதிக்கப்படும்.\n(Offer percentage must be between 0% and 99%).\n₹${amt} பேக்கில் உள்ள மதிப்பு: ${offerVal}%`);
+                    offerInput.value = Math.min(99, Math.max(0, offerVal || 0));
+                    offerInput.focus();
+                    return;
+                }
+            }
+
             const packs = Array.from(rows).map(r => ({
                 amount: parseInt(r.querySelector('.rp-amount').value),
                 percentage: parseFloat(r.querySelector('.rp-offer').value),
@@ -7080,6 +7119,13 @@
             if (packs.length === 0) {
                 alert('Please add at least one recharge pack');
                 return;
+            }
+
+            for (const p of packs) {
+                if (isNaN(p.percentage) || p.percentage < 0 || p.percentage > 99) {
+                    alert(`⚠️ அதிகபட்சம் 99% மட்டுமே ஆஃபர் கொடுக்க முடியும்!\n₹${p.amount} பேக்கில் ${p.percentage}% உள்ளது. தயவுசெய்து 99% அல்லது அதற்கும் குறைவாக மாற்றவும்.`);
+                    return;
+                }
             }
 
             try {
@@ -7097,7 +7143,7 @@
                     showToast('Recharge Packs Synced', 'success');
                     socket.emit('admin-broadcast-refresh', { type: 'recharge' });
                 } else {
-                    alert('ERROR: Failed to save settings to server. Check API logs.');
+                    alert('ERROR: ' + (res.message || 'Failed to save settings to server. Check API logs.'));
                 }
             } catch (e) {
                 console.error(e);

@@ -49,7 +49,23 @@ router.get('/recharge-settings', (req, res) => {
 router.post('/recharge-settings', async (req, res) => {
     try {
         const { packs } = req.body;
-        if (!Array.isArray(packs)) return res.status(400).json({ ok: false, message: 'Invalid packs data' });
+        if (!Array.isArray(packs) || packs.length === 0) {
+            return res.status(400).json({ ok: false, message: 'Invalid or empty packs data' });
+        }
+        
+        for (const p of packs) {
+            const amt = parseFloat(p.amount);
+            const pct = parseFloat(p.percentage);
+            if (isNaN(amt) || amt <= 0) {
+                return res.status(400).json({ ok: false, message: `Invalid pack amount: ${p.amount}` });
+            }
+            if (isNaN(pct) || pct < 0 || pct > 99) {
+                return res.status(400).json({ 
+                    ok: false, 
+                    message: `ஆஃபர் சதவீதம் அதிகபட்சம் 99% மட்டுமே அனுமதிக்கப்படும் (Offer percentage must be between 0% and 99%). Received: ${p.percentage}% for ₹${p.amount}` 
+                });
+            }
+        }
         
         const { updateRechargePacks } = require('../services/sharedState');
         const success = await updateRechargePacks(packs);

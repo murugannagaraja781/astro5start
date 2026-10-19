@@ -56,6 +56,11 @@ const createPayment = async (req, res) => {
             const code = couponCode.toUpperCase().trim();
             if (code === 'WELCOME50') couponBonus = baseAmount * 0.50;
         } else if (internalOfferPercentage > 0) {
+            // Guardrail: Max 99% offer bonus allowed
+            if (internalOfferPercentage > 99) {
+                console.warn(`[Payment Security] offerPercentage ${internalOfferPercentage}% exceeds 99%. Capping to 99%.`);
+                internalOfferPercentage = 99;
+            }
             // Requirement Fix: Treat offerPercentage as CASHBACK/BONUS (Credit to SuperWallet)
             // Instead of reducing pay amount (discount), we increase the bonus.
             couponBonus = baseAmount * (internalOfferPercentage / 100);

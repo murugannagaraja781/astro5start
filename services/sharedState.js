@@ -140,8 +140,13 @@ async function loadRechargePacks() {
         const GlobalSettings = require('../models/GlobalSettings');
         const doc = await GlobalSettings.findOne({ key: 'RECHARGE_PACKS' });
         if (doc && doc.value) {
-            RECHARGE_PACKS.splice(0, RECHARGE_PACKS.length, ...doc.value);
-            console.log('✓ Recharge packs loaded from DB');
+            const sanitized = doc.value.map(p => ({
+                amount: Math.round(Number(p.amount) || 0),
+                percentage: Math.min(99, Math.max(0, parseFloat(p.percentage) || 0)),
+                bonusText: String(p.bonusText || '')
+            })).filter(p => p.amount > 0);
+            RECHARGE_PACKS.splice(0, RECHARGE_PACKS.length, ...sanitized);
+            console.log('✓ Recharge packs loaded from DB (enforced max 99% cap)');
         } else {
             // Save defaults if not exist
             await GlobalSettings.findOneAndUpdate(
@@ -158,7 +163,13 @@ async function loadRechargePacks() {
 async function updateRechargePacks(newPacks) {
     try {
         const GlobalSettings = require('../models/GlobalSettings');
-        RECHARGE_PACKS.splice(0, RECHARGE_PACKS.length, ...newPacks);
+        const sanitized = newPacks.map(p => ({
+            amount: Math.round(Number(p.amount) || 0),
+            percentage: Math.min(99, Math.max(0, parseFloat(p.percentage) || 0)),
+            bonusText: String(p.bonusText || '')
+        })).filter(p => p.amount > 0);
+
+        RECHARGE_PACKS.splice(0, RECHARGE_PACKS.length, ...sanitized);
         await GlobalSettings.findOneAndUpdate(
             { key: 'RECHARGE_PACKS' },
             { value: RECHARGE_PACKS },
