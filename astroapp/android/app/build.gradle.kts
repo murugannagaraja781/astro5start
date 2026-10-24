@@ -16,8 +16,8 @@ android {
         applicationId = "com.astro5star.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 52
-        versionName = "7.5"
+        versionCode = 53
+        versionName = "7.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -157,4 +157,7 @@ dependencies {
 
     // Install Referrer
     implementation("com.android.installreferrer:installreferrer:2.2")
+
+    // Meta (Facebook) Android SDK
+    implementation("com.facebook.android:facebook-android-sdk:17.0.2")
 }

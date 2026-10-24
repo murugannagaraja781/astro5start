@@ -16,3 +16,10 @@
 
 # Keep Kotlin metadata
 -keep class kotlin.Metadata { *; }
+
+# Meta (Facebook) SDK Rules
+-keep class com.facebook.** { *; }
+-keepnames class com.facebook.** { *; }
+-keepclassmembers class com.facebook.** { *; }
+-dontwarn com.facebook.**
+-keep class com.facebook.appevents.** { *; }
