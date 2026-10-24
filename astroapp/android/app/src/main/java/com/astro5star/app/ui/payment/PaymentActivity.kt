@@ -510,6 +510,10 @@ class PaymentActivity : AppCompatActivity() {
 
     private fun handlePaymentResult(status: String) {
         Log.d(TAG, "Handling Result: $status. Closing activity.")
+        if (status == "success") {
+            val amount = intent.getDoubleExtra("amount", 0.0)
+            com.astro5star.app.utils.MetaEventsTracker.logPurchase(this, amount, "INR")
+        }
         finish()
     }
 }

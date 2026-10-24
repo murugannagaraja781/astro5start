@@ -96,6 +96,9 @@ class OtpVerificationActivity : AppCompatActivity() {
                 val user = result.getOrThrow()
                 tokenManager.saveUserSession(user)
 
+                // Log Meta Event: fb_mobile_complete_registration
+                com.astro5star.app.utils.MetaEventsTracker.logRegistration(this@OtpVerificationActivity, "phone_otp", user.userId)
+
                 // Upload FCM Token
                 com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
                     if (task.isSuccessful) {

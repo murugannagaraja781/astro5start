@@ -67,6 +67,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         tokenManager = TokenManager(this)
 
+        // Log Meta App Launch Event
+        com.astro5star.app.utils.MetaEventsTracker.logAppActivate(this)
+
         setContent {
             CosmicAppTheme {
                 SplashScreen()

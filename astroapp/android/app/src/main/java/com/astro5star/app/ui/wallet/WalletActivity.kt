@@ -85,6 +85,9 @@ class WalletActivity : ComponentActivity() {
                         if (amount < 1) {
                             Toast.makeText(this, getString(R.string.enter_valid_amount), Toast.LENGTH_SHORT).show()
                         } else {
+                            // Log Meta Event: fb_mobile_initiated_checkout
+                            com.astro5star.app.utils.MetaEventsTracker.logInitiateCheckout(this, amount.toDouble(), tokenManager.getUserCurrency())
+
                             val intent = Intent(this, com.astro5star.app.ui.payment.PaymentActivity::class.java)
                             intent.putExtra("amount", amount.toDouble())
                             intent.putExtra("offerPercentage", percentage)

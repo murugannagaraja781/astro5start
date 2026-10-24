@@ -45,6 +45,8 @@ class PaymentStatusActivity : ComponentActivity() {
 
         if (isSuccess) {
             refreshWalletBalance()
+            val amount = data?.getQueryParameter("amount")?.toDoubleOrNull() ?: 100.0
+            com.astro5star.app.utils.MetaEventsTracker.logPurchase(this, amount, "INR", txnId)
         }
 
         setContent {
