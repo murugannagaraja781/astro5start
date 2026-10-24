@@ -13,15 +13,19 @@ class AstrologerApp : Application() {
 
         // Initialize Meta (Facebook) SDK & activate automatic app events
         try {
-            FacebookSdk.sdkInitialize(applicationContext)
-            AppEventsLogger.activateApp(this)
-
-            // Enable VERBOSE logging for Meta SDK (Logs HTTP requests and Events)
+            FacebookSdk.setApplicationId("1641556493735534")
+            FacebookSdk.setClientToken("26f573d8d8e53045aa93c18348b3b33f")
+            FacebookSdk.setAutoLogAppEventsEnabled(true)
+            FacebookSdk.setAdvertiserIDCollectionEnabled(true)
             FacebookSdk.setIsDebugEnabled(true)
             FacebookSdk.addLoggingBehavior(LoggingBehavior.APP_EVENTS)
             FacebookSdk.addLoggingBehavior(LoggingBehavior.REQUESTS)
             FacebookSdk.addLoggingBehavior(LoggingBehavior.DEVELOPER_ERRORS)
-            Log.d("MetaSDK", "Meta SDK initialized successfully with VERBOSE logging enabled")
+
+            FacebookSdk.sdkInitialize(applicationContext)
+            AppEventsLogger.activateApp(this)
+            AppEventsLogger.newLogger(this).flush()
+            Log.d("MetaSDK", "Meta SDK initialized successfully with VERBOSE logging enabled and flushed")
         } catch (e: Exception) {
             Log.e("MetaSDK", "Failed to initialize Meta SDK", e)
         }

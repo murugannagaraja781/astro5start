@@ -115,6 +115,18 @@
             android:name="com.facebook.sdk.AdvertiserIDCollectionEnabled"
             android:value="true" />
 
+        <!-- Meta (Facebook) Custom Tab Deep Link for App Events and Login Pairing -->
+        <activity
+            android:name="com.facebook.CustomTabActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="@string/fb_login_protocol_scheme" />
+            </intent-filter>
+        </activity>
+
         <!--
             MainActivity: Entry point for user registration
             - Standard launch mode

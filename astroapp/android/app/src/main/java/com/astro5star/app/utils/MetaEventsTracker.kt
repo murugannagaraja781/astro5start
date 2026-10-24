@@ -22,7 +22,8 @@ object MetaEventsTracker {
         try {
             val logger = AppEventsLogger.newLogger(context)
             logger.logEvent(AppEventsConstants.EVENT_NAME_ACTIVATED_APP)
-            Log.d(TAG, "Logged event: fb_mobile_activate_app")
+            logger.flush()
+            Log.d(TAG, "Logged and flushed: fb_mobile_activate_app")
         } catch (e: Exception) {
             Log.e(TAG, "Error logging fb_mobile_activate_app", e)
         }
@@ -39,7 +40,8 @@ object MetaEventsTracker {
                 if (userId != null) putString("user_id", userId)
             }
             logger.logEvent(AppEventsConstants.EVENT_NAME_COMPLETED_REGISTRATION, params)
-            Log.d(TAG, "Logged event: fb_mobile_complete_registration with method: $method, userId: $userId")
+            logger.flush()
+            Log.d(TAG, "Logged and flushed: fb_mobile_complete_registration with method: $method, userId: $userId")
         } catch (e: Exception) {
             Log.e(TAG, "Error logging fb_mobile_complete_registration", e)
         }
@@ -67,7 +69,8 @@ object MetaEventsTracker {
 
             // Official Meta logPurchase method (Generates standard fb_mobile_purchase with value and currency)
             logger.logPurchase(BigDecimal.valueOf(validAmount), currency, params)
-            Log.d(TAG, "Logged event: fb_mobile_purchase with value: $validAmount, currency: ${currency.currencyCode}")
+            logger.flush()
+            Log.d(TAG, "Logged and flushed: fb_mobile_purchase with value: $validAmount, currency: ${currency.currencyCode}")
         } catch (e: Exception) {
             Log.e(TAG, "Error logging fb_mobile_purchase", e)
         }
@@ -84,7 +87,8 @@ object MetaEventsTracker {
                 putString(AppEventsConstants.EVENT_PARAM_CURRENCY, currencyCode)
             }
             logger.logEvent(AppEventsConstants.EVENT_NAME_INITIATED_CHECKOUT, params)
-            Log.d(TAG, "Logged event: fb_mobile_initiated_checkout with value: $amount $currencyCode")
+            logger.flush()
+            Log.d(TAG, "Logged and flushed: fb_mobile_initiated_checkout with value: $amount $currencyCode")
         } catch (e: Exception) {
             Log.e(TAG, "Error logging initiated checkout", e)
         }
