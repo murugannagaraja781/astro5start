@@ -37,23 +37,24 @@ router.post('/create-order', async (req, res) => {
             return res.status(400).json({ ok: false, error: 'Invalid amount' });
         }
 
+        const { getCurrencySetting } = require('../utils/currencyHelper');
         let userCurrency = 'INR';
-        let userCurrencySymbol = '₹';
         const user = await User.findOne({ userId }).select('name phone email currency currencySymbol').lean();
         if (user && user.currency) {
-            userCurrency = user.currency;
-            userCurrencySymbol = user.currencySymbol || (userCurrency === 'USD' ? '$' : '₹');
+            userCurrency = user.currency.toUpperCase();
         }
         if (req.body.currency) {
-            userCurrency = req.body.currency;
-            userCurrencySymbol = userCurrency === 'USD' ? '$' : '₹';
+            userCurrency = String(req.body.currency).toUpperCase();
         }
 
-        const isUsd = userCurrency === 'USD';
-        // GST is 18% for INR domestic, 0% for international cross-border (USD)
-        const gstAmount = isUsd ? 0 : baseAmount * 0.18;
+        const curSetting = getCurrencySetting(userCurrency);
+        const userCurrencySymbol = user?.currencySymbol || curSetting.currencySymbol || (userCurrency === 'USD' ? '$' : (userCurrency === 'LKR' ? 'Rs' : '₹'));
+
+        const isDomestic = userCurrency === 'INR';
+        // GST is 18% for INR domestic, 0% for international cross-border (USD, LKR, SGD, etc.)
+        const gstAmount = isDomestic ? baseAmount * 0.18 : 0;
         const totalAmount = baseAmount + gstAmount;
-        // In Razorpay: paise for INR, cents for USD
+        // In Razorpay: paise for INR, subunits (cents/cents/cents) for foreign currencies
         const amountInSubunits = Math.round(totalAmount * 100);
 
         if (amountInSubunits < 100) {
@@ -196,7 +197,7 @@ router.post('/verify-payment', async (req, res) => {
             credited: rechargeAmount,
             bonus: bonusAmount,
             currency: payment.currency || 'INR',
-            currencySymbol: payment.currencySymbol || (payment.currency === 'USD' ? '$' : '₹')
+            currencySymbol: payment.currencySymbol || (payment.currency === 'USD' ? '$' : (payment.currency === 'LKR' ? 'Rs' : '₹'))
         });
 
     } catch (err) {

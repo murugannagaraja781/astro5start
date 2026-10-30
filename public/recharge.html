@@ -233,7 +233,7 @@
 
         <div class="balance-card">
             <div class="balance-label">Available Balance</div>
-            <div class="balance-value">₹ <span id="current-balance">0.0</span></div>
+            <div class="balance-value"><span id="currency-symbol">₹</span> <span id="current-balance">0.0</span></div>
         </div>
 
         <div class="offers-grid" id="offers-container">
@@ -258,19 +258,34 @@
     <div id="toast-container"></div>
 
     <script>
-        const offers = [
-            { amount: 50, bonus: 5 },
-            { amount: 100, bonus: 5 },
-            { amount: 500, bonus: 10 },
-            { amount: 1000, bonus: 10 },
-            { amount: 200, bonus: 10 },
-            { amount: 5000, bonus: 20 },
-            { amount: 2000, bonus: 15 },
-            { amount: 20, bonus: 5 },
-            { amount: 1, bonus: 1 }
+        let offers = [
+            { amount: 50, bonus: 5, bonusText: "Get 5% Extra" },
+            { amount: 100, bonus: 5, bonusText: "Get 5% Extra" },
+            { amount: 500, bonus: 10, bonusText: "Get 10% Extra" },
+            { amount: 1000, bonus: 10, bonusText: "Get 10% Extra" },
+            { amount: 200, bonus: 10, bonusText: "Get 10% Extra" },
+            { amount: 5000, bonus: 20, bonusText: "Get 20% Extra" },
+            { amount: 2000, bonus: 15, bonusText: "Get 15% Extra" },
+            { amount: 20, bonus: 5, bonusText: "Get 5% Extra" },
+            { amount: 1, bonus: 1, bonusText: "Get 1% Extra" }
         ];
 
         let userId = null;
+        let userCurrency = 'INR';
+        let userCurrencySymbol = '₹';
+
+        function getSymbolFor(curr) {
+            switch ((curr || 'INR').toUpperCase()) {
+                case 'USD': return '$';
+                case 'LKR': return 'Rs';
+                case 'SGD': return 'S$';
+                case 'MYR': return 'RM';
+                case 'GBP': return '£';
+                case 'AED': return 'AED';
+                case 'AUD': return 'A$';
+                default: return '₹';
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -279,29 +294,50 @@
             if (!userId) {
                 showToast("User ID not found in URL", "error");
             } else {
-                fetchUserBalance();
+                fetchUserData();
             }
 
             renderOffers();
         });
 
-        function fetchUserBalance() {
-            fetch(`/api/user/profile/${userId}`)
+        function fetchUserData() {
+            fetch(`/api/user/${userId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.ok) {
+                        userCurrency = (data.currency || 'INR').toUpperCase();
+                        userCurrencySymbol = data.currencySymbol || getSymbolFor(userCurrency);
+                        const symEl = document.getElementById('currency-symbol');
+                        if (symEl) symEl.innerText = userCurrencySymbol;
                         document.getElementById('current-balance').innerText = parseFloat(data.walletBalance || 0).toFixed(1);
+                        fetchPacks();
                     }
                 })
                 .catch(err => console.error("Balance fetch error:", err));
+        }
+
+        function fetchPacks() {
+            fetch(`/api/payment/recharge-packs?currency=${userCurrency}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.ok && Array.isArray(data.packs) && data.packs.length > 0) {
+                        offers = data.packs.map(p => ({
+                            amount: p.amount,
+                            bonus: p.percentage !== undefined ? p.percentage : (p.offerPercentage || 0),
+                            bonusText: p.bonusText || `Get ${p.percentage || 0}% Extra`
+                        }));
+                        renderOffers();
+                    }
+                })
+                .catch(err => console.error("Packs fetch error:", err));
         }
 
         function renderOffers() {
             const container = document.getElementById('offers-container');
             container.innerHTML = offers.map(offer => `
                 <div class="offer-card" onclick="handleRecharge(${offer.amount}, ${offer.bonus})">
-                    <div class="amount-section">₹ ${offer.amount}</div>
-                    <div class="bonus-section">Get ${offer.bonus}% Extra</div>
+                    <div class="amount-section">${userCurrencySymbol} ${offer.amount}</div>
+                    <div class="bonus-section">${offer.bonusText || `Get ${offer.bonus}% Extra`}</div>
                 </div>
             `).join('');
         }

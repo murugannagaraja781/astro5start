@@ -132,11 +132,19 @@ const verifyPaymentToken = async (req, res) => {
 
         if (tokenData.used) return res.json({ ok: false, valid: false, error: 'Token already used' });
 
-        const user = await User.findOne({ userId: tokenData.userId }).select('name phone email').lean();
+        const user = await User.findOne({ userId: tokenData.userId }).select('name phone email currency currencySymbol').lean();
+        const userCurrency = (tokenData.currency || user?.currency || 'INR').toUpperCase();
+        const { getCurrencySetting } = require('../utils/currencyHelper');
+        const curSetting = getCurrencySetting(userCurrency);
+        const userCurrencySymbol = tokenData.currencySymbol || user?.currencySymbol || curSetting.currencySymbol || (userCurrency === 'USD' ? '$' : (userCurrency === 'LKR' ? 'Rs' : '₹'));
 
         res.json({
             ok: true,
             valid: true,
+            userId: tokenData.userId,
+            currency: userCurrency,
+            currencySymbol: userCurrencySymbol,
+            baseAmount: tokenData.baseAmount,
             amount: tokenData.amount,
             userName: user ? user.name : 'Cosmic User',
             phone: user && user.phone ? String(user.phone).replace(/[^0-9]/g, '').slice(-10) : '',
@@ -232,14 +240,24 @@ const getPaymentToken = async (req, res) => {
         const { userId, amount, couponCode, offerPercentage } = req.body;
         if (!userId || !amount) return res.status(400).json({ ok: false, error: 'Missing fields' });
 
+        const user = await User.findOne({ userId }).select('currency currencySymbol').lean();
+        const userCurrency = (user?.currency || 'INR').toUpperCase();
+        const isDomestic = userCurrency === 'INR';
+
         const token = crypto.randomBytes(16).toString('hex');
         const baseAmount = parseFloat(amount);
-        const gstAmount = baseAmount * 0.18;
+        const gstAmount = isDomestic ? baseAmount * 0.18 : 0;
         const totalAmount = baseAmount + gstAmount;
+
+        const { getCurrencySetting } = require('../utils/currencyHelper');
+        const curSetting = getCurrencySetting(userCurrency);
+        const userCurrencySymbol = user?.currencySymbol || curSetting.currencySymbol || (userCurrency === 'USD' ? '$' : (userCurrency === 'LKR' ? 'Rs' : '₹'));
 
         paymentTokens.set(token, {
             token,
             userId,
+            currency: userCurrency,
+            currencySymbol: userCurrencySymbol,
             amount: totalAmount,
             baseAmount,
             creditedAmount: baseAmount,
@@ -250,7 +268,7 @@ const getPaymentToken = async (req, res) => {
             used: false
         });
 
-        res.json({ ok: true, token });
+        res.json({ ok: true, token, currency: userCurrency, currencySymbol: userCurrencySymbol });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
     }
@@ -316,18 +334,9 @@ const getPaymentHistory = async (req, res) => {
 const getRechargePacks = async (req, res) => {
     try {
         const currency = (req.query.currency || req.headers['x-user-currency'] || 'INR').toUpperCase();
-        if (currency === 'USD') {
-            const usdPacks = [
-                { amount: 5, bonusText: "Get $5 Talktime", percentage: 0.0, offerPercentage: 0.0 },
-                { amount: 10, bonusText: "Get 10% Extra ($1 Bonus)", percentage: 10.0, offerPercentage: 10.0 },
-                { amount: 25, bonusText: "Get 12% Extra ($3 Bonus)", percentage: 12.0, offerPercentage: 12.0 },
-                { amount: 50, bonusText: "Get 20% Extra ($10 Bonus)", percentage: 20.0, offerPercentage: 20.0 },
-                { amount: 100, bonusText: "Get 25% Extra ($25 Bonus)", percentage: 25.0, offerPercentage: 25.0 }
-            ];
-            return res.json({ ok: true, packs: usdPacks, currency: 'USD' });
-        }
-        const { RECHARGE_PACKS } = require('../services/sharedState');
-        res.json({ ok: true, packs: RECHARGE_PACKS, currency: 'INR' });
+        const { getRechargePackages } = require('../utils/currencyHelper');
+        const packs = getRechargePackages(currency);
+        res.json({ ok: true, packs, currency });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
     }

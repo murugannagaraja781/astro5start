@@ -130,14 +130,22 @@ class WalletActivity : ComponentActivity() {
             } catch (e: Exception) {
                 Log.e("WalletActivity", "Failed to load packs", e)
                 withContext(Dispatchers.Main) {
-                    if (rechargePacksState.isEmpty()) {
-                        if (tokenManager.isUsdUser()) {
+                        val userCur = tokenManager.getUserCurrency()
+                        if (userCur == "USD") {
                             rechargePacksState.addAll(listOf(
                                 RechargePack(5, "Get $5 Talktime", 0.0),
                                 RechargePack(10, "Get 10% Extra ($1 Bonus)", 10.0),
                                 RechargePack(25, "Get 12% Extra ($3 Bonus)", 12.0),
                                 RechargePack(50, "Get 20% Extra ($10 Bonus)", 20.0),
                                 RechargePack(100, "Get 25% Extra ($25 Bonus)", 25.0)
+                            ))
+                        } else if (userCur == "LKR") {
+                            rechargePacksState.addAll(listOf(
+                                RechargePack(500, "Get Rs 500 Talktime", 0.0),
+                                RechargePack(1000, "Get Rs 1000 Talktime", 0.0),
+                                RechargePack(2500, "Get 10% Extra (Rs 250 Bonus)", 10.0),
+                                RechargePack(5000, "Get 15% Extra (Rs 750 Bonus)", 15.0),
+                                RechargePack(10000, "Get 20% Extra (Rs 2000 Bonus)", 20.0)
                             ))
                         } else {
                             rechargePacksState.addAll(listOf(
@@ -152,7 +160,6 @@ class WalletActivity : ComponentActivity() {
                                 RechargePack(1, "Get 1% Extra", 1.0)
                             ))
                         }
-                    }
                 }
             }
         }
@@ -312,9 +319,27 @@ fun WalletScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Highlight referral/cashback offer
-            val referralTitle = if (isUsd) "Refer & Earn $1.00 FREE!" else "Refer & Earn ₹50 FREE!"
-            val referralDesc = if (isUsd) "Introduce a friend and get $1.00 free wallet balance." else "Introduce a friend and get ₹50 free wallet balance."
-            val shareBonus = if (isUsd) "$1.00 FREE" else "₹50 FREE"
+            val referralTitle = when (currency) {
+                "USD" -> "Refer & Earn $1.00 FREE!"
+                "LKR" -> "Refer & Earn Rs 250 FREE!"
+                "SGD" -> "Refer & Earn S$1.50 FREE!"
+                "MYR" -> "Refer & Earn RM 5.00 FREE!"
+                else -> "Refer & Earn ₹50 FREE!"
+            }
+            val referralDesc = when (currency) {
+                "USD" -> "Introduce a friend and get $1.00 free wallet balance."
+                "LKR" -> "Introduce a friend and get Rs 250 free wallet balance."
+                "SGD" -> "Introduce a friend and get S$1.50 free wallet balance."
+                "MYR" -> "Introduce a friend and get RM 5.00 free wallet balance."
+                else -> "Introduce a friend and get ₹50 free wallet balance."
+            }
+            val shareBonus = when (currency) {
+                "USD" -> "$1.00 FREE"
+                "LKR" -> "Rs 250 FREE"
+                "SGD" -> "S$1.50 FREE"
+                "MYR" -> "RM 5.00 FREE"
+                else -> "₹50 FREE"
+            }
 
             Card(
                 modifier = Modifier
@@ -489,8 +514,8 @@ fun TransactionItem(tx: JSONObject, defaultCurrency: String = "INR") {
     val status = tx.optString("status", "pending")
     val date = tx.optString("createdAt", "").take(10)
     val txCurrency = tx.optString("currency", defaultCurrency)
-    val sym = if (txCurrency == "USD") "$" else tx.optString("currencySymbol", "₹")
-    val displayAmt = if (txCurrency == "USD") String.format("%.2f", amt) else amt.toInt().toString()
+    val sym = tx.optString("currencySymbol").takeIf { it.isNotEmpty() } ?: CurrencyHelper.getSymbol(txCurrency)
+    val displayAmt = if (txCurrency == "INR") amt.toInt().toString() else String.format(java.util.Locale.US, "%.2f", amt)
     
     Card(
         modifier = Modifier.fillMaxWidth(),

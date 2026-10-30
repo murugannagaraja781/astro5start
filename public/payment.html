@@ -336,7 +336,8 @@
             document.getElementById('paymentContainer').style.display = 'block';
             document.getElementById('errorContainer').style.display = 'none';
             document.getElementById('userName').textContent = data.userName || 'User';
-            document.getElementById('amountDisplay').textContent = '₹' + data.amount;
+            const sym = data.currencySymbol || (data.currency === 'USD' ? '$' : (data.currency === 'LKR' ? 'Rs' : '₹'));
+            document.getElementById('amountDisplay').textContent = sym + data.amount;
             document.getElementById('expiryInfo').textContent = `Session expires in: ${data.expiresIn} seconds`;
             document.getElementById('payBtn').disabled = false;
             const rzpBtn = document.getElementById('payRazorpayBtn');
@@ -362,6 +363,11 @@
                 const result = await response.json();
 
                 if (result.valid) {
+                    if (result.currency && result.currency !== 'INR') {
+                        const isApp = urlParams.get('isApp') === 'true' ? '&isApp=true' : '';
+                        window.location.replace(`/razorpay-checkout.html?userId=${encodeURIComponent(result.userId)}&amount=${encodeURIComponent(result.baseAmount)}&currency=${encodeURIComponent(result.currency)}${isApp}`);
+                        return;
+                    }
                     showPaymentForm(result);
                 } else {
                     showError('Invalid Token', result.error || 'Token verification failed.');

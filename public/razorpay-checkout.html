@@ -335,8 +335,22 @@
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId') || urlParams.get('uid') || '';
         const presetAmount = urlParams.get('amount') || '';
-        let currentCurrency = urlParams.get('currency') || 'INR';
-        let currencySymbol = currentCurrency === 'USD' ? '$' : '₹';
+        let currentCurrency = (urlParams.get('currency') || 'INR').toUpperCase();
+
+        function getSymbolFor(curr) {
+            switch ((curr || 'INR').toUpperCase()) {
+                case 'USD': return '$';
+                case 'LKR': return 'Rs';
+                case 'SGD': return 'S$';
+                case 'MYR': return 'RM';
+                case 'GBP': return '£';
+                case 'EUR': return '€';
+                case 'AED': return 'AED';
+                case 'AUD': return 'A$';
+                default: return '₹';
+            }
+        }
+        let currencySymbol = getSymbolFor(currentCurrency);
 
         // Auto-fetch user currency if user profile is known
         if (userId && !urlParams.has('currency')) {
@@ -344,8 +358,8 @@
                 .then(r => r.json())
                 .then(u => {
                     if (u.ok && u.currency) {
-                        currentCurrency = u.currency;
-                        currencySymbol = u.currencySymbol || (currentCurrency === 'USD' ? '$' : '₹');
+                        currentCurrency = u.currency.toUpperCase();
+                        currencySymbol = u.currencySymbol || getSymbolFor(currentCurrency);
                         renderCurrencyUI();
                         updateDisplay();
                     }
@@ -354,19 +368,40 @@
         }
 
         function renderCurrencyUI() {
-            const isUsd = currentCurrency === 'USD';
-            currencySymbol = isUsd ? '$' : '₹';
+            currencySymbol = getSymbolFor(currentCurrency);
             document.getElementById('amountLabel').textContent = `Enter Recharge Amount (${currencySymbol})`;
             document.getElementById('amountInput').placeholder = `Enter amount in ${currencySymbol}`;
 
             const container = document.getElementById('quickAmountsContainer');
-            if (isUsd) {
+            if (currentCurrency === 'USD') {
                 container.innerHTML = `
                     <button class="quick-btn" onclick="setAmount(5)">$5</button>
                     <button class="quick-btn" onclick="setAmount(10)">$10</button>
                     <button class="quick-btn" onclick="setAmount(25)">$25</button>
                     <button class="quick-btn" onclick="setAmount(50)">$50</button>
                     <button class="quick-btn" onclick="setAmount(100)">$100</button>
+                `;
+            } else if (currentCurrency === 'LKR') {
+                container.innerHTML = `
+                    <button class="quick-btn" onclick="setAmount(500)">Rs 500</button>
+                    <button class="quick-btn" onclick="setAmount(1000)">Rs 1000</button>
+                    <button class="quick-btn" onclick="setAmount(2500)">Rs 2500</button>
+                    <button class="quick-btn" onclick="setAmount(5000)">Rs 5000</button>
+                    <button class="quick-btn" onclick="setAmount(10000)">Rs 10000</button>
+                `;
+            } else if (currentCurrency === 'SGD') {
+                container.innerHTML = `
+                    <button class="quick-btn" onclick="setAmount(10)">S$10</button>
+                    <button class="quick-btn" onclick="setAmount(20)">S$20</button>
+                    <button class="quick-btn" onclick="setAmount(50)">S$50</button>
+                    <button class="quick-btn" onclick="setAmount(100)">S$100</button>
+                `;
+            } else if (currentCurrency === 'MYR') {
+                container.innerHTML = `
+                    <button class="quick-btn" onclick="setAmount(20)">RM 20</button>
+                    <button class="quick-btn" onclick="setAmount(50)">RM 50</button>
+                    <button class="quick-btn" onclick="setAmount(100)">RM 100</button>
+                    <button class="quick-btn" onclick="setAmount(200)">RM 200</button>
                 `;
             } else {
                 container.innerHTML = `
@@ -407,16 +442,16 @@
 
         function updateDisplay() {
             const base = parseFloat(document.getElementById('amountInput').value) || 0;
-            const isUsd = currentCurrency === 'USD';
-            const gst = isUsd ? 0 : base * 0.18;
+            const isDomestic = currentCurrency === 'INR';
+            const gst = isDomestic ? base * 0.18 : 0;
             const total = base + gst;
 
-            if (isUsd) {
-                document.getElementById('totalDisplay').textContent = '$' + total.toFixed(2);
-                document.getElementById('gstNote').textContent = 'International Payment (0% Tax)';
-            } else {
+            if (isDomestic) {
                 document.getElementById('totalDisplay').textContent = '₹' + total.toFixed(2);
                 document.getElementById('gstNote').textContent = `₹${base} + ₹${gst.toFixed(2)} GST`;
+            } else {
+                document.getElementById('totalDisplay').textContent = `${currencySymbol} ${total.toFixed(2)}`;
+                document.getElementById('gstNote').textContent = 'International Payment (0% Tax)';
             }
             document.getElementById('payButton').disabled = base <= 0;
         }

@@ -99,8 +99,15 @@ fun SuperWalletScreen(
     val pinkLight = Color(0xFFFDF2F8)
     val pinkGradient = Brush.verticalGradient(listOf(Color(0xFFDB2777), Color(0xFFF472B6)))
 
-    val rechargeOptions = if (isUsd) listOf(5, 10, 25, 50) else listOf(100, 500, 1000, 2000)
-    var selectedAmount by remember { mutableIntStateOf(if (isUsd) 10 else 100) }
+    val isDomestic = currency == "INR"
+    val rechargeOptions = when (currency) {
+        "USD" -> listOf(5, 10, 25, 50)
+        "LKR" -> listOf(500, 1000, 2500, 5000)
+        "SGD" -> listOf(10, 20, 50, 100)
+        "MYR" -> listOf(20, 50, 100, 200)
+        else -> listOf(100, 500, 1000, 2000)
+    }
+    var selectedAmount by remember { mutableIntStateOf(rechargeOptions.firstOrNull() ?: 100) }
 
     Scaffold(
         topBar = {
@@ -220,9 +227,9 @@ fun SuperWalletScreen(
                         val bonus = (selectedAmount * offerPercent / 100).toInt()
                         Text("+$currencySymbol$bonus", color = pinkDeep, fontWeight = FontWeight.Bold)
                     }
-                    val gstPercent = if (isUsd) 0.0 else 0.18
+                    val gstPercent = if (isDomestic) 0.18 else 0.0
                     val gst = (selectedAmount * gstPercent).toInt()
-                    if (!isUsd) {
+                    if (isDomestic) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("GST (18%)", color = Color.Gray)
@@ -252,8 +259,6 @@ fun SuperWalletScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = pinkDeep)
             ) {
                 val totalCredit = selectedAmount + (selectedAmount * offerPercent / 100).toInt()
-                val gstPercent = if (isUsd) 0.0 else 0.18
-                val gst = (selectedAmount * gstPercent).toInt()
                 val totalPayable = selectedAmount + gst
 
                 Text("PAY $currencySymbol$totalPayable & GET $currencySymbol$totalCredit", fontWeight = FontWeight.Bold, fontSize = 16.sp)

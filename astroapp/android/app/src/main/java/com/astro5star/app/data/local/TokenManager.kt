@@ -116,10 +116,14 @@ class TokenManager(context: Context) {
     }
 
     fun getUserCurrencySymbol(): String {
-        return getUserSession()?.currencySymbol ?: if (getUserCurrency() == "USD") "$" else "₹"
+        return getUserSession()?.currencySymbol ?: com.astro5star.app.utils.CurrencyHelper.getSymbol(getUserCurrency())
     }
 
     fun isUsdUser(): Boolean {
         return getUserCurrency() == "USD"
+    }
+
+    fun isInternationalUser(): Boolean {
+        return getUserCurrency() != "INR"
     }
 }

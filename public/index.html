@@ -4248,14 +4248,16 @@
 
     function getCurrencySymbol() {
       if (state.me && state.me.currencySymbol) return state.me.currencySymbol;
-      if (state.me && state.me.currency === 'USD') return '$';
-      const stored = localStorage.getItem('userCurrencySymbol');
-      if (stored) return stored;
-      const storedCur = localStorage.getItem('userCurrency');
+      const storedSym = localStorage.getItem('userCurrencySymbol');
+      if (storedSym) return storedSym;
+      const storedCur = ((state.me && state.me.currency) || localStorage.getItem('userCurrency') || 'INR').toUpperCase();
       if (storedCur === 'USD') return '$';
+      if (storedCur === 'LKR') return 'Rs';
       if (storedCur === 'GBP') return '£';
       if (storedCur === 'SGD') return 'S$';
       if (storedCur === 'MYR') return 'RM';
+      if (storedCur === 'AED') return 'AED';
+      if (storedCur === 'AUD') return 'A$';
       return '₹';
     }
 
@@ -4275,6 +4277,8 @@
       let amounts = [100, 500, 1000, 2000];
       if (cur === 'USD') {
         amounts = [2, 5, 10, 25, 50];
+      } else if (cur === 'LKR') {
+        amounts = [500, 1000, 2500, 5000, 10000];
       } else if (cur === 'GBP') {
         amounts = [2, 5, 10, 20, 50];
       } else if (cur === 'SGD' || cur === 'AUD' || cur === 'CAD') {

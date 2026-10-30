@@ -586,6 +586,12 @@ const verifyOtp = async (req, res) => {
             if (SYSTEM_RULES && SYSTEM_RULES.ENABLE_WELCOME_BONUS !== false) {
                 if (expectedCurrency === 'USD') {
                     initialBonus = 1.50; // $1.50 for USD users
+                } else if (expectedCurrency === 'LKR') {
+                    initialBonus = 385; // Rs 385 for LKR users (~₹108 equivalent)
+                } else if (expectedCurrency === 'SGD') {
+                    initialBonus = 2.0;
+                } else if (expectedCurrency === 'MYR') {
+                    initialBonus = 7.0;
                 } else {
                     initialBonus = REFERRAL_CONFIG.INITIAL_BONUS_AMOUNT || 108;
                 }
@@ -596,7 +602,16 @@ const verifyOtp = async (req, res) => {
                 const referrer = await User.findOne({ referralCode: referralCode.toUpperCase() });
                 if (referrer) {
                     referredBy = referrer.userId;
-                    const rewardAmount = referrer.currency === 'USD' ? 0.60 : (REFERRAL_CONFIG.REFERRER_REWARD || 50);
+                    let rewardAmount = REFERRAL_CONFIG.REFERRER_REWARD || 50;
+                    if (referrer.currency === 'USD') {
+                        rewardAmount = 0.60;
+                    } else if (referrer.currency === 'LKR') {
+                        rewardAmount = 180; // Rs 180 in LKR (~₹50 equivalent)
+                    } else if (referrer.currency === 'SGD') {
+                        rewardAmount = 1.0;
+                    } else if (referrer.currency === 'MYR') {
+                        rewardAmount = 3.5;
+                    }
                     await User.updateOne(
                         { userId: referrer.userId },
                         { $inc: { superWalletBalance: rewardAmount, referralCount: 1 } }
@@ -641,9 +656,12 @@ const verifyOtp = async (req, res) => {
                 needsSave = true;
             }
 
-            // If an international user had an unadjusted INR welcome bonus of 108, normalize it to $1.50
+            // If an international user had an unadjusted INR welcome bonus of 108, normalize it
             if (expectedCurrency === 'USD' && user.walletBalance === 108) {
                 user.walletBalance = 1.50;
+                needsSave = true;
+            } else if (expectedCurrency === 'LKR' && user.walletBalance === 108) {
+                user.walletBalance = 385;
                 needsSave = true;
             }
 

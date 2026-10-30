@@ -238,11 +238,11 @@ class PaymentActivity : AppCompatActivity() {
             showError("User not logged in")
             return
         }
-        val isUsd = tokenManager.isUsdUser()
+        val isInternational = tokenManager.isInternationalUser()
         val userCurrency = tokenManager.getUserCurrency()
 
-        if (isUsd) {
-            // Route USD/international users directly to Razorpay Multi-Currency Checkout
+        if (isInternational) {
+            // Route all international users (LKR, USD, SGD, MYR, etc.) directly to Razorpay Multi-Currency Checkout
             val paymentPageUrl = "$SERVER_URL/razorpay-checkout.html?userId=$userId&amount=$amount&currency=$userCurrency&isApp=true"
             Log.d(TAG, "Opening Razorpay Multi-Currency Checkout in WebView: $paymentPageUrl")
 

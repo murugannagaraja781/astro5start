@@ -378,47 +378,60 @@ function getRechargePackages(currency = 'INR') {
     const cur = String(currency).toUpperCase();
     if (cur === 'USD') {
         return [
-            { id: 'usd_2', amount: 2, talktime: 2, bonus: 0 },
-            { id: 'usd_5', amount: 5, talktime: 5, bonus: 0 },
-            { id: 'usd_10', amount: 10, talktime: 11, bonus: 1, tag: 'Popular' },
-            { id: 'usd_25', amount: 25, talktime: 28, bonus: 3, tag: 'Best Value' },
-            { id: 'usd_50', amount: 50, talktime: 60, bonus: 10 },
-            { id: 'usd_100', amount: 100, talktime: 125, bonus: 25 }
+            { id: 'usd_5', amount: 5, talktime: 5, bonus: 0, percentage: 0.0, offerPercentage: 0.0, bonusText: "Get $5 Talktime" },
+            { id: 'usd_10', amount: 10, talktime: 11, bonus: 1, percentage: 10.0, offerPercentage: 10.0, bonusText: "Get 10% Extra ($1 Bonus)", tag: 'Popular' },
+            { id: 'usd_25', amount: 25, talktime: 28, bonus: 3, percentage: 12.0, offerPercentage: 12.0, bonusText: "Get 12% Extra ($3 Bonus)", tag: 'Best Value' },
+            { id: 'usd_50', amount: 50, talktime: 60, bonus: 10, percentage: 20.0, offerPercentage: 20.0, bonusText: "Get 20% Extra ($10 Bonus)" },
+            { id: 'usd_100', amount: 100, talktime: 125, bonus: 25, percentage: 25.0, offerPercentage: 25.0, bonusText: "Get 25% Extra ($25 Bonus)" }
         ];
     } else if (cur === 'SGD') {
         return [
-            { id: 'sgd_5', amount: 5, talktime: 5, bonus: 0 },
-            { id: 'sgd_10', amount: 10, talktime: 10, bonus: 0 },
-            { id: 'sgd_20', amount: 20, talktime: 22, bonus: 2, tag: 'Popular' },
-            { id: 'sgd_50', amount: 50, talktime: 58, bonus: 8, tag: 'Best Value' },
-            { id: 'sgd_100', amount: 100, talktime: 120, bonus: 20 }
+            { id: 'sgd_10', amount: 10, talktime: 10, bonus: 0, percentage: 0.0, offerPercentage: 0.0, bonusText: "Get S$10 Talktime" },
+            { id: 'sgd_20', amount: 20, talktime: 22, bonus: 2, percentage: 10.0, offerPercentage: 10.0, bonusText: "Get 10% Extra (S$2 Bonus)", tag: 'Popular' },
+            { id: 'sgd_50', amount: 50, talktime: 58, bonus: 8, percentage: 16.0, offerPercentage: 16.0, bonusText: "Get 16% Extra (S$8 Bonus)", tag: 'Best Value' },
+            { id: 'sgd_100', amount: 100, talktime: 120, bonus: 20, percentage: 20.0, offerPercentage: 20.0, bonusText: "Get 20% Extra (S$20 Bonus)" }
         ];
     } else if (cur === 'MYR') {
         return [
-            { id: 'myr_10', amount: 10, talktime: 10, bonus: 0 },
-            { id: 'myr_20', amount: 20, talktime: 20, bonus: 0 },
-            { id: 'myr_50', amount: 50, talktime: 55, bonus: 5, tag: 'Popular' },
-            { id: 'myr_100', amount: 100, talktime: 115, bonus: 15, tag: 'Best Value' },
-            { id: 'myr_200', amount: 200, talktime: 240, bonus: 40 }
+            { id: 'myr_20', amount: 20, talktime: 20, bonus: 0, percentage: 0.0, offerPercentage: 0.0, bonusText: "Get RM 20 Talktime" },
+            { id: 'myr_50', amount: 50, talktime: 55, bonus: 5, percentage: 10.0, offerPercentage: 10.0, bonusText: "Get 10% Extra (RM 5 Bonus)", tag: 'Popular' },
+            { id: 'myr_100', amount: 100, talktime: 115, bonus: 15, percentage: 15.0, offerPercentage: 15.0, bonusText: "Get 15% Extra (RM 15 Bonus)", tag: 'Best Value' },
+            { id: 'myr_200', amount: 200, talktime: 240, bonus: 40, percentage: 20.0, offerPercentage: 20.0, bonusText: "Get 20% Extra (RM 40 Bonus)" }
         ];
     } else if (cur === 'LKR') {
         return [
-            { id: 'lkr_500', amount: 500, talktime: 500, bonus: 0 },
-            { id: 'lkr_1000', amount: 1000, talktime: 1000, bonus: 0 },
-            { id: 'lkr_2500', amount: 2500, talktime: 2750, bonus: 250, tag: 'Popular' },
-            { id: 'lkr_5000', amount: 5000, talktime: 5750, bonus: 750, tag: 'Best Value' },
-            { id: 'lkr_10000', amount: 10000, talktime: 12000, bonus: 2000 }
+            { id: 'lkr_500', amount: 500, talktime: 500, bonus: 0, percentage: 0.0, offerPercentage: 0.0, bonusText: "Get Rs 500 Talktime" },
+            { id: 'lkr_1000', amount: 1000, talktime: 1000, bonus: 0, percentage: 0.0, offerPercentage: 0.0, bonusText: "Get Rs 1000 Talktime" },
+            { id: 'lkr_2500', amount: 2500, talktime: 2750, bonus: 250, percentage: 10.0, offerPercentage: 10.0, bonusText: "Get 10% Extra (Rs 250 Bonus)", tag: 'Popular' },
+            { id: 'lkr_5000', amount: 5000, talktime: 5750, bonus: 750, percentage: 15.0, offerPercentage: 15.0, bonusText: "Get 15% Extra (Rs 750 Bonus)", tag: 'Best Value' },
+            { id: 'lkr_10000', amount: 10000, talktime: 12000, bonus: 2000, percentage: 20.0, offerPercentage: 20.0, bonusText: "Get 20% Extra (Rs 2000 Bonus)" }
         ];
     }
 
-    // Default INR packages
+    // Default INR packages from sharedState if available
+    try {
+        const { RECHARGE_PACKS } = require('../services/sharedState');
+        if (Array.isArray(RECHARGE_PACKS) && RECHARGE_PACKS.length > 0) {
+            return RECHARGE_PACKS.map(p => ({
+                id: `inr_${p.amount}`,
+                amount: p.amount,
+                talktime: p.amount,
+                bonus: Math.round(p.amount * ((p.percentage || 0) / 100)),
+                percentage: p.percentage || 0.0,
+                offerPercentage: p.percentage || 0.0,
+                bonusText: p.bonusText || `Get ${p.percentage}% Extra`
+            }));
+        }
+    } catch (e) {}
+
+    // Fallback INR packages
     return [
-        { id: 'inr_100', amount: 100, talktime: 100, bonus: 0 },
-        { id: 'inr_250', amount: 250, talktime: 250, bonus: 0 },
-        { id: 'inr_500', amount: 500, talktime: 550, bonus: 50, tag: 'Popular' },
-        { id: 'inr_1000', amount: 1000, talktime: 1150, bonus: 150, tag: 'Best Value' },
-        { id: 'inr_2000', amount: 2000, talktime: 2400, bonus: 400 },
-        { id: 'inr_5000', amount: 5000, talktime: 6250, bonus: 1250 }
+        { id: 'inr_100', amount: 100, talktime: 100, bonus: 5, percentage: 5.0, offerPercentage: 5.0, bonusText: "Get 5% Extra" },
+        { id: 'inr_200', amount: 200, talktime: 200, bonus: 20, percentage: 10.0, offerPercentage: 10.0, bonusText: "Get 10% Extra" },
+        { id: 'inr_500', amount: 500, talktime: 550, bonus: 50, percentage: 10.0, offerPercentage: 10.0, bonusText: "Get 10% Extra", tag: 'Popular' },
+        { id: 'inr_1000', amount: 1000, talktime: 1100, bonus: 100, percentage: 10.0, offerPercentage: 10.0, bonusText: "Get 10% Extra", tag: 'Best Value' },
+        { id: 'inr_2000', amount: 2000, talktime: 2300, bonus: 300, percentage: 15.0, offerPercentage: 15.0, bonusText: "Get 15% Extra" },
+        { id: 'inr_5000', amount: 5000, talktime: 6000, bonus: 1000, percentage: 20.0, offerPercentage: 20.0, bonusText: "Get 20% Extra" }
     ];
 }
 
